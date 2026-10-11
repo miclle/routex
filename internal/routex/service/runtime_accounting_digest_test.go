@@ -163,6 +163,9 @@ func TestRuntimeAccountingActivationPreservesPreparedDispatch(t *testing.T) {
 			}))
 			defer server.Close()
 			svc, data, bearer := runtimeFixture(t, server.URL+"/v1")
+			data.TeamSessionData = &teamSessionRuntimeData{
+				AuthenticationPolicy: entity.GovernanceSetting{ID: 1, AuthenticationPolicyRevision: strings.Repeat("0", 64)},
+			}
 			defer svc.upstream.CloseIdleConnections()
 			defer func() { closeRuntimeClients(svc.runtime.routes.Load().Models) }()
 			birth := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
@@ -346,6 +349,9 @@ func TestRuntimeRouteDigestKeepsQuotaSecurityInputs(t *testing.T) {
 
 func TestRuntimeRouteDigestAccountingMetadataAndAuthorization(t *testing.T) {
 	svc, data, _ := runtimeFixture(t, "http://127.0.0.1")
+	data.TeamSessionData = &teamSessionRuntimeData{
+		AuthenticationPolicy: entity.GovernanceSetting{ID: 1, AuthenticationPolicyRevision: strings.Repeat("0", 64)},
+	}
 	defer func() { closeRuntimeClients(svc.runtime.routes.Load().Models) }()
 	digest := accountingRouteDigest(t, data)
 	auth := buildRuntimeAuthorization(data, time.Now().Add(time.Minute))

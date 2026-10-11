@@ -39,28 +39,9 @@ func NewCertificateClient(allowPrivate bool, certificatePEM, keyPEM, serverCAPEM
 	if err != nil {
 		return nil, errCertificate
 	}
-	var roots *x509.CertPool
-	if len(caBytes) != 0 {
-		roots = x509.NewCertPool()
-		remaining := bytes.TrimSpace(caBytes)
-		if len(remaining) == 0 {
-			return nil, errCertificate
-		}
-		for len(remaining) != 0 {
-			if !bytes.HasPrefix(remaining, []byte("-----BEGIN CERTIFICATE-----")) {
-				return nil, errCertificate
-			}
-			block, rest := firstPEMBlock(remaining)
-			if block == nil || block.Type != "CERTIFICATE" || len(block.Headers) != 0 {
-				return nil, errCertificate
-			}
-			ca, err := x509.ParseCertificate(block.Bytes)
-			if err != nil || !ca.BasicConstraintsValid || !ca.IsCA {
-				return nil, errCertificate
-			}
-			roots.AddCert(ca)
-			remaining = bytes.TrimSpace(rest)
-		}
+	roots, err := certificateServerRoots(caBytes)
+	if err != nil {
+		return nil, err
 	}
 	client := NewNonReplayingClient(allowPrivate)
 	transport := client.Transport.(*policyTransport)
@@ -117,4 +98,50 @@ func firstPEMBlock(raw []byte) (*pem.Block, []byte) {
 		return nil, nil
 	}
 	return block, rest
+}
+
+// NewServerCAClient is an HTTPS-only guarded client without a client identity.
+// Explicit trust is operation-local; empty trust uses the system roots.
+func NewServerCAClient(allowPrivate bool, serverCAPEM []byte) (*http.Client, error) {
+	if len(serverCAPEM) > maxCertificatePEMBytes {
+		return nil, errCertificate
+	}
+	owned := append([]byte(nil), serverCAPEM...)
+	defer clear(owned)
+	roots, err := certificateServerRoots(owned)
+	if err != nil {
+		return nil, err
+	}
+	client := NewNonReplayingClient(allowPrivate)
+	transport := client.Transport.(*policyTransport)
+	transport.httpsOnly = true
+	transport.base.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: roots}
+	return client, nil
+}
+
+func certificateServerRoots(caBytes []byte) (*x509.CertPool, error) {
+	var roots *x509.CertPool
+	if len(caBytes) != 0 {
+		roots = x509.NewCertPool()
+		remaining := bytes.TrimSpace(caBytes)
+		if len(remaining) == 0 {
+			return nil, errCertificate
+		}
+		for len(remaining) != 0 {
+			if !bytes.HasPrefix(remaining, []byte("-----BEGIN CERTIFICATE-----")) {
+				return nil, errCertificate
+			}
+			block, rest := firstPEMBlock(remaining)
+			if block == nil || block.Type != "CERTIFICATE" || len(block.Headers) != 0 {
+				return nil, errCertificate
+			}
+			ca, err := x509.ParseCertificate(block.Bytes)
+			if err != nil || !ca.BasicConstraintsValid || !ca.IsCA {
+				return nil, errCertificate
+			}
+			roots.AddCert(ca)
+			remaining = bytes.TrimSpace(rest)
+		}
+	}
+	return roots, nil
 }

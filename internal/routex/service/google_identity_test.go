@@ -93,6 +93,7 @@ func TestGoogleFixedNamespaceDerivationAndRootCoverage(t *testing.T) {
 	}
 }
 func TestGoogleRuntimeExactSevenProofAndIndependentTombstones(t *testing.T) {
+	tx := authenticationProofPolicyDB(t)
 	birth := time.Date(2026, 10, 10, 0, 0, 0, 0, time.UTC)
 	config, policy := strings.Repeat("a", 64), strings.Repeat("b", 64)
 	u := entity.User{ID: "usr_exact", CreatedAt: birth}
@@ -147,10 +148,10 @@ func TestGoogleRuntimeExactSevenProofAndIndependentTombstones(t *testing.T) {
 	if !rt.runtimeNamedIdentitySessionDenied(google) || rt.runtimeNamedIdentitySessionDenied(github) {
 		t.Fatal("profile fence collision")
 	}
-	if !errors.Is(primaryValidateSession(nil, entity.Session{PrimaryMethod: "google", NamedIdentityProviderID: "github", NamedIdentityProfileID: githubProfileID}), apperrors.ErrUnauthorized) {
+	if !errors.Is(primaryValidateSession(tx, entity.Session{PrimaryMethod: "google", NamedIdentityProviderID: "github", NamedIdentityProfileID: githubProfileID}), apperrors.ErrUnauthorized) {
 		t.Fatal("method/profile downgrade")
 	}
-	if !errors.Is(primaryValidateChallenge(nil, entity.MFAChallenge{PrimaryMethod: "google"}), apperrors.ErrUnauthorized) {
+	if !errors.Is(primaryValidateChallenge(tx, entity.MFAChallenge{PrimaryMethod: "google"}), apperrors.ErrUnauthorized) {
 		t.Fatal("incomplete native MFA")
 	}
 }

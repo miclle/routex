@@ -232,6 +232,12 @@ func testDiscordMigration(t *testing.T, db *gorm.DB) {
 	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 	defer cancel()
 	db = db.WithContext(ctx)
+	// The finite V103 peel removes only these emergency-proof columns.
+	// Retain every historical primary field until full-head restoration below.
+	historicalPrimary := func(tx *gorm.DB) *gorm.DB {
+		return tx.Omit("EmergencyPolicyRevision", "EmergencyUserCreatedAt", "EmergencyMFAGeneration", "EmergencyPasswordDigest", "EmergencyFactorCompletedAt")
+	}
+	legacyForcedSSOBeforeV102(t, db)
 	current102 := personalKeyBehaviorLedger(t, db)
 	if len(current102) != 102 || deliveryPristineV102(db) != nil {
 		t.Fatal("pristine exact current102 prerequisite")
@@ -302,7 +308,7 @@ func testDiscordMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	githubBefore, googleBefore := readProvider("github"), readProvider("google")
-	for _, bound := range []int{0, -1, 100, 103} {
+	for _, bound := range []int{0, -1, 100, 106} {
 		if database.MigrateThrough(ctx, db, bound) == nil || !reflect.DeepEqual(original, personalKeyBehaviorLedger(t, db)) {
 			t.Fatal("invalid/newer bound admitted", bound)
 		}
@@ -335,12 +341,12 @@ func testDiscordMigration(t *testing.T, db *gorm.DB) {
 				}
 				if kind == "session" {
 					row := entity.Session{ID: "ses_discord_dirty", UserID: u.ID, TokenHash: strings.Repeat("d", 64), ExpiresAt: dirtyBirth.Add(time.Minute), PrimaryMethod: "discord", NamedIdentityProviderID: "discord", NamedIdentityProfileID: discordFixtureProfile, NamedIdentityBindingID: "nib_discord_dirty", NamedIdentityBindingCreatedAt: &dirtyBirth, NamedIdentityConfigRevision: strings.Repeat("a", 64), NamedIdentityPolicyRevision: strings.Repeat("b", 64), NamedIdentityUserCreatedAt: &u.CreatedAt}
-					if tx.Create(&row).Error != nil {
+					if historicalPrimary(tx).Create(&row).Error != nil {
 						t.Fatal("dirty Session")
 					}
 				} else {
 					row := entity.MFAChallenge{UserID: u.ID, Purpose: "login", TokenHash: strings.Repeat("d", 64), PasswordDigest: strings.Repeat("a", 64), Generation: strings.Repeat("b", 64), ExpiresAt: dirtyBirth.Add(time.Minute), PrimaryMethod: "discord", NamedIdentityProviderID: "discord", NamedIdentityProfileID: discordFixtureProfile, NamedIdentityBindingID: "nib_discord_dirty", NamedIdentityBindingCreatedAt: &dirtyBirth, NamedIdentityConfigRevision: strings.Repeat("a", 64), NamedIdentityPolicyRevision: strings.Repeat("b", 64), NamedIdentityUserCreatedAt: &u.CreatedAt}
-					if tx.Create(&row).Error != nil {
+					if historicalPrimary(tx).Create(&row).Error != nil {
 						t.Fatal("dirty MFA")
 					}
 				}
@@ -459,10 +465,10 @@ func testDiscordMigration(t *testing.T, db *gorm.DB) {
 			c.NamedIdentityUserCreatedAt = &user.CreatedAt
 
 		}
-		if db.Create(&row).Error != nil || db.Create(&c).Error != nil {
+		if historicalPrimary(db).Create(&row).Error != nil || historicalPrimary(db).Create(&c).Error != nil {
 			t.Fatal("retained primary positive", method)
 		}
-		if db.Session(&gorm.Session{QueryFields: true}).Take(&row, "id = ?", row.ID).Error != nil || db.Session(&gorm.Session{QueryFields: true}).Take(&c, "user_id = ? AND purpose = ?", user.ID, "login").Error != nil {
+		if historicalPrimary(db).Session(&gorm.Session{QueryFields: true}).Take(&row, "id = ?", row.ID).Error != nil || historicalPrimary(db).Session(&gorm.Session{QueryFields: true}).Take(&c, "user_id = ? AND purpose = ?", user.ID, "login").Error != nil {
 			t.Fatal("capture retained rows")
 		}
 		sessions = append(sessions, row)
@@ -473,7 +479,7 @@ func testDiscordMigration(t *testing.T, db *gorm.DB) {
 		for i, want := range sessions {
 			var got entity.Session
 			var c entity.MFAChallenge
-			if db.Session(&gorm.Session{QueryFields: true}).Take(&got, "id = ?", want.ID).Error != nil || db.Session(&gorm.Session{QueryFields: true}).Take(&c, "user_id = ? AND purpose = ?", challenges[i].UserID, "login").Error != nil || !reflect.DeepEqual(got, want) || !reflect.DeepEqual(c, challenges[i]) {
+			if historicalPrimary(db).Session(&gorm.Session{QueryFields: true}).Take(&got, "id = ?", want.ID).Error != nil || historicalPrimary(db).Session(&gorm.Session{QueryFields: true}).Take(&c, "user_id = ? AND purpose = ?", challenges[i].UserID, "login").Error != nil || !reflect.DeepEqual(got, want) || !reflect.DeepEqual(c, challenges[i]) {
 				t.Fatal("retained exact primary changed", i)
 			}
 		}
@@ -716,7 +722,7 @@ func testDiscordMigration(t *testing.T, db *gorm.DB) {
 			if target.table == "mfa_challenges" {
 				before = &entity.MFAChallenge{}
 			}
-			if db.Table(target.table).Session(&gorm.Session{QueryFields: true}).Where(target.where, target.args...).Take(before).Error != nil {
+			if historicalPrimary(db).Table(target.table).Session(&gorm.Session{QueryFields: true}).Where(target.where, target.args...).Take(before).Error != nil {
 				t.Fatal("capture complete primary", target.table)
 			}
 			if db.Transaction(func(tx *gorm.DB) error {
@@ -725,7 +731,7 @@ func testDiscordMigration(t *testing.T, db *gorm.DB) {
 				t.Fatal("Discord admitted mixed/partial primary", target.table)
 			}
 			after := reflect.New(reflect.TypeOf(before).Elem()).Interface()
-			if db.Table(target.table).Session(&gorm.Session{QueryFields: true}).Where(target.where, target.args...).Take(after).Error != nil || !reflect.DeepEqual(before, after) {
+			if historicalPrimary(db).Table(target.table).Session(&gorm.Session{QueryFields: true}).Where(target.where, target.args...).Take(after).Error != nil || !reflect.DeepEqual(before, after) {
 				t.Fatal("failed primary changed complete stored row", target.table)
 			}
 
@@ -754,11 +760,14 @@ func testDiscordMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal("exact immediate pre102 prefix")
 	}
 	if err := database.Migrate(ctx, db); err != nil {
-		t.Fatal("restore full V102", err)
+		t.Fatal("restore full V103", err)
 	}
+
+	// Current-head reads also verify the five newly added fields remain empty.
+	historicalPrimary = func(tx *gorm.DB) *gorm.DB { return tx }
 	after102 := personalKeyBehaviorLedger(t, db)
-	if len(after102) != 102 || after102[101].Version != 102 || !reflect.DeepEqual(before102, after102[:101]) {
-		t.Fatal("V102 restoration changed historical101 receipts")
+	if len(after102) != 105 || after102[104].Version != 105 || after102[103].Version != 104 || after102[102].Version != 103 || after102[101].Version != 102 || !reflect.DeepEqual(before102, after102[:101]) {
+		t.Fatal("V103 restoration changed historical101 receipts")
 	}
 	retained()
 }
@@ -924,6 +933,7 @@ func deliveryPristineV102(db *gorm.DB) error {
 }
 func legacyDeliveryBeforeV101(t *testing.T, db *gorm.DB) {
 	t.Helper()
+	legacyForcedSSOBeforeV102(t, db)
 	rows := personalKeyBehaviorLedger(t, db)
 	if err := deliveryPristineV102(db); err != nil {
 		t.Fatal("pristine V102 rewind", err)

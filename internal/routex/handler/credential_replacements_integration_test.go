@@ -30,6 +30,22 @@ import (
 
 func testCredentialReplacementLifecycle(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
+	// Register before Service workers; receipt failures persist while armed.
+	var rollbackArmed atomic.Bool
+	rollback := "test:replacement_receipt_rollback"
+	if err := db.Callback().Create().After("gorm:create").Register(rollback, func(tx *gorm.DB) {
+		if rollbackArmed.Load() && tx.Statement.Table == "credential_replacement_receipts" {
+			_ = tx.AddError(errors.New("test-only receipt rollback"))
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		rollbackArmed.Store(false)
+		if err := db.Callback().Create().Remove(rollback); err != nil {
+			t.Error(err)
+		}
+	}()
 	store, err := secretstore.New(bytes.Repeat([]byte{77}, 32))
 	if err != nil {
 		t.Fatal(err)
@@ -105,14 +121,14 @@ func testCredentialReplacementLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal(err)
 		}
 	}
+	// Register shutdown before either worker can start.
+	defer func() { svc.StopRuntime(); _ = svc.StopCallRecorder() }()
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	defer svc.StopRuntime() // Join even if recorder startup fails.
 	if err := svc.StartCallRecorder(ctx, filepath.Join(t.TempDir(), "replacement.db")); err != nil {
 		t.Fatal(err)
 	}
-	defer func() { svc.StopRuntime(); _ = svc.StopCallRecorder() }()
 	path := "/api/v1/admin/credentials/" + source.ID + "/replacements"
 	input := service.CredentialReplacementInput{RequestID: "87b043bb-cb96-419c-b9a2-cab04814b65e", Name: "Replacement", Secret: "test-only-replacement-secret", Reason: "Reviewed staged preparation"}
 	request := func(target, raw, etag string, cookie *http.Cookie, csrf, origin string) *httptest.ResponseRecorder {
@@ -215,18 +231,9 @@ func testCredentialReplacementLifecycle(t *testing.T, db *gorm.DB) {
 	if _, _, err := withoutStore.CreateCredentialReplacement(ctx, writer.User.ID, source.ID, metadata.ETag, input); err == nil {
 		t.Fatal("preparation without secret storage accepted")
 	}
-	rollback := "test:replacement_receipt_rollback"
-	if err := db.Callback().Create().After("gorm:create").Register(rollback, func(tx *gorm.DB) {
-		if tx.Statement.Table == "credential_replacement_receipts" {
-			_ = tx.AddError(errors.New("test-only receipt rollback"))
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
+	rollbackArmed.Store(true)
 	expectStatus(t, prepare(input, metadata.ETag), 500)
-	if err := db.Callback().Create().Remove(rollback); err != nil {
-		t.Fatal(err)
-	}
+	rollbackArmed.Store(false)
 	if count(&entity.ProviderCredential{}, "connection_id = ?", connection.ID) != 1 || count(&entity.CredentialReplacementReceipt{}, "request_id = ?", input.RequestID) != 0 || count(&entity.AuditEvent{}, "action = ?", "credential.replacement.create") != 0 {
 		t.Fatal("failed receipt left partial replacement creation")
 	}

@@ -419,16 +419,21 @@ func (p *deliveryFixturePeer) holdNext(t *testing.T) *deliveryFixtureHold {
 }
 
 type deliveryFixture struct {
-	t        *testing.T
-	db       *gorm.DB
-	svc      *service.Service
-	router   *fox.Engine
-	store    *secretstore.Store
-	peer     *deliveryFixturePeer
-	admin    deliveryFixtureActor
-	seq      atomic.Uint64
-	stopped  map[*service.Service]bool
-	unproven map[*service.Service]bool
+	t                             *testing.T
+	db                            *gorm.DB
+	svc                           *service.Service
+	router                        *fox.Engine
+	store                         *secretstore.Store
+	peer                          *deliveryFixturePeer
+	admin                         deliveryFixtureActor
+	seq                           atomic.Uint64
+	stopped                       map[*service.Service]bool
+	unproven                      map[*service.Service]bool
+	publicationFailureArmed       atomic.Bool
+	publicationFailureObserved    atomic.Bool
+	ackPersistenceFailureArmed    atomic.Bool
+	ackPersistenceFailureObserved atomic.Bool
+	managedBirth                  atomic.Pointer[deliveryFixtureManagedBirthTarget]
 }
 
 func (f *deliveryFixture) uuid() string {
@@ -514,9 +519,6 @@ func (f *deliveryFixture) context(a deliveryFixtureActor, base string) service.A
 }
 func (f *deliveryFixture) start(s *service.Service, name string) {
 	f.t.Helper()
-	if e := s.StartSystemInstance(f.t.Context(), service.SystemInstanceMetadata{Name: name, Hostname: "delivery.invalid", Version: "test", GoVersion: "test", OS: "test", Arch: "test"}); e != nil {
-		f.t.Fatal(e)
-	}
 	f.t.Cleanup(func() {
 		s.StopRuntime()
 		if !f.stopped[s] {
@@ -531,6 +533,9 @@ func (f *deliveryFixture) start(s *service.Service, name string) {
 			}
 		}
 	})
+	if e := s.StartSystemInstance(f.t.Context(), service.SystemInstanceMetadata{Name: name, Hostname: "delivery.invalid", Version: "test", GoVersion: "test", OS: "test", Arch: "test"}); e != nil {
+		f.t.Fatal(e)
+	}
 }
 func (f *deliveryFixture) stop(s *service.Service) error {
 	s.StopRuntime()
@@ -565,6 +570,26 @@ func newDeliveryFixture(t *testing.T, db *gorm.DB) *deliveryFixture {
 		t.Fatal(e)
 	}
 	f := &deliveryFixture{t: t, db: db, store: store, stopped: map[*service.Service]bool{}, unproven: map[*service.Service]bool{}}
+	// Install fault callbacks before any Service or heartbeat starts. Live tests
+	// only arm one-shot atomic controls; they never mutate GORM callback slices.
+	if e := db.Callback().Query().Before("gorm:query").Register("test:delivery-runtime-publication-once", func(tx *gorm.DB) {
+		if tx.Statement.Schema != nil && tx.Statement.Schema.Table == "providers" && f.publicationFailureArmed.CompareAndSwap(true, false) {
+			f.publicationFailureObserved.Store(true)
+			_ = tx.AddError(errors.New("controlled runtime publication read outage"))
+		}
+	}); e != nil {
+		t.Fatal(e)
+	}
+	if e := db.Callback().Update().Before("gorm:update").Register("test:delivery-ack-persistence-once", func(tx *gorm.DB) {
+		binding, ok := tx.Statement.Dest.(*entity.APIKeyVaultDeliveryBinding)
+		if ok && binding.Version == 1 && binding.AcknowledgedAt != nil && f.ackPersistenceFailureArmed.CompareAndSwap(true, false) {
+			f.ackPersistenceFailureObserved.Store(true)
+			_ = tx.AddError(errors.New("controlled acknowledgement commit outage"))
+		}
+	}); e != nil {
+		t.Fatal(e)
+	}
+	f.installManagedBirthCallback()
 	f.peer = newDeliveryFixturePeer(t, db)
 	s := f.newService()
 	f.install(s)
@@ -657,18 +682,19 @@ func (f *deliveryFixture) catalog() {
 			f.t.Fatal(e)
 		}
 	}
-	if e := f.svc.StartRuntime(f.t.Context()); e != nil {
-		f.t.Fatal(e)
-	}
-	if e := f.svc.StartCallRecorder(f.t.Context(), filepath.Join(f.t.TempDir(), "delivery-calls.db")); e != nil {
-		f.t.Fatal(e)
-	}
 	s := f.svc
 	f.t.Cleanup(func() {
 		if e := s.StopCallRecorder(); e != nil {
 			f.t.Error(e)
 		}
 	})
+	if e := f.svc.StartRuntime(f.t.Context()); e != nil {
+		f.t.Fatal(e)
+	}
+	if e := f.svc.StartCallRecorder(f.t.Context(), filepath.Join(f.t.TempDir(), "delivery-calls.db")); e != nil {
+		f.t.Fatal(e)
+	}
+
 }
 func (f *deliveryFixture) native(bearer string) *httptest.ResponseRecorder {
 	req := httptest.NewRequestWithContext(f.t.Context(), "POST", "http://routex.test/v1/chat/completions", strings.NewReader(`{"model":"`+deliveryFixtureModelName+`","messages":[{"role":"user","content":"Delivery fixture"}]}`))
@@ -950,7 +976,7 @@ func testAPIKeyDeliveryLifecycle(t *testing.T, db *gorm.DB) {
 		in = f.input(target)
 		etag := f.context(f.admin, base).ReviewETag
 		before, _, _ := f.peer.counts()
-		assertBirth := deliveryFixtureManagedBirth(t, db, "personal", f.admin.Session.User.ID, f.admin.Session.User.ID)
+		assertBirth := deliveryFixtureManagedBirth(t, f, "personal", f.admin.Session.User.ID, f.admin.Session.User.ID)
 		first = f.managed(f.admin, base, etag, in, 201)
 		assertBirth(first.Key.ID)
 		if first.Key.Status != entity.KeyActive || first.Delivery.DeliveryStatus != "acknowledged" || first.Delivery.RuntimeStatus != "confirmed" || first.Delivery.Descriptor == nil {
@@ -1028,7 +1054,7 @@ func testAPIKeyDeliveryLifecycle(t *testing.T, db *gorm.DB) {
 		owned := f.ready(manager, projectBase, f.resolve(manager, projectBase, "project-production"))
 		before, _, _ := f.peer.counts()
 		expectStatus(t, f.request(outsider, "GET", projectBase+"/delivery-targets/"+owned.ID, "", nil), 404)
-		assertBirth := deliveryFixtureManagedBirth(t, db, "project", strings.TrimSuffix(strings.TrimPrefix(projectBase, "/api/v1/projects/"), "/keys"), manager.Session.User.ID)
+		assertBirth := deliveryFixtureManagedBirth(t, f, "project", strings.TrimSuffix(strings.TrimPrefix(projectBase, "/api/v1/projects/"), "/keys"), manager.Session.User.ID)
 		managed := f.managed(manager, projectBase, f.context(manager, projectBase).ReviewETag, f.input(owned), 201)
 		assertBirth(managed.Key.ID)
 		descriptor := deliveryFixtureDecode[deliveryFixtureDescriptor](t, f.request(successor, "GET", projectBase+"/"+managed.Key.ID+"/delivery-descriptor", "", nil), 200)
@@ -1189,24 +1215,10 @@ func testAPIKeyDeliveryRecovery(t *testing.T, db *gorm.DB) {
 		target := makeReady("publication-outage")
 		in := f.input(target)
 		etag := f.context(f.admin, base).ReviewETag
-		var armed, observed atomic.Bool
-		name := "test:delivery-runtime-publication-once"
-		registered := true
-		if e := db.Callback().Query().Before("gorm:query").Register(name, func(tx *gorm.DB) {
-			if tx.Statement.Schema != nil && tx.Statement.Schema.Table == "providers" && armed.CompareAndSwap(true, false) {
-				observed.Store(true)
-				_ = tx.AddError(errors.New("controlled runtime publication read outage"))
-			}
-		}); e != nil {
-			t.Fatal(e)
-		}
-		defer func() {
-			if registered {
-				if e := db.Callback().Query().Remove(name); e != nil {
-					t.Error(e)
-				}
-			}
-		}()
+		armed, observed := &f.publicationFailureArmed, &f.publicationFailureObserved
+		armed.Store(false)
+		observed.Store(false)
+		defer armed.Store(false)
 		f.peer.mu.Lock()
 		f.peer.acknowledge = func() { armed.Store(true) }
 		f.peer.mu.Unlock()
@@ -1219,10 +1231,7 @@ func testAPIKeyDeliveryRecovery(t *testing.T, db *gorm.DB) {
 		if c.AcknowledgedAt == nil || c.RevokedAt != nil || c.PublishedAt != nil {
 			t.Fatal("eligible acknowledgement was terminally revoked by publication outage")
 		}
-		if e := db.Callback().Query().Remove(name); e != nil {
-			t.Fatal(e)
-		}
-		registered = false
+		armed.Store(false)
 		fresh := f.login()
 		receipt := f.receipt(fresh, base, in.RequestID)
 		recovered := deliveryFixtureDecode[deliveryFixtureManaged](t, f.request(fresh, "POST", base+"/"+result.Key.ID+"/delivery-reconcile", receipt.ReviewETag, service.APIKeyDeliveryReconcileInput{RequestID: in.RequestID, Reason: "Publish original durable acknowledgement"}), 200)
@@ -1240,34 +1249,17 @@ func testAPIKeyDeliveryRecovery(t *testing.T, db *gorm.DB) {
 		target := makeReady("new-generation")
 		in := f.input(target)
 		etag := f.context(f.admin, base).ReviewETag
-		var failed atomic.Bool
-		name := "test:delivery-ack-persistence-once"
-		registered := true
-		if e := db.Callback().Update().Before("gorm:update").Register(name, func(tx *gorm.DB) {
-			binding, ok := tx.Statement.Dest.(*entity.APIKeyVaultDeliveryBinding)
-			if ok && binding.Version == 1 && binding.AcknowledgedAt != nil && failed.CompareAndSwap(false, true) {
-				_ = tx.AddError(errors.New("controlled acknowledgement commit outage"))
-			}
-		}); e != nil {
-			t.Fatal(e)
-		}
-		defer func() {
-			if registered {
-				if e := db.Callback().Update().Remove(name); e != nil {
-					t.Error(e)
-				}
-			}
-		}()
+		failed := &f.ackPersistenceFailureObserved
+		failed.Store(false)
+		f.ackPersistenceFailureArmed.Store(true)
+		defer f.ackPersistenceFailureArmed.Store(false)
 		before, _, _ := f.peer.counts()
 		expectStatus(t, f.request(f.admin, "POST", base+"/managed", etag, in), 503)
 		c := f.command(in.RequestID)
 		if !failed.Load() || c.DeliveryStatus != "pending" || c.ClaimedAt == nil || c.AcknowledgedAt != nil {
 			t.Fatal("missing genuine pre-Do claim after unavailable ack commit")
 		}
-		if e := db.Callback().Update().Remove(name); e != nil {
-			t.Fatal(e)
-		}
-		registered = false
+		f.ackPersistenceFailureArmed.Store(false)
 		original := f.svc
 		if e := f.stop(original); e != nil {
 			t.Fatal("original owned generation did not close", e)

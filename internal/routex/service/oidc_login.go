@@ -126,6 +126,9 @@ func (s *Service) CompleteOIDC(ctx context.Context, a *Authentication, cookie st
 		var u entity.User
 		var b entity.OIDCBinding
 		if c.Purpose == "login" {
+			if e := authenticationLoginAllowed(tx, "oidc"); e != nil {
+				return e
+			}
 			if a != nil {
 				return catalogConflict
 			}

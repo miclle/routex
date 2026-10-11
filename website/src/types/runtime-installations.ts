@@ -1,6 +1,6 @@
 export interface RuntimeInstallationRecord {
   id: string
-  projection_version: 1
+  projection_version: 1 | 2
   instance_id: string
   instance_started_at: string
   snapshot_id: string

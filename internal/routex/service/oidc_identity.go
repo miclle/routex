@@ -126,7 +126,7 @@ func oidcCurrentSession(tx *gorm.DB, a *Authentication, u entity.User, lock bool
 	if e != nil {
 		return e
 	}
-	if row.ID != a.Session.ID || row.UserID != u.ID || !row.CreatedAt.Equal(a.Session.CreatedAt) || row.TokenHash != secret.SHA256Hex(a.Token) || !row.ExpiresAt.After(time.Now().UTC()) {
+	if !authenticationSessionEqual(row, a.Session) || row.ID != a.Session.ID || row.UserID != u.ID || !row.CreatedAt.Equal(a.Session.CreatedAt) || row.TokenHash != secret.SHA256Hex(a.Token) || !row.ExpiresAt.After(time.Now().UTC()) {
 		return apperrors.ErrUnauthorized
 	}
 	return primaryValidateSession(tx, row)

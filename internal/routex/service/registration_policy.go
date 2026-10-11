@@ -80,10 +80,10 @@ func (s *Service) PublicRegistrationStatus(ctx context.Context) (*RegistrationSt
 	if err != nil {
 		return nil, err
 	}
-	if !setting.RegistrationEnabled || !initialized {
+	if !setting.RegistrationEnabled || setting.ForcedSSOEnabled || !initialized {
 		domains = []string{}
 	}
-	return &RegistrationStatus{AllowedEmailDomains: domains, Enabled: setting.RegistrationEnabled && initialized, ApprovalRequired: setting.RegistrationApprovalRequired}, nil
+	return &RegistrationStatus{AllowedEmailDomains: domains, Enabled: setting.RegistrationEnabled && !setting.ForcedSSOEnabled && initialized, ApprovalRequired: setting.RegistrationApprovalRequired}, nil
 }
 func (s *Service) GetRegistrationPolicy(ctx context.Context, actorID string) (*RegistrationPolicy, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -120,6 +120,9 @@ func (s *Service) mutateRegistrationPolicy(ctx context.Context, actorID, etag st
 		var v entity.GovernanceSetting
 		if err := tx.Session(&gorm.Session{NewDB: true}).Take(&v, 1).Error; err != nil {
 			return err
+		}
+		if v.ForcedSSOEnabled && in.Enabled {
+			return apperrors.ErrForbidden
 		}
 		if !validMemberRoleDigest(v.RegistrationPolicyRevision) {
 			return registrationApprovalUnavailable
@@ -182,6 +185,9 @@ func (s *Service) setRegistrationEnabledLegacy(ctx context.Context, actorID stri
 		}
 		if _, err := registrationStoredDomains(v.RegistrationAllowedEmailDomains); err != nil {
 			return err
+		}
+		if v.ForcedSSOEnabled && enabled {
+			return apperrors.ErrForbidden
 		}
 		if v.RegistrationEnabled == enabled {
 			return nil

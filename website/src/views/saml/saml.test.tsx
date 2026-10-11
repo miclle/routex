@@ -66,6 +66,18 @@ beforeEach(async () => {
   completionStatus = 200
   client.defaults.adapter = async (request) => {
     requests.push(request)
+    if (request.url === '/auth/policy')
+      return {
+        config: request,
+        status: 200,
+        statusText: '',
+        headers: new AxiosHeaders({
+          'Cache-Control': 'private, no-store',
+          'X-Content-Type-Options': 'nosniff',
+        }),
+        data: { enforced: false, password_login_enabled: true, emergency_entry_enabled: false },
+      }
+
     const path = request.url!
     if (held?.path === path && request.method !== 'get') await held.promise
     let status = failures[path] ?? 200,

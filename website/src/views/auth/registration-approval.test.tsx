@@ -78,6 +78,18 @@ beforeEach(async () => {
   response = { kind: 'approval_pending' }
   client.defaults.adapter = async (config) => {
     requests.push(config)
+    if (config.url === '/auth/policy')
+      return {
+        config: config,
+        status: 200,
+        statusText: '',
+        headers: new AxiosHeaders({
+          'Cache-Control': 'private, no-store',
+          'X-Content-Type-Options': 'nosniff',
+        }),
+        data: { enforced: false, password_login_enabled: true, emergency_entry_enabled: false },
+      }
+
     if (config.url === '/auth/registration') {
       await readPause
       if (policyStatus)

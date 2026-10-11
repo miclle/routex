@@ -12,6 +12,7 @@ import (
 
 	"github.com/miclle/routex/internal/routex/entity"
 	"github.com/miclle/routex/pkg/limits"
+	"github.com/miclle/routex/pkg/secret"
 )
 
 const projectionUser = "usr_00000000000000000000000001"
@@ -44,10 +45,11 @@ func projectionFixture(t *testing.T) *runtimeAuthorization {
 			Grants:   []entity.ProjectModelGrant{{ProjectID: projectionProject, ModelID: projectionModel}},
 		},
 		TeamSessionData: &teamSessionRuntimeData{
-			Sessions:    []entity.Session{{ID: "ses_one", UserID: projectionUser, TokenHash: strings.Repeat("c", 64), ExpiresAt: birth.Add(time.Hour)}},
-			Teams:       []entity.Team{{ID: projectionTeam, Status: entity.ResourceActive, CreatedAt: birth}},
-			Memberships: []entity.TeamMembership{{ID: "tmb_one", TeamID: projectionTeam, UserID: projectionUser, Status: entity.ResourceActive, Role: entity.TeamOwner}},
-			Grants:      []entity.TeamModelGrant{{TeamID: projectionTeam, ModelID: projectionModel}},
+			AuthenticationPolicy: entity.GovernanceSetting{AuthenticationPolicyRevision: strings.Repeat("0", 64)},
+			Sessions:             []entity.Session{{ID: "ses_one", UserID: projectionUser, TokenHash: strings.Repeat("c", 64), ExpiresAt: birth.Add(time.Hour)}},
+			Teams:                []entity.Team{{ID: projectionTeam, Status: entity.ResourceActive, CreatedAt: birth}},
+			Memberships:          []entity.TeamMembership{{ID: "tmb_one", TeamID: projectionTeam, UserID: projectionUser, Status: entity.ResourceActive, Role: entity.TeamOwner}},
+			Grants:               []entity.TeamModelGrant{{TeamID: projectionTeam, ModelID: projectionModel}},
 		},
 		Quota: &runtimeQuotaData{
 			Setting:   entity.QuotaSetting{ID: 1, TimeZone: "UTC", ETag: "0"},
@@ -61,6 +63,9 @@ func projectionFixture(t *testing.T) *runtimeAuthorization {
 	}
 	auth := buildRuntimeAuthorization(data, birth.Add(5*time.Second))
 	auth.SourceDigest = strings.Repeat("d", 64)
+	if auth.AuthenticationPolicy.Enforced || auth.AuthenticationPolicy.Revision != strings.Repeat("0", 64) || auth.AuthenticationPolicy.EmergencyAdminID != "" || auth.AuthenticationPolicy.EmergencyAdminCreatedAt != nil {
+		t.Fatal("builder lost real off policy")
+	}
 	if len(auth.Keys) != 2 || len(auth.TeamSessions) != 1 || len(auth.ProjectLimitOwners) != 1 {
 		t.Fatal("production builder omitted positive authority")
 	}
@@ -119,6 +124,7 @@ func TestRuntimeAuthorizationProjectionRealBuilderAndRootProof(t *testing.T) {
 func TestRuntimeAuthorizationProjectionEveryLogicalDomain(t *testing.T) {
 	baseline := projectionDigest(t, projectionFixture(t))
 	changes := map[string]func(*runtimeAuthorization){
+		"AuthenticationPolicy": func(a *runtimeAuthorization) { a.AuthenticationPolicy.Revision = strings.Repeat("1", 64) },
 		"Connections": func(a *runtimeAuthorization) {
 			v := a.Connections["con_one"]
 			v.Enabled = false
@@ -202,7 +208,7 @@ func TestRuntimeAuthorizationProjectionEveryLogicalDomain(t *testing.T) {
 			a.Teams[projectionTeam] = v
 		},
 	}
-	if len(changes) != 29 {
+	if len(changes) != 30 {
 		t.Fatal("logical domain control missing")
 	}
 	for name, change := range changes {
@@ -591,10 +597,10 @@ func projectionFieldParity(t *testing.T, value any, included, excluded string) {
 	}
 }
 func TestRuntimeAuthorizationProjectionClosedFieldParity(t *testing.T) {
-	// Closed original32 plus one explicitly excluded cache. A new unclassified
+	// Closed original32 plus AuthenticationPolicy and one excluded cache. A new unclassified
 	// field fails here; reflection never supplies production serialization.
 	projectionFieldParity(t, runtimeAuthorization{},
-		"Connections Providers PersonalGrantStates ModelEligibilityHashes PersonalKeyStates UserAdmissions UserProofs ProjectCreationStates PersonalGrantSources TeamGrantSources TeamCreationGrants SourceDigest CredentialRevisions ProviderModelRevisions Quota ConnectionRevisions LimitPolicies LimitRoots PersonalLimitOwners ProjectLimitOwners Keys KeysByID Names Models Credentials ProviderModels CredentialAccess ModelCreated TeamSessions Teams",
+		"AuthenticationPolicy Connections Providers PersonalGrantStates ModelEligibilityHashes PersonalKeyStates UserAdmissions UserProofs ProjectCreationStates PersonalGrantSources TeamGrantSources TeamCreationGrants SourceDigest CredentialRevisions ProviderModelRevisions Quota ConnectionRevisions LimitPolicies LimitRoots PersonalLimitOwners ProjectLimitOwners Keys KeysByID Names Models Credentials ProviderModels CredentialAccess ModelCreated TeamSessions Teams",
 		"publicationEpoch ValidUntil installationProjectionDigest")
 	projectionFieldParity(t, runtimeConnectionProof{}, "TransportGeneration ProviderID Birth Enabled", "")
 	projectionFieldParity(t, runtimeProviderProof{}, "Birth Enabled Revision", "")
@@ -607,7 +613,8 @@ func TestRuntimeAuthorizationProjectionClosedFieldParity(t *testing.T) {
 	projectionFieldParity(t, runtimeKey{}, "Key ProjectID Models", "")
 	projectionFieldParity(t, projectKeyMonthlyIdentity{}, "Root Project", "")
 	projectionFieldParity(t, runtimeQuotaData{}, "Setting Bounds Created Revisions Currency", "")
-	projectionFieldParity(t, runtimeTeamSession{}, "ID UserID TokenHash ExpiresAt OIDCPolicyRevision OIDCBindingKey OAuthPolicyRevision OAuthBindingKey LDAPPolicyRevision LDAPBindingKey SAMLPolicyRevision SAMLBindingKey NamedIdentityPolicyKey NamedIdentityBindingKey", "")
+	projectionFieldParity(t, runtimeAuthenticationPolicy{}, "Enforced Revision EmergencyAdminID EmergencyAdminCreatedAt", "")
+	projectionFieldParity(t, runtimeTeamSession{}, "PrimaryMethod CreatedAt EmergencyPolicyRevision EmergencyUserCreatedAt EmergencyMFAGeneration EmergencyPasswordDigest EmergencyFactorCompletedAt ID UserID TokenHash ExpiresAt OIDCPolicyRevision OIDCBindingKey OAuthPolicyRevision OAuthBindingKey LDAPPolicyRevision LDAPBindingKey SAMLPolicyRevision SAMLBindingKey NamedIdentityPolicyKey NamedIdentityBindingKey", "")
 	projectionFieldParity(t, runtimeTeam{}, "CreatedAt Members Models", "")
 	projectionFieldParity(t, entity.APIKey{}, "ID UserID TokenHash LifecycleRevision Status ExpiresAt CreatedAt ReplacesKeyID", "Name Prefix DeliveryMode DeliveryExpiresAt ActivateOnConfirm UpdatedAt")
 	// APIKey.ReplacesKeyID is represented by already-built LimitRoots, not by
@@ -737,5 +744,213 @@ func TestRuntimeAuthorizationProjectionEveryLimitAndQuotaField(t *testing.T) {
 				t.Fatal("quota authority lost")
 			}
 		})
+	}
+}
+
+func projectionEmergencyFixture(t *testing.T) *runtimeAuthorization {
+	a := projectionFixture(t)
+	birth := time.Date(2026, 10, 10, 1, 2, 3, 123456000, time.UTC)
+	a.AuthenticationPolicy = runtimeAuthenticationPolicy{Enforced: true, Revision: strings.Repeat("e", 64), EmergencyAdminID: projectionUser, EmergencyAdminCreatedAt: &birth}
+	key := strings.Repeat("c", 64)
+	v := a.TeamSessions[key]
+	v.UserID = projectionUser
+	v.PrimaryMethod = "emergency"
+	v.CreatedAt = birth.Add(time.Minute)
+	factor := v.CreatedAt
+	v.EmergencyFactorCompletedAt = &factor
+	v.EmergencyPolicyRevision = a.AuthenticationPolicy.Revision
+	v.EmergencyUserCreatedAt = &birth
+	v.EmergencyMFAGeneration = strings.Repeat("A", 43)
+	v.EmergencyPasswordDigest = strings.Repeat("f", 64)
+	a.TeamSessions[key] = v
+	return a
+}
+func TestRuntimeAuthorizationProjectionV2EmergencyClosedProof(t *testing.T) {
+	a := projectionEmergencyFixture(t)
+	before := projectionDigest(t, a)
+	for name, change := range map[string]func(*runtimeAuthorization){
+		"policy_off": func(a *runtimeAuthorization) {
+			a.AuthenticationPolicy.Enforced = false
+			a.AuthenticationPolicy.EmergencyAdminID = ""
+			a.AuthenticationPolicy.EmergencyAdminCreatedAt = nil
+		},
+		"policy_revision": func(a *runtimeAuthorization) { a.AuthenticationPolicy.Revision = strings.Repeat("a", 64) },
+		"birth_missing": func(a *runtimeAuthorization) {
+			v := a.TeamSessions[strings.Repeat("c", 64)]
+			v.EmergencyUserCreatedAt = nil
+			a.TeamSessions[v.TokenHash] = v
+		},
+		"generation_hex": func(a *runtimeAuthorization) {
+			v := a.TeamSessions[strings.Repeat("c", 64)]
+			v.EmergencyMFAGeneration = strings.Repeat("a", 64)
+			a.TeamSessions[v.TokenHash] = v
+		},
+		"future_factor": func(a *runtimeAuthorization) {
+			v := a.TeamSessions[strings.Repeat("c", 64)]
+			later := v.CreatedAt.Add(time.Microsecond)
+			v.EmergencyFactorCompletedAt = &later
+			a.TeamSessions[v.TokenHash] = v
+		},
+		"mixed_provider": func(a *runtimeAuthorization) {
+			v := a.TeamSessions[strings.Repeat("c", 64)]
+			v.OIDCBindingKey = "oidc:proof"
+			a.TeamSessions[v.TokenHash] = v
+		},
+		"local_contamination": func(a *runtimeAuthorization) {
+			v := a.TeamSessions[strings.Repeat("c", 64)]
+			v.PrimaryMethod = "local"
+			a.TeamSessions[v.TokenHash] = v
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			changed := projectionEmergencyFixture(t)
+			change(changed)
+			projectionReject(t, t.Context(), changed)
+			if projectionDigest(t, a) != before {
+				t.Fatal("rejected source mutated published proof")
+			}
+		})
+	}
+	for name, change := range map[string]func(*runtimeTeamSession){
+		"password":   func(v *runtimeTeamSession) { v.EmergencyPasswordDigest = strings.Repeat("a", 64) },
+		"generation": func(v *runtimeTeamSession) { v.EmergencyMFAGeneration = strings.Repeat("E", 43) },
+		"creation":   func(v *runtimeTeamSession) { v.CreatedAt = v.CreatedAt.Add(time.Microsecond) },
+		"factor": func(v *runtimeTeamSession) {
+			at := v.EmergencyFactorCompletedAt.Add(-time.Microsecond)
+			v.EmergencyFactorCompletedAt = &at
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			changed := projectionEmergencyFixture(t)
+			key := strings.Repeat("c", 64)
+			v := changed.TeamSessions[key]
+			change(&v)
+			changed.TeamSessions[key] = v
+			if projectionDigest(t, changed) == before {
+				t.Fatal("installed emergency fact omitted")
+			}
+		})
+	}
+	// Purpose separation is exercised with the same raw verifier and distinct tags.
+	w := &runtimeProjectionWriter{ctx: t.Context(), digest: sha256.New()}
+	if w.verifier("emergency-session-password", strings.Repeat("f", 64)) == w.verifier("team-session", strings.Repeat("f", 64)) {
+		t.Fatal("password commitment aliases bearer verifier")
+	}
+}
+
+func TestRuntimeAuthorizationProjectionV2EveryPolicyField(t *testing.T) {
+	baseline := projectionFixture(t)
+	baseline.TeamSessions = nil
+	birth := time.Date(2026, 10, 10, 1, 2, 3, 123456000, time.UTC)
+	baseline.AuthenticationPolicy = runtimeAuthenticationPolicy{Enforced: true, Revision: strings.Repeat("e", 64), EmergencyAdminID: projectionUser, EmergencyAdminCreatedAt: &birth}
+	before := projectionDigest(t, baseline)
+	for name, change := range map[string]func(*runtimeAuthenticationPolicy){
+		"enforced": func(p *runtimeAuthenticationPolicy) {
+			p.Enforced = false
+			p.EmergencyAdminID = ""
+			p.EmergencyAdminCreatedAt = nil
+		},
+		"revision":      func(p *runtimeAuthenticationPolicy) { p.Revision = strings.Repeat("f", 64) },
+		"administrator": func(p *runtimeAuthenticationPolicy) { p.EmergencyAdminID = "usr_00000000000000000000000002" },
+		"birth": func(p *runtimeAuthenticationPolicy) {
+			at := p.EmergencyAdminCreatedAt.Add(time.Microsecond)
+			p.EmergencyAdminCreatedAt = &at
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			a := *baseline
+			a.AuthenticationPolicy = baseline.AuthenticationPolicy
+			change(&a.AuthenticationPolicy)
+			if projectionDigest(t, &a) == before {
+				t.Fatal("installed policy field omitted")
+			}
+			if projectionDigest(t, baseline) != before {
+				t.Fatal("policy projection mutated source")
+			}
+		})
+	}
+	bad := projectionFixture(t)
+	bad.AuthenticationPolicy.Revision = ""
+	projectionReject(t, t.Context(), bad)
+	bad = projectionFixture(t)
+	bad.AuthenticationPolicy.EmergencyAdminID = projectionUser
+	projectionReject(t, t.Context(), bad)
+}
+
+func TestRuntimeAuthorizationProjectionV2EveryAddedSessionField(t *testing.T) {
+	baseline := projectionEmergencyFixture(t)
+	before := projectionDigest(t, baseline)
+	for name, change := range map[string]func(*runtimeAuthorization, *runtimeTeamSession){
+		"policy_revision": func(a *runtimeAuthorization, v *runtimeTeamSession) {
+			a.AuthenticationPolicy.Revision = strings.Repeat("d", 64)
+			v.EmergencyPolicyRevision = a.AuthenticationPolicy.Revision
+		},
+		"user_birth": func(a *runtimeAuthorization, v *runtimeTeamSession) {
+			at := v.EmergencyUserCreatedAt.Add(-time.Microsecond)
+			a.AuthenticationPolicy.EmergencyAdminCreatedAt = &at
+			v.EmergencyUserCreatedAt = &at
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			a := projectionEmergencyFixture(t)
+			key := strings.Repeat("c", 64)
+			v := a.TeamSessions[key]
+			change(a, &v)
+			a.TeamSessions[key] = v
+			if projectionDigest(t, a) == before {
+				t.Fatal("correlated installed proof fact omitted")
+			}
+			if projectionDigest(t, baseline) != before {
+				t.Fatal("immutable source mutated")
+			}
+		})
+	}
+	a := projectionFixture(t)
+	before = projectionDigest(t, a)
+	key := strings.Repeat("c", 64)
+	v := a.TeamSessions[key]
+	v.PrimaryMethod = "local"
+	a.TeamSessions[key] = v
+	if projectionDigest(t, a) == before {
+		t.Fatal("primary discriminator omitted")
+	}
+	// Off after disable is a fresh nonzero generation, not normalized to initial0.
+	a = projectionFixture(t)
+	before = projectionDigest(t, a)
+	a.AuthenticationPolicy.Revision = strings.Repeat("f", 64)
+	if projectionDigest(t, a) == before {
+		t.Fatal("off-policy ABA generation omitted")
+	}
+}
+
+func TestRuntimeAuthorizationProjectionV2ActualEmergencyBuilder(t *testing.T) {
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	birth := now.Add(-time.Hour)
+	created := now.Add(-time.Minute)
+	user := entity.User{ID: projectionUser, Role: entity.RoleAdmin, PasswordHash: "private-builder-password-hash", CreatedAt: birth}
+	row := entity.Session{ID: "ses_00000000000000000000000001", UserID: user.ID, TokenHash: strings.Repeat("c", 64), PrimaryMethod: "emergency", CreatedAt: created, ExpiresAt: now.Add(time.Hour), EmergencyPolicyRevision: strings.Repeat("e", 64), EmergencyUserCreatedAt: &birth, EmergencyMFAGeneration: strings.Repeat("A", 43), EmergencyPasswordDigest: secret.SHA256Hex(user.PasswordHash), EmergencyFactorCompletedAt: &created}
+	data := &runtimeData{Users: []entity.User{user}, TeamSessionData: &teamSessionRuntimeData{
+		AuthenticationPolicy: entity.GovernanceSetting{ForcedSSOEnabled: true, AuthenticationPolicyRevision: row.EmergencyPolicyRevision, EmergencyAdminID: user.ID, EmergencyAdminCreatedAt: &birth},
+		EmergencyUsers:       map[string]entity.User{user.ID: user}, EmergencyMFA: map[string]entity.UserMFA{user.ID: {UserID: user.ID, Enabled: true, Generation: row.EmergencyMFAGeneration}}, Sessions: []entity.Session{row},
+	}}
+	build := func() *runtimeAuthorization {
+		t.Helper()
+		auth := buildRuntimeAuthorization(data, now.Add(5*time.Second))
+		auth.SourceDigest = strings.Repeat("d", 64)
+		if len(auth.TeamSessions) != 1 || auth.TeamSessions[row.TokenHash].PrimaryMethod != "emergency" || !auth.TeamSessions[row.TokenHash].CreatedAt.Equal(created) || !auth.AuthenticationPolicy.Enforced {
+			t.Fatal("actual emergency builder omitted source")
+		}
+		return auth
+	}
+	auth := build()
+	before := projectionDigest(t, auth)
+	at := created.Add(-time.Microsecond)
+	data.TeamSessionData.Sessions[0].EmergencyFactorCompletedAt = &at
+	changed := build()
+	if projectionDigest(t, changed) == before {
+		t.Fatal("actual builder factor proof omitted")
+	}
+	if !auth.TeamSessions[row.TokenHash].EmergencyFactorCompletedAt.Equal(created) || projectionDigest(t, auth) != before || user.PasswordHash != "private-builder-password-hash" {
+		t.Fatal("projection changed immutable installed source")
 	}
 }

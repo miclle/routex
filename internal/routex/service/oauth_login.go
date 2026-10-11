@@ -126,6 +126,9 @@ func (s *Service) CompleteOAuth(ctx context.Context, a *Authentication, cookie s
 		var u entity.User
 		var b entity.OAuthBinding
 		if c.Purpose == "login" {
+			if e := authenticationLoginAllowed(tx, "oauth"); e != nil {
+				return e
+			}
 			if a != nil {
 				return catalogConflict
 			}

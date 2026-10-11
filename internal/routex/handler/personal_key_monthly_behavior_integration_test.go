@@ -209,6 +209,12 @@ func testPersonalKeyMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal(err)
 		}
 	}
+	defer func() {
+		releaseOnce.Do(func() { close(release) })
+		nativeRequests.Wait()
+		svc.StopRuntime()
+		_ = svc.StopCallRecorder()
+	}()
 	if err := svc.StartRuntime(workerCtx); err != nil {
 		t.Fatal(err)
 	}
@@ -216,12 +222,6 @@ func testPersonalKeyMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartCallRecorder(ctx, spool); err != nil {
 		t.Fatal(err)
 	}
-	defer func() {
-		releaseOnce.Do(func() { close(release) })
-		nativeRequests.Wait()
-		svc.StopRuntime()
-		_ = svc.StopCallRecorder()
-	}()
 	call := func(bearer string) *httptest.ResponseRecorder {
 		callCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 		defer cancel()

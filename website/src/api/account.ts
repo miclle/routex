@@ -1,5 +1,7 @@
+import axios from 'axios'
+import { decodeSecuritySession, AuthenticationPolicyError } from './auth-enforcement'
 import client from './client'
-import type { Session, User } from '@/types/auth'
+import type { User } from '@/types/auth'
 import type { AccountSession } from '@/types/account'
 
 export async function updateAccount(name: string, csrfToken: string) {
@@ -10,12 +12,27 @@ export async function updateAccount(name: string, csrfToken: string) {
 export async function changePassword(
   input: { current_password: string; new_password: string },
   csrfToken: string,
+  signal?: AbortSignal,
 ) {
-  return (
-    await client.post<Session>('/account/password', input, {
-      headers: { 'X-CSRF-Token': csrfToken },
-    })
-  ).data
+  try {
+    const response = await client.post(
+      '/account/password',
+      { ...input },
+      {
+        signal,
+        headers: { 'X-CSRF-Token': csrfToken },
+        validateStatus: () => true,
+      },
+    )
+    if (signal?.aborted || response.status !== 200)
+      throw new AuthenticationPolicyError(response.status >= 400 ? response.status : 0)
+    return decodeSecuritySession(response.data)
+  } catch (error) {
+    if (error instanceof AuthenticationPolicyError) throw error
+    throw new AuthenticationPolicyError(
+      axios.isAxiosError(error) ? (error.response?.status ?? 0) : 0,
+    )
+  }
 }
 export async function listAccountSessions(signal?: AbortSignal) {
   return (await client.get<{ items: AccountSession[] }>('/account/sessions', { signal })).data.items

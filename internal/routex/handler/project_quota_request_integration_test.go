@@ -13,6 +13,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -39,6 +40,22 @@ func testProjectQuotaRequestLifecycle(t *testing.T, db *gorm.DB) {
 		_, _ = io.WriteString(w, `{"object":"chat.completion","choices":[{"index":0,"message":{"role":"assistant","content":"Completed"},"finish_reason":"stop"}],"usage":{"prompt_tokens":4,"completion_tokens":1,"prompt_tokens_details":{"cached_tokens":0,"cache_write_tokens":0}}}`)
 	}))
 	defer upstream.Close()
+	// Keep the shared callback registry immutable for every worker lifetime.
+	var failPublication atomic.Bool
+	const failureCallback = "quota-request-runtime-publication-failure"
+	if err := db.Callback().Query().Before("gorm:query").Register(failureCallback, func(tx *gorm.DB) {
+		if failPublication.Load() && tx.Statement.Table == "providers" {
+			_ = tx.AddError(errors.New("controlled runtime publication unavailable"))
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		failPublication.Store(false)
+		if err := db.Callback().Query().Remove(failureCallback); err != nil {
+			t.Error(err)
+		}
+	}()
 	makeService := func() *service.Service {
 		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 		if err != nil {
@@ -98,8 +115,8 @@ func testProjectQuotaRequestLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal(err)
 		}
 	}
-	start()
 	defer func() { svc.StopRuntime(); _ = svc.StopCallRecorder() }()
+	start()
 	call := func(bearer string) *httptest.ResponseRecorder {
 		req := httptest.NewRequest("POST", "http://routex.test/v1/chat/completions", strings.NewReader(`{"model":"quota-request-native","messages":[{"role":"user","content":"hello"}],"max_completion_tokens":1}`))
 		req.Header.Set("Authorization", "Bearer "+bearer)
@@ -538,19 +555,11 @@ func testProjectQuotaRequestLifecycle(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	const failureCallback = "quota-request-runtime-publication-failure"
-	if err := db.Callback().Query().Before("gorm:query").Register(failureCallback, func(tx *gorm.DB) {
-		if tx.Statement.Table == "providers" {
-			_ = tx.AddError(errors.New("controlled runtime publication unavailable"))
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
+	failPublication.Store(true)
+	defer failPublication.Store(false)
 	uncertainDecision := service.ProjectRequestDecision{Action: "approve", Reason: "Durable approval under publication outage", ReviewETag: uncertainDetail.ApprovalReviewETag}
 	_, uncertainError := svc.DecideProjectRequest(ctx, admin.User.ID, projectID, uncertain.ID, uncertainDecision)
-	if err := db.Callback().Query().Remove(failureCallback); err != nil {
-		t.Fatal(err)
-	}
+	failPublication.Store(false)
 	var statusError interface{ StatusCode() int }
 	if !errors.As(uncertainError, &statusError) || statusError.StatusCode() != 503 {
 		t.Fatal("publication outage did not preserve an uncertain durable response", uncertainError)

@@ -29,7 +29,7 @@ func testPersonalRollingQuotaWarningMigration(t *testing.T, db *gorm.DB) {
 		AppliedAt string
 	}
 	var original []ledger
-	if e := db.Table("schema_migrations").Order("version").Find(&original).Error; e != nil || len(original) != 102 || original[100].Version != 101 || original[101].Version != 102 || original[99].Version != 100 || original[98].Version != 99 || original[97].Version != 98 || original[96].Version != 97 || original[95].Version != 96 || original[94].Version != 95 || original[93].Version != 94 || original[92].Version != 93 || original[91].Version != 92 || original[90].Version != 91 || original[89].Version != 90 || original[88].Version != 89 || original[87].Version != 88 || original[86].Version != 87 || original[85].Version != 86 || original[84].Version != 85 || original[83].Version != 84 || original[82].Version != 83 || original[80].Version != 81 || original[81].Version != 82 {
+	if e := db.Table("schema_migrations").Order("version").Find(&original).Error; e != nil || len(original) != 105 || original[104].Version != 105 || original[103].Version != 104 || original[102].Version != 103 || original[100].Version != 101 || original[101].Version != 102 || original[99].Version != 100 || original[98].Version != 99 || original[97].Version != 98 || original[96].Version != 97 || original[95].Version != 96 || original[94].Version != 95 || original[93].Version != 94 || original[92].Version != 93 || original[91].Version != 92 || original[90].Version != 91 || original[89].Version != 90 || original[88].Version != 89 || original[87].Version != 88 || original[86].Version != 87 || original[85].Version != 86 || original[84].Version != 85 || original[83].Version != 84 || original[82].Version != 83 || original[80].Version != 81 || original[81].Version != 82 {
 		t.Fatal("exact87 ledger", e)
 	}
 	for i, row := range original {
@@ -155,7 +155,7 @@ func testPersonalRollingQuotaWarningMigration(t *testing.T, db *gorm.DB) {
 	remove()
 	migrate()
 	var after []ledger
-	if e := db.Table("schema_migrations").Order("version").Find(&after).Error; e != nil || len(after) != 102 || after[100].Version != 101 || after[101].Version != 102 || after[99].Version != 100 || after[98].Version != 99 || after[97].Version != 98 || after[96].Version != 97 || after[95].Version != 96 || after[94].Version != 95 || after[93].Version != 94 || after[92].Version != 93 || after[91].Version != 92 || after[90].Version != 91 || after[89].Version != 90 || after[88].Version != 89 || after[87].Version != 88 || after[86].Version != 87 || after[85].Version != 86 || after[84].Version != 85 || after[83].Version != 84 || after[82].Version != 83 || !reflect.DeepEqual(after[:80], original[:80]) || !reflect.DeepEqual(after[81:], original[81:]) {
+	if e := db.Table("schema_migrations").Order("version").Find(&after).Error; e != nil || len(after) != 105 || after[104].Version != 105 || after[103].Version != 104 || after[102].Version != 103 || after[100].Version != 101 || after[101].Version != 102 || after[99].Version != 100 || after[98].Version != 99 || after[97].Version != 98 || after[96].Version != 97 || after[95].Version != 96 || after[94].Version != 95 || after[93].Version != 94 || after[92].Version != 93 || after[91].Version != 92 || after[90].Version != 91 || after[89].Version != 90 || after[88].Version != 89 || after[87].Version != 88 || after[86].Version != 87 || after[85].Version != 86 || after[84].Version != 85 || after[83].Version != 84 || after[82].Version != 83 || !reflect.DeepEqual(after[:80], original[:80]) || !reflect.DeepEqual(after[81:], original[81:]) {
 		t.Fatal("original80 ledger changed", e)
 	}
 	for i, row := range after {
@@ -216,6 +216,10 @@ func TestPersonalRollingWarningExact156RegistryAnd154Prefix(t *testing.T) {
 	for _, m := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, m[1]+":"+m[2])
 	}
+	if !enterpriseRegistry218Current(names) {
+		t.Fatal("exact214 forced SSO successor required before historical210 checks")
+	}
+	names = names[:210] // Preserve the exact predecessor guard and its historical controls.
 	if !apiKeyDeliveryRegistry210Current(names) {
 		t.Fatal("exact210 ordered delivery restart successor required")
 	}
@@ -224,7 +228,7 @@ func TestPersonalRollingWarningExact156RegistryAnd154Prefix(t *testing.T) {
 		t.Fatal("exact V93/181 successor changed")
 	}
 	names = names[:179]
-	if len(names) != 179 || !strings.Contains(string(raw), "versions != 102") {
+	if len(names) != 179 || !strings.Contains(string(raw), "versions != 105") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if _, ok := personalRollingWarningRegistryParent(names); !ok {

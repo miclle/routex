@@ -130,6 +130,9 @@ func (s *Service) CompleteSAML(ctx context.Context, a *Authentication, startCook
 		var u entity.User
 		var b entity.SAMLBinding
 		if c.Purpose == "login" {
+			if e := authenticationLoginAllowed(tx, "saml"); e != nil {
+				return e
+			}
 			if a != nil {
 				return catalogConflict
 			}

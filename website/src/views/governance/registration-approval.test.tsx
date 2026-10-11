@@ -8,6 +8,7 @@ import i18n from '@/i18n'
 import client from '@/api/client'
 import RegistrationPage from './registration'
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
+let forcedSSO = false
 const old = client.defaults.adapter
 let renderErrors: MockInstance<typeof console.error>
 let root: Root,
@@ -81,6 +82,7 @@ beforeEach(async () => {
   cache = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
+  forcedSSO = false
   requests = []
   policy = {
     enabled: true,
@@ -96,6 +98,43 @@ beforeEach(async () => {
   writePause = undefined
   client.defaults.adapter = async (config) => {
     requests.push(config)
+    if (config.url === '/auth/policy')
+      return {
+        config: config,
+        status: 200,
+        statusText: '',
+        headers: new AxiosHeaders({
+          'Cache-Control': 'private, no-store',
+          'X-Content-Type-Options': 'nosniff',
+        }),
+        data: {
+          enforced: forcedSSO,
+          password_login_enabled: !forcedSSO,
+          emergency_entry_enabled: forcedSSO,
+        },
+      }
+    if (config.url === '/admin/auth/policy' && config.method === 'get')
+      return {
+        config: config,
+        status: 200,
+        statusText: '',
+        headers: new AxiosHeaders({
+          ETag: '"' + 'd'.repeat(64) + '"',
+          'Cache-Control': 'private, no-store',
+          'X-Content-Type-Options': 'nosniff',
+        }),
+        data: {
+          enforced: false,
+          emergency_admin_id: null,
+          emergency_admin_created_at: null,
+          emergency_mfa_enabled: null,
+          oidc_available: false,
+          ldap_available: false,
+          review_emergency_admin: null,
+          review_etag: 'd'.repeat(64),
+        },
+      }
+
     let data: unknown
     if (config.url === '/auth/session')
       data = {
@@ -542,4 +581,20 @@ it('keeps reviewed chips and safe draft through language switch and distinguishe
   expect(document.body.textContent).toContain('Allowed email domains: All domains.')
   await click('Confirm')
   expect(JSON.parse(writes()[0].data).allowed_email_domains).toEqual([])
+})
+
+it('keeps open registration visibly disabled while forced SSO is enforced without fetching a member directory', async () => {
+  forcedSSO = true
+  policy.enabled = false
+  await mount()
+  await click('Configure')
+  const control = document.querySelector<HTMLButtonElement>(
+    '[role="switch"][aria-label="Allow email registration"]',
+  )!
+  expect(control).not.toBeNull()
+  expect(control.getAttribute('aria-checked')).toBe('false')
+  expect(control.getAttribute('aria-disabled') === 'true' || control.disabled).toBe(true)
+  expect(document.body.textContent).toContain('Open registration is disabled by forced SSO.')
+  expect(requests.some((r) => r.url?.startsWith('/admin/members'))).toBe(false)
+  expect(writes()).toHaveLength(0)
 })

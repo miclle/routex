@@ -149,17 +149,18 @@ func TestSAMLCeremonyProviderBirthAndLifecycleFences(t *testing.T) {
 	}
 }
 func TestSAMLPrimaryAndPrivateErrorsNeverDowngrade(t *testing.T) {
-	if e := primaryValidateSession(nil, entity.Session{}); e != nil {
+	tx := authenticationProofPolicyDB(t)
+	if e := primaryValidateSession(tx, entity.Session{}); e != nil {
 		t.Fatal(e)
 	}
 	now := time.Now()
 	for _, r := range []entity.Session{{SAMLBindingID: "smb_old"}, {SAMLBindingCreatedAt: &now}, {SAMLConfigRevision: strings.Repeat("a", 64)}, {SAMLPolicyRevision: strings.Repeat("b", 64)}, {SAMLUserCreatedAt: &now}, {PrimaryMethod: "saml"}, {PrimaryMethod: "SAML"}, {PrimaryMethod: "ldap", SAMLBindingID: "smb_mixed"}, {PrimaryMethod: "saml", LDAPBindingID: "ldb_mixed"}} {
-		if !errors.Is(primaryValidateSession(nil, r), apperrors.ErrUnauthorized) {
+		if !errors.Is(primaryValidateSession(tx, r), apperrors.ErrUnauthorized) {
 			t.Fatal("partial/mixed primary admitted")
 		}
 	}
 	for _, r := range []entity.MFAChallenge{{SAMLBindingID: "smb_old"}, {PrimaryMethod: "saml"}, {PrimaryMethod: "oauth", SAMLBindingID: "smb_mixed"}} {
-		if !errors.Is(primaryValidateChallenge(nil, r), apperrors.ErrUnauthorized) {
+		if !errors.Is(primaryValidateChallenge(tx, r), apperrors.ErrUnauthorized) {
 			t.Fatal("mixed challenge admitted")
 		}
 	}

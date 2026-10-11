@@ -29,6 +29,37 @@ import (
 
 func testCredentialDeleteLifecycle(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
+	// Register before Service workers; faults remain persistent while armed.
+	var rollbackArmed atomic.Bool
+	rollbackCallback := "test:credential_delete_rollback"
+	if err := db.Callback().Delete().After("gorm:delete").Register(rollbackCallback, func(tx *gorm.DB) {
+		if rollbackArmed.Load() && tx.Statement.Table == "provider_credentials" {
+			_ = tx.AddError(errors.New("test-only delete rollback"))
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		rollbackArmed.Store(false)
+		if err := db.Callback().Delete().Remove(rollbackCallback); err != nil {
+			t.Error(err)
+		}
+	}()
+	var failPublication atomic.Bool
+	publicationCallback := "test:credential_delete_publication"
+	if err := db.Callback().Query().Before("gorm:query").Register(publicationCallback, func(tx *gorm.DB) {
+		if failPublication.Load() && tx.Statement.Table == "models" {
+			_ = tx.AddError(errors.New("test-only unavailable publication"))
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		failPublication.Store(false)
+		if err := db.Callback().Query().Remove(publicationCallback); err != nil {
+			t.Error(err)
+		}
+	}()
 	store, err := secretstore.New(bytes.Repeat([]byte{75}, 32))
 	if err != nil {
 		t.Fatal(err)
@@ -137,16 +168,16 @@ func testCredentialDeleteLifecycle(t *testing.T, db *gorm.DB) {
 	if !errors.As(err, &publicationError) || publicationError.Code != 503 {
 		t.Fatal("uninitialized runtime incorrectly confirmed deletion publication")
 	}
+	// A one-hour refresh interval keeps fault injection deterministic while
+	// the live publisher still handles explicit mutations and final cleanup.
+	// Register shutdown before either worker can start.
+	defer func() { svc.StopRuntime(); _ = svc.StopCallRecorder() }()
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	// A one-hour refresh interval keeps fault injection deterministic while
-	// the live publisher still handles explicit mutations and final cleanup.
-	defer svc.StopRuntime() // Join even if recorder startup fails.
 	if err := svc.StartCallRecorder(ctx, filepath.Join(t.TempDir(), "credential-delete.db")); err != nil {
 		t.Fatal(err)
 	}
-	defer func() { svc.StopRuntime(); _ = svc.StopCallRecorder() }()
 	basePath := "/api/v1/admin/credentials/"
 	request := func(method, credentialID, body, etag string, sessionCookie *http.Cookie, csrf string) *httptest.ResponseRecorder {
 		req := httptest.NewRequest(method, "http://routex.test"+basePath+credentialID, strings.NewReader(body))
@@ -200,18 +231,9 @@ func testCredentialDeleteLifecycle(t *testing.T, db *gorm.DB) {
 	expectStatus(t, remove(primary.ID, strings.Repeat("0", 64)), 409)
 	// Failure after the discovery rows were removed must roll back the entire
 	// transaction, including the credential row and audit event.
-	rollbackCallback := "test:credential_delete_rollback"
-	if err := db.Callback().Delete().After("gorm:delete").Register(rollbackCallback, func(tx *gorm.DB) {
-		if tx.Statement.Table == "provider_credentials" {
-			_ = tx.AddError(errors.New("test-only delete rollback"))
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
+	rollbackArmed.Store(true)
 	expectStatus(t, remove(primary.ID, initial.ETag), 500)
-	if err := db.Callback().Delete().Remove(rollbackCallback); err != nil {
-		t.Fatal(err)
-	}
+	rollbackArmed.Store(false)
 	var discoveries int64
 	if err := db.Model(&entity.CredentialModelAccess{}).Where("credential_id = ?", primary.ID).Count(&discoveries).Error; err != nil || discoveries != 1 || read(primary.ID).ETag != initial.ETag {
 		t.Fatal("failed delete partially removed credential or discovery")
@@ -275,16 +297,6 @@ func testCredentialDeleteLifecycle(t *testing.T, db *gorm.DB) {
 	// Last eligible deletion commits despite publication failure. The tombstone
 	// must block old cached credentials before any subsequent gateway dispatch.
 	backupMetadata := read(backup.ID)
-	var failPublication atomic.Bool
-	publicationCallback := "test:credential_delete_publication"
-	if err := db.Callback().Query().Before("gorm:query").Register(publicationCallback, func(tx *gorm.DB) {
-		if failPublication.Load() && tx.Statement.Table == "models" {
-			_ = tx.AddError(errors.New("test-only unavailable publication"))
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = db.Callback().Query().Remove(publicationCallback) }()
 	failPublication.Store(true)
 	expectStatus(t, remove(backup.ID, backupMetadata.ETag), 503)
 	beforeDispatches := dispatches.Load()

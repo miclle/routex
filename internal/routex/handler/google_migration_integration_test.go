@@ -203,6 +203,11 @@ func testGoogleMigration(t *testing.T, db *gorm.DB) {
 	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 	defer cancel()
 	db = db.WithContext(ctx)
+	// The finite V103 peel removes only these emergency-proof columns.
+	// Retain every historical primary field until full-head restoration below.
+	historicalPrimary := func(tx *gorm.DB) *gorm.DB {
+		return tx.Omit("EmergencyPolicyRevision", "EmergencyUserCreatedAt", "EmergencyMFAGeneration", "EmergencyPasswordDigest", "EmergencyFactorCompletedAt")
+	}
 	googleInstallationOverlayControls(t, db)
 	legacyInstallationBeforeV99(t, db)
 	original := personalKeyBehaviorLedger(t, db)
@@ -262,12 +267,12 @@ func testGoogleMigration(t *testing.T, db *gorm.DB) {
 				}
 				if kind == "session" {
 					row := entity.Session{ID: "ses_google_dirty", UserID: u.ID, TokenHash: strings.Repeat("d", 64), ExpiresAt: dirtyBirth.Add(time.Minute), PrimaryMethod: "google", NamedIdentityProviderID: "google", NamedIdentityProfileID: googleFixtureProfile, NamedIdentityBindingID: "nib_google_dirty", NamedIdentityBindingCreatedAt: &dirtyBirth, NamedIdentityConfigRevision: strings.Repeat("a", 64), NamedIdentityPolicyRevision: strings.Repeat("b", 64), NamedIdentityUserCreatedAt: &u.CreatedAt}
-					if tx.Create(&row).Error != nil {
+					if historicalPrimary(tx).Create(&row).Error != nil {
 						t.Fatal("dirty Session tuple")
 					}
 				} else {
 					row := entity.MFAChallenge{UserID: u.ID, Purpose: "login", TokenHash: strings.Repeat("d", 64), PasswordDigest: strings.Repeat("a", 64), Generation: strings.Repeat("b", 64), ExpiresAt: dirtyBirth.Add(time.Minute), PrimaryMethod: "google", NamedIdentityProviderID: "google", NamedIdentityProfileID: googleFixtureProfile, NamedIdentityBindingID: "nib_google_dirty", NamedIdentityBindingCreatedAt: &dirtyBirth, NamedIdentityConfigRevision: strings.Repeat("a", 64), NamedIdentityPolicyRevision: strings.Repeat("b", 64), NamedIdentityUserCreatedAt: &u.CreatedAt}
-					if tx.Create(&row).Error != nil {
+					if historicalPrimary(tx).Create(&row).Error != nil {
 						t.Fatal("dirty MFA tuple")
 					}
 				}
@@ -385,10 +390,10 @@ func testGoogleMigration(t *testing.T, db *gorm.DB) {
 			c.NamedIdentityUserCreatedAt = &user.CreatedAt
 
 		}
-		if db.Create(&row).Error != nil || db.Create(&c).Error != nil {
+		if historicalPrimary(db).Create(&row).Error != nil || historicalPrimary(db).Create(&c).Error != nil {
 			t.Fatal("retained primary positive", method)
 		}
-		if db.Session(&gorm.Session{QueryFields: true}).Take(&row, "id = ?", row.ID).Error != nil || db.Session(&gorm.Session{QueryFields: true}).Take(&c, "user_id = ? AND purpose = ?", user.ID, "login").Error != nil {
+		if historicalPrimary(db).Session(&gorm.Session{QueryFields: true}).Take(&row, "id = ?", row.ID).Error != nil || historicalPrimary(db).Session(&gorm.Session{QueryFields: true}).Take(&c, "user_id = ? AND purpose = ?", user.ID, "login").Error != nil {
 			t.Fatal("capture retained rows")
 		}
 		sessions = append(sessions, row)
@@ -399,7 +404,7 @@ func testGoogleMigration(t *testing.T, db *gorm.DB) {
 		for i, want := range sessions {
 			var got entity.Session
 			var c entity.MFAChallenge
-			if db.Session(&gorm.Session{QueryFields: true}).Take(&got, "id = ?", want.ID).Error != nil || db.Session(&gorm.Session{QueryFields: true}).Take(&c, "user_id = ? AND purpose = ?", challenges[i].UserID, "login").Error != nil || !reflect.DeepEqual(got, want) || !reflect.DeepEqual(c, challenges[i]) {
+			if historicalPrimary(db).Session(&gorm.Session{QueryFields: true}).Take(&got, "id = ?", want.ID).Error != nil || historicalPrimary(db).Session(&gorm.Session{QueryFields: true}).Take(&c, "user_id = ? AND purpose = ?", challenges[i].UserID, "login").Error != nil || !reflect.DeepEqual(got, want) || !reflect.DeepEqual(c, challenges[i]) {
 				t.Fatal("retained exact primary changed", i)
 			}
 		}
@@ -650,8 +655,11 @@ func testGoogleMigration(t *testing.T, db *gorm.DB) {
 	if err := database.Migrate(ctx, db); err != nil {
 		t.Fatal("restore current V101 after historical V99", err)
 	}
+
+	// Current-head reads also verify the five newly added fields remain empty.
+	historicalPrimary = func(tx *gorm.DB) *gorm.DB { return tx }
 	current := personalKeyBehaviorLedger(t, db)
-	if len(current) != 102 || current[100].Version != 101 || current[101].Version != 102 || current[99].Version != 100 || !reflect.DeepEqual(beforeCurrent, current[:99]) {
+	if len(current) != 105 || current[104].Version != 105 || current[103].Version != 104 || current[102].Version != 103 || current[100].Version != 101 || current[101].Version != 102 || current[99].Version != 100 || !reflect.DeepEqual(beforeCurrent, current[:99]) {
 		t.Fatal("current V101 startup changed historical V99 ledger/version/time")
 	}
 	var observations int64

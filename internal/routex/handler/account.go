@@ -34,13 +34,17 @@ func (ctrl *Ctrl) UpdateProfile(c *fox.Context, request UpdateProfileRequest) (*
 	}
 	return &UserResponse{ID: user.ID, Name: user.Name, Email: user.Email, Role: user.Role}, nil
 }
-func (ctrl *Ctrl) ChangePassword(c *fox.Context, request ChangePasswordRequest) (*SessionResponse, error) {
-	auth, err := ctrl.service.ChangePassword(c.Request.Context(), currentAuthentication(c).User.ID, request.CurrentPassword, request.NewPassword)
-	if err != nil {
-		return nil, err
+func (ctrl *Ctrl) ChangePassword(c *fox.Context, request ChangePasswordRequest) (any, error) {
+	result, e := ctrl.service.ChangePasswordAuthenticated(c.Request.Context(), currentAuthentication(c), request.CurrentPassword, request.NewPassword)
+	if e != nil {
+		return nil, e
 	}
-	setSessionCookie(c, auth)
-	return sessionResponse(auth), nil
+	if result.ReauthenticationRequired {
+		expireAuthenticationCookie(c)
+		return &ReauthenticationResponse{true}, nil
+	}
+	setSessionCookie(c, result.Authentication)
+	return sessionResponse(result.Authentication), nil
 }
 func (ctrl *Ctrl) ListAccountSessions(c *fox.Context) (*AccountSessionsResponse, error) {
 	auth := currentAuthentication(c)

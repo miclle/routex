@@ -14,6 +14,21 @@ Member status and base-role changes are transactional. Before disabling or demot
 
 Disabling an account deletes its browser sessions and revokes all of its personal API Keys in the same transaction. Subsequent login and gateway authentication reject the account. After commit, reductions install a runtime user tombstone before refreshing the immutable gateway state; a failed refresh cannot restore suspended access. User creation and registration also refresh runtime state before returning success. Reenabling it does not restore revoked Keys or old sessions. Existing direct model grants and custom-role assignments remain stored and apply only while the account is active. Before suspension, the same policy lock also verifies that every nonarchived Team owned by this user and every nonarchived Project managed by this user retains another active responsible user. A continuity conflict aborts the entire suspension, preserving sessions and Keys. Archived resources retain historical relationships and do not prevent suspension. This operation remains account suspension, not the complete future employee offboarding workflow.
 
+## Authentication-policy source extension
+
+[Authentication policy](AUTH_POLICY.md) uses the same current intrinsic-administrator
+and independent `registration.write` authority. Enabling atomically closes local
+registration and advances its review revision; both registration writers refuse
+to reopen it while enforcement remains on. Disable never reopens registration.
+Designation review binds the selected exact administrator birth and native MFA
+generation, separately from the stored designation; enable/replacement and disable
+use different explicit review scopes. A save can revoke its own local caller and
+still return committed200 with `reauthentication_required:true`. Preserve that
+receipt without demanding a now-forbidden protected reread. Provider lifecycle and
+normal offboarding retain their existing rules, without a broad last-provider or
+designation blocker; only active designated emergency MFA disable needs prior
+replacement or policy-off. Controlled phase acceptance is recorded in the authentication-policy guide; browser acceptance remains deferred.
+
 ## Roles and Authorization
 
 `users.role` remains the persisted intrinsic identity: `admin` or `member`. Schema version 6 adds protected identity role metadata, role-to-permission rows, and explicit user-role bindings. Version 68 adds the immutable Procurement, Finance and Operations duty templates. Their definitions are built-in, while their assignments are explicit. A user's effective platform permissions are the union of the intrinsic identity and all valid explicit roles. Intrinsic IDs cannot be inserted into assignment APIs; immutable duty definitions remain assignable through the existing reviewed workflow. Built-in definitions cannot be edited or deleted.

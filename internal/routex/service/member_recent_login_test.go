@@ -67,6 +67,10 @@ type recentLoginSQLFixture struct {
 	roleAlias              bool
 	timestampWrites        int
 	mode                   string
+	sessionColumns         []string
+	sessionValues          []driver.Value
+	sessionID              string
+	sessionWrites          int
 }
 type recentLoginConnector struct{ f *recentLoginSQLFixture }
 
@@ -97,11 +101,35 @@ type recentLoginTransaction struct{ f *recentLoginSQLFixture }
 
 func (t recentLoginTransaction) Commit() error   { t.f.committed = true; return nil }
 func (t recentLoginTransaction) Rollback() error { t.f.rolledBack = true; return nil }
+func (f *recentLoginSQLFixture) insertSession(q string, args []driver.NamedValue) error {
+	f.sessionWrites++
+	if f.failSession {
+		return errors.New("controlled Session failure")
+	}
+	_, tail, ok := strings.Cut(q, " (")
+	columns, _, valid := strings.Cut(tail, ") VALUES ")
+	f.sessionColumns = strings.Split(columns, ",")
+	if !ok || !valid || len(f.sessionColumns) != len(args) {
+		return errors.New("unexpected Session insert shape")
+	}
+	f.sessionValues = make([]driver.Value, len(args))
+	for i, column := range f.sessionColumns {
+		f.sessionColumns[i] = strings.Trim(column, `"`)
+		f.sessionValues[i] = args[i].Value
+		if f.sessionColumns[i] == "id" {
+			f.sessionID, _ = args[i].Value.(string)
+		}
+	}
+	if f.sessionID == "" {
+		return errors.New("missing authored Session identity")
+	}
+	return nil
+}
 func (c recentLoginConnection) ExecContext(_ context.Context, q string, args []driver.NamedValue) (driver.Result, error) {
 	c.f.execs = append(c.f.execs, q)
 	if strings.HasPrefix(q, `INSERT INTO "sessions"`) {
-		if c.f.failSession {
-			return nil, errors.New("controlled Session failure")
+		if err := c.f.insertSession(q, args); err != nil {
+			return nil, err
 		}
 		return driver.RowsAffected(1), nil
 	}
@@ -122,11 +150,22 @@ func (c recentLoginConnection) QueryContext(_ context.Context, q string, args []
 	f := c.f
 	f.queries = append(f.queries, q)
 	switch {
+	case strings.Contains(q, `FROM "governance_settings"`):
+		return effectiveSQLRows([]entity.GovernanceSetting{{ID: 1, AuthenticationPolicyRevision: strings.Repeat("0", 64)}})
 	case strings.HasPrefix(q, `INSERT INTO "sessions"`):
-		if f.failSession {
-			return nil, errors.New("controlled Session failure")
+		if err := f.insertSession(q, args); err != nil {
+			return nil, err
 		}
-		return &adminOverviewRows{columns: []string{"created_at"}, values: [][]driver.Value{{time.Now().UTC()}}}, nil
+		return &adminOverviewRows{columns: f.sessionColumns, values: [][]driver.Value{f.sessionValues}}, nil
+	case strings.Contains(q, `FROM "sessions"`):
+		// Take binds both the explicit ID and populated primary key, then LIMIT 1.
+		if q != `SELECT * FROM "sessions" WHERE id = $1 AND "sessions"."id" = $2 LIMIT $3` || f.sessionID == "" || len(args) != 3 {
+			return nil, errors.New("unexpected Session readback shape")
+		}
+		if args[0].Value != f.sessionID || args[1].Value != f.sessionID || args[2].Value != int64(1) {
+			return nil, errors.New("unexpected Session readback identity or limit")
+		}
+		return &adminOverviewRows{columns: f.sessionColumns, values: [][]driver.Value{f.sessionValues}}, nil
 	case strings.Contains(q, `FROM "user_mfa"`):
 		return effectiveSQLRows([]entity.UserMFA{})
 	case strings.Contains(q, "role_permissions AS permission"):
@@ -196,6 +235,13 @@ func TestMemberRecentLoginActualPasswordSuccessAndWriteRollback(t *testing.T) {
 				if mode != "wrong_password" && !f.rolledBack {
 					t.Fatal("failed transaction committed")
 				}
+			}
+			wantSessionWrites := 1
+			if mode == "wrong_password" {
+				wantSessionWrites = 0
+			}
+			if f.sessionWrites != wantSessionWrites || mode == "timestamp_failure" && f.timestampWrites != 1 {
+				t.Fatal("login did not reach controlled failure stage", mode, f.sessionWrites, f.timestampWrites)
 			}
 			if mode == "session_failure" || mode == "wrong_password" {
 				if f.timestampWrites != 0 {

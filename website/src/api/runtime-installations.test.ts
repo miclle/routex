@@ -8,7 +8,7 @@ const originalAdapter = client.defaults.adapter
 const instance = 'ins_00000000000000000000000001'
 const item: RuntimeInstallationRecord = {
   id: 'rin_00000000000000000000000002',
-  projection_version: 1,
+  projection_version: 2,
   instance_id: instance,
   instance_started_at: '2026-10-08T09:00:00.123456Z',
   snapshot_id: 'cfg_00000000000000000000000001',
@@ -95,7 +95,7 @@ describe('single-process Gateway installation read boundary', () => {
     { route_digest: 'private' },
     { source_digest: 'private' },
     { projection_version: 0 },
-    { projection_version: 2 },
+    { projection_version: 3 },
     { projection_version: '1' },
     { projection_version: undefined },
     { first_observed_at: '2026-10-08T09:00:00.123455Z' },
@@ -183,3 +183,37 @@ describe('single-process Gateway installation read boundary', () => {
     expect(count).toBe(0)
   })
 })
+
+it('retains projection1 history and admits projection2 without inventing a match', async () => {
+  body = {
+    scope: 'single_process_gateway_admission',
+    observed_at: '2026-10-08T09:02:00Z',
+    items: [
+      { ...item, projection_version: 1, current_serving_installation_matches: null },
+      {
+        ...item,
+        id: 'rin_00000000000000000000000001',
+        projection_version: 2,
+        current_serving_installation_matches: false,
+      },
+    ],
+    next_cursor: null,
+  }
+  const page = await getRuntimeInstallations()
+  expect(page.items.map((row) => row.projection_version)).toEqual([1, 2])
+  expect(page.items.map((row) => row.current_serving_installation_matches)).toEqual([null, false])
+})
+
+it.each([true, false])(
+  'rejects a %s current match claimed by a projection1 history row',
+  async (match) => {
+    ;(body as { items: RuntimeInstallationRecord[] }).items[0] = {
+      ...item,
+      projection_version: 1,
+      current_serving_installation_matches: match,
+    }
+    await expect(getRuntimeInstallations()).rejects.toThrow(
+      'Invalid Gateway installation observations',
+    )
+  },
+)

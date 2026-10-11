@@ -19,7 +19,7 @@ func (s *Service) RegistrationEnabled(ctx context.Context) (bool, error) {
 		return false, catalogError(err)
 	}
 	initialized, err := s.Initialized(ctx)
-	return settings.RegistrationEnabled && initialized, err
+	return settings.RegistrationEnabled && !settings.ForcedSSOEnabled && initialized, err
 }
 
 func (s *Service) SetRegistrationEnabled(ctx context.Context, actorID string, enabled bool) error {
@@ -65,6 +65,9 @@ func (s *Service) Register(ctx context.Context, email, password, name string) (*
 	return result.Authentication, nil
 }
 func (s *Service) RegisterWithApproval(ctx context.Context, email, password, name string) (*RegistrationResult, error) {
+	_, local, cancel := authenticationContexts(ctx)
+	defer cancel()
+	ctx = local
 	enabled, err := s.RegistrationEnabled(ctx)
 	if err != nil {
 		return nil, err
@@ -86,7 +89,7 @@ func (s *Service) RegisterWithApproval(ctx context.Context, email, password, nam
 		if err := tx.First(&settings, 1).Error; err != nil {
 			return err
 		}
-		if !settings.RegistrationEnabled {
+		if !settings.RegistrationEnabled || settings.ForcedSSOEnabled {
 			return apperrors.ErrForbidden
 		}
 		var installation entity.Installation

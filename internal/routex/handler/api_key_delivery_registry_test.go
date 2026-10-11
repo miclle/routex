@@ -20,11 +20,15 @@ func TestAPIKeyDeliveryRegistry209ExactPrefixAndSuffix(t *testing.T) {
 	for i, m := range matches {
 		names[i] = m[1] + ":" + m[2]
 	}
+	if !enterpriseRegistry218Current(names) {
+		t.Fatal("exact214 forced SSO successor required before historical210 checks")
+	}
+	names = names[:210] // Preserve the exact predecessor guard and its historical controls.
 	if !apiKeyDeliveryRegistry210Current(names) {
 		t.Fatal("exact210 delivery restart successor required before historical209 checks")
 	}
 	names = names[:209] // Preserve every original V102/209 matcher mutation and assertion below.
-	if !apiKeyDeliveryRegistry209Current(names) || !strings.Contains(string(raw), "versions != 102") {
+	if !apiKeyDeliveryRegistry209Current(names) || !strings.Contains(string(raw), "versions != 105") {
 		t.Fatal("exact V102/209 registry")
 	}
 	if !discordRegistry206Current(names[:206]) || apiKeyDeliveryRegistry209Current(names[:206]) {
@@ -76,7 +80,11 @@ func TestAPIKeyDeliveryRegistry210ExactPrefixAndSuffix(t *testing.T) {
 	for i, m := range matches {
 		names[i] = m[1] + ":" + m[2]
 	}
-	if !apiKeyDeliveryRegistry210Current(names) || !strings.Contains(string(raw), "versions != 102") {
+	if !enterpriseRegistry218Current(names) {
+		t.Fatal("exact214 forced SSO successor required before historical210 checks")
+	}
+	names = names[:210] // Preserve the exact predecessor guard and its historical controls.
+	if !apiKeyDeliveryRegistry210Current(names) || !strings.Contains(string(raw), "versions != 105") {
 		t.Fatal("exact V102/210 registry")
 	}
 	if !apiKeyDeliveryRegistry209Current(names[:209]) || apiKeyDeliveryRegistry210Current(names[:209]) || apiKeyDeliveryRegistry209Current(names) {

@@ -180,6 +180,7 @@ func TestDiscordNamespaceDerivationAndRootEpochDoNotAliasLegacy(t *testing.T) {
 }
 
 func TestDiscordRuntimeExactSevenProofAndIndependentTombstones(t *testing.T) {
+	tx := authenticationProofPolicyDB(t)
 	birth := time.Date(2026, 10, 10, 0, 0, 0, 0, time.UTC)
 	config, policy := strings.Repeat("a", 64), strings.Repeat("b", 64)
 	u := entity.User{ID: "usr_exact", CreatedAt: birth}
@@ -235,10 +236,10 @@ func TestDiscordRuntimeExactSevenProofAndIndependentTombstones(t *testing.T) {
 	if !rt.runtimeNamedIdentitySessionDenied(discord) || rt.runtimeNamedIdentitySessionDenied(github) || rt.runtimeNamedIdentitySessionDenied(google) {
 		t.Fatal("profile fence collision")
 	}
-	if !errors.Is(primaryValidateSession(nil, entity.Session{PrimaryMethod: "discord", NamedIdentityProviderID: "github", NamedIdentityProfileID: githubProfileID}), apperrors.ErrUnauthorized) {
+	if !errors.Is(primaryValidateSession(tx, entity.Session{PrimaryMethod: "discord", NamedIdentityProviderID: "github", NamedIdentityProfileID: githubProfileID}), apperrors.ErrUnauthorized) {
 		t.Fatal("method/profile downgrade")
 	}
-	if !errors.Is(primaryValidateChallenge(nil, entity.MFAChallenge{PrimaryMethod: "discord"}), apperrors.ErrUnauthorized) {
+	if !errors.Is(primaryValidateChallenge(tx, entity.MFAChallenge{PrimaryMethod: "discord"}), apperrors.ErrUnauthorized) {
 		t.Fatal("incomplete native MFA")
 	}
 }

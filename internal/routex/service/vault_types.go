@@ -25,12 +25,16 @@ func (d VaultDescriptor) client() vault.Descriptor {
 }
 
 type VaultAuthInput struct {
-	Action    string `json:"action"`
-	Token     string `json:"token,omitempty"`
-	Method    string `json:"method,omitempty"`
-	AuthMount string `json:"auth_mount,omitempty"`
-	RoleID    string `json:"role_id,omitempty"`
-	SecretID  string `json:"secret_id,omitempty"`
+	Action          string `json:"action"`
+	Token           string `json:"token,omitempty"`
+	Method          string `json:"method,omitempty"`
+	AuthMount       string `json:"auth_mount,omitempty"`
+	RoleID          string `json:"role_id,omitempty"`
+	SecretID        string `json:"secret_id,omitempty"`
+	CertificateRole string `json:"certificate_role,omitempty"`
+	CertificatePEM  string `json:"certificate_pem,omitempty"`
+	PrivateKeyPEM   string `json:"private_key_pem,omitempty"`
+	ServerCAPEM     string `json:"server_ca_pem,omitempty"`
 }
 
 func (VaultAuthInput) String() string     { return "Vault authentication input (redacted)" }
@@ -150,12 +154,12 @@ func (d *VaultDescriptor) UnmarshalJSON(raw []byte) error {
 	return nil
 }
 func (a *VaultAuthInput) UnmarshalJSON(raw []byte) error {
-	f, e := modelCreationObject(raw, "action", "token", "method", "auth_mount", "role_id", "secret_id")
+	f, e := vaultAuthFields(raw)
 	if e != nil {
 		return e
 	}
 	var v VaultAuthInput
-	fields := map[string]*string{"action": &v.Action, "token": &v.Token, "method": &v.Method, "auth_mount": &v.AuthMount, "role_id": &v.RoleID, "secret_id": &v.SecretID}
+	fields := map[string]*string{"action": &v.Action, "token": &v.Token, "method": &v.Method, "auth_mount": &v.AuthMount, "role_id": &v.RoleID, "secret_id": &v.SecretID, "certificate_role": &v.CertificateRole, "certificate_pem": &v.CertificatePEM, "private_key_pem": &v.PrivateKeyPEM, "server_ca_pem": &v.ServerCAPEM}
 	for k, value := range f {
 		if bytes.Equal(bytes.TrimSpace(value), []byte("null")) || json.Unmarshal(value, fields[k]) != nil {
 			return apperrors.ErrBadRequest
@@ -182,6 +186,17 @@ func (a *VaultAuthInput) UnmarshalJSON(raw []byte) error {
 			}
 		case "approle":
 			if len(f) != 5 || !vaultAppRoleMount(v.AuthMount) || !vaultToken(v.RoleID) || !vaultToken(v.SecretID) {
+				return apperrors.ErrBadRequest
+			}
+		case "certificate":
+			want := 6
+			if _, present := f["server_ca_pem"]; present {
+				want++
+			}
+			if len(f) != want {
+				return apperrors.ErrBadRequest
+			}
+			if _, err := vaultAuthReplacement(v); err != nil {
 				return apperrors.ErrBadRequest
 			}
 		default:

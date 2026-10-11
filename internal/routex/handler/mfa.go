@@ -28,8 +28,9 @@ type MFALoginRequest struct {
 	RecoveryCode   string `json:"recovery_code"`
 }
 type MFARecoveryResponse struct {
-	Session       *SessionResponse `json:"session"`
-	RecoveryCodes []string         `json:"recovery_codes"`
+	ReauthenticationRequired bool             `json:"reauthentication_required,omitempty"`
+	Session                  *SessionResponse `json:"session"`
+	RecoveryCodes            []string         `json:"recovery_codes"`
 }
 
 func (ctrl *Ctrl) AccountMFA(c *fox.Context) (*service.MFAStatus, error) {
@@ -58,6 +59,10 @@ func (ctrl *Ctrl) EnableMFA(c *fox.Context) (*MFARecoveryResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+	if result.ReauthenticationRequired {
+		expireAuthenticationCookie(c)
+		return &MFARecoveryResponse{RecoveryCodes: result.RecoveryCodes, ReauthenticationRequired: true}, nil
+	}
 	setSessionCookie(c, result.Authentication)
 	return &MFARecoveryResponse{Session: sessionResponse(result.Authentication), RecoveryCodes: result.RecoveryCodes}, nil
 }
@@ -70,10 +75,14 @@ func (ctrl *Ctrl) RegenerateMFARecoveryCodes(c *fox.Context) (*MFARecoveryRespon
 	if err != nil {
 		return nil, err
 	}
+	if result.ReauthenticationRequired {
+		expireAuthenticationCookie(c)
+		return &MFARecoveryResponse{RecoveryCodes: result.RecoveryCodes, ReauthenticationRequired: true}, nil
+	}
 	setSessionCookie(c, result.Authentication)
 	return &MFARecoveryResponse{Session: sessionResponse(result.Authentication), RecoveryCodes: result.RecoveryCodes}, nil
 }
-func (ctrl *Ctrl) DisableMFA(c *fox.Context) (*SessionResponse, error) {
+func (ctrl *Ctrl) DisableMFA(c *fox.Context) (any, error) {
 	request, err := decodeMFARequest[MFAChangeRequest](c)
 	if err != nil {
 		return nil, err
@@ -81,6 +90,10 @@ func (ctrl *Ctrl) DisableMFA(c *fox.Context) (*SessionResponse, error) {
 	result, err := ctrl.service.ChangeMFA(c.Request.Context(), currentAuthentication(c), request.CurrentPassword, service.MFAProof{Code: request.Code, RecoveryCode: request.RecoveryCode}, true)
 	if err != nil {
 		return nil, err
+	}
+	if result.ReauthenticationRequired {
+		expireAuthenticationCookie(c)
+		return &ReauthenticationResponse{true}, nil
 	}
 	setSessionCookie(c, result.Authentication)
 	return sessionResponse(result.Authentication), nil

@@ -88,7 +88,9 @@ func testProjectKeyMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 	}))
 	defer upstream.Close()
 	makeService := func() *service.Service {
-		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+		// Explicit mutation refreshes own this fixture's publication; a periodic
+		// refresh must not contend with its immediate positive confirmation.
+		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -162,6 +164,11 @@ func testProjectKeyMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	call := func(bearer string, status int) {
 		t.Helper()
+		// Keep the ordinary authorization lease current after observer/read work.
+		// Every mutation and uncertain retry above still confirms itself.
+		if err := svc.RefreshRuntime(ctx); err != nil {
+			t.Fatal(err)
+		}
 		before := dispatches.Load()
 		c, cancel := context.WithTimeout(ctx, 15*time.Second)
 		defer cancel()
@@ -494,6 +501,10 @@ func TestProjectKeyMonthlyBehaviorRegistryTail(t *testing.T) {
 	for _, pair := range matches {
 		pairs = append(pairs, pair[1]+":"+pair[2])
 	}
+	if !enterpriseRegistry218Current(pairs) {
+		t.Fatal("exact218 enterprise successor required before historical210 checks")
+	}
+	pairs = pairs[:210] // Preserve the exact predecessor guard and its historical controls.
 	if !apiKeyDeliveryRegistry210Current(pairs) {
 		t.Fatal("exact210 delivery restart successor changed")
 	}
@@ -510,7 +521,7 @@ func TestProjectKeyMonthlyBehaviorRegistryTail(t *testing.T) {
 		t.Fatal("exact V93/181 successor changed")
 	}
 	pairs = pairs[:179]
-	if len(pairs) != 179 || !strings.Contains(string(raw), "versions != 102") {
+	if len(pairs) != 179 || !strings.Contains(string(raw), "versions != 105") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if !projectKeyMonthlyBehaviorRegistryMatches(pairs) {

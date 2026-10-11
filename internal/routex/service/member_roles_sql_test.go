@@ -116,7 +116,7 @@ func (c *rolesSQLConnection) QueryContext(ctx context.Context, q string, args []
 	values := rolesSQLStrings(args)
 	switch {
 	case strings.Contains(q, `FROM "governance_settings"`):
-		return effectiveSQLRows([]entity.GovernanceSetting{{ID: 1}})
+		return effectiveSQLRows([]entity.GovernanceSetting{{ID: 1, AuthenticationPolicyRevision: strings.Repeat("0", 64)}})
 	case strings.Contains(q, `FROM "users"`):
 		if c.f.failConfirmation && len(d.audits) > 0 {
 			return nil, errors.New("controlled postcommit confirmation outage")

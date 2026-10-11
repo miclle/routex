@@ -88,7 +88,7 @@ describe.each(['routing', 'installation'] as const)(
           items: [
             {
               id: 'rin_00000000000000000000000002',
-              projection_version: 1,
+              projection_version: 2,
               instance_id: instance,
               instance_started_at: '2026-10-08T09:00:00Z',
               snapshot_id: snapshot,

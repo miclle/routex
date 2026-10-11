@@ -16,7 +16,7 @@ Routes use the `/api/v1` prefix. Every response has `Cache-Control: no-store`. L
 | `POST /account/mfa/enrollment`     | `{current_password}`                                            | `{secret,otpauth_uri,enrollment_token,expires_at}`. A new pending enrollment replaces the previous one.                       |
 | `DELETE /account/mfa/enrollment`   | None                                                            | `204`; discard pending enrollment. An enabled factor is not canceled by this route.                                           |
 | `POST /account/mfa/enable`         | `{current_password,enrollment_token,code}`                      | `{session,recovery_codes}` and a rotated session cookie.                                                                      |
-| `POST /account/mfa/recovery-codes` | `{current_password,code}` or `{current_password,recovery_code}` | `{session,recovery_codes}` and a rotated session cookie. The old code set is destroyed.                                       |
+| `POST /account/mfa/recovery-codes` | `{current_password,code}` or `{current_password,recovery_code}` | Replacement `{session,recovery_codes}`/cookie, or the emergency committed no-Session receipt below. The old code set is destroyed. |
 | `POST /account/mfa/disable`        | `{current_password,code}` or `{current_password,recovery_code}` | Existing session response and a rotated cookie.                                                                               |
 
 A login challenge has this shape:
@@ -38,9 +38,11 @@ Recovery codes use `RXR-XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX`, with 128 random bi
 
 ## Session and lifecycle transitions
 
-Enablement, recovery-code regeneration, and disablement revoke every prior browser session and pending MFA challenge, then issue one fresh session for the successful caller. Clients must replace their current session/CSRF state and clear private cached data accordingly. API Keys have an independent lifecycle and are not revoked or changed by MFA operations.
+Enablement, recovery-code regeneration and disablement revoke prior browser Sessions and pending MFA challenges. An eligible local caller receives a fresh Session while enforcement is off; a valid nonlocal caller retains its exact original primary proof and absolute expiry in its replacement. Emergency recovery regeneration instead commits without a replacement Session and returns `session:null`, the ten transient recovery codes and `reauthentication_required:true`. Clear private Session/query state immediately and review the one-time codes before explicit sign-in. Active designated emergency MFA disable is blocked until reviewed replacement or policy-off. Controlled acceptance of these [authentication-policy transitions](AUTH_POLICY.md) is recorded in that guide; browser acceptance remains deferred. API Keys have an independent lifecycle and are not changed by MFA operations.
 
 Password changes retain the enrolled factor but revoke pending challenges and prior sessions. Account disablement and completed offboarding delete challenges inside their existing locked transactions. Explicit reactivation never revives those challenges. A subsequent login needs a fresh password check and the retained factor. No clock timestamp is used as an account security revision.
+
+The dedicated emergency password stage always returns native MFA202, even for its designated administrator; only its purpose-specific factor endpoint can complete it. Ordinary and emergency challenges are not interchangeable. While enforced, excluded local login challenges cannot complete or revive after policy-off. See [AUTH_POLICY.md](AUTH_POLICY.md).
 
 The internal password-only `Service.Login` method also refuses MFA-enabled accounts. Interactive callers use `BeginLogin` followed by `CompleteMFALogin`; callers cannot silently downgrade to password-only sessions.
 
@@ -50,7 +52,7 @@ Frozen migration 16 adds `user_mfa`, `mfa_challenges`, and `mfa_recovery_codes` 
 
 Challenge tokens contain 256 random bits and are stored only as SHA-256 digests. They bind the account's current password hash digest and MFA generation. Recovery-code digests are domain-separated by account and generation. Plain passwords, authenticator secrets, challenge bearers, OTP values, and recovery codes must never enter audit payloads, application logs, browser persistent storage, browser navigation URLs, external network requests, analytics, or client mutation/query caches. The provisioning URI is transient enrollment material rendered locally, never fetched as a network URL.
 
-Every transition locks the active User first. It rechecks password state and, for account mutations, locks and checks the initiating session before updating factor/challenge/recovery rows. Successful proof consumption, session creation, and secret-free audit events commit together. Concurrent completion can succeed only once. Failed proofs commit their attempt counters before returning an error, rather than rolling them back with the rejection.
+Authentication-policy dependent transitions acquire governance before the active User, exact initiating Session where applicable and MFA state. They recheck password and primary-proof state before consuming a factor or updating challenge/recovery rows. Successful proof consumption, session creation, and secret-free audit events commit together. Concurrent completion can succeed only once. Failed proofs commit their attempt counters before returning an error, rather than rolling them back with the rejection.
 
 Five consecutive invalid proofs impose a fifteen-minute account-wide MFA lockout. Reissuing a login or enrollment challenge, restarting the process, or canceling an enrollment does not reset the failure budget. Each challenge also allows at most five failures. After the cooldown, a valid proof resets the counters. This is factor-verification throttling; it does not replace the broader password-login abuse controls needed for public-facing deployments.
 

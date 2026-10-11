@@ -209,6 +209,80 @@ func testRuntimeInstallationProcessRestart(t *testing.T, db *gorm.DB) {
 		}
 		return page
 	}
+	// Fresh HTTP Session reads supply current authority and CSRF for each process.
+	// This extends the existing backend/API restart witness, not artifact-build proof.
+	freshPublicationSession := func() SessionResponse {
+		t.Helper()
+		req, err := http.NewRequestWithContext(ctx, "GET", origin+"/api/v1/auth/session", nil)
+		if err != nil {
+			t.Fatal("create publication Session read")
+		}
+		req.AddCookie(cookie)
+		response, err := client.Do(req)
+		if err != nil {
+			t.Fatal("read real publication Session")
+		}
+		raw, readErr := io.ReadAll(io.LimitReader(response.Body, 64*1024+1))
+		closeErr := response.Body.Close()
+		var session SessionResponse
+		if readErr != nil || closeErr != nil || len(raw) > 64*1024 || response.StatusCode != http.StatusOK || json.Unmarshal(raw, &session) != nil || session.User.ID != admin.User.ID || session.CSRFToken == "" {
+			t.Fatal("publication requires fresh original-actor Session")
+		}
+		return session
+	}
+	publicationInput := service.RuntimePublicationCommandInput{RequestID: "4a70c292-6872-4e4c-a5ce-a8211a953777", Reason: "Retain original manual publication across process restart"}
+	publicationBody, err := json.Marshal(publicationInput)
+	if err != nil {
+		t.Fatal("encode original publication intent")
+	}
+	publicationRequest := func(method, csrf string) service.RuntimePublicationCommandReceipt {
+		t.Helper()
+		endpoint := origin + "/api/v1/admin/runtime/publication-commands/" + publicationInput.RequestID
+		var body io.Reader
+		if method == http.MethodPost {
+			endpoint = origin + "/api/v1/admin/runtime/publish"
+			body = bytes.NewReader(publicationBody)
+		}
+		req, err := http.NewRequestWithContext(ctx, method, endpoint, body)
+		if err != nil {
+			t.Fatal("create real publication request")
+		}
+		req.AddCookie(cookie)
+		if method == http.MethodPost {
+			req.Header.Set("Origin", origin)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-CSRF-Token", csrf)
+		}
+		response, err := client.Do(req)
+		if err != nil {
+			t.Fatal("perform real publication request")
+		}
+		raw, readErr := io.ReadAll(io.LimitReader(response.Body, 16*1024+1))
+		closeErr := response.Body.Close()
+		var receipt service.RuntimePublicationCommandReceipt
+		var fields map[string]json.RawMessage
+		if readErr != nil || closeErr != nil || len(raw) > 16*1024 || response.StatusCode != http.StatusOK || response.Header.Get("Cache-Control") != "private, no-store" || response.Header.Get("X-Content-Type-Options") != "nosniff" || json.Unmarshal(raw, &fields) != nil || len(fields) != 9 || json.Unmarshal(raw, &receipt) != nil {
+			t.Fatal("real terminal publication receipt rejected")
+		}
+		for _, name := range []string{"request_id", "actor_id", "reason", "claim_instance_id", "claim_instance_started_at", "claimed_at", "finalized_at", "status", "failure_code"} {
+			if _, ok := fields[name]; !ok {
+				t.Fatal("publication receipt changed its exact wire contract")
+			}
+		}
+		if receipt.RequestID != publicationInput.RequestID || receipt.ActorID != admin.User.ID || receipt.Reason != publicationInput.Reason || receipt.Status != "refresh_returned_nil" || receipt.FinalizedAt == nil || receipt.FailureCode != nil || string(fields["failure_code"]) != "null" || bytes.Contains(raw, []byte(cookie.Value)) || (csrf != "" && bytes.Contains(raw, []byte(csrf))) {
+			t.Fatal("publication receipt lost original intent or exposed Session proof")
+		}
+		return receipt
+	}
+	publicationAudits := func(row entity.RuntimePublicationCommand) []entity.AuditEvent {
+		t.Helper()
+		runtimePublicationAuditV105(t, db, row, 1)
+		var events []entity.AuditEvent
+		if db.Where("action IN ?", []string{"runtime.publication.claim", "runtime.publication.finalize"}).Order("id ASC").Find(&events).Error != nil || len(events) != 2 {
+			t.Fatal("read exact original publication audit pair")
+		}
+		return events
+	}
 	launch()
 	firstPID := current.pid
 	first := read()
@@ -219,6 +293,21 @@ func testRuntimeInstallationProcessRestart(t *testing.T, db *gorm.DB) {
 	if db.Session(&gorm.Session{QueryFields: true}).Take(&original, "id = ?", first.Items[0].ID).Error != nil {
 		t.Fatal("capture first production observation")
 	}
+	firstSession := freshPublicationSession()
+	originalReceipt := publicationRequest(http.MethodPost, firstSession.CSRFToken)
+	if originalReceipt.ClaimInstanceID != original.InstanceID || !originalReceipt.ClaimInstanceStartedAt.Equal(original.InstanceStartedAt) || originalReceipt.ClaimedAt.Before(original.InstanceStartedAt) || originalReceipt.FinalizedAt.Before(originalReceipt.ClaimedAt) {
+		t.Fatal("original command lost its exact serving-process birth")
+	}
+	originalCommand := runtimePublicationStoredV105(t, db, publicationInput.RequestID)
+	var originalActor entity.User
+	if db.Take(&originalActor, "id = ?", admin.User.ID).Error != nil || originalCommand.ActorID != originalActor.ID || !originalCommand.ActorCreatedAt.Equal(originalActor.CreatedAt) || originalCommand.ClaimInstanceID != originalReceipt.ClaimInstanceID || !originalCommand.ClaimInstanceStartedAt.Equal(originalReceipt.ClaimInstanceStartedAt) || !originalCommand.ClaimedAt.Equal(originalReceipt.ClaimedAt) || originalCommand.FinalizedAt == nil || !originalCommand.FinalizedAt.Equal(*originalReceipt.FinalizedAt) || originalCommand.Outcome != originalReceipt.Status || originalCommand.FailureCode != nil {
+		t.Fatal("real command receipt differs from durable original tuple")
+	}
+	originalAudits := publicationAudits(originalCommand)
+	if !reflect.DeepEqual(originalReceipt, publicationRequest(http.MethodGet, "")) {
+		t.Fatal("original HTTP read changed terminal publication receipt")
+	}
+	firstSession.CSRFToken = ""
 	if err := current.stop(); err != nil {
 		cleanupKnown = false
 		t.Fatal("first production process closure unknown")
@@ -248,6 +337,18 @@ func testRuntimeInstallationProcessRestart(t *testing.T, db *gorm.DB) {
 	if db.Session(&gorm.Session{QueryFields: true}).Take(&retained, "id = ?", original.ID).Error != nil || !reflect.DeepEqual(original, retained) {
 		t.Fatal("restart rewrote immutable observation")
 	}
+	resumedSession := freshPublicationSession()
+	// HTTP persistence and immutable DB/audit facts are independent of the direct
+	// service load-counter test. Background polling prevents an invocation count
+	// from being inferred from runtime timestamps or snapshot IDs here.
+	if !reflect.DeepEqual(originalReceipt, publicationRequest(http.MethodGet, "")) || !reflect.DeepEqual(originalReceipt, publicationRequest(http.MethodPost, resumedSession.CSRFToken)) {
+		t.Fatal("restart replay replaced the original terminal command receipt")
+	}
+	retainedCommand := runtimePublicationStoredV105(t, db, publicationInput.RequestID)
+	if !reflect.DeepEqual(originalCommand, retainedCommand) || !reflect.DeepEqual(originalAudits, publicationAudits(retainedCommand)) {
+		t.Fatal("restart replay rewrote original command or publication audit")
+	}
+	resumedSession.CSRFToken = ""
 	if err := current.stop(); err != nil {
 		cleanupKnown = false
 		t.Fatal("second production process closure unknown")

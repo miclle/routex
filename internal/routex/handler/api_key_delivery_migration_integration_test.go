@@ -78,6 +78,7 @@ func testAPIKeyDeliveryMigration(t *testing.T, db *gorm.DB) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	db = db.WithContext(ctx)
+	legacyForcedSSOBeforeV102(t, db)
 	original := personalKeyBehaviorLedger(t, db)
 	if len(original) != 102 {
 		t.Fatal("delivery migration requires exact current102")
@@ -169,7 +170,7 @@ func testAPIKeyDeliveryMigration(t *testing.T, db *gorm.DB) {
 	}
 	migrate := func(stage string) {
 		t.Helper()
-		if err := database.Migrate(ctx, db); err != nil {
+		if err := database.MigrateThrough(ctx, db, 102); err != nil {
 			t.Fatalf("delivery migration: stage=%s category=%s", stage, safeCategory(err))
 		}
 		checkRetained()
@@ -183,7 +184,7 @@ func testAPIKeyDeliveryMigration(t *testing.T, db *gorm.DB) {
 	}
 	rejectMigration := func(stage string) {
 		t.Helper()
-		if database.Migrate(ctx, db) == nil {
+		if database.MigrateThrough(ctx, db, 102) == nil {
 			t.Fatal("incompatible partial delivery schema accepted", stage)
 		}
 		if !reflect.DeepEqual(personalKeyBehaviorLedger(t, db), prefix) {
@@ -208,7 +209,7 @@ func testAPIKeyDeliveryMigration(t *testing.T, db *gorm.DB) {
 	var wg sync.WaitGroup
 	results := make(chan error, 2)
 	for range 2 {
-		wg.Go(func() { results <- database.Migrate(ctx, db) })
+		wg.Go(func() { results <- database.MigrateThrough(ctx, db, 102) })
 	}
 	wg.Wait()
 	close(results)
@@ -401,5 +402,17 @@ func testAPIKeyDeliveryMigration(t *testing.T, db *gorm.DB) {
 	var finalCommand entity.APIKeyDeliveryCommand
 	if db.Session(&gorm.Session{QueryFields: true}).Take(&finalConsumer, "id = ?", consumer.ID).Error != nil || !reflect.DeepEqual(finalConsumer, savedConsumer) || db.Session(&gorm.Session{QueryFields: true}).Take(&finalTemplate, "id = ?", "jwt").Error != nil || !reflect.DeepEqual(finalTemplate, savedTemplate) || db.Session(&gorm.Session{QueryFields: true}).Take(&finalCommand, "id = ?", command.ID).Error != nil || !reflect.DeepEqual(finalCommand, savedCommand) {
 		t.Fatal("repeat changed retained delivery fixture rows")
+	}
+
+	before103 := personalKeyBehaviorLedger(t, db)
+	if len(before103) != 102 {
+		t.Fatal("exact immediate pre103 receipt")
+	}
+	if err := database.Migrate(ctx, db); err != nil {
+		t.Fatal("restore full103", safeCategory(err))
+	}
+	after103 := personalKeyBehaviorLedger(t, db)
+	if len(after103) != 105 || after103[104].Version != 105 || after103[103].Version != 104 || after103[102].Version != 103 || !reflect.DeepEqual(before103, after103[:102]) {
+		t.Fatal("103 restoration changed102 receipts")
 	}
 }

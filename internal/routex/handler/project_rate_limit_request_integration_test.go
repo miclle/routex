@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -87,6 +88,22 @@ func testProjectRateLimitRequestLifecycle(t *testing.T, db *gorm.DB) {
 			b.once.Do(func() { close(b.release) })
 		}
 	}()
+	// Keep the shared callback registry immutable for every worker lifetime.
+	var failPublication atomic.Bool
+	const callback = "rate-request-publication-failure"
+	if err := db.Callback().Query().Before("gorm:query").Register(callback, func(tx *gorm.DB) {
+		if failPublication.Load() && tx.Statement.Table == "providers" {
+			_ = tx.AddError(errors.New("controlled publication failure"))
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		failPublication.Store(false)
+		if err := db.Callback().Query().Remove(callback); err != nil {
+			t.Error(err)
+		}
+	}()
 	makeService := func() *service.Service {
 		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 		if err != nil {
@@ -146,8 +163,8 @@ func testProjectRateLimitRequestLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal(err)
 		}
 	}
-	start()
 	defer func() { svc.StopRuntime(); _ = svc.StopCallRecorder() }()
+	start()
 	call := func(bearer string) *httptest.ResponseRecorder {
 		req := httptest.NewRequest("POST", "http://routex.test/v1/chat/completions", strings.NewReader(`{"model":"rate-request-native","messages":[{"role":"user","content":"hello"}],"max_completion_tokens":1}`))
 		req.RemoteAddr = "127.0.0.1:43210"
@@ -510,19 +527,11 @@ func testProjectRateLimitRequestLifecycle(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	const callback = "rate-request-publication-failure"
-	if err := db.Callback().Query().Before("gorm:query").Register(callback, func(tx *gorm.DB) {
-		if tx.Statement.Table == "providers" {
-			_ = tx.AddError(errors.New("controlled publication failure"))
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
+	failPublication.Store(true)
+	defer failPublication.Store(false)
 	uncertainDecision := service.ProjectRequestDecision{Action: "approve", Reason: "Durable rate approval", ReviewETag: uncertainDetail.ApprovalReviewETag}
 	_, outage := svc.DecideProjectRequest(ctx, admin.User.ID, projectID, uncertain.ID, uncertainDecision)
-	if err := db.Callback().Query().Remove(callback); err != nil {
-		t.Fatal(err)
-	}
+	failPublication.Store(false)
 	var status interface{ StatusCode() int }
 	if !errors.As(outage, &status) || status.StatusCode() != 503 {
 		t.Fatal("missing durable uncertain response", outage)

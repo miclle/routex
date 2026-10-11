@@ -182,7 +182,7 @@ func runtimeInstallationSQLService(t *testing.T) (*Service, *rolesSQLFixture, *r
 		t.Fatal(err)
 	}
 	r := &gatewayRuntime{done: make(chan struct{})}
-	r.auth.Store(&runtimeAuthorization{SourceDigest: strings.Repeat("a", 64), installationProjectionDigest: strings.Repeat("b", 64), ValidUntil: now.Add(time.Minute)})
+	r.auth.Store(&runtimeAuthorization{AuthenticationPolicy: runtimeAuthenticationPolicy{Revision: strings.Repeat("0", 64)}, SourceDigest: strings.Repeat("a", 64), installationProjectionDigest: strings.Repeat("b", 64), ValidUntil: now.Add(time.Minute)})
 	r.routes.Store(&runtimeRoutes{ID: "cfg_01m36yee4gkbns18pfcqqc75a3", Digest: strings.Repeat("a", 64), PublishedAt: now.Add(-time.Second)})
 	r.status.Store(&RuntimeStatus{Enabled: true, Ready: true})
 	return &Service{db: db, runtime: r, instance: lease}, f, state
@@ -329,7 +329,7 @@ func TestRuntimeInstallationRejectedEvidencePreservesHistoryAndRuntime(t *testin
 				auth.installationProjectionDigest = strings.Repeat("e", 64)
 				state.failCommit = true
 			case "prior_corruption":
-				state.rows[0].ProjectionVersion = 2
+				state.rows[0].ProjectionVersion = 3
 			case "prior_alias":
 				state.priorAlias = true
 			case "duplicate_prior":
@@ -520,7 +520,7 @@ func TestRuntimeInstallationStrictRowsFiltersAndPrivateSource(t *testing.T) {
 			}
 			switch name {
 			case "future_version":
-				state.rows[0].ProjectionVersion = 2
+				state.rows[0].ProjectionVersion = 3
 			case "bad_id":
 				state.rows[0].ID = "rin_invalid"
 			case "bad_source":
@@ -639,5 +639,26 @@ func TestRuntimeInstallationSourceBindsSnapshotAndAuthorization(t *testing.T) {
 	auth.installationProjectionDigest = ""
 	if source, ok := runtimeInstallationSource(&routes, &auth); ok || source != "" {
 		t.Fatal("missing projection synthesized from routing hash")
+	}
+}
+
+func TestRuntimeInstallationV1HistoryNeverMatchesV2(t *testing.T) {
+	s, _, state := runtimeInstallationSQLService(t)
+	if err := runtimeInstallationRecordForTest(s); err != nil {
+		t.Fatal(err)
+	}
+	if len(state.rows) != 1 || state.rows[0].ProjectionVersion != 2 {
+		t.Fatal("new observation not v2")
+	}
+	prior := state.rows[0]
+	prior.ProjectionVersion = 1
+	state.rows[0] = prior
+	page, err := s.ListRuntimeInstallations(t.Context(), "usr_admin", RuntimeInstallationFilter{})
+	if err != nil || len(page.Items) != 1 || page.Items[0].ProjectionVersion != 1 || page.Items[0].CurrentServingInstallationMatches != nil || !reflect.DeepEqual(state.rows[0], prior) {
+		t.Fatal("v1 receipt promoted or compared", err)
+	}
+	// Even an artificial same-digest collision cannot satisfy a v2 prior proof.
+	if runtimeInstallationRecordForTest(s) == nil || !reflect.DeepEqual(state.rows[0], prior) {
+		t.Fatal("cross-version prior accepted or rewritten")
 	}
 }

@@ -207,6 +207,10 @@ func TestVaultSavedAppRoleExactRegistry150(t *testing.T) {
 	for _, p := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, p[1]+":"+p[2])
 	}
+	if !enterpriseRegistry218Current(names) {
+		t.Fatal("exact214 forced SSO successor required before historical210 checks")
+	}
+	names = names[:210] // Preserve the exact predecessor guard and its historical controls.
 	if !apiKeyDeliveryRegistry210Current(names) {
 		t.Fatal("exact210 ordered delivery restart successor required")
 	}
@@ -215,7 +219,7 @@ func TestVaultSavedAppRoleExactRegistry150(t *testing.T) {
 		t.Fatal("exact V93/181 successor changed")
 	}
 	names = names[:179]
-	if len(names) != 179 || !strings.Contains(string(raw), "versions != 102") {
+	if len(names) != 179 || !strings.Contains(string(raw), "versions != 105") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	valid := func(values []string) bool {
@@ -241,7 +245,7 @@ func TestVaultSavedAppRoleExactRegistry150(t *testing.T) {
 			t.Fatal("changed/missing/reordered/extra registry accepted")
 		}
 	}
-	if !strings.Contains(string(raw), "versions != 102") {
+	if !strings.Contains(string(raw), "versions != 105") {
 		t.Fatal("current V78 harness not bound")
 	}
 }

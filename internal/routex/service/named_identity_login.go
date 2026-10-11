@@ -130,6 +130,9 @@ func (s *Service) completeNamedIdentity(ctx context.Context, a *Authentication, 
 		var u entity.User
 		var b entity.NamedIdentityBinding
 		if c.Purpose == "login" {
+			if e := authenticationLoginAllowed(tx, providerID); e != nil {
+				return e
+			}
 			if a != nil {
 				return catalogConflict
 			}

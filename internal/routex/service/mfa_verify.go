@@ -53,19 +53,13 @@ func newMFARecoveryCodes(tx *gorm.DB, state entity.UserMFA) ([]string, error) {
 	}
 	return result, nil
 }
-func rotateMFASession(tx *gorm.DB, user entity.User) (*Authentication, error) {
-	if err := invalidateMFAChallenges(tx, user.ID); err != nil {
-		return nil, err
-	}
-	if err := tx.Where("user_id = ?", user.ID).Delete(&entity.Session{}).Error; err != nil {
-		return nil, err
-	}
-	return createSession(tx, user)
-}
 func mfaChallengeValid(challenge entity.MFAChallenge, user entity.User, state entity.UserMFA, now time.Time) bool {
 	return challenge.ExpiresAt.After(now) && challenge.Attempts < mfaAttemptLimit && challenge.PasswordDigest == secret.SHA256Hex(user.PasswordHash) && challenge.Generation == state.Generation
 }
 func (s *Service) EnableMFA(ctx context.Context, auth *Authentication, password, token, code string) (*MFAMutation, error) {
+	_, local, cancel := authenticationContexts(ctx)
+	defer cancel()
+	ctx = local
 	if auth == nil {
 		return nil, apperrors.ErrUnauthorized
 	}
@@ -76,6 +70,9 @@ func (s *Service) EnableMFA(ctx context.Context, auth *Authentication, password,
 	result := &MFAMutation{}
 	rejected := false
 	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if e := lockGovernance(tx); e != nil {
+			return e
+		}
 		user, err := mfaActiveUser(tx, auth.User.ID)
 		if err != nil {
 			return err
@@ -129,7 +126,7 @@ func (s *Service) EnableMFA(ctx context.Context, auth *Authentication, password,
 		if err != nil {
 			return err
 		}
-		result.Authentication, err = rotateMFASession(tx, user)
+		result.Authentication, err = rotateAuthenticatedMFASession(tx, user, auth)
 		if err != nil {
 			return err
 		}
@@ -141,11 +138,15 @@ func (s *Service) EnableMFA(ctx context.Context, auth *Authentication, password,
 	if rejected {
 		return nil, apperrors.ErrUnauthorized
 	}
-	s.invalidateRuntimeSessionUser(result.Authentication.User.ID)
+	result.ReauthenticationRequired = result.Authentication == nil
+	s.invalidateRuntimeSessionUser(auth.User.ID)
 	s.publishSessionMutation(ctx)
 	return result, nil
 }
 func (s *Service) ChangeMFA(ctx context.Context, auth *Authentication, password string, proof MFAProof, disable bool) (*MFAMutation, error) {
+	_, local, cancel := authenticationContexts(ctx)
+	defer cancel()
+	ctx = local
 	if auth == nil {
 		return nil, apperrors.ErrUnauthorized
 	}
@@ -156,6 +157,9 @@ func (s *Service) ChangeMFA(ctx context.Context, auth *Authentication, password 
 	result := &MFAMutation{}
 	rejected := false
 	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if e := lockGovernance(tx); e != nil {
+			return e
+		}
 		user, err := mfaActiveUser(tx, auth.User.ID)
 		if err != nil {
 			return err
@@ -173,6 +177,15 @@ func (s *Service) ChangeMFA(ctx context.Context, auth *Authentication, password 
 		}
 		if !state.Enabled {
 			return catalogConflict
+		}
+		if disable {
+			p, e := authenticationPolicy(tx)
+			if e != nil {
+				return e
+			}
+			if p.ForcedSSOEnabled && p.EmergencyAdminID == user.ID && p.EmergencyAdminCreatedAt != nil && p.EmergencyAdminCreatedAt.Equal(user.CreatedAt) {
+				return catalogConflict
+			}
 		}
 		if mfaLocked(&state, now) {
 			return apperrors.ErrUnauthorized
@@ -205,9 +218,12 @@ func (s *Service) ChangeMFA(ctx context.Context, auth *Authentication, password 
 		if err := tx.Save(&state).Error; err != nil {
 			return err
 		}
-		result.Authentication, err = rotateMFASession(tx, user)
+		result.Authentication, err = rotateAuthenticatedMFASession(tx, user, auth)
 		if err != nil {
 			return err
+		}
+		if ctx.Err() != nil {
+			return ctx.Err()
 		}
 		return appendAudit(tx, user.ID, action, "user", user.ID)
 	})
@@ -217,11 +233,15 @@ func (s *Service) ChangeMFA(ctx context.Context, auth *Authentication, password 
 	if rejected {
 		return nil, apperrors.ErrUnauthorized
 	}
-	s.invalidateRuntimeSessionUser(result.Authentication.User.ID)
+	result.ReauthenticationRequired = result.Authentication == nil
+	s.invalidateRuntimeSessionUser(auth.User.ID)
 	s.publishSessionMutation(ctx)
 	return result, nil
 }
 func (s *Service) CompleteMFALogin(ctx context.Context, token string, proof MFAProof) (*Authentication, error) {
+	_, local, cancel := authenticationContexts(ctx)
+	defer cancel()
+	ctx = local
 	if len(token) != 43 {
 		return nil, apperrors.ErrUnauthorized
 	}
@@ -235,10 +255,8 @@ func (s *Service) CompleteMFALogin(ctx context.Context, token string, proof MFAP
 	var auth *Authentication
 	rejected := false
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
-		if before.PrimaryMethod == "oidc" || before.PrimaryMethod == "oauth" || before.PrimaryMethod == "ldap" || before.PrimaryMethod == "saml" || namedIdentityMethod(before.PrimaryMethod) {
-			if err := lockGovernance(tx); err != nil {
-				return err
-			}
+		if err := lockGovernance(tx); err != nil {
+			return err
 		}
 		user, err := mfaActiveUser(tx, before.UserID)
 		if err != nil {

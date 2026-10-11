@@ -128,7 +128,72 @@ export function sameVaultAuthReplacement(left: VaultAuthInput, right: VaultAuthI
       left.role_id === right.role_id &&
       left.secret_id === right.secret_id
     )
-  return left.method !== 'approle' && right.method !== 'approle' && left.token === right.token
+  if (left.method === 'certificate' && right.method === 'certificate')
+    return (
+      left.auth_mount === right.auth_mount &&
+      left.certificate_role === right.certificate_role &&
+      left.certificate_pem === right.certificate_pem &&
+      left.private_key_pem === right.private_key_pem &&
+      (left.server_ca_pem ?? '') === (right.server_ca_pem ?? '')
+    )
+  return (
+    (left.method === undefined || left.method === 'token') &&
+    (right.method === undefined || right.method === 'token') &&
+    left.token === right.token
+  )
+}
+export function validVaultCertificateRole(value: string): boolean {
+  return typeof value === 'string' && segment(value)
+}
+function pem(value: string, labels: readonly string[], optional = false): boolean {
+  if (typeof value !== 'string' || new TextEncoder().encode(value).length > 16384) return false
+  if (value === '') return optional
+  if (
+    [...value].some(
+      (character) =>
+        character !== '\t' &&
+        character !== '\n' &&
+        character !== '\r' &&
+        (character < ' ' || character > '~'),
+    )
+  )
+    return false
+  const blocks = value.trim().match(/-----BEGIN ([A-Z ]+)-----[\s\S]*?-----END \1-----/g)
+  if (!blocks?.length || (!labels.includes('CERTIFICATE') && blocks.length !== 1)) return false
+  let rest = value.trim()
+  for (const block of blocks) {
+    const match = block.match(
+      /^-----BEGIN ([A-Z ]+)-----\r?\n([A-Za-z0-9+/=\r\n]+)\r?\n-----END \1-----$/,
+    )
+    if (!match || !labels.includes(match[1])) return false
+    if (!rest.startsWith(block)) return false
+    rest = rest.slice(block.length).trimStart()
+  }
+  return rest === ''
+}
+export function validVaultCertificateAuth(
+  value: Extract<VaultAuthInput, { method: 'certificate' }>,
+): boolean {
+  return (
+    validVaultAuthMount(value.auth_mount) &&
+    validVaultCertificateRole(value.certificate_role) &&
+    pem(value.certificate_pem, ['CERTIFICATE']) &&
+    pem(value.private_key_pem, ['PRIVATE KEY', 'RSA PRIVATE KEY', 'EC PRIVATE KEY']) &&
+    (value.server_ca_pem === undefined || pem(value.server_ca_pem, ['CERTIFICATE'], true)) &&
+    new TextEncoder().encode(
+      'routex-vault-certificate-v1\n' +
+        JSON.stringify({
+          auth_mount: value.auth_mount,
+          certificate_role: value.certificate_role,
+          certificate_pem: value.certificate_pem,
+          private_key_pem: value.private_key_pem,
+          server_ca_pem: value.server_ca_pem ?? '',
+        }),
+    ).length <= 32768
+  )
+}
+export function validVaultConfigSize(value: VaultConfigIntent['input']): boolean {
+  return new TextEncoder().encode(JSON.stringify(value)).length <= 65536
 }
 function descriptor(value: unknown): VaultDescriptor {
   const row = object(value, ['endpoint', 'namespace', 'mount', 'prefix', 'data_field'])
@@ -229,7 +294,7 @@ export function parseVaultIntegration(value: unknown): VaultIntegration {
   ])
   function auth(value: unknown) {
     const item = object(value, ['method', 'configured'])
-    const method = oneOf(item.method, ['token', 'approle'] as const)
+    const method = oneOf(item.method, ['token', 'approle', 'certificate'] as const)
     const configured = bool(item.configured)
     if (!configured && method !== 'token') return fail()
     return { method, configured }
@@ -362,6 +427,21 @@ export async function saveVaultIntegration(
           !validVaultToken(auth.secret_id)
         )
           return fail()
+      } else if (auth.method === 'certificate') {
+        object(
+          auth,
+          [
+            'action',
+            'method',
+            'auth_mount',
+            'certificate_role',
+            'certificate_pem',
+            'private_key_pem',
+          ],
+          ['server_ca_pem'],
+        )
+        if (!validVaultCertificateAuth(auth) || !input.descriptor.endpoint.startsWith('https://'))
+          return fail()
       } else {
         object(auth, ['action', 'token'], ['method'])
         if ((auth.method !== undefined && auth.method !== 'token') || !validVaultToken(auth.token))
@@ -373,7 +453,11 @@ export async function saveVaultIntegration(
         return fail()
     }
   }
-  if (sameVaultAuthReplacement(input.writer_auth, input.reader_auth)) return fail()
+  if (
+    sameVaultAuthReplacement(input.writer_auth, input.reader_auth) ||
+    !validVaultConfigSize(input)
+  )
+    return fail()
   const response = await request(
     intent.id ? 'put' : 'post',
     '/admin/secrets/integrations' + (intent.id ? '/' + intent.id : ''),

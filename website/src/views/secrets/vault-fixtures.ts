@@ -1,4 +1,9 @@
-import type { VaultConfigIntent, VaultIntegration, VaultProbe } from '@/types/vault-integrations'
+import type {
+  VaultAuthInput,
+  VaultConfigIntent,
+  VaultIntegration,
+  VaultProbe,
+} from '@/types/vault-integrations'
 export const vaultID = 'vlt_01k00000000000000000000000'
 export const revisionID = 'vlr_01k00000000000000000000000'
 export const vaultETag = 'a'.repeat(64) + '.' + 'b'.repeat(64)
@@ -55,4 +60,25 @@ export function configuration(): VaultConfigIntent {
       reason: 'Reviewed configuration',
     },
   }
+}
+
+// Envelope-only browser fixtures; cryptographic pair validation belongs to the server.
+export const certificatePEM = '-----BEGIN CERTIFICATE-----\nYQ==\n-----END CERTIFICATE-----\n'
+export const privateKeyPEM = '-----BEGIN PRIVATE KEY-----\nYg==\n-----END PRIVATE KEY-----\n'
+export function certificateReplacement(): Extract<VaultAuthInput, { method: 'certificate' }> {
+  return {
+    action: 'replace',
+    method: 'certificate',
+    auth_mount: 'cert/team',
+    certificate_role: 'writer-role',
+    certificate_pem: certificatePEM,
+    private_key_pem: privateKeyPEM,
+    server_ca_pem: '',
+  }
+}
+export function certificateVault(): VaultIntegration {
+  const value = vault()
+  value.writer_auth.method = 'certificate'
+  value.reader_auth.method = 'certificate'
+  return value
 }

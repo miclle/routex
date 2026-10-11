@@ -1,8 +1,76 @@
 # Current implementation handoff
 
-Updated: 2026-10-11. Status: resumed by explicit user instruction; prioritize partially completed capabilities. [Implementation](IMPLEMENTATION.md) records engineering contracts and historical acceptance evidence. Earlier checkpoints below remain historical.
+Updated: 2026-10-12. Status: resumed by explicit user instruction; prioritize partially completed capabilities. [Implementation](IMPLEMENTATION.md) records engineering contracts and historical acceptance evidence. Earlier checkpoints below remain historical.
 
-## Current execution status (2026-10-11)
+## Current execution status (2026-10-12)
+
+The pre-phase baseline is `3976e5a59f5397218c36249be79de4ae2dec23f8`.
+This phase implements enforced OIDC/LDAP with MFA-protected emergency entry
+(V103), saved independent Vault certificate identities (V104), HTTPS proxy
+process coverage, and actor-owned durable manual publication receipts (V105).
+This verified phase is ready for delivery; Git history records its containing commit.
+Earlier accepted API-Key delivery evidence below retains its original scope.
+
+Verification binds the repaired phase separately from earlier source floors:
+
+- Coherent R7 gates (6,726 frontend cases, Go race/coverage, development lifecycle
+  and production assets passed): 059de8b5420faf4b52e825d077a3a521107e90838d0fa0442d4ae63895642ce5; source SHA-256
+  d50e4ce24294fc8efe4d59db21f025036b836682240e5f56e103174eb88498c3 (2495 paths).
+- The 18-scenario dual-driver focus: 7cebc34769ec809f927ad7eef4631cb4d3773d561b32ebff8f3181f42f2fb32d.
+- Original full R6 (9,834 ordinary Go passes, five expected skips and 542 named
+  passes on each database): 54b4b3fb5c51725c4387837d1f24f111beeabc763dab1294584b9da16db4ab4f; GOMAXPROCS=2 and GOFLAGS=-p=1,
+  with unchanged source, assertions and production budgets.
+- Authentication lifecycle R4: ae8c8b73d503494fdf1c4a07ebb31d098e4242d8881063d5a96df2497ebaf193.
+- Default-production build R7: 502293c38322976fca690ca4d885bc1d92f731392e2cec3d8df2bdd0fb91b1ba;
+  binary SHA-256 `576c254182f0f0c58e0efa767f883ec9dfc593d8ddad1081320719f46a5de6f8`.
+
+Native saved-certificate qualification passed all 12 steps on both databases,
+covering encrypted persistence, restart, exact audit attribution and scoped
+Provider cleanup. Receipt SHA-256:
+`79661eaa360ec0d9a2b7e4c458bb79ca218027b52216805eaf184f8865cdd7ad`.
+
+The mandatory-client-certificate negative case rejected both CA-only operator
+attempts without remote destruction. Their exact cleanup intent remains unknown;
+final durable process closures remain unproven despite OS exit and join. Failed
+runs and physical closure never establish functional acceptance; see
+[qualification history](#enterprise-qualification-history).
+
+Browser acceptance is deferred. Separate Telegram and bounded API-Key receipt
+advisory implementations are source-complete but outside this qualification;
+F24 and controlled performance tooling remain separate drafts. Capability totals
+remain 15 Completed / 14 Partial / 1 Not started.
+
+## Enterprise qualification history
+
+Earlier full R3 was cancelled without matrix acceptance; full R4 failed on a
+pre-fault 503 (PostgreSQL 542 passes, MySQL 539 passes), and full R5 failed an
+ordinary positive-prerequisite 250 ms deadline before fault arming. No race was
+observed in those R4/R5 failures; their exact historical causes remain unproven.
+Full R5 cancellation cleanup is 8d17869248c60b27b94743ff11c976434371e5a4c9e1086d0247544ccdb92a1e. Native R1–R7 all
+remain failed attempts: R1 failed pre-resource argument binding; R2 failed
+EXACT_WRITE_REPLAY/cleanup; R3 passed exact-time replay but failed shutdown; R4
+failed pre-resource process observation and lacks original-child direct-join
+proof; R5 failed the private provider-target creation oracle; R6 passed all 26
+PostgreSQL windows but failed MySQL generation 1 startup. R6 logs were removed,
+so its startup cause is unknown; the retained cleanup diagnostic is
+NORMAL_APP_SHUTDOWN_REQUIRED. Private HMAC CAS-0 and destroy-version oracle
+mismatches were corrected without product-source changes and do not explain
+that unknown startup. Separate physical-closure receipts are R2
+`063c40e7dd67566cbc3c838c80239cdd11ec64f4f13d145387c3e0866e0323c7`, R3
+`fc25f3e60f8edab7a0cbe85ab558b1a5999abebe20b305ffd2b0cda8597aa86d`, R4
+`58c566377cb22f01e6a23dd960624962015862f1ca891c0c52d37adf504ae040`, R5
+`ac45a5e4aaed095a4ff0c14a484acfb78be40fbc320a2df18e0835136e5f8c77` and R6
+`856b9a4860668771e4656a5d9180d27a236d97cc0e1e93c3b5e478817619a7f7`.
+R7 also failed readiness while MySQL was still running migration; its private
+helper exhausted an iteration bound before the declared deadline. Its 118
+children and resources closed, receipt
+`88d110323f469eaed1e05a93859089d90f3df3eb872f1c2d88df8382062ac06f`.
+The corrected deadline-driven helper preserves overall run/cleanup limits and
+all business assertions. Later R8 acceptance is recorded separately above.
+Closure does not supply missing original-child joins or functional acceptance.
+Separate fast-child controls passed; that evidence also establishes no native
+acceptance. Original tool sessions and detailed diagnostics remain in the
+retained attempt evidence; later acceptance never retroactively passes a failure.
 
 ## API-Key delivery application: bounded phase — 2026-10-11
 

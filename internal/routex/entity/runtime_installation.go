@@ -9,7 +9,7 @@ type RuntimeInstallationObservation struct {
 	InstanceID        string    `gorm:"size:30;not null;uniqueIndex:idx_runtime_installation_source,priority:1;index:idx_runtime_installation_instance,priority:1"`
 	InstanceStartedAt time.Time `gorm:"precision:6;not null"`
 	SnapshotID        string    `gorm:"size:30;not null"`
-	ProjectionVersion int       `gorm:"not null;check:ck_runtime_installation_projection,projection_version = 1"`
+	ProjectionVersion int       `gorm:"not null;check:ck_runtime_installation_projection,projection_version = 1 OR projection_version = 2"`
 	SourceDigest      string    `gorm:"size:64;not null;uniqueIndex:idx_runtime_installation_source,priority:2" json:"-"`
 	RoutesPublishedAt time.Time `gorm:"precision:6;not null"`
 	FirstObservedAt   time.Time `gorm:"precision:6;not null;index:idx_runtime_installation_instance,priority:2"`

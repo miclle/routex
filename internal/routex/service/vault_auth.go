@@ -38,6 +38,9 @@ func vaultAppRoleMount(s string) bool {
 	return true
 }
 func vaultAuthMethod(value string) string {
+	if strings.HasPrefix(value, vaultCertificatePrefix) {
+		return "certificate"
+	}
 	if strings.HasPrefix(value, vaultAppRolePrefix) {
 		return "approle"
 	}
@@ -45,6 +48,10 @@ func vaultAuthMethod(value string) string {
 }
 func vaultAuthMaterial(method, value string) (vaultAppRoleMaterial, error) {
 	var tuple vaultAppRoleMaterial
+	if method == "certificate" {
+		_, err := vaultCertificateMaterial(value)
+		return tuple, err
+	}
 	if method == "token" {
 		if !vaultToken(value) {
 			return tuple, vaultUnavailable
@@ -62,6 +69,12 @@ func vaultAuthMaterial(method, value string) (vaultAppRoleMaterial, error) {
 	return tuple, nil
 }
 func vaultAuthReplacement(input VaultAuthInput) (string, error) {
+	if input.Method == "certificate" {
+		return vaultCertificateReplacement(input)
+	}
+	if input.CertificateRole != "" || input.CertificatePEM != "" || input.PrivateKeyPEM != "" || input.ServerCAPEM != "" {
+		return "", vaultUnavailable
+	}
 	if input.Method == "approle" {
 		if input.Token != "" || !vaultAppRoleMount(input.AuthMount) || !vaultToken(input.RoleID) || !vaultToken(input.SecretID) {
 			return "", vaultUnavailable
@@ -91,7 +104,17 @@ func vaultCommandToken(ctx context.Context, client *vault.Client, method, value 
 	if method == "token" {
 		return value, empty, vault.Observation{}, nil
 	}
-	lease, o, e := client.LoginAppRole(ctx, tuple.AuthMount, tuple.RoleID, tuple.SecretID)
+	var lease *vault.LoginToken
+	var o vault.Observation
+	if method == "certificate" {
+		certificate, err := vaultCertificateMaterial(value)
+		if err != nil {
+			return "", empty, vault.Observation{}, err
+		}
+		lease, o, e = client.LoginCertificate(ctx, certificate.AuthMount, certificate.CertificateRole)
+	} else {
+		lease, o, e = client.LoginAppRole(ctx, tuple.AuthMount, tuple.RoleID, tuple.SecretID)
+	}
 	if e != nil {
 		return "", empty, o, e
 	}
@@ -111,4 +134,6 @@ func vaultLoginFailure(o vault.Observation) VaultObservationView {
 	return vaultObservation(o)
 }
 
-func vaultStoredMethod(method string) bool { return method == "token" || method == "approle" }
+func vaultStoredMethod(method string) bool {
+	return method == "token" || method == "approle" || method == "certificate"
+}

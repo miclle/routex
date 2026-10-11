@@ -87,6 +87,14 @@ func (s *Service) mutateMemberState(ctx context.Context, actorID, userID, etag s
 		if err := advanceMemberRoleRevision(tx, target.ID); err != nil {
 			return err
 		}
+		if target.Role == entity.RoleAdmin && next.Role != entity.RoleAdmin {
+			if e := tx.Session(&gorm.Session{NewDB: true}).Where("user_id = ? AND primary_method = ?", target.ID, "emergency").Delete(&entity.Session{}).Error; e != nil {
+				return e
+			}
+			if e := tx.Session(&gorm.Session{NewDB: true}).Where("user_id = ? AND purpose = ?", target.ID, "emergency").Delete(&entity.MFAChallenge{}).Error; e != nil {
+				return e
+			}
+		}
 		if next.Disabled {
 			if err := CancelTeamModelRequestsForUser(memberRolesDB(tx), actor.ID, target.ID, "applicant_unavailable"); err != nil {
 				return err

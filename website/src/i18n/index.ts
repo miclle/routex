@@ -1,3 +1,5 @@
+import enAuthEnforcement from './locales/en/authEnforcement'
+import zhAuthEnforcement from './locales/zh/authEnforcement'
 import enKeyDelivery from './locales/en/keyDelivery'
 import zhKeyDelivery from './locales/zh/keyDelivery'
 import enKeyDeliveryOwner from './locales/en/keyDeliveryOwner'
@@ -115,6 +117,7 @@ void i18n.use(initReactI18next).init({
   resources: {
     en: {
       common: en,
+      authEnforcement: enAuthEnforcement,
       oidc: enOIDC,
       oauth: enOAuth,
       ldap: enLDAP,
@@ -156,6 +159,7 @@ void i18n.use(initReactI18next).init({
     },
     zh: {
       common: zh,
+      authEnforcement: zhAuthEnforcement,
       oidc: zhOIDC,
       oauth: zhOAuth,
       ldap: zhLDAP,

@@ -88,6 +88,11 @@ func (s *Service) startSAML(ctx context.Context, a *Authentication, etag string,
 	defer localCancel()
 	var passwordHash string
 	var e error
+	if purpose == "login" {
+		if e := authenticationLoginAllowed(s.authDB(localCtx), "saml"); e != nil {
+			return nil, e
+		}
+	}
 	if purpose != "login" {
 		if a == nil {
 			return nil, apperrors.ErrUnauthorized
@@ -129,6 +134,11 @@ func (s *Service) startSAML(ctx context.Context, a *Authentication, etag string,
 		}
 		now := time.Now().UTC().Truncate(time.Microsecond)
 		c = entity.SAMLCeremony{ID: cid, RequestID: "_" + request, RelayHash: secret.SHA256Hex(relay), ProviderCreatedAt: p.CreatedAt, CookieHash: secret.SHA256Hex(cookie), Purpose: purpose, Status: "pending", ConfigRevision: p.ConfigRevision, PolicyRevision: p.PolicyRevision, CreatedAt: now, ExpiresAt: now.Add(samlCeremonyLifetime)}
+		if purpose == "login" {
+			if e := authenticationLoginAllowed(tx, "saml"); e != nil {
+				return e
+			}
+		}
 		if purpose != "verify" && (!p.Enabled || !samlVerified(p)) {
 			return apperrors.ErrUnauthorized
 		}
@@ -212,6 +222,11 @@ func (s *Service) startSAML(ctx context.Context, a *Authentication, etag string,
 		if current.Status != "pending" || current.CookieHash != c.CookieHash || current.RelayHash != c.RelayHash || current.RequestID != c.RequestID {
 			return catalogConflict
 		}
+		if c.Purpose == "login" {
+			if e := authenticationLoginAllowed(tx, "saml"); e != nil {
+				return e
+			}
+		}
 		if c.Purpose != "login" {
 			u, e := samlOriginalSession(tx, c)
 			if e != nil {
@@ -289,6 +304,11 @@ func (s *Service) ReceiveSAMLAssertion(ctx context.Context, relay, response stri
 		if c.Status != "pending" || !samlCeremonyCurrent(p, c, time.Now().UTC()) {
 			return apperrors.ErrUnauthorized
 		}
+		if c.Purpose == "login" {
+			if e := authenticationLoginAllowed(tx, "saml"); e != nil {
+				return e
+			}
+		}
 		if c.Purpose != "login" {
 			u, e := samlOriginalSession(tx, c)
 			if e != nil {
@@ -347,6 +367,11 @@ func (s *Service) ReceiveSAMLAssertion(ctx context.Context, relay, response stri
 		now := time.Now().UTC().Truncate(time.Microsecond)
 		if !samlCeremonyCurrent(p, c, now) || identity.Issuer != p.IDPIssuer || identity.RequestID != c.RequestID || identity.Subject == "" || identity.AssertionID == "" || !expiry.After(now) {
 			return apperrors.ErrUnauthorized
+		}
+		if c.Purpose == "login" {
+			if e := authenticationLoginAllowed(tx, "saml"); e != nil {
+				return e
+			}
 		}
 		if c.Purpose != "login" {
 			u, e := samlOriginalSession(tx, c)

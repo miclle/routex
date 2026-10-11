@@ -26,6 +26,10 @@ func TestLDAPRegistry191Preserves188AndRejectsIdentityDrift(t *testing.T) {
 	for _, match := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, match[1]+":"+match[2])
 	}
+	if !enterpriseRegistry218Current(names) {
+		t.Fatal("exact214 forced SSO successor required before historical210 checks")
+	}
+	names = names[:210] // Preserve the exact predecessor guard and its historical controls.
 	if !apiKeyDeliveryRegistry210Current(names) {
 		t.Fatal("exact210 ordered delivery restart successor required")
 	}
@@ -89,6 +93,10 @@ func TestSAMLRegistry194Preserves191AndRejectsIdentityDrift(t *testing.T) {
 	for _, match := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, match[1]+":"+match[2])
 	}
+	if !enterpriseRegistry218Current(names) {
+		t.Fatal("exact214 forced SSO successor required before historical210 checks")
+	}
+	names = names[:210] // Preserve the exact predecessor guard and its historical controls.
 	if !apiKeyDeliveryRegistry210Current(names) {
 		t.Fatal("exact210 ordered delivery restart successor required")
 	}

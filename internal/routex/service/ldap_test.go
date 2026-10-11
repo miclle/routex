@@ -86,6 +86,7 @@ func TestLDAPApplicationImmutableSubjectBytesAndNamespace(t *testing.T) {
 	}
 }
 func TestLDAPApplicationCaptureAndMixedPrimaryNeverDowngrade(t *testing.T) {
+	tx := authenticationProofPolicyDB(t)
 	now := time.Now().UTC().Truncate(time.Microsecond)
 	p := entity.LDAPProvider{ID: "ldap", CreatedAt: now, ConfigRevision: strings.Repeat("a", 64), PolicyRevision: strings.Repeat("b", 64), ReviewRevision: strings.Repeat("c", 64)}
 	if !ldapSameProvider(p, p) {
@@ -99,7 +100,7 @@ func TestLDAPApplicationCaptureAndMixedPrimaryNeverDowngrade(t *testing.T) {
 		}
 	}
 	for _, row := range []entity.Session{{LDAPBindingID: "ldb_retained"}, {LDAPBindingCreatedAt: &now}, {LDAPConfigRevision: strings.Repeat("a", 64)}, {LDAPPolicyRevision: strings.Repeat("b", 64)}, {LDAPUserCreatedAt: &now}, {PrimaryMethod: "ldap"}, {PrimaryMethod: "LDAP"}, {PrimaryMethod: "oidc", LDAPBindingID: "mixed"}, {PrimaryMethod: "oauth", LDAPBindingID: "mixed"}} {
-		if !errors.Is(primaryValidateSession(nil, row), apperrors.ErrUnauthorized) {
+		if !errors.Is(primaryValidateSession(tx, row), apperrors.ErrUnauthorized) {
 			t.Fatal("mixed/missing proof degraded")
 		}
 	}

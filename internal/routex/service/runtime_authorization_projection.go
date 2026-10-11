@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"hash"
+	"regexp"
 	"sort"
 	"strconv"
 	"time"
@@ -30,7 +31,9 @@ func runtimeAuthorizationProjection(ctx context.Context, auth *runtimeAuthorizat
 		return "", errRuntimeAuthorizationProjection
 	}
 	w := &runtimeProjectionWriter{ctx: ctx, digest: sha256.New()}
-	w.text("routex.gateway-authorization.v1")
+	w.text("routex.gateway-authorization.v2")
+	w.field("AuthenticationPolicy")
+	w.authenticationPolicy(auth.AuthenticationPolicy)
 	// publicationEpoch and ValidUntil are current guards, not logical source.
 	// installationProjectionDigest is cache metadata; never recursively hash it.
 	w.field("Connections")
@@ -147,7 +150,7 @@ func runtimeAuthorizationProjection(ctx context.Context, auth *runtimeAuthorizat
 	w.field("ModelCreated")
 	runtimeProjectionMap(w, auth.ModelCreated, func(key string, v time.Time) { w.instant(v) })
 	w.field("TeamSessions")
-	w.sessions(auth.TeamSessions)
+	w.sessions(auth.TeamSessions, auth.AuthenticationPolicy)
 	w.field("Teams")
 	runtimeProjectionMap(w, auth.Teams, func(key string, v runtimeTeam) {
 		w.instant(v.CreatedAt)
@@ -460,7 +463,7 @@ func (w *runtimeProjectionWriter) keys(auth *runtimeAuthorization) {
 	}
 	runtimeProjectionMap(w, committed, func(_ string, value runtimeKey) { w.key(value) })
 }
-func (w *runtimeProjectionWriter) sessions(values map[string]runtimeTeamSession) {
+func (w *runtimeProjectionWriter) sessions(values map[string]runtimeTeamSession, policy runtimeAuthenticationPolicy) {
 	if values == nil {
 		w.frame('n', "map")
 		return
@@ -490,6 +493,8 @@ func (w *runtimeProjectionWriter) sessions(values map[string]runtimeTeamSession)
 		w.text(v.ID)
 		w.text(v.UserID)
 		w.instant(v.ExpiresAt)
+		w.instant(v.CreatedAt)
+		w.emergencySession(v, policy)
 		w.text(v.OIDCPolicyRevision)
 		w.text(v.OIDCBindingKey)
 		w.text(v.OAuthPolicyRevision)
@@ -501,4 +506,52 @@ func (w *runtimeProjectionWriter) sessions(values map[string]runtimeTeamSession)
 		w.text(v.NamedIdentityPolicyKey)
 		w.text(v.NamedIdentityBindingKey)
 	})
+}
+
+// Projection2 commits the actual immutable installed policy and primary proof;
+// it is neither a fresh DB authorization check nor a receipt for older versions.
+var runtimeProjectionUserID = regexp.MustCompile(`^usr_[0-7][0-9a-hjkmnp-tv-z]{25}$`)
+var runtimeProjectionMFAGeneration = regexp.MustCompile(`^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$`)
+
+func (w *runtimeProjectionWriter) authenticationPolicy(p runtimeAuthenticationPolicy) {
+	if !runtimeRouteDigest.MatchString(p.Revision) || (!p.Enforced && (p.EmergencyAdminID != "" || p.EmergencyAdminCreatedAt != nil)) || (p.Enforced && (!runtimeProjectionUserID.MatchString(p.EmergencyAdminID) || p.EmergencyAdminCreatedAt == nil || p.EmergencyAdminCreatedAt.IsZero())) {
+		w.fail()
+		return
+	}
+	w.boolean(p.Enforced)
+	w.text(p.Revision)
+	w.text(p.EmergencyAdminID)
+	w.optionalTime(p.EmergencyAdminCreatedAt)
+}
+
+func (w *runtimeProjectionWriter) emergencySession(v runtimeTeamSession, p runtimeAuthenticationPolicy) {
+	w.text(v.PrimaryMethod)
+	switch v.PrimaryMethod {
+	case "", "local", "oidc", "oauth", "ldap", "saml", "github", "google", "discord":
+		if v.EmergencyPolicyRevision != "" || v.EmergencyUserCreatedAt != nil || v.EmergencyMFAGeneration != "" || v.EmergencyPasswordDigest != "" || v.EmergencyFactorCompletedAt != nil {
+			w.fail()
+			return
+		}
+	case "emergency":
+		if !p.Enforced || v.UserID != p.EmergencyAdminID || v.EmergencyPolicyRevision != p.Revision || v.EmergencyUserCreatedAt == nil || p.EmergencyAdminCreatedAt == nil || !v.EmergencyUserCreatedAt.Equal(*p.EmergencyAdminCreatedAt) || !runtimeProjectionMFAGeneration.MatchString(v.EmergencyMFAGeneration) || !runtimeRouteDigest.MatchString(v.EmergencyPasswordDigest) || v.CreatedAt.IsZero() || v.EmergencyFactorCompletedAt == nil || v.EmergencyFactorCompletedAt.IsZero() || v.EmergencyFactorCompletedAt.After(v.CreatedAt) || !v.CreatedAt.Before(v.ExpiresAt) {
+			w.fail()
+			return
+		}
+		if v.OIDCPolicyRevision != "" || v.OIDCBindingKey != "" || v.OAuthPolicyRevision != "" || v.OAuthBindingKey != "" || v.LDAPPolicyRevision != "" || v.LDAPBindingKey != "" || v.SAMLPolicyRevision != "" || v.SAMLBindingKey != "" || v.NamedIdentityPolicyKey != "" || v.NamedIdentityBindingKey != "" {
+			w.fail()
+			return
+		}
+	default:
+		w.fail()
+		return
+	}
+	w.text(v.EmergencyPolicyRevision)
+	w.optionalTime(v.EmergencyUserCreatedAt)
+	w.text(v.EmergencyMFAGeneration)
+	if v.EmergencyPasswordDigest == "" {
+		w.frame('n', "emergency-password")
+	} else {
+		w.text(w.verifier("emergency-session-password", v.EmergencyPasswordDigest))
+	}
+	w.optionalTime(v.EmergencyFactorCompletedAt)
 }

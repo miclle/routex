@@ -44,11 +44,74 @@ Project lifecycle and grant mutations use generation-tagged project tombstones b
 
 ## Administration and Evidence
 
-Administrators can read `GET /api/v1/admin/runtime` and request publication with `POST /api/v1/admin/runtime/publish`. The publication action uses the existing session, administrator, same-origin, and CSRF controls. Status exposes only readiness, snapshot ID, publication time, authorization lease deadline, refresh time, and generic error classifications.
+Administrators can read `GET /api/v1/admin/runtime` for current readiness, snapshot ID, publication time, authorization lease deadline, refresh time, and generic error classifications. The [manual publication command](#manual-publication-command) changes the POST wire contract and adds actor-owned receipt lookup. Its bounded acceptance is recorded below; a command receipt remains separate from current runtime readiness.
 
 Migration 7 introduces `runtime_publications` through a frozen GORM schema. Publication metadata is written when the routing snapshot or failure state changes, rather than on every successful authorization lease renewal. Metadata writes are best-effort and cannot replace a valid snapshot with an invalid one. These operational records do not replace transactional audit events or constitute the complete system-audit feature.
 
 Call-fact persistence is separate from runtime authorization and routing. The process starts the bounded durable journal before listening; see [Call Facts](CALLS.md#persistence-failure-boundary) for its capacity, replay, disk-failure, and shutdown boundaries. The authorization lease still bounds which new requests may run during a primary-database outage.
+
+## Manual publication command
+
+The manual publication command replaces the former publication action without a
+command body and its general `RuntimeStatus` response. Clients must replace `{}`
+or an empty body with the following exact JSON object and consume a command
+receipt. The former request is rejected with 400.
+
+```json
+{"request_id":"11111111-1111-4111-8111-111111111111","reason":"Publish current authoritative configuration"}
+```
+
+| Endpoint | Contract |
+| --- | --- |
+| `POST /api/v1/admin/runtime/publish` | Submit or read back the identical original command. Requires a current authenticated intrinsic administrator, same-origin checks, CSRF and JSON. |
+| `GET /api/v1/admin/runtime/publication-commands/:requestID` | Read only the current intrinsic administrator's own ID-and-birth-bound receipt. Requires a current authenticated Session; it does not dispatch publication. |
+
+The POST body is bounded to 16 KiB. Its only fields are `request_id`, a canonical
+lowercase UUIDv4, and `reason`, unchanged trimmed control-free UTF-8 text of 1–1000
+runes. Duplicate, case-aliased, unknown, missing, null and malformed fields,
+invalid UTF-8 or unpaired Unicode escapes are rejected. Both endpoints reject
+query parameters, including a bare `?`. Responses are private, no-store and
+nosniff, including denials. There is no review ETag: publication reads current
+authoritative state rather than applying a reviewed configuration version.
+
+The receipt has exactly `request_id`, `actor_id`, `reason`,
+`claim_instance_id`, `claim_instance_started_at`, `claimed_at`,
+`finalized_at`, `status` and `failure_code`. `finalized_at` and
+`failure_code` are explicit null when absent.
+
+| Status | HTTP | Meaning |
+| --- | --- | --- |
+| `pending` | 202 | The original claim has positively owned local in-flight work under its original context. |
+| `unknown` | 202 | A claim exists without that local evidence; no result or absence of effects is proved. |
+| `refresh_returned_nil` | 200 | The original refresh returned nil and its terminal receipt committed. |
+| `refresh_returned_error` | 200 | The original refresh returned an error and its terminal receipt committed; `failure_code` is exactly `runtime_refresh_failed`. |
+
+Only the error status has a non-null failure code. An identical request ID,
+exact actor identity and birth, and unchanged reason never dispatch another
+refresh. Changed reason or foreign actor/birth returns 409; a missing own receipt
+returns 404. Current Session and intrinsic administrator authority are checked
+again even for historical receipts. Unreadable or uncertain database results
+return 503; a later authorized read may discover an originally committed result.
+
+The claim and admission audit commit before at most one refresh. Claim failure or
+uncertainty prevents dispatch. One original three-second context covers the
+claim, authority/process recheck, refresh and terminal receipt transaction; no
+renewed budget or detached finalizer is added. Terminal receipt and terminal
+audit commit together and cannot be rewritten. Restart never resumes claimed
+work; without the original positive local ticket and context, it remains unknown.
+
+A receipt records the original function outcome. It attributes no snapshot,
+installation observation or fleet acknowledgement and provides no rollback or
+no-effects guarantee. A failed refresh may already publish fresh revocation.
+Current runtime and application observations remain separate APIs. Existing
+runtime qualification below retains its original historical scope. This command's
+strict HTTP/body, idempotency, authority/birth, claim/finalization fault and portable
+migration checks pass in `54b4b3fb5c51725c4387837d1f24f111beeabc763dab1294584b9da16db4ab4f`. The existing
+same-binary two-process HTTP restart witness preserves terminal receipts and
+unchanged original command/audit rows; it does not exercise an interrupted
+in-flight OS-process claim. The direct service load counter is separate evidence.
+Default production build acceptance is `502293c38322976fca690ca4d885bc1d92f731392e2cec3d8df2bdd0fb91b1ba`;
+the integration process witness does not itself prove a default production build.
 
 ## Verification and Remaining Acceptance
 

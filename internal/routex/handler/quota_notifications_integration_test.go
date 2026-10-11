@@ -127,13 +127,13 @@ func testMonthlyQuotaNotificationLifecycle(t *testing.T, db *gorm.DB) {
 		}
 	}
 	spool := filepath.Join(t.TempDir(), "quota-notifications.db")
+	defer func() { svc.StopRuntime(); _ = svc.StopCallRecorder() }()
 	if err := svc.StartRuntime(workerCtx); err != nil {
 		t.Fatal(err)
 	}
 	if err := svc.StartCallRecorder(ctx, spool); err != nil {
 		t.Fatal(err)
 	}
-	defer func() { svc.StopRuntime(); _ = svc.StopCallRecorder() }()
 	call := func(bearer string) *httptest.ResponseRecorder {
 		req := httptest.NewRequest("POST", "http://routex.test/v1/chat/completions", strings.NewReader(`{"model":"quota-notice-model","messages":[{"role":"user","content":"hello"}],"max_completion_tokens":10}`))
 		req.Header.Set("Content-Type", "application/json")

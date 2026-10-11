@@ -1,3 +1,12 @@
+import {
+  beginEmergencyLogin,
+  completeEmergencyLogin,
+  AuthenticationPolicyError,
+} from '@/api/auth-enforcement'
+import {
+  authenticationPolicyKey,
+  useAuthenticationPolicy,
+} from '@/views/auth-enforcement/public-policy'
 import { SiteLogo, SiteFooter } from '@/components/app/SiteBranding'
 import { useSite } from '@/hooks/use-site'
 import { t } from '@/i18n'
@@ -34,15 +43,17 @@ import GoogleLoginButton from '@/views/google/login-button'
 import DiscordLoginButton from '@/views/discord/login-button'
 import type { LDAPLoginResult } from '@/types/ldap'
 
-export default function AuthPage({ mode }: { mode: 'login' | 'setup' | 'register' }) {
+export default function AuthPage({ mode }: { mode: 'login' | 'setup' | 'register' | 'emergency' }) {
   return <Auth key={mode} mode={mode} />
 }
-function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
+function Auth({ mode }: { mode: 'login' | 'setup' | 'register' | 'emergency' }) {
   useTranslation()
   const site = useSite()
   const name = site.data?.name || 'RouteX'
 
   const isSetup = mode === 'setup'
+  const isEmergency = mode === 'emergency'
+  const enforcement = useAuthenticationPolicy(!isSetup)
   const isRegister = mode === 'register'
   const registration = useQuery({
     queryKey: ['auth', 'registration'],
@@ -104,6 +115,26 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
       request.current?.abort()
     }
   }, [])
+  useEffect(() => {
+    let fingerprint = enforcement.revision
+    return queryClient.getQueryCache().subscribe((event) => {
+      if (
+        (event.type !== 'updated' && event.type !== 'removed') ||
+        JSON.stringify(event.query.queryKey) !== JSON.stringify(authenticationPolicyKey)
+      )
+        return
+      const state = queryClient.getQueryState(authenticationPolicyKey)
+      const next = `${state?.status}:${state?.fetchStatus}:${state?.isInvalidated}:${state?.dataUpdateCount}:${state?.errorUpdateCount}`
+      if (fingerprint === next) return
+      fingerprint = next
+      attempt.current++
+      request.current?.abort()
+      locked.current = false
+      setPending(false)
+      setChallenge(null)
+      setErrorStatus(null)
+    })
+  }, [queryClient, enforcement.revision])
   async function complete(session: Session, turn: number, current: () => boolean = () => true) {
     await queryClient.cancelQueries({ predicate: (query) => query.queryKey[0] !== 'site' })
     if (turn !== attempt.current || !current()) return
@@ -115,7 +146,7 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
     navigate('/', { replace: true })
   }
   function acquireOIDC() {
-    if (locked.current) return null
+    if (locked.current || !enforcement.current()) return null
     locked.current = true
     const turn = ++attempt.current
     setPending(true)
@@ -150,7 +181,17 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
     setValidation(expired ? 'mfa:expired' : '')
   }
   async function authenticate(input: SetupInput) {
-    if (locked.current) return
+    if (
+      locked.current ||
+      (!isSetup &&
+        (!enforcement.current() ||
+          (isEmergency
+            ? !enforcement.policy?.emergency_entry_enabled
+            : isRegister
+              ? enforcement.policy?.enforced
+              : !enforcement.policy?.password_login_enabled)))
+    )
+      return
     locked.current = true
     setPending(true)
     setErrorStatus(null)
@@ -161,7 +202,15 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
         ? await setup(input)
         : isRegister
           ? await register(input, request.current.signal)
-          : await login({ email: input.email, password: input.password }, request.current.signal)
+          : isEmergency
+            ? {
+                kind: 'challenge' as const,
+                challenge: await beginEmergencyLogin(
+                  { email: input.email, password: input.password },
+                  request.current.signal,
+                ),
+              }
+            : await login({ email: input.email, password: input.password }, request.current.signal)
       if (turn !== attempt.current) return
       if ('kind' in result) {
         if (result.kind === 'approval_pending') {
@@ -178,7 +227,12 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
       } else await complete(result, turn)
     } catch (error) {
       if (turn !== attempt.current) return
-      const status = axios.isAxiosError(error) ? (error.response?.status ?? 0) : 0
+      const status =
+        error instanceof AuthenticationPolicyError
+          ? error.status
+          : axios.isAxiosError(error)
+            ? (error.response?.status ?? 0)
+            : 0
       setErrorStatus(status)
       if (isRegister && status === 403)
         void queryClient.invalidateQueries({ queryKey: ['auth', 'registration'] })
@@ -197,7 +251,7 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
     }
   }
   async function verify(proof: MFAProof) {
-    if (!challenge || locked.current) return
+    if (!challenge || locked.current || !enforcement.current()) return
     if (Date.parse(challenge.expires_at) <= Date.now()) {
       restart(true)
       return
@@ -210,13 +264,18 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
     request.current = new AbortController()
     try {
       await complete(
-        await verifyMFALogin(challenge.challenge_token, proof, request.current.signal),
+        await (isEmergency
+          ? completeEmergencyLogin(challenge.challenge_token, proof, request.current.signal)
+          : verifyMFALogin(challenge.challenge_token, proof, request.current.signal)),
         turn,
       )
     } catch (error) {
       if (turn === attempt.current)
         setValidation(
-          error instanceof MFARequestError && error.status === 401 ? 'mfa:invalid' : 'mfa:failed',
+          (error instanceof MFARequestError || error instanceof AuthenticationPolicyError) &&
+            error.status === 401
+            ? 'mfa:invalid'
+            : 'mfa:failed',
         )
     } finally {
       if (turn === attempt.current) {
@@ -266,7 +325,14 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
           ? t('registrationUnavailableForEmail')
           : authError(errorStatus)
       : '')
-  if (isRegister && !approvalPending && (!publicPolicy?.enabled || !freshRegistration))
+  if (
+    isRegister &&
+    !approvalPending &&
+    (!publicPolicy?.enabled ||
+      !freshRegistration ||
+      !enforcement.current() ||
+      enforcement.policy?.enforced)
+  )
     return (
       <main className="flex min-h-screen items-center justify-center p-6">
         <div className="absolute right-6 top-6">
@@ -312,7 +378,9 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
                   ? t('site:setup', { name })
                   : isRegister
                     ? t('site:join', { name })
-                    : t('site:signIn', { name })}
+                    : isEmergency
+                      ? t('authEnforcement:emergencyTitle')
+                      : t('site:signIn', { name })}
             </h1>
             {isSetup && (
               <p className="text-sm leading-6 text-muted-foreground">
@@ -324,6 +392,17 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
             <p role="status" className="rounded-md border bg-muted/40 p-3 text-sm leading-6">
               {t(notice)}
             </p>
+          )}
+          {isEmergency && (
+            <p className="text-sm text-muted-foreground">{t('authEnforcement:emergencyHelp')}</p>
+          )}
+          {!isSetup && !enforcement.current() && (
+            <div role="alert" className="space-y-3">
+              <p>{t('authEnforcement:unavailable')}</p>
+              <Button variant="outline" onClick={() => void enforcement.query.refetch()}>
+                {t('authEnforcement:refresh')}
+              </Button>
+            </div>
           )}
           {approvalPending ? (
             <div className="space-y-4" role="status">
@@ -340,7 +419,11 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
               verify={(proof) => void verify(proof)}
               restart={restart}
             />
-          ) : (
+          ) : isSetup ||
+            (enforcement.current() &&
+              (isEmergency
+                ? enforcement.policy?.emergency_entry_enabled
+                : isRegister || enforcement.policy?.password_login_enabled)) ? (
             <form
               aria-label={
                 isSetup
@@ -444,25 +527,49 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
                 ) : null}
                 {pending
                   ? t('submitting_10b2d')
-                  : isSetup
-                    ? t('create_administrator_and_continue_9e9d6')
-                    : isRegister
-                      ? t('create_account_249a9')
-                      : t('sign_in_21f1e')}
+                  : isEmergency
+                    ? t('authEnforcement:emergencyTitle')
+                    : isSetup
+                      ? t('create_administrator_and_continue_9e9d6')
+                      : isRegister
+                        ? t('create_account_249a9')
+                        : t('sign_in_21f1e')}
                 {!pending && <ArrowRight className="size-4" aria-hidden="true" />}
               </Button>
             </form>
-          )}
-          {mode === 'login' && !challenge && (
+          ) : enforcement.policy?.enforced && !isEmergency ? (
+            <p>{t('authEnforcement:ssoOnly')}</p>
+          ) : null}
+          {mode === 'login' && !challenge && enforcement.current() && (
             <>
               <OIDCLoginButton disabled={pending} acquire={acquireOIDC} />
-              <OAuthLoginButton disabled={pending} acquire={acquireOIDC} />
+              {!enforcement.policy?.enforced && (
+                <OAuthLoginButton disabled={pending} acquire={acquireOIDC} />
+              )}
               <LDAPLoginButton disabled={pending} acquire={acquireOIDC} />
-              <SAMLLoginButton disabled={pending} acquire={acquireOIDC} />
-              <GitHubLoginButton disabled={pending} acquire={acquireOIDC} />
-              <GoogleLoginButton disabled={pending} acquire={acquireOIDC} />
-              <DiscordLoginButton disabled={pending} acquire={acquireOIDC} />
+              {!enforcement.policy?.enforced && (
+                <SAMLLoginButton disabled={pending} acquire={acquireOIDC} />
+              )}
+              {!enforcement.policy?.enforced && (
+                <GitHubLoginButton disabled={pending} acquire={acquireOIDC} />
+              )}
+              {!enforcement.policy?.enforced && (
+                <GoogleLoginButton disabled={pending} acquire={acquireOIDC} />
+              )}
+              {!enforcement.policy?.enforced && (
+                <DiscordLoginButton disabled={pending} acquire={acquireOIDC} />
+              )}
             </>
+          )}
+          {mode === 'login' && enforcement.policy?.emergency_entry_enabled && !challenge && (
+            <Link to="/login/emergency" className="block text-center text-sm underline">
+              {t('authEnforcement:emergencyLink')}
+            </Link>
+          )}
+          {isEmergency && (
+            <Link to="/login" className="block text-center text-sm underline">
+              {t('authEnforcement:back')}
+            </Link>
           )}
         </div>
         {!challenge && (
@@ -471,7 +578,10 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
               t('each_site_can_be_initialized_once_keep_your_0efb2')
             ) : isRegister ? (
               <Link to="/login">{t('already_have_an_account_sign_in_b5a87')}</Link>
-            ) : publicPolicy?.enabled ? (
+            ) : !isEmergency &&
+              enforcement.current() &&
+              !enforcement.policy?.enforced &&
+              publicPolicy?.enabled ? (
               <Link to="/register">{t('need_an_account_register_5b4ad')}</Link>
             ) : (
               t('need_an_account_contact_your_organization_s_administrator_5477e')

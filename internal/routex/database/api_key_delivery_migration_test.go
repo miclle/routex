@@ -63,7 +63,7 @@ func TestAPIKeyDeliveryV102KeepsReleasedTailAndRootHistory(t *testing.T) {
 	}
 	for _, driver := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(driver)
-		if len(legacyMigrationSQL(driver)) != 4 || len(steps) != 102 || len(old) != 97 {
+		if len(legacyMigrationSQL(driver)) != 4 || len(steps) != 105 || len(old) != 97 {
 			t.Fatal("exact V101 prefix/V102 length")
 		}
 		for i, expected := range old {
@@ -71,7 +71,7 @@ func TestAPIKeyDeliveryV102KeepsReleasedTailAndRootHistory(t *testing.T) {
 				t.Fatal("historical migration pointer changed", i+5)
 			}
 		}
-		if reflect.ValueOf(steps[101]).Pointer() != reflect.ValueOf(apiKeyDeliveryMigration).Pointer() {
+		if reflect.ValueOf(steps[101]).Pointer() != reflect.ValueOf(apiKeyDeliveryMigration).Pointer() || reflect.ValueOf(steps[102]).Pointer() != reflect.ValueOf(forcedSSOMigration).Pointer() || reflect.ValueOf(steps[103]).Pointer() != reflect.ValueOf(vaultCertificateMigration).Pointer() || reflect.ValueOf(steps[104]).Pointer() != reflect.ValueOf(runtimePublicationCommandMigration).Pointer() {
 			t.Fatal("V102 registration")
 		}
 	}

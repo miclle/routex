@@ -67,6 +67,55 @@ func testCredentialRetirementLifecycle(t *testing.T, db *gorm.DB) {
 		_, _ = w.Write([]byte(responseBody.Load().(string)))
 	}))
 	defer func() { releaseOnce.Do(func() { close(releaseSource) }); upstream.Close() }()
+	// Install before Service startup; live fault state is atomic and persistent.
+	var observeLock, auditFailure, armPublication atomic.Bool
+	lockAttempted := make(chan struct{}, 1)
+	lockCallback := "test_retirement_bounded_lock_wait"
+	if err := db.Callback().Query().Before("gorm:query").Register(lockCallback, func(tx *gorm.DB) {
+		if observeLock.Load() && tx.Statement.Table == "governance_settings" && tx.Statement.Clauses["FOR"].Expression != nil {
+			select {
+			case lockAttempted <- struct{}{}:
+			default:
+			}
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	callback := "test_retirement_audit_failure"
+	if err := db.Callback().Create().Before("gorm:create").Register(callback, func(tx *gorm.DB) {
+		if auditFailure.Load() && tx.Statement.Table == "audit_events" {
+			_ = tx.AddError(fmt.Errorf("test-only retirement audit failure"))
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var publicationOutage atomic.Bool
+	publicationCallback := "test_retirement_publication_outage"
+	if err := db.Callback().Query().Before("gorm:query").Register(publicationCallback, func(tx *gorm.DB) {
+		if publicationOutage.Load() && tx.Statement.Table == "provider_credentials" {
+			_ = tx.AddError(fmt.Errorf("test-only publication database outage"))
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Callback().Create().After("gorm:create").Register(publicationCallback, func(tx *gorm.DB) {
+		if event, ok := tx.Statement.Dest.(*entity.AuditEvent); ok && armPublication.Load() && event.Action == "credential.retire" && tx.Error == nil {
+			publicationOutage.Store(true)
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		observeLock.Store(false)
+		auditFailure.Store(false)
+		armPublication.Store(false)
+		publicationOutage.Store(false)
+		for _, err := range []error{db.Callback().Query().Remove(lockCallback), db.Callback().Create().Remove(callback), db.Callback().Query().Remove(publicationCallback), db.Callback().Create().Remove(publicationCallback)} {
+			if err != nil {
+				t.Error(err)
+			}
+		}
+	}()
 	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
@@ -117,10 +166,10 @@ func testCredentialRetirementLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal(err)
 		}
 	}
+	defer svc.StopRuntime()
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	defer svc.StopRuntime()
 	call := func() *httptest.ResponseRecorder {
 		req := httptest.NewRequest("POST", "http://routex.test/v1/chat/completions", strings.NewReader(`{"model":"retirement-model","messages":[{"role":"user","content":"Review real completed inference"}]}`))
 		req.Header.Set("Authorization", "Bearer "+bearer)
@@ -271,18 +320,8 @@ func testCredentialRetirementLifecycle(t *testing.T, db *gorm.DB) {
 	if err := lockTx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&governance, 1).Error; err != nil {
 		t.Fatal(err)
 	}
-	lockAttempted := make(chan struct{}, 1)
-	lockCallback := "test_retirement_bounded_lock_wait"
-	if err := db.Callback().Query().Before("gorm:query").Register(lockCallback, func(tx *gorm.DB) {
-		if tx.Statement.Table == "governance_settings" && tx.Statement.Clauses["FOR"].Expression != nil {
-			select {
-			case lockAttempted <- struct{}{}:
-			default:
-			}
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
+	observeLock.Store(true)
+	defer observeLock.Store(false)
 	blockedResult := make(chan *httptest.ResponseRecorder, 1)
 	go func() { blockedResult <- post(router, path, intent, etag, writeCookie, writeIdentity) }()
 	select {
@@ -311,11 +350,8 @@ func testCredentialRetirementLifecycle(t *testing.T, db *gorm.DB) {
 	case <-time.After(3 * time.Second):
 		t.Fatal("publication gate was leaked after timeout")
 	}
-	// Callback registration is shared by every GORM session; remove it only
-	// after the publisher has finished using the callback processor.
-	if err := db.Callback().Query().Remove(lockCallback); err != nil {
-		t.Fatal(err)
-	}
+	// Disarm only after the explicit publisher has joined; keep its registry intact.
+	observeLock.Store(false)
 	var timedOutReceipts int64
 	if err := db.Model(&entity.CredentialRetirementReceipt{}).Count(&timedOutReceipts).Error; err != nil || timedOutReceipts != 0 {
 		t.Fatal("timed-out preparation claimed commit", err)
@@ -324,18 +360,10 @@ func testCredentialRetirementLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	// Audit failure must roll back the source reduction and receipt together.
-	callback := "test_retirement_audit_failure"
-	if err := db.Callback().Create().Before("gorm:create").Register(callback, func(tx *gorm.DB) {
-		if tx.Statement.Table == "audit_events" {
-			_ = tx.AddError(fmt.Errorf("test-only retirement audit failure"))
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
+	auditFailure.Store(true)
+	defer auditFailure.Store(false)
 	failed := post(router, path, intent, etag, adminCookie, admin.CSRFToken)
-	if err := db.Callback().Create().Remove(callback); err != nil {
-		t.Fatal(err)
-	}
+	auditFailure.Store(false)
 	expectStatus(t, failed, 500)
 	var rollbackSource entity.ProviderCredential
 	var receipts int64
@@ -350,30 +378,11 @@ func testCredentialRetirementLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	// A query outage begins only after the atomic retirement audit is saved.
 	// The response acknowledges its durable receipt but cannot claim publication.
-	var publicationOutage atomic.Bool
-	publicationCallback := "test_retirement_publication_outage"
-	if err := db.Callback().Query().Before("gorm:query").Register(publicationCallback, func(tx *gorm.DB) {
-		if publicationOutage.Load() && tx.Statement.Table == "provider_credentials" {
-			_ = tx.AddError(fmt.Errorf("test-only publication database outage"))
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Callback().Create().After("gorm:create").Register(publicationCallback, func(tx *gorm.DB) {
-		if event, ok := tx.Statement.Dest.(*entity.AuditEvent); ok && event.Action == "credential.retire" && tx.Error == nil {
-			publicationOutage.Store(true)
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
+	armPublication.Store(true)
+	defer armPublication.Store(false)
 	pendingPublication := decodeCatalogResponse[service.CredentialRetirementRecord](t, post(router, path, intent, etag, writeCookie, writeIdentity), 200)
+	armPublication.Store(false)
 	publicationOutage.Store(false)
-	if err := db.Callback().Query().Remove(publicationCallback); err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Callback().Create().Remove(publicationCallback); err != nil {
-		t.Fatal(err)
-	}
 	if !pendingPublication.Committed || pendingPublication.RuntimeApplied || pendingPublication.CurrentSnapshotID != nil || !slices.Contains(pendingPublication.Blockers, "runtime_unavailable") {
 		t.Fatal("postcommit outage lost historical truth or claimed publication")
 	}

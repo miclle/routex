@@ -29,6 +29,7 @@ const runtimeRefreshTimeout = 3 * time.Second
 var runtimeUnavailable = &apperrors.Error{Code: 503, Message: "runtime configuration is temporarily unavailable"}
 
 type gatewayRuntime struct {
+	authenticationPolicyFence   atomic.Pointer[runtimeAuthenticationPolicy]
 	cancel                      context.CancelFunc
 	done                        chan struct{}
 	refreshMu                   sync.Mutex
@@ -78,6 +79,7 @@ type runtimeConnectionProof struct {
 }
 
 type runtimeAuthorization struct {
+	AuthenticationPolicy         runtimeAuthenticationPolicy
 	installationProjectionDigest string
 	publicationEpoch             uint64
 	Connections                  map[string]runtimeConnectionProof

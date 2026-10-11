@@ -242,6 +242,11 @@ func testGitHubMigration(t *testing.T, db *gorm.DB) {
 	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 	defer cancel()
 	db = db.WithContext(ctx)
+	// The finite V103 peel removes only these emergency-proof columns.
+	// Retain every historical primary field until full-head restoration below.
+	historicalPrimary := func(tx *gorm.DB) *gorm.DB {
+		return tx.Omit("EmergencyPolicyRevision", "EmergencyUserCreatedAt", "EmergencyMFAGeneration", "EmergencyPasswordDigest", "EmergencyFactorCompletedAt")
+	}
 	original := personalKeyBehaviorLedger(t, db)
 	if len(original) != 98 {
 		t.Fatal("exact V98 ledger")
@@ -303,7 +308,7 @@ func testGitHubMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	assertDefault()
-	for _, bound := range []int{0, -1, 97, 103} {
+	for _, bound := range []int{0, -1, 97, 106} {
 		if database.MigrateThrough(ctx, db, bound) == nil || !reflect.DeepEqual(original, personalKeyBehaviorLedger(t, db)) {
 			t.Fatal("invalid/newer bound admitted", bound)
 		}
@@ -364,10 +369,10 @@ func testGitHubMigration(t *testing.T, db *gorm.DB) {
 			c.SAMLPolicyRevision = row.SAMLPolicyRevision
 			c.SAMLUserCreatedAt = &user.CreatedAt
 		}
-		if db.Create(&row).Error != nil || db.Create(&c).Error != nil {
+		if historicalPrimary(db).Create(&row).Error != nil || historicalPrimary(db).Create(&c).Error != nil {
 			t.Fatal("retained primary positive", method)
 		}
-		if db.Session(&gorm.Session{QueryFields: true}).Take(&row, "id = ?", row.ID).Error != nil || db.Session(&gorm.Session{QueryFields: true}).Take(&c, "user_id = ? AND purpose = ?", user.ID, "login").Error != nil {
+		if historicalPrimary(db).Session(&gorm.Session{QueryFields: true}).Take(&row, "id = ?", row.ID).Error != nil || historicalPrimary(db).Session(&gorm.Session{QueryFields: true}).Take(&c, "user_id = ? AND purpose = ?", user.ID, "login").Error != nil {
 			t.Fatal("capture retained rows")
 		}
 		sessions = append(sessions, row)
@@ -378,7 +383,7 @@ func testGitHubMigration(t *testing.T, db *gorm.DB) {
 		for i, want := range sessions {
 			var got entity.Session
 			var c entity.MFAChallenge
-			if db.Session(&gorm.Session{QueryFields: true}).Take(&got, "id = ?", want.ID).Error != nil || db.Session(&gorm.Session{QueryFields: true}).Take(&c, "user_id = ? AND purpose = ?", challenges[i].UserID, "login").Error != nil || !reflect.DeepEqual(got, want) || !reflect.DeepEqual(c, challenges[i]) {
+			if historicalPrimary(db).Session(&gorm.Session{QueryFields: true}).Take(&got, "id = ?", want.ID).Error != nil || historicalPrimary(db).Session(&gorm.Session{QueryFields: true}).Take(&c, "user_id = ? AND purpose = ?", challenges[i].UserID, "login").Error != nil || !reflect.DeepEqual(got, want) || !reflect.DeepEqual(c, challenges[i]) {
 				t.Fatal("retained exact primary changed", i)
 			}
 		}
@@ -719,9 +724,13 @@ func testGitHubMigration(t *testing.T, db *gorm.DB) {
 	if err := database.Migrate(ctx, db); err != nil {
 		t.Fatal("restore current V99 after historical V98", err)
 	}
+
+	// Current-head reads also verify the five newly added fields remain empty.
+	historicalPrimary = func(tx *gorm.DB) *gorm.DB { return tx }
 	final := personalKeyBehaviorLedger(t, db)
-	if len(final) != 102 || final[100].Version != 101 || final[101].Version != 102 || final[99].Version != 100 || final[98].Version != 99 || !reflect.DeepEqual(beforeSuccessor, final[:98]) {
+	if len(final) != 105 || final[104].Version != 105 || final[103].Version != 104 || final[102].Version != 103 || final[100].Version != 101 || final[101].Version != 102 || final[99].Version != 100 || final[98].Version != 99 || !reflect.DeepEqual(beforeSuccessor, final[:98]) {
 		t.Fatal("historical V98 closure lost exact prefix or V99 suffix")
 	}
+	retained()
 
 }

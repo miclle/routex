@@ -144,6 +144,39 @@ beforeEach(() => {
   })
   client.defaults.adapter = async (config) => {
     requests.push(config)
+    if (config.url === '/auth/policy')
+      return {
+        config: config,
+        status: 200,
+        statusText: '',
+        headers: new AxiosHeaders({
+          'Cache-Control': 'private, no-store',
+          'X-Content-Type-Options': 'nosniff',
+        }),
+        data: { enforced: false, password_login_enabled: true, emergency_entry_enabled: false },
+      }
+    if (config.url === '/admin/auth/policy' && config.method === 'get')
+      return {
+        config: config,
+        status: 200,
+        statusText: '',
+        headers: new AxiosHeaders({
+          ETag: '"' + 'd'.repeat(64) + '"',
+          'Cache-Control': 'private, no-store',
+          'X-Content-Type-Options': 'nosniff',
+        }),
+        data: {
+          enforced: false,
+          emergency_admin_id: null,
+          emergency_admin_created_at: null,
+          emergency_mfa_enabled: null,
+          oidc_available: false,
+          ldap_available: false,
+          review_emergency_admin: null,
+          review_etag: 'd'.repeat(64),
+        },
+      }
+
     if (config.method === 'get' && config.url?.endsWith('/access')) {
       const data = accessSummaryFixture(config.url.split('/')[3], {
         roles: permissions.includes('roles.read'),

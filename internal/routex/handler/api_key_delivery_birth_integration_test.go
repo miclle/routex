@@ -10,47 +10,66 @@ import (
 	"gorm.io/gorm"
 )
 
-// Exercise real managed issuance with an authored sub-millisecond birth. The
-// callback supplies no Key, claim, acknowledgement, identity or READY proof.
-func deliveryFixtureManagedBirth(t *testing.T, db *gorm.DB, kind, owner, actor string) func(string) {
-	t.Helper()
-	authored := time.Now().UTC().Add(-time.Second).Truncate(time.Second).Add(123456 * time.Microsecond)
-	var observed atomic.Bool
-	name := "test:delivery-managed-birth-" + kind
-	if e := db.Callback().Create().Before("gorm:create").Register(name, func(tx *gorm.DB) {
+type deliveryFixtureManagedBirthTarget struct {
+	kind, owner, actor string
+	authored           time.Time
+	observed           atomic.Bool
+}
+
+// Install before any fixture Service starts. The immutable exact target stays
+// armed until its assertion; additional matching creations must still fail.
+func (f *deliveryFixture) installManagedBirthCallback() {
+	f.t.Helper()
+	const name = "test:delivery-managed-birth"
+	if e := f.db.Callback().Create().Before("gorm:create").Register(name, func(tx *gorm.DB) {
+		target := f.managedBirth.Load()
+		if target == nil {
+			return
+		}
 		match := false
 		switch key := tx.Statement.Dest.(type) {
 		case *entity.APIKey:
-			match = kind == "personal" && key.UserID == owner && key.DeliveryMode == "managed_vault" && key.Status == entity.KeyPending
+			match = target.kind == "personal" && key.UserID == target.owner && key.DeliveryMode == "managed_vault" && key.Status == entity.KeyPending
 		case *entity.ProjectKey:
-			match = kind == "project" && key.ProjectID == owner && key.CreatorID == actor && key.DeliveryMode == "managed_vault" && key.Status == entity.KeyPending
+			match = target.kind == "project" && key.ProjectID == target.owner && key.CreatorID == target.actor && key.DeliveryMode == "managed_vault" && key.Status == entity.KeyPending
 		}
 		if !match {
 			return
 		}
-		if !observed.CompareAndSwap(false, true) {
+		if !target.observed.CompareAndSwap(false, true) {
 			_ = tx.AddError(errors.New("unexpected additional managed creation"))
 			return
 		}
-		tx.Statement.SetColumn("CreatedAt", authored)
+		tx.Statement.SetColumn("CreatedAt", target.authored)
 	}); e != nil {
-		t.Fatal(e)
+		f.t.Fatal(e)
 	}
-	registered := true
-	t.Cleanup(func() {
-		if registered {
-			if e := db.Callback().Create().Remove(name); e != nil {
-				t.Error(e)
-			}
+	// Registered before every Service cleanup, so registry removal follows joins.
+	f.t.Cleanup(func() {
+		f.managedBirth.Store(nil)
+		if e := f.db.Callback().Create().Remove(name); e != nil {
+			f.t.Error(e)
 		}
 	})
+}
+
+// Exercise real managed issuance with an authored sub-millisecond birth. The
+// callback supplies no Key, claim, acknowledgement, identity or READY proof.
+func deliveryFixtureManagedBirth(t *testing.T, f *deliveryFixture, kind, owner, actor string) func(string) {
+	t.Helper()
+	db := f.db
+	authored := time.Now().UTC().Add(-time.Second).Truncate(time.Second).Add(123456 * time.Microsecond)
+	target := &deliveryFixtureManagedBirthTarget{kind: kind, owner: owner, actor: actor, authored: authored}
+	if !f.managedBirth.CompareAndSwap(nil, target) {
+		t.Fatal("managed birth fixture is already armed")
+	}
+	t.Cleanup(func() { f.managedBirth.CompareAndSwap(target, nil) })
 	return func(keyID string) {
 		t.Helper()
-		if e := db.Callback().Create().Remove(name); e != nil {
-			t.Fatal(e)
+		if !f.managedBirth.CompareAndSwap(target, nil) {
+			t.Fatal("managed birth target changed before assertion")
 		}
-		registered = false
-		if !observed.Load() || authored.Equal(authored.Truncate(time.Millisecond)) {
+		if !target.observed.Load() || authored.Equal(authored.Truncate(time.Millisecond)) {
 			t.Fatal("sub-millisecond managed birth was not exercised")
 		}
 		var birth time.Time

@@ -77,7 +77,7 @@ export async function getRuntimeInstallations(
         'current_serving_installation_matches',
       ]) ||
       !installationID(row.id) ||
-      row.projection_version !== 1 ||
+      (row.projection_version !== 1 && row.projection_version !== 2) ||
       !canonicalRuntimeID(row.instance_id, 'ins') ||
       !canonicalRuntimeID(row.snapshot_id, 'cfg') ||
       (filter.instance_id !== undefined && row.instance_id !== filter.instance_id) ||
@@ -94,6 +94,7 @@ export async function getRuntimeInstallations(
         typeof row.current_serving_installation_matches === 'boolean'
       ) ||
       (row.instance_status !== 'online' && row.current_serving_installation_matches !== null) ||
+      (row.projection_version === 1 && row.current_serving_installation_matches !== null) ||
       seen.has(row.id) ||
       (seen.size > 0 && (value.items[seen.size - 1] as RuntimeInstallationRecord).id <= row.id)
     )

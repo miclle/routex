@@ -1,6 +1,6 @@
 # Local Identity, Sessions, and Initialization
 
-This phase implements first administrator creation, local login, persistent sessions, logout, and the minimum authorization boundary between `admin` and `member`. [Registration and role administration](GOVERNANCE.md) and [two-step verification](MFA.md) extend this foundation. [Existing-member OIDC](OIDC.md) adds explicit external identity linking while preserving local authentication and native MFA. Password recovery and broader enterprise identity remain separate work.
+This phase implements first administrator creation, local login, persistent sessions, logout, and the minimum authorization boundary between `admin` and `member`. [Registration and role administration](GOVERNANCE.md) and [two-step verification](MFA.md) extend this foundation. [Existing-member OIDC](OIDC.md) adds explicit external identity linking while preserving local authentication and native MFA. Password recovery and broader enterprise identity remain separate work. The source-implemented [authentication policy](AUTH_POLICY.md) can restrict ordinary sign-in to verified OIDC/LDAP and provides a dedicated password-plus-native-MFA emergency entry; controlled phase acceptance is recorded in that guide, while browser and external recovery acceptance remain pending.
 
 ## Data and Initialization
 
@@ -18,7 +18,7 @@ Management APIs use `snake_case` JSON. Authentication responses include `Cache-C
 |---|---|---|---|
 | `GET /api/v1/setup` | None | `200 {"initialized": false}` before initialization; `true` afterward | Public |
 | `POST /api/v1/setup` | `{email,password,name}` | `201`, session response and a session cookie | Before initialization only |
-| `POST /api/v1/auth/login` | `{email,password}` | `200` session and cookie, or `202` MFA challenge without a new session | Public |
+| `POST /api/v1/auth/login` | `{email,password}` | Enforcement off: `200` Session/cookie or `202` native MFA challenge; enforcement on: generic denial | Public |
 | `GET /api/v1/auth/registration` | None | `200 {enabled,approval_required}` | Public |
 | `POST /api/v1/auth/register` | `{email,password,name}` | `201` Session without approval, or `202 {kind:"approval_pending"}` without a Session/cookie | Public, initialized and registration open |
 | `GET /api/v1/auth/session` | Session cookie | `200`, session response | Authenticated |
@@ -87,6 +87,8 @@ Coverage includes upgrades preserving existing `Example` data, concurrent and re
 The OIDC integration adds explicit member linking and one reviewed provider, while
 preserving local passwords, registration admission and native RouteX MFA. Read
 [OIDC](OIDC.md) for ceremony, configuration, revocation and verification boundaries.
+[Authentication policy](AUTH_POLICY.md) separately governs whether a method may
+issue or retain browser/Team Session authority; it does not change identity linking.
 No remote email/role claim grants local authority. Callback exchange alone never
 creates a Session; clean-page completion and any required MFA must succeed first.
 The application is delivered in `62c01baf77278b67a774d5777ee218c3a14c5ac6`.
@@ -143,9 +145,14 @@ The separate [GitHub profile](GITHUB.md) implements reviewed GitHub.com OAuth Ap
 configuration and explicit existing-member linking. Controlled application,
 database and restart qualification is `passed`; root-confirmed
 combined phase evidence is recorded in [Implementation](IMPLEMENTATION.md).
-External OAuth App and bilingual browser acceptance remain open. Independent
-Discord and Telegram settings remain separate work; the custom OAuth provider
-does not implement those independent profiles. WeChat login is deferred by the
+External OAuth App and bilingual browser acceptance remain open. The separate
+[Discord profile](DISCORD.md) is implemented. Telegram now has a separate
+source-complete next-phase implementation using official OIDC authorization code,
+PKCE S256 and Client ID/Client Secret. It remains an independent named method,
+outside this enterprise qualification floor; its focused checks do not establish
+full, real-database, restart, external-provider/browser acceptance or delivery.
+Forced SSO continues to allow only enterprise OIDC and LDAP. The custom OAuth
+provider does not implement these independent profiles. WeChat login is deferred by the
 user because no verification service or wire contract currently exists. Do not
 invent a bridge protocol or treat a static QR image as proof of identity.
 

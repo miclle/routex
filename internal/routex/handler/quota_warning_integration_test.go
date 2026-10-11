@@ -74,6 +74,43 @@ func testPersonalMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		return svc
 	}
 	svc := makeService()
+	// Install the exact positive-page observer before any workers start.
+	type positiveQuotaPageContext struct{}
+	var positivePageArmed atomic.Bool
+	callbackName := "test:personal-quota-positive-owner-page"
+	if err := db.Callback().Query().Before("gorm:query").Register(callbackName, func(tx *gorm.DB) {
+		positive, _ := tx.Statement.Context.Value(positiveQuotaPageContext{}).(bool)
+		if !positivePageArmed.Load() || !positive || tx.Statement.Schema == nil || tx.Statement.Schema.Table != "resource_limits" || len(tx.Statement.Selects) != 2 || tx.Statement.Selects[0] != "scope_kind" || tx.Statement.Selects[1] != "scope_id" {
+			return
+		}
+		where, ok := tx.Statement.Clauses["WHERE"].Expression.(clause.Where)
+		if !ok {
+			return
+		}
+		precedingOwnerPage := false
+		for _, expression := range where.Exprs {
+			value, ok := expression.(clause.Expr)
+			if !ok || value.SQL != "scope_kind > ? OR (scope_kind = ? AND scope_id > ?)" || len(value.Vars) != 3 || value.Vars[0] != "user" || value.Vars[1] != "user" {
+				continue
+			}
+			cursor, ok := value.Vars[2].(string)
+			precedingOwnerPage = ok && strings.HasPrefix(cursor, "usr_000_warn_")
+		}
+		if !precedingOwnerPage {
+			return
+		}
+		if err := svc.RefreshRuntime(tx.Statement.Context); err != nil {
+			_ = tx.AddError(err)
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		positivePageArmed.Store(false)
+		if err := db.Callback().Query().Remove(callbackName); err != nil {
+			t.Error(err)
+		}
+	}()
 	router := fox.New()
 	New(svc).RegisterRoutes(router)
 	setup := identityRequest(router, "POST", "/api/v1/setup", `{"email":"warning-admin@example.invalid","password":"monthly-notification-password","name":"Quota admin"}`, nil, "")
@@ -130,13 +167,13 @@ func testPersonalMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		}
 	}
 	spool := filepath.Join(t.TempDir(), "warnings.db")
+	defer func() { svc.StopRuntime(); _ = svc.StopCallRecorder() }()
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
 	if err := svc.StartCallRecorder(ctx, spool); err != nil {
 		t.Fatal(err)
 	}
-	defer func() { svc.StopRuntime(); _ = svc.StopCallRecorder() }()
 	call := func(bearer string) *httptest.ResponseRecorder {
 		req := httptest.NewRequest("POST", "http://routex.test/v1/chat/completions", strings.NewReader(`{"model":"quota-warning-model","messages":[{"role":"user","content":"hello"}],"max_completion_tokens":1}`))
 		req.Header.Set("Content-Type", "application/json")
@@ -209,43 +246,11 @@ func testPersonalMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	// Refresh before the positive owner page, outside per-owner transactions.
 	// Deliberate unpublished fault intervals retain the original unmarked
 	// reconcileUnpublished helper above.
-	type positiveQuotaPageContext struct{}
-	callbackName := "test:personal-quota-positive-owner-page"
-	if err := db.Callback().Query().Before("gorm:query").Register(callbackName, func(tx *gorm.DB) {
-		positive, _ := tx.Statement.Context.Value(positiveQuotaPageContext{}).(bool)
-		if !positive || tx.Statement.Schema == nil || tx.Statement.Schema.Table != "resource_limits" || len(tx.Statement.Selects) != 2 || tx.Statement.Selects[0] != "scope_kind" || tx.Statement.Selects[1] != "scope_id" {
-			return
-		}
-		where, ok := tx.Statement.Clauses["WHERE"].Expression.(clause.Where)
-		if !ok {
-			return
-		}
-		precedingOwnerPage := false
-		for _, expression := range where.Exprs {
-			value, ok := expression.(clause.Expr)
-			if !ok || value.SQL != "scope_kind > ? OR (scope_kind = ? AND scope_id > ?)" || len(value.Vars) != 3 || value.Vars[0] != "user" || value.Vars[1] != "user" {
-				continue
-			}
-			cursor, ok := value.Vars[2].(string)
-			precedingOwnerPage = ok && strings.HasPrefix(cursor, "usr_000_warn_")
-		}
-		if !precedingOwnerPage {
-			return
-		}
-		if err := svc.RefreshRuntime(tx.Statement.Context); err != nil {
-			_ = tx.AddError(err)
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if err := db.Callback().Query().Remove(callbackName); err != nil {
-			t.Error(err)
-		}
-	})
 	reconcile := func() {
 		t.Helper()
 		refresh()
+		positivePageArmed.Store(true)
+		defer positivePageArmed.Store(false)
 		if err := svc.ReconcileMonthlyQuotaNotifications(context.WithValue(ctx, positiveQuotaPageContext{}, true)); err != nil {
 			t.Fatal(err)
 		}

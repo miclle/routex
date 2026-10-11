@@ -224,8 +224,14 @@ func (c *Client) ReadCredential(ctx context.Context, reader string, plan Credent
 // GET→destroy has no remote path-incarnation CAS: exclusive prefix writers are a
 // deployment requirement. A404 or already destroyed version is not success.
 func (c *Client) CleanupCredentialOwned(ctx context.Context, reader, cleanupToken string, plan CredentialPlan) (CredentialCleanupResult, error) {
+	return c.CleanupCredentialOwnedWithClient(ctx, reader, cleanupToken, plan, c)
+}
+
+// CleanupCredentialOwnedWithClient separates the retained reader TLS identity
+// from the current operator Token transport, without extending the command bound.
+func (c *Client) CleanupCredentialOwnedWithClient(ctx context.Context, reader, cleanupToken string, plan CredentialPlan, cleanupClient *Client) (CredentialCleanupResult, error) {
 	result := CredentialCleanupResult{Cleanup: Cleanup{State: "not_attempted"}}
-	if !c.validCredentialPlan(plan) {
+	if c == nil || cleanupClient == nil || !c.validCredentialPlan(plan) || !cleanupClient.validCredentialPlan(plan) {
 		return result, &Failure{Stage: "prepare", Code: "invalid_plan"}
 	}
 	result.ReferenceID = plan.ReferenceID
@@ -248,7 +254,7 @@ func (c *Client) CleanupCredentialOwned(ctx context.Context, reader, cleanupToke
 		result.Cleanup.State = "unknown"
 		return result, &Failure{Stage: "cleanup", Code: "transport"}
 	}
-	raw, obs := c.request(ctx, "cleanup", http.MethodPut, "destroy", c.credentialPath(plan), "", cleanupToken, []byte(`{"versions":[1]}`))
+	raw, obs := cleanupClient.request(ctx, "cleanup", http.MethodPut, "destroy", c.credentialPath(plan), "", cleanupToken, []byte(`{"versions":[1]}`))
 	clear(raw)
 	result.Cleanup.Observation = obs
 	if obs.Failure != nil {

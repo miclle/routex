@@ -98,6 +98,11 @@ func (s *Service) startNamedIdentity(ctx context.Context, a *Authentication, eta
 	defer cancel()
 	var passwordHash string
 	var e error
+	if purpose == "login" {
+		if e := authenticationLoginAllowed(s.authDB(localCtx), providerID); e != nil {
+			return nil, e
+		}
+	}
 	if purpose != "login" {
 		if a == nil {
 			return nil, apperrors.ErrUnauthorized
@@ -135,6 +140,11 @@ func (s *Service) startNamedIdentity(ctx context.Context, a *Authentication, eta
 		}
 		now := time.Now().UTC().Truncate(time.Microsecond)
 		c = entity.NamedIdentityCeremony{ID: cid, ProviderID: p.ID, ProfileID: p.ProfileID, IdentityIssuer: p.IdentityIssuer, ProviderCreatedAt: p.CreatedAt, StateHash: secret.SHA256Hex(state), CookieHash: secret.SHA256Hex(cookie), Purpose: purpose, Status: "pending", ConfigRevision: p.ConfigRevision, PolicyRevision: p.PolicyRevision, CreatedAt: now, ExpiresAt: now.Add(namedIdentityCeremonyLifetime)}
+		if purpose == "login" {
+			if e := authenticationLoginAllowed(tx, providerID); e != nil {
+				return e
+			}
+		}
 		if purpose != "verify" && (!p.Enabled || !namedIdentityVerified(p)) {
 			return apperrors.ErrUnauthorized
 		}
@@ -223,6 +233,11 @@ func (s *Service) startNamedIdentity(ctx context.Context, a *Authentication, eta
 		if !namedIdentityCeremonyCurrent(p, current, time.Now().UTC()) || current.Status != "pending" || current.CookieHash != c.CookieHash || current.StateHash != c.StateHash {
 			return catalogConflict
 		}
+		if c.Purpose == "login" {
+			if e := authenticationLoginAllowed(tx, providerID); e != nil {
+				return e
+			}
+		}
 		if c.Purpose != "login" {
 			u, e := namedIdentityOriginalSession(tx, c)
 			if e != nil {
@@ -288,6 +303,11 @@ func (s *Service) receiveNamedIdentityCallback(ctx context.Context, cookie, stat
 		if c.Status != "pending" || !namedIdentityCeremonyCurrent(p, c, time.Now().UTC()) {
 			return apperrors.ErrUnauthorized
 		}
+		if c.Purpose == "login" {
+			if e := authenticationLoginAllowed(tx, providerID); e != nil {
+				return e
+			}
+		}
 		if c.Purpose != "login" {
 			u, e := namedIdentityOriginalSession(tx, c)
 			if e != nil {
@@ -344,6 +364,11 @@ func (s *Service) receiveNamedIdentityCallback(ctx context.Context, cookie, stat
 		}
 		if !namedIdentityCeremonyCurrent(p, c, time.Now().UTC()) {
 			return apperrors.ErrUnauthorized
+		}
+		if c.Purpose == "login" {
+			if e := authenticationLoginAllowed(tx, providerID); e != nil {
+				return e
+			}
 		}
 		if c.Purpose != "login" {
 			u, e := namedIdentityOriginalSession(tx, c)

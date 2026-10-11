@@ -119,10 +119,15 @@ func oauthOriginalSession(tx *gorm.DB, c entity.OAuthCeremony) (entity.User, err
 	return u, nil
 }
 func (s *Service) startOAuth(ctx context.Context, a *Authentication, etag string, in OAuthIdentityInput, purpose string) (*OAuthStart, error) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	ctx, local, cancel := authenticationContexts(ctx)
 	defer cancel()
 	var passwordHash string
 	var e error
+	if purpose == "login" {
+		if e := authenticationLoginAllowed(s.authDB(local), "oauth"); e != nil {
+			return nil, e
+		}
+	}
 	if purpose != "login" {
 		if a == nil {
 			return nil, apperrors.ErrUnauthorized
@@ -130,7 +135,7 @@ func (s *Service) startOAuth(ctx context.Context, a *Authentication, etag string
 		if !validMemberRoleDigest(etag) || !validRegistrationReason(in.Reason) {
 			return nil, apperrors.ErrBadRequest
 		}
-		passwordHash, e = s.mfaPassword(ctx, a.User.ID, in.Password)
+		passwordHash, e = s.mfaPassword(local, a.User.ID, in.Password)
 		if e != nil {
 			return nil, e
 		}
@@ -150,7 +155,7 @@ func (s *Service) startOAuth(ctx context.Context, a *Authentication, etag string
 	var captured entity.OAuthProvider
 	var c entity.OAuthCeremony
 	rejected := false
-	e = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+	e = s.authDB(local).Transaction(func(tx *gorm.DB) error {
 		if e := lockGovernance(tx); e != nil {
 			return e
 		}
@@ -160,6 +165,11 @@ func (s *Service) startOAuth(ctx context.Context, a *Authentication, etag string
 		}
 		now := time.Now().UTC().Truncate(time.Microsecond)
 		c = entity.OAuthCeremony{ID: cid, ProviderID: p.ID, StateHash: secret.SHA256Hex(state), CookieHash: secret.SHA256Hex(cookie), Purpose: purpose, Status: "pending", ConfigRevision: p.ConfigRevision, PolicyRevision: p.PolicyRevision, CreatedAt: now, ExpiresAt: now.Add(oauthCeremonyLifetime)}
+		if purpose == "login" {
+			if e := authenticationLoginAllowed(tx, "oauth"); e != nil {
+				return e
+			}
+		}
 		if purpose != "verify" && (!p.Enabled || !oauthVerified(p)) {
 			return apperrors.ErrUnauthorized
 		}
@@ -217,16 +227,16 @@ func (s *Service) startOAuth(ctx context.Context, a *Authentication, etag string
 	}
 	client, closeClient, e := s.oauthProtocol(ctx, captured)
 	if e != nil {
-		s.oauthFailCeremony(ctx, c.ID)
+		s.oauthFailCeremony(local, c.ID)
 		return nil, e
 	}
 	defer closeClient()
 	authURL, e := client.AuthorizationURL(ctx, oauthprotocol.Authorization{State: state, PKCEVerifier: oauthDerived(cookie, c.ID, "pkce")})
 	if e != nil {
-		s.oauthFailCeremony(ctx, c.ID)
+		s.oauthFailCeremony(local, c.ID)
 		return nil, oauthUnavailable
 	}
-	e = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+	e = s.authDB(local).Transaction(func(tx *gorm.DB) error {
 		if e := lockGovernance(tx); e != nil {
 			return e
 		}
@@ -244,6 +254,11 @@ func (s *Service) startOAuth(ctx context.Context, a *Authentication, etag string
 		if current.Status != "pending" || current.CookieHash != c.CookieHash || current.StateHash != c.StateHash {
 			return catalogConflict
 		}
+		if c.Purpose == "login" {
+			if e := authenticationLoginAllowed(tx, "oauth"); e != nil {
+				return e
+			}
+		}
 		if c.Purpose != "login" {
 			u, e := oauthOriginalSession(tx, c)
 			if e != nil {
@@ -253,10 +268,10 @@ func (s *Service) startOAuth(ctx context.Context, a *Authentication, etag string
 				return registrationPolicyAuthority(tx, u.ID)
 			}
 		}
-		return ctx.Err()
+		return local.Err()
 	})
 	if e != nil {
-		s.oauthFailCeremony(ctx, c.ID)
+		s.oauthFailCeremony(local, c.ID)
 		return nil, oauthError(e)
 	}
 	return &OAuthStart{AuthorizationURL: authURL, Cookie: cookie, ExpiresAt: c.ExpiresAt}, nil
@@ -277,11 +292,11 @@ func (s *Service) ReceiveOAuthCallback(ctx context.Context, cookie, state, code,
 	if !oauthBrowserValue(cookie) || !oauthBrowserValue(state) || (code == "") == (remoteError == "") || len(code) > 4096 {
 		return apperrors.ErrUnauthorized
 	}
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	ctx, local, cancel := authenticationContexts(ctx)
 	defer cancel()
 	var c entity.OAuthCeremony
 	var p entity.OAuthProvider
-	e := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+	e := s.authDB(local).Transaction(func(tx *gorm.DB) error {
 		if e := lockGovernance(tx); e != nil {
 			return e
 		}
@@ -299,6 +314,11 @@ func (s *Service) ReceiveOAuthCallback(ctx context.Context, cookie, state, code,
 		}
 		if c.Status != "pending" || !oauthCeremonyCurrent(p, c, time.Now().UTC()) {
 			return apperrors.ErrUnauthorized
+		}
+		if c.Purpose == "login" {
+			if e := authenticationLoginAllowed(tx, "oauth"); e != nil {
+				return e
+			}
 		}
 		if c.Purpose != "login" {
 			u, e := oauthOriginalSession(tx, c)
@@ -325,24 +345,24 @@ func (s *Service) ReceiveOAuthCallback(ctx context.Context, cookie, state, code,
 		return oauthError(e)
 	}
 	if remoteError != "" {
-		s.oauthFailCeremony(ctx, c.ID)
+		s.oauthFailCeremony(local, c.ID)
 		return apperrors.ErrUnauthorized
 	}
 	client, closeClient, e := s.oauthProtocol(ctx, p)
 	if e != nil {
-		s.oauthFailCeremony(ctx, c.ID)
+		s.oauthFailCeremony(local, c.ID)
 		return e
 	}
 	defer closeClient()
 	identity, e := client.Exchange(ctx, oauthprotocol.Callback{Code: code, State: state, ExpectedState: state, PKCEVerifier: oauthDerived(cookie, c.ID, "pkce")})
 	if e != nil {
-		s.oauthFailCeremony(ctx, c.ID)
+		s.oauthFailCeremony(local, c.ID)
 		if errors.Is(e, oauthprotocol.ErrUnavailable) {
 			return oauthUnavailable
 		}
 		return apperrors.ErrUnauthorized
 	}
-	e = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+	e = s.authDB(local).Transaction(func(tx *gorm.DB) error {
 		if e := lockGovernance(tx); e != nil {
 			return e
 		}
@@ -352,6 +372,11 @@ func (s *Service) ReceiveOAuthCallback(ctx context.Context, cookie, state, code,
 		}
 		if !oauthCeremonyCurrent(p, c, time.Now().UTC()) {
 			return apperrors.ErrUnauthorized
+		}
+		if c.Purpose == "login" {
+			if e := authenticationLoginAllowed(tx, "oauth"); e != nil {
+				return e
+			}
 		}
 		if c.Purpose != "login" {
 			u, e := oauthOriginalSession(tx, c)
@@ -382,7 +407,7 @@ func (s *Service) ReceiveOAuthCallback(ctx context.Context, cookie, state, code,
 		return tx.Save(&current).Error
 	})
 	if e != nil {
-		s.oauthFailCeremony(ctx, c.ID)
+		s.oauthFailCeremony(local, c.ID)
 	}
 	return oauthError(e)
 }

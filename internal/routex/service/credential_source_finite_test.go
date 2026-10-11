@@ -138,7 +138,13 @@ func TestCredentialSourceFiniteLostResponsePoisonAndFreshOwnership(t *testing.T)
 	if e != nil {
 		t.Fatal(e)
 	}
-	value, result, e := op.read(context.Background(), "reader", plan)
+	defer op.close()
+	reader, release, login, e := op.token(context.Background(), "token", "reader")
+	defer release()
+	if e != nil || reader != "reader" || login.Attempted || requests.Load() != 0 {
+		t.Fatal("local Token registration failed or performed HTTP")
+	}
+	value, result, e := op.read(context.Background(), reader, plan)
 	if e == nil || value != nil || !result.Read.Attempted || result.Read.Succeeded {
 		t.Fatal("lost response observation was replaced")
 	}
@@ -181,8 +187,7 @@ func TestCredentialSourceFiniteKnownDeniedResponseClosesWithoutPoison(t *testing
 		requests.Add(1)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(403)
-		_, _ = io.WriteString(w, `{"errors"
- "fmt":["denied"]}`)
+		_, _ = io.WriteString(w, `{"errors":["denied"]}`)
 	}))
 	defer server.Close()
 	s := &Service{allowPrivateUpstream: true}
@@ -204,7 +209,13 @@ func TestCredentialSourceFiniteKnownDeniedResponseClosesWithoutPoison(t *testing
 	if e != nil {
 		t.Fatal(e)
 	}
-	_, result, e := op.read(context.Background(), "reader", plan)
+	defer op.close()
+	reader, release, login, e := op.token(context.Background(), "token", "reader")
+	defer release()
+	if e != nil || reader != "reader" || login.Attempted || requests.Load() != 0 {
+		t.Fatal("local Token registration failed or performed HTTP")
+	}
+	_, result, e := op.read(context.Background(), reader, plan)
 	if e == nil || !result.Read.Attempted || result.Read.Failure == nil || result.Read.Failure.HTTPStatus != 403 {
 		t.Fatal("denial facts lost")
 	}

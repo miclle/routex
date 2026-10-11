@@ -207,6 +207,11 @@ func testSAMLMigration(t *testing.T, db *gorm.DB) {
 	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 	defer cancel()
 	db = db.WithContext(ctx)
+	// The finite V103 peel removes only these emergency-proof columns.
+	// Retain every historical primary field until full-head restoration below.
+	historicalPrimary := func(tx *gorm.DB) *gorm.DB {
+		return tx.Omit("EmergencyPolicyRevision", "EmergencyUserCreatedAt", "EmergencyMFAGeneration", "EmergencyPasswordDigest", "EmergencyFactorCompletedAt")
+	}
 	legacyMigrationBeforeV98(t, db)
 	original := personalKeyBehaviorLedger(t, db)
 	if len(original) != 97 {
@@ -272,7 +277,7 @@ func testSAMLMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	assertDefault()
-	for _, bound := range []int{0, -1, 96, 103} {
+	for _, bound := range []int{0, -1, 96, 106} {
 		before := personalKeyBehaviorLedger(t, db)
 		if database.MigrateThrough(ctx, db, bound) == nil || !reflect.DeepEqual(before, personalKeyBehaviorLedger(t, db)) {
 			t.Fatal("invalid/newer bound admitted", bound)
@@ -323,10 +328,10 @@ func testSAMLMigration(t *testing.T, db *gorm.DB) {
 			challenge.LDAPPolicyRevision = row.LDAPPolicyRevision
 			challenge.LDAPUserCreatedAt = &user.CreatedAt
 		}
-		if db.Create(&row).Error != nil || db.Create(&challenge).Error != nil {
+		if historicalPrimary(db).Create(&row).Error != nil || historicalPrimary(db).Create(&challenge).Error != nil {
 			t.Fatal("retained primary positive", method)
 		}
-		if db.Session(&gorm.Session{QueryFields: true}).Take(&row, "id = ?", row.ID).Error != nil || db.Session(&gorm.Session{QueryFields: true}).Take(&challenge, "user_id = ? AND purpose = ?", user.ID, "login").Error != nil {
+		if historicalPrimary(db).Session(&gorm.Session{QueryFields: true}).Take(&row, "id = ?", row.ID).Error != nil || historicalPrimary(db).Session(&gorm.Session{QueryFields: true}).Take(&challenge, "user_id = ? AND purpose = ?", user.ID, "login").Error != nil {
 			t.Fatal("capture retained baseline")
 		}
 		sessions = append(sessions, row)
@@ -337,7 +342,7 @@ func testSAMLMigration(t *testing.T, db *gorm.DB) {
 		for i, want := range sessions {
 			var got entity.Session
 			var c entity.MFAChallenge
-			if db.Session(&gorm.Session{QueryFields: true}).Take(&got, "id = ?", want.ID).Error != nil || db.Session(&gorm.Session{QueryFields: true}).Take(&c, "user_id = ? AND purpose = ?", challenges[i].UserID, "login").Error != nil || !reflect.DeepEqual(got, want) || !reflect.DeepEqual(c, challenges[i]) {
+			if historicalPrimary(db).Session(&gorm.Session{QueryFields: true}).Take(&got, "id = ?", want.ID).Error != nil || historicalPrimary(db).Session(&gorm.Session{QueryFields: true}).Take(&c, "user_id = ? AND purpose = ?", challenges[i].UserID, "login").Error != nil || !reflect.DeepEqual(got, want) || !reflect.DeepEqual(c, challenges[i]) {
 				t.Fatal("retained primary changed", stage, i)
 			}
 		}
@@ -614,10 +619,15 @@ func testSAMLMigration(t *testing.T, db *gorm.DB) {
 	if err := database.Migrate(ctx, db); err != nil {
 		t.Fatal("restore full V98 after historical V97", err)
 	}
+
+	// Current-head reads also verify the five newly added fields remain empty.
+	historicalPrimary = func(tx *gorm.DB) *gorm.DB { return tx }
 	final := personalKeyBehaviorLedger(t, db)
-	if len(final) != 102 || final[100].Version != 101 || final[101].Version != 102 || final[99].Version != 100 || final[98].Version != 99 || final[97].Version != 98 || !reflect.DeepEqual(beforeSuccessor, final[:97]) {
+	if len(final) != 105 || final[104].Version != 105 || final[103].Version != 104 || final[102].Version != 103 || final[100].Version != 101 || final[101].Version != 102 || final[99].Version != 100 || final[98].Version != 99 || final[97].Version != 98 || !reflect.DeepEqual(beforeSuccessor, final[:97]) {
 		t.Fatal("historical V97 closure lost original rows or V98 suffix")
 	}
+	retained("current_head")
+
 }
 
 // samlMigrationDifferentFields preserves every field. Only timestamps use exact

@@ -33,6 +33,7 @@ type Service struct {
 	limitMu                       sync.RWMutex
 	trustedProxies                []netip.Prefix
 	runtime                       *gatewayRuntime
+	runtimePublicationCommands    sync.Map
 	runtimeRefreshInterval        time.Duration
 	recorder                      *callRecorder
 	repositorySource              *prices.Snapshot

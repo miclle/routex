@@ -138,14 +138,14 @@ func (s *Service) ldapIdentity(parent context.Context, a *Authentication, etag s
 	if !validMemberRoleDigest(etag) || !validRegistrationReason(in.Reason) || !ldapUsername(in.Username) || !ldapPassword(in.DirectoryPassword) {
 		return nil, apperrors.ErrBadRequest
 	}
-	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
+	ctx, local, cancel := authenticationContexts(parent)
 	defer cancel()
-	hash, e := s.mfaPassword(ctx, a.User.ID, in.Password)
+	hash, e := s.mfaPassword(local, a.User.ID, in.Password)
 	if e != nil {
 		return nil, e
 	}
 	var captured ldapIdentityCapture
-	e = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+	e = s.authDB(local).Transaction(func(tx *gorm.DB) error {
 		u, e := registrationAdmittedUser(tx, a.User.ID, false)
 		if e != nil {
 			return e
@@ -191,7 +191,7 @@ func (s *Service) ldapIdentity(parent context.Context, a *Authentication, etag s
 			return catalogConflict
 		}
 		captured = ldapIdentityCapture{Provider: p, User: u, MFA: m, Binding: b, Review: review}
-		return ctx.Err()
+		return local.Err()
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	if e != nil {
 		return nil, ldapError(e)
@@ -201,8 +201,8 @@ func (s *Service) ldapIdentity(parent context.Context, a *Authentication, etag s
 		return nil, ldapError(e)
 	}
 	rejected := false
-	e = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
-		if e := ctx.Err(); e != nil {
+	e = s.authDB(local).Transaction(func(tx *gorm.DB) error {
+		if e := local.Err(); e != nil {
 			return e
 		}
 		if e := lockGovernance(tx); e != nil {
@@ -282,7 +282,7 @@ func (s *Service) ldapIdentity(parent context.Context, a *Authentication, etag s
 		} else if e = ldapAudit(tx, u, "account.ldap.bind", p, &bound, in.Reason); e != nil {
 			return e
 		}
-		return ctx.Err()
+		return local.Err()
 	})
 	if e != nil {
 		return nil, ldapError(e)
@@ -300,11 +300,11 @@ func (s *Service) LoginLDAP(parent context.Context, in LDAPLoginInput) (*LDAPLog
 	if !ldapUsername(in.Username) || !ldapPassword(in.Password) {
 		return nil, apperrors.ErrBadRequest
 	}
-	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
+	ctx, local, cancel := authenticationContexts(parent)
 	defer cancel()
 	var captured entity.LDAPProvider
 	started := time.Now().UTC()
-	e := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+	e := s.authDB(local).Transaction(func(tx *gorm.DB) error {
 		p, e := ldapProvider(tx)
 		if e != nil {
 			return e
@@ -313,7 +313,7 @@ func (s *Service) LoginLDAP(parent context.Context, in LDAPLoginInput) (*LDAPLog
 			return apperrors.ErrUnauthorized
 		}
 		captured = p
-		return ctx.Err()
+		return local.Err()
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	if e != nil {
 		return nil, ldapError(e)
@@ -323,11 +323,14 @@ func (s *Service) LoginLDAP(parent context.Context, in LDAPLoginInput) (*LDAPLog
 		return nil, ldapError(e)
 	}
 	out := &LDAPLoginResult{}
-	e = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
-		if e := ctx.Err(); e != nil {
+	e = s.authDB(local).Transaction(func(tx *gorm.DB) error {
+		if e := local.Err(); e != nil {
 			return e
 		}
 		if e := lockGovernance(tx); e != nil {
+			return e
+		}
+		if e := authenticationLoginAllowed(tx, "ldap"); e != nil {
 			return e
 		}
 		p, e := ldapProvider(tx)
@@ -383,7 +386,7 @@ func (s *Service) LoginLDAP(parent context.Context, in LDAPLoginInput) (*LDAPLog
 				return e
 			}
 		}
-		return ctx.Err()
+		return local.Err()
 	})
 	if e != nil {
 		return nil, ldapError(e)

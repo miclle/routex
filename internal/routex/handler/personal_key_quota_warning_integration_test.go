@@ -159,6 +159,12 @@ func testPersonalKeyMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		}
 	}
 	spool := filepath.Join(t.TempDir(), "warnings.db")
+	defer func() {
+		releaseOnce.Do(func() { close(release) })
+		nativeRequests.Wait() // Each request owns its existing bounded context.
+		svc.StopRuntime()
+		_ = svc.StopCallRecorder()
+	}()
 	if err := svc.StartRuntime(workerCtx); err != nil {
 		t.Fatal(err)
 	}
@@ -166,12 +172,6 @@ func testPersonalKeyMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartCallRecorder(ctx, spool); err != nil {
 		t.Fatal(err)
 	}
-	defer func() {
-		releaseOnce.Do(func() { close(release) })
-		nativeRequests.Wait() // Each request owns its existing bounded context.
-		svc.StopRuntime()
-		_ = svc.StopCallRecorder()
-	}()
 	call := func(bearer string) *httptest.ResponseRecorder {
 		req := httptest.NewRequest("POST", "http://routex.test/v1/chat/completions", strings.NewReader(`{"model":"pkw-model","messages":[{"role":"user","content":"hello"}],"max_completion_tokens":1}`))
 		req.Header.Set("Content-Type", "application/json")

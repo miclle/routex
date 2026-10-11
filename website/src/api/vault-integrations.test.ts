@@ -13,10 +13,16 @@ import {
   validVaultName,
   validVaultReason,
   validVaultToken,
+  validVaultCertificateAuth,
+  sameVaultAuthReplacement,
   VaultError,
 } from './vault-integrations'
 import {
   configuration,
+  certificateReplacement,
+  certificatePEM,
+  privateKeyPEM,
+  certificateVault,
   probe,
   vault,
   vaultETag,
@@ -426,4 +432,175 @@ describe('AppRole strict replacement and privacy', () => {
     value.write.failure!.code = 'invalid_auth'
     expect(parseVaultProbe(value).write.succeeded).toBe(false)
   })
+})
+
+describe('saved certificate authentication boundary', () => {
+  it('accepts only recorded certificate method/configuration and rejects every material echo', () => {
+    expect(parseVaultIntegration(certificateVault()).writer_auth).toEqual({
+      method: 'certificate',
+      configured: true,
+    })
+    for (const field of [
+      'certificate_pem',
+      'private_key_pem',
+      'server_ca_pem',
+      'certificate_role',
+      'auth_mount',
+      'expires_at',
+    ]) {
+      const value = certificateVault()
+      Object.assign(value.writer_auth, { [field]: 'private-response-material' })
+      expect(() => parseVaultIntegration(value)).toThrow(VaultError)
+    }
+    const value = certificateVault()
+    value.writer_auth.configured = false
+    expect(() => parseVaultIntegration(value)).toThrow(VaultError)
+  })
+  it('dispatches the exact complete certificate body once and returns only the safe receipt', async () => {
+    const intent = configuration()
+    intent.input.writer_auth = { ...certificateReplacement(), server_ca_pem: certificatePEM }
+    const signal = new AbortController().signal
+    const spy = vi.spyOn(client, 'request').mockResolvedValue({
+      status: 200,
+      data: {
+        request_id: requestID,
+        integration_id: vaultID,
+        revision_id: vault().revision_id,
+        committed: true,
+        changed: true,
+      },
+    })
+    const result = await saveVaultIntegration(intent, 'c'.repeat(64), signal)
+    expect(spy).toHaveBeenCalledOnce()
+    expect(spy.mock.calls[0][0]).toMatchObject({
+      data: intent.input,
+      signal,
+      headers: { 'If-Match': '"' + vaultETag + '"', 'X-CSRF-Token': 'c'.repeat(64) },
+    })
+    expect(JSON.stringify(result)).not.toContain('PEM')
+    expect(JSON.stringify(result)).not.toContain('YQ==')
+  })
+  it.each([
+    'missing-certificate',
+    'missing-key',
+    'missing-role',
+    'missing-mount',
+    'null-ca',
+    'token-mixed',
+    'approle-mixed',
+    'unknown-method',
+    'case-method',
+    'keep-fields',
+    'remove-fields',
+    'role-path',
+    'role-traversal',
+    'role-space',
+    'role-long',
+    'mount-traversal',
+    'certificate-long',
+    'key-long',
+    'ca-long',
+    'tuple-long',
+    'malformed-pem',
+    'encrypted-key',
+    'unicode-pem',
+    'trailing-pem-data',
+    'http',
+    'duplicate',
+  ])('rejects %s before HTTP with a sanitized error', async (fault) => {
+    const value: Record<string, unknown> = certificateReplacement()
+    const intent = configuration()
+    if (fault === 'missing-certificate') delete value.certificate_pem
+    if (fault === 'missing-key') delete value.private_key_pem
+    if (fault === 'missing-role') delete value.certificate_role
+    if (fault === 'missing-mount') delete value.auth_mount
+    if (fault === 'null-ca') value.server_ca_pem = null
+    if (fault === 'token-mixed') value.token = 'private-token'
+    if (fault === 'approle-mixed') value.role_id = 'private-role'
+    if (fault === 'unknown-method') value.method = 'tls'
+    if (fault === 'case-method') value.method = 'Certificate'
+    if (fault === 'keep-fields') value.action = 'keep'
+    if (fault === 'remove-fields') value.action = 'remove'
+    if (fault === 'role-path') value.certificate_role = 'role/path'
+    if (fault === 'role-traversal') value.certificate_role = '..'
+    if (fault === 'role-space') value.certificate_role = 'role name'
+    if (fault === 'role-long') value.certificate_role = 'r'.repeat(129)
+    if (fault === 'mount-traversal') value.auth_mount = 'cert/../team'
+    if (fault === 'certificate-long') value.certificate_pem = 'c'.repeat(16385)
+    if (fault === 'key-long') value.private_key_pem = 'k'.repeat(16385)
+    if (fault === 'ca-long') value.server_ca_pem = 'a'.repeat(16385)
+    if (fault === 'tuple-long') {
+      value.certificate_pem =
+        '-----BEGIN CERTIFICATE-----\n' + 'A'.repeat(16300) + '\n-----END CERTIFICATE-----\n'
+      value.private_key_pem =
+        '-----BEGIN PRIVATE KEY-----\n' + 'A'.repeat(16300) + '\n-----END PRIVATE KEY-----\n'
+      value.server_ca_pem = certificatePEM
+    }
+    if (fault === 'malformed-pem') value.certificate_pem = 'private-material'
+    if (fault === 'encrypted-key')
+      value.private_key_pem = privateKeyPEM.replaceAll('PRIVATE KEY', 'ENCRYPTED PRIVATE KEY')
+    if (fault === 'unicode-pem') value.certificate_pem = '\u00a0' + certificatePEM
+    if (fault === 'trailing-pem-data') value.certificate_pem = certificatePEM + 'private-tail'
+    if (fault === 'http') intent.input.descriptor.endpoint = 'http://vault.test'
+    Object.assign(intent.input, { writer_auth: value })
+    if (fault === 'duplicate') Object.assign(intent.input, { reader_auth: structuredClone(value) })
+    const spy = vi.spyOn(client, 'request')
+    await expect(saveVaultIntegration(intent, 'c'.repeat(64))).rejects.toThrow(
+      'Vault integration request failed',
+    )
+    expect(spy).not.toHaveBeenCalled()
+  })
+  it('bounds exact PEM and canonical private encoding separately and preserves optional system trust', () => {
+    const value = certificateReplacement()
+    delete value.server_ca_pem
+    expect(validVaultCertificateAuth(value)).toBe(true)
+    expect(sameVaultAuthReplacement(value, { ...value, server_ca_pem: '' })).toBe(true)
+    expect(sameVaultAuthReplacement(value, { ...value, certificate_role: 'reader-role' })).toBe(
+      false,
+    )
+    expect(sameVaultAuthReplacement(value, { action: 'replace', token: privateKeyPEM })).toBe(false)
+    const prefix = '-----BEGIN CERTIFICATE-----\n',
+      suffix = '\n-----END CERTIFICATE-----\n'
+    value.certificate_pem = prefix + 'A'.repeat(16384 - prefix.length - suffix.length) + suffix
+    expect(validVaultCertificateAuth(value)).toBe(true)
+    value.certificate_pem += '\n'
+    expect(validVaultCertificateAuth(value)).toBe(false)
+  })
+  it('rejects returned saved certificate material instead of caching or returning it', async () => {
+    const intent = configuration()
+    intent.input.writer_auth = certificateReplacement()
+    vi.spyOn(client, 'request').mockResolvedValue({
+      status: 200,
+      data: {
+        request_id: requestID,
+        integration_id: vaultID,
+        revision_id: vault().revision_id,
+        committed: true,
+        changed: true,
+        private_key_pem: privateKeyPEM,
+      },
+    })
+    await expect(saveVaultIntegration(intent, 'c'.repeat(64))).rejects.toThrow(VaultError)
+  })
+})
+
+it('rejects an oversized complete config even when each certificate tuple is individually bounded', async () => {
+  const intent = configuration()
+  const largeCertificate =
+    '-----BEGIN CERTIFICATE-----\n' + 'A'.repeat(16000) + '\n-----END CERTIFICATE-----\n'
+  const writer = {
+    ...certificateReplacement(),
+    certificate_pem: largeCertificate,
+    server_ca_pem: largeCertificate,
+  }
+  const reader = { ...writer, certificate_role: 'reader-role' }
+  expect(validVaultCertificateAuth(writer)).toBe(true)
+  expect(validVaultCertificateAuth(reader)).toBe(true)
+  intent.input.writer_auth = writer
+  intent.input.reader_auth = reader
+  intent.input.name = 'N'.repeat(100)
+  intent.input.reason = 'R'.repeat(1000)
+  const spy = vi.spyOn(client, 'request')
+  await expect(saveVaultIntegration(intent, 'c'.repeat(64))).rejects.toThrow(VaultError)
+  expect(spy).not.toHaveBeenCalled()
 })

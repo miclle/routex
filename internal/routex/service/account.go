@@ -38,55 +38,92 @@ func (s *Service) UpdateProfile(ctx context.Context, userID, name string) (*enti
 
 // ChangePassword rotates the browser session and revokes every prior session.
 // Lock and recheck the hash to prevent concurrent changes using an old password.
+// The trusted compatibility path is local-only and cannot bypass enforcement.
 func (s *Service) ChangePassword(ctx context.Context, userID, currentPassword, newPassword string) (*Authentication, error) {
+	result, e := s.changePassword(ctx, nil, userID, currentPassword, newPassword)
+	if e != nil {
+		return nil, e
+	}
+	return result.Authentication, nil
+}
+func (s *Service) ChangePasswordAuthenticated(ctx context.Context, original *Authentication, currentPassword, newPassword string) (*PasswordMutation, error) {
+	if original == nil {
+		return nil, apperrors.ErrUnauthorized
+	}
+	return s.changePassword(ctx, original, original.User.ID, currentPassword, newPassword)
+}
+func (s *Service) changePassword(parent context.Context, original *Authentication, userID, currentPassword, newPassword string) (*PasswordMutation, error) {
+	_, ctx, cancel := authenticationContexts(parent)
+	defer cancel()
 	if !validPassword(currentPassword) || !validPassword(newPassword) || currentPassword == newPassword {
 		return nil, apperrors.ErrBadRequest
 	}
-	var before entity.User
-	if err := s.authDB(ctx).Where("id = ? AND disabled = ?", userID, false).First(&before).Error; err != nil {
-		return nil, apperrors.ErrUnauthorized
+	before, e := registrationAdmittedUser(s.authDB(ctx), userID, false)
+	if e != nil {
+		return nil, keyServiceError(e)
 	}
 	if bcrypt.CompareHashAndPassword([]byte(before.PasswordHash), []byte(currentPassword)) != nil {
 		return nil, apperrors.ErrBadRequest
 	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
-	if err != nil {
+	hash, e := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if e != nil {
 		return nil, apperrors.ErrInternal
 	}
-	var auth *Authentication
-	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
-		var user entity.User
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&user, "id = ?", userID).Error; err != nil {
-			return err
+	if ctx.Err() != nil {
+		return nil, authenticationError(ctx.Err())
+	}
+	result := &PasswordMutation{}
+	release := s.pinPersonalKeyMutation()
+	defer release()
+	e = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if e := lockGovernance(tx); e != nil {
+			return e
 		}
-		if err := requireRegistrationAdmission(tx.Session(&gorm.Session{}), user); err != nil {
-			return err
+		user, e := registrationAdmittedUser(tx, userID, true)
+		if e != nil {
+			return e
 		}
-		if user.Disabled || user.PasswordHash != before.PasswordHash {
+		if !user.CreatedAt.Equal(before.CreatedAt) || user.PasswordHash != before.PasswordHash {
 			return apperrors.ErrUnauthorized
 		}
-		if err := tx.Model(&user).Update("password_hash", string(hash)).Error; err != nil {
-			return err
+		if original == nil {
+			if e := authenticationLoginAllowed(tx, ""); e != nil {
+				return e
+			}
+		} else if e := mfaSession(tx, original, time.Now().UTC()); e != nil {
+			return e
+		}
+		if e = tx.Model(&user).Update("password_hash", string(hash)).Error; e != nil {
+			return e
 		}
 		user.PasswordHash = string(hash)
-		if err := invalidateMFAChallenges(tx, userID); err != nil {
-			return err
+		if original == nil {
+			if e = invalidateMFAChallenges(tx, userID); e != nil {
+				return e
+			}
+			if e = tx.Where("user_id = ?", userID).Delete(&entity.Session{}).Error; e != nil {
+				return e
+			}
+			result.Authentication, e = createSession(tx, user)
+		} else {
+			result.Authentication, e = rotateAuthenticatedMFASession(tx, user, original)
 		}
-		if err := tx.Where("user_id = ?", userID).Delete(&entity.Session{}).Error; err != nil {
-			return err
+		if e != nil {
+			return e
 		}
-		var err error
-		auth, err = createSession(tx, user)
-		if err != nil {
-			return err
+		result.ReauthenticationRequired = result.Authentication == nil
+		if ctx.Err() != nil {
+			return ctx.Err()
 		}
 		return appendAudit(tx, userID, "account.password.change", "user", userID)
 	})
-	if err == nil {
-		s.invalidateRuntimeSessionUser(userID)
-		s.publishSessionMutation(ctx)
+	if e != nil {
+		return nil, keyServiceError(e)
 	}
-	return auth, keyServiceError(err)
+	s.invalidateRuntimeSessionUser(userID)
+	release()
+	s.publishSessionMutation(ctx)
+	return result, nil
 }
 
 func (s *Service) ListAccountSessions(ctx context.Context, userID string) ([]entity.Session, error) {

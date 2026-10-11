@@ -56,6 +56,7 @@ func TestGitHubStrictFixedProfileWire(t *testing.T) {
 	}
 }
 func TestGitHubTypedNamespaceAndPrimaryNeverDowngrade(t *testing.T) {
+	tx := authenticationProofPolicyDB(t)
 	for _, tc := range []struct {
 		kind, value string
 		valid       bool
@@ -69,14 +70,14 @@ func TestGitHubTypedNamespaceAndPrimaryNeverDowngrade(t *testing.T) {
 	}
 	now := time.Now()
 	for _, row := range []entity.Session{{PrimaryMethod: "GitHub"}, {PrimaryMethod: "github"}, {NamedIdentityProviderID: "github"}, {NamedIdentityProfileID: githubProfileID}, {NamedIdentityBindingID: "nib_old"}, {NamedIdentityBindingCreatedAt: &now}, {NamedIdentityConfigRevision: strings.Repeat("a", 64)}, {NamedIdentityPolicyRevision: strings.Repeat("b", 64)}, {NamedIdentityUserCreatedAt: &now}, {PrimaryMethod: "oidc", NamedIdentityProviderID: "github"}} {
-		if !errors.Is(primaryValidateSession(nil, row), apperrors.ErrUnauthorized) {
+		if !errors.Is(primaryValidateSession(tx, row), apperrors.ErrUnauthorized) {
 			t.Fatal("partial proof downgraded")
 		}
 	}
-	if primaryValidateSession(nil, entity.Session{}) != nil || primaryValidateChallenge(nil, entity.MFAChallenge{}) != nil {
+	if primaryValidateSession(tx, entity.Session{}) != nil || primaryValidateChallenge(tx, entity.MFAChallenge{}) != nil {
 		t.Fatal("local changed")
 	}
-	if !errors.Is(primaryValidateChallenge(nil, entity.MFAChallenge{PrimaryMethod: "github"}), apperrors.ErrUnauthorized) {
+	if !errors.Is(primaryValidateChallenge(tx, entity.MFAChallenge{PrimaryMethod: "github"}), apperrors.ErrUnauthorized) {
 		t.Fatal("incomplete challenge admitted")
 	}
 	if namedIdentityError(errors.New("private token/profile/password")) != namedIdentityUnavailable || namedIdentityError(apperrors.ErrForbidden) != apperrors.ErrForbidden {

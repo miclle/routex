@@ -25,7 +25,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	// Native query credentials must never be reflected by pre-middleware redirects.
 	r.RedirectTrailingSlash = false
 	r.RedirectFixedPath = false
-	r.Engine.Use(GeminiQueryCredentials, TeamNativeInputs, OIDCInputs, OAuthInputs, SAMLInputs, GitHubInputs, GoogleInputs, DiscordInputs)
+	r.Engine.Use(GeminiQueryCredentials, TeamNativeInputs, OIDCInputs, OAuthInputs, SAMLInputs, GitHubInputs, GoogleInputs, DiscordInputs, AuthenticationPolicyInputs)
 	// embed website assets
 	website.EmbedAssets(r)
 
@@ -52,6 +52,11 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.POST("/notifications/read-all", sameOrigin, ctrl.requireSession, requireCSRF, ctrl.MarkAllNotificationsRead)
 	identity.GET("/notification-settings", ctrl.requireSession, ctrl.NotificationSettings)
 	identity.PUT("/notification-settings", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.WriteNotificationSettings)
+	identity.GET("/auth/policy", identityPrivate, ctrl.PublicAuthenticationPolicy)
+	identity.GET("/admin/auth/policy", identityPrivate, ctrl.requireSession, ctrl.GetAuthenticationPolicy)
+	identity.PUT("/admin/auth/policy", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SetAuthenticationPolicy)
+	identity.POST("/auth/emergency/login", identityPrivate, sameOrigin, jsonManagementRequest, ctrl.BeginEmergencyLogin)
+	identity.POST("/auth/emergency/mfa/verify", identityPrivate, sameOrigin, jsonManagementRequest, ctrl.CompleteEmergencyLogin)
 	identity.GET("/auth/registration", ctrl.RegistrationStatus)
 	identity.POST("/auth/register", sameOrigin, jsonAuthRequest, ctrl.Register)
 	identity.GET("/auth/permissions", ctrl.requireSession, ctrl.CurrentPermissions)
@@ -411,7 +416,8 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.POST("/secrets/rotations/:rotation_id/resume", requireAdmin, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("secrets.rotate"), ctrl.ResumeSecretRotation)
 	admin.POST("/secrets/rotations/:rotation_id/retire", requireAdmin, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("secrets.rotate"), ctrl.RetireSecretRotation)
 	admin.POST("/secrets/rotations/:rotation_id/rollback", requireAdmin, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("secrets.rotate"), ctrl.RollbackSecretRotation)
-	admin.POST("/runtime/publish", requireAdmin, sameOrigin, requireCSRF, ctrl.PublishRuntime)
+	identity.POST("/admin/runtime/publish", runtimePublicationResponseHeaders, ctrl.requireSession, requireAdmin, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.PublishRuntime)
+	identity.GET("/admin/runtime/publication-commands/:requestID", runtimePublicationResponseHeaders, ctrl.requireSession, requireAdmin, ctrl.GetRuntimePublicationCommand)
 	admin.GET("/system/instances", ctrl.RequirePermission("system.read"), ctrl.SystemInstances)
 	admin.GET("/system/jobs", ctrl.RequirePermission("system.read"), ctrl.SystemJobs)
 	admin.GET("/overview", ctrl.RequirePermission("system.read"), ctrl.AdminOverview)

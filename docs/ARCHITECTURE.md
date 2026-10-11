@@ -22,6 +22,20 @@ Control Plane, and Data Platform components to share a deployment or availabilit
 boundary. Identity operations currently require the primary database; this does
 not establish Gateway independence or production HA.
 
+## Authentication-policy source extension
+
+The [authentication policy](AUTH_POLICY.md) keeps policy review, registration
+closure, designated administrator proof and security replacement in the Control
+Plane. The Gateway receives the exact policy and Team Session proof in immutable
+authorization state, plus a synchronous local generation deny fence for committed
+reductions. A failed publication cannot revive a disallowed held Session; the
+fence is transient current deny authority, not a fleet acknowledgement or an
+immutable installation receipt. Initialization reads actual policy with no
+enforcement-off fallback. Personal/Project API Key authority and native call
+attribution remain independent. Projection2 records the new policy/proof domain;
+retained projection1 current-match is unknown. Source is prepared; controlled
+phase, browser and external identity acceptance remain separate and pending.
+
 ## Product boundary
 
 RouteX is an AI gateway and control plane for organizations that need to manage

@@ -1,3 +1,5 @@
+import AuthenticationEnforcement from '@/views/auth-enforcement/config'
+import { useAuthenticationPolicy } from '@/views/auth-enforcement/public-policy'
 import { useLayoutEffect, useRef, useState } from 'react'
 import OIDCConfiguration from '@/views/oidc/config'
 import OAuthConfiguration from '@/views/oauth/config'
@@ -48,6 +50,10 @@ function Policy({ actor }: { actor: string }) {
   const { t } = useTranslation('governance'),
     cache = useQueryClient(),
     generation = useSessionGeneration()
+  const enforcement = useAuthenticationPolicy(authorityForPolicy())
+  function authorityForPolicy() {
+    return approvalActorCurrent(cache, actor, 'registration.write', true)
+  }
   const parent = useApprovalCacheRevision([
     ['auth', 'session'],
     ['permissions', actor],
@@ -80,6 +86,7 @@ function Policy({ actor }: { actor: string }) {
     const s = cache.getQueryState<RegistrationPolicyReview>(queryKey)
     return (
       authority() &&
+      enforcement.current() &&
       resource.snapshot() === resource.revision &&
       settings.isSuccess &&
       !settings.isFetching &&
@@ -148,7 +155,12 @@ function Policy({ actor }: { actor: string }) {
   const stale =
     !!page && !!review && (page.review_etag !== review.review_etag || needsReview) && !intent
   async function dispatch(retry = false) {
-    if (locked.current || !current()) return
+    if (
+      locked.current ||
+      !current() ||
+      (enforcement.policy?.enforced && (intent?.body.enabled ?? draft.enabled))
+    )
+      return
     let captured = intent
     if (!retry) {
       if (intent || !review || !confirmation || stale || review.review_etag !== page?.review_etag)
@@ -274,6 +286,7 @@ function Policy({ actor }: { actor: string }) {
           </Button>
         </section>
       )}
+      <AuthenticationEnforcement />
       <OIDCConfiguration />
       <OAuthConfiguration />
       <LDAPConfiguration />
@@ -297,7 +310,14 @@ function Policy({ actor }: { actor: string }) {
           aria-label={t('registration.formLabel')}
           onSubmit={(event) => {
             event.preventDefault()
-            if (!current() || intent || busy || stale) return
+            if (
+              !current() ||
+              intent ||
+              busy ||
+              stale ||
+              (enforcement.policy?.enforced && draft.enabled)
+            )
+              return
             if (!validApprovalReason(draft.reason)) {
               setNotice('invalidReason')
               return
@@ -321,11 +341,12 @@ function Policy({ actor }: { actor: string }) {
             <Switch
               name="enabled"
               aria-label={t('registration.openRegistration')}
-              checked={draft.enabled}
+              checked={enforcement.policy?.enforced ? false : draft.enabled}
               onCheckedChange={(enabled) => setDraft({ ...draft, enabled })}
-              disabled={busy || !!intent}
+              disabled={busy || !!intent || !enforcement.current() || enforcement.policy?.enforced}
             />
           </label>
+          {enforcement.policy?.enforced && <p>{t('authEnforcement:registrationClosed')}</p>}
           <label className="flex items-center justify-between gap-4">
             <span>
               <span className="block text-sm font-medium">

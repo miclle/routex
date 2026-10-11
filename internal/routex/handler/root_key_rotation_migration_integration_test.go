@@ -82,7 +82,9 @@ func testRootKeyRotationMigration(t *testing.T, db *gorm.DB) {
 		{&entity.SecretProcessVerification{}, []string{"ck_secret_process_epoch"}},
 	}
 	for prefix := range 3 {
-		// Rewind pristine V102, then Discord, before any historical root table is removed.
+		// Peel only pristine V105/V104 before the existing SSO/delivery/Discord guards.
+		legacyRuntimePublicationBeforeV104(t, db)
+		legacySavedCertificateBeforeV103(t, db)
 		legacyDiscordBeforeV100(t, db)
 		t.Logf("V48 partial-DDL prefix %d", prefix)
 		for _, model := range models {
@@ -91,7 +93,7 @@ func testRootKeyRotationMigration(t *testing.T, db *gorm.DB) {
 			}
 		}
 		if result := db.Table("schema_migrations").Where("version IN ?", []int{48, 72, 94, 95, 96, 97, 98, 99}).Delete(&struct{}{}); result.Error != nil || result.RowsAffected != 8 {
-			t.Fatal("reconstruct V48 and additive V72/V94/V95/V96/V97/V98/V99 after guarded V102/V101 rewind", result.Error, result.RowsAffected)
+			t.Fatal("reconstruct V48 and additive V72/V94/V95/V96/V97/V98/V99 after guarded V103/V102/V101 rewind", result.Error, result.RowsAffected)
 		}
 		// Reconstruct the released operational code guard without touching its rows.
 		if err := db.Migrator().DropConstraint(&rootSystemJobCodeV47Fixture{}, "ck_system_jobs_code"); err != nil {

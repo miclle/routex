@@ -204,6 +204,11 @@ func testLDAPMigration(t *testing.T, db *gorm.DB) {
 	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 	defer cancel()
 	db = db.WithContext(ctx)
+	// The finite V103 peel removes only these emergency-proof columns.
+	// Retain every historical primary field until full-head restoration below.
+	historicalPrimary := func(tx *gorm.DB) *gorm.DB {
+		return tx.Omit("EmergencyPolicyRevision", "EmergencyUserCreatedAt", "EmergencyMFAGeneration", "EmergencyPasswordDigest", "EmergencyFactorCompletedAt")
+	}
 	legacyMigrationBeforeV97(t, db)
 	original := personalKeyBehaviorLedger(t, db)
 	if len(original) != 96 {
@@ -267,7 +272,7 @@ func testLDAPMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	assertDefault()
-	for _, bound := range []int{0, -1, 95, 103} {
+	for _, bound := range []int{0, -1, 95, 106} {
 		before := personalKeyBehaviorLedger(t, db)
 		if database.MigrateThrough(ctx, db, bound) == nil || !reflect.DeepEqual(before, personalKeyBehaviorLedger(t, db)) {
 			t.Fatal("bounded ledger rejection", bound)
@@ -313,10 +318,10 @@ func testLDAPMigration(t *testing.T, db *gorm.DB) {
 			c.OAuthPolicyRevision = row.OAuthPolicyRevision
 			c.OAuthUserCreatedAt = &u.CreatedAt
 		}
-		if db.Create(&row).Error != nil || db.Create(&c).Error != nil {
+		if historicalPrimary(db).Create(&row).Error != nil || historicalPrimary(db).Create(&c).Error != nil {
 			t.Fatal("retained primary rows")
 		}
-		if db.Take(&row, "id = ?", row.ID).Error != nil || db.Take(&c, "user_id = ? AND purpose = ?", u.ID, "login").Error != nil {
+		if historicalPrimary(db).Take(&row, "id = ?", row.ID).Error != nil || historicalPrimary(db).Take(&c, "user_id = ? AND purpose = ?", u.ID, "login").Error != nil {
 			t.Fatal("read retained baseline")
 		}
 		sessions = append(sessions, row)
@@ -327,10 +332,10 @@ func testLDAPMigration(t *testing.T, db *gorm.DB) {
 		for i, want := range sessions {
 			var got entity.Session
 			var c entity.MFAChallenge
-			sessionReadOK := db.Session(&gorm.Session{QueryFields: true}).Take(&got, "id = ?", want.ID).Error == nil
+			sessionReadOK := historicalPrimary(db).Session(&gorm.Session{QueryFields: true}).Take(&got, "id = ?", want.ID).Error == nil
 			challengeReadOK := false
 			if sessionReadOK {
-				challengeReadOK = db.Session(&gorm.Session{QueryFields: true}).Take(&c, "user_id = ? AND purpose = ?", challenges[i].UserID, "login").Error == nil
+				challengeReadOK = historicalPrimary(db).Session(&gorm.Session{QueryFields: true}).Take(&c, "user_id = ? AND purpose = ?", challenges[i].UserID, "login").Error == nil
 			}
 			if !sessionReadOK || !challengeReadOK || !reflect.DeepEqual(got, want) || !reflect.DeepEqual(c, challenges[i]) {
 				// Failure diagnostics contain field names only, never retained values.
@@ -523,10 +528,14 @@ func testLDAPMigration(t *testing.T, db *gorm.DB) {
 	if err := database.Migrate(ctx, db); err != nil {
 		t.Fatal("restore current after historical LDAP fixture", err)
 	}
+
+	// Current-head reads also verify the five newly added fields remain empty.
+	historicalPrimary = func(tx *gorm.DB) *gorm.DB { return tx }
 	finalLedger := personalKeyBehaviorLedger(t, db)
-	if len(finalLedger) != 102 || finalLedger[100].Version != 101 || finalLedger[101].Version != 102 || finalLedger[99].Version != 100 || finalLedger[98].Version != 99 || finalLedger[97].Version != 98 || finalLedger[96].Version != 97 || !reflect.DeepEqual(beforeSuffix, finalLedger[:96]) {
+	if len(finalLedger) != 105 || finalLedger[104].Version != 105 || finalLedger[103].Version != 104 || finalLedger[102].Version != 103 || finalLedger[100].Version != 101 || finalLedger[101].Version != 102 || finalLedger[99].Version != 100 || finalLedger[98].Version != 99 || finalLedger[97].Version != 98 || finalLedger[96].Version != 97 || !reflect.DeepEqual(beforeSuffix, finalLedger[:96]) {
 		t.Fatal("LDAP historical closure lost retained V96 prefix or V97/V98 suffix")
 	}
+	retained("current_head")
 
 }
 

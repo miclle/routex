@@ -62,6 +62,58 @@ func testPersonalModelRequestsLifecycle(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Register before Service startup; only atomic fault gates change while workers live.
+	var creationFailureArmed, armPublication atomic.Bool
+	var auditFailureMode atomic.Int32
+	creationCallback := "test_personal_request_creation_audit_failure"
+	if err := db.Callback().Create().Before("gorm:create").Register(creationCallback, func(tx *gorm.DB) {
+		if creationFailureArmed.Load() && tx.Statement.Table == "audit_events" {
+			_ = tx.AddError(errors.New("test-only request creation audit failure"))
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	callback := "test_personal_request_audit_failure"
+	if err := db.Callback().Create().Before("gorm:create").Register(callback, func(tx *gorm.DB) {
+		if tx.Statement.Table != "audit_events" {
+			return
+		}
+		switch auditFailureMode.Load() {
+		case 1:
+			_ = tx.AddError(errors.New("test-only Personal request audit failure"))
+		case 2:
+			_ = tx.AddError(errors.New("test-only lifecycle audit failure"))
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var outage atomic.Bool
+	publicationCallback := "test_personal_request_publication_failure"
+	if err := db.Callback().Query().Before("gorm:query").Register(publicationCallback, func(tx *gorm.DB) {
+		if outage.Load() && tx.Statement.Table == "api_keys" {
+			_ = tx.AddError(errors.New("test-only authorization publication outage"))
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Callback().Create().After("gorm:create").Register(publicationCallback, func(tx *gorm.DB) {
+		if armPublication.Load() && tx.Statement.Table == "audit_events" && tx.Error == nil {
+			outage.Store(true)
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		creationFailureArmed.Store(false)
+		auditFailureMode.Store(0)
+		armPublication.Store(false)
+		outage.Store(false)
+		for _, err := range []error{db.Callback().Create().Remove(creationCallback), db.Callback().Create().Remove(callback), db.Callback().Query().Remove(publicationCallback), db.Callback().Create().Remove(publicationCallback)} {
+			if err != nil {
+				t.Error(err)
+			}
+		}
+	}()
 	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
@@ -169,10 +221,10 @@ func testPersonalModelRequestsLifecycle(t *testing.T, db *gorm.DB) {
 			}
 		}
 	}
+	defer svc.StopRuntime()
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	defer svc.StopRuntime()
 	const candidates = "/api/v1/model-access-candidates"
 	const personal = "/api/v1/personal-model-requests"
 	memberPath := func(userID string) string { return "/api/v1/admin/members/" + userID + "/model-requests" }
@@ -266,18 +318,10 @@ func testPersonalModelRequestsLifecycle(t *testing.T, db *gorm.DB) {
 	creationRollbackID := uuid()
 	creationRollbackETag := candidate(applicant, modelIDs["c"]).ReviewETag
 	creationRollbackInput := service.PersonalModelRequestInput{RequestID: creationRollbackID, ModelID: modelIDs["c"], Reason: "Atomic submission"}
-	creationCallback := "test_personal_request_creation_audit_failure"
-	if err := db.Callback().Create().Before("gorm:create").Register(creationCallback, func(tx *gorm.DB) {
-		if tx.Statement.Table == "audit_events" {
-			_ = tx.AddError(errors.New("test-only request creation audit failure"))
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
+	creationFailureArmed.Store(true)
+	defer creationFailureArmed.Store(false)
 	creationFailure := as(applicant, "POST", personal, creationRollbackInput, creationRollbackETag)
-	if err := db.Callback().Create().Remove(creationCallback); err != nil {
-		t.Fatal(err)
-	}
+	creationFailureArmed.Store(false)
 	expectStatus(t, creationFailure, 500)
 	var rollbackCount int64
 	if err := db.Model(&entity.PersonalModelRequest{}).Where("request_id = ?", creationRollbackID).Count(&rollbackCount).Error; err != nil || rollbackCount != 0 {
@@ -394,18 +438,10 @@ func testPersonalModelRequestsLifecycle(t *testing.T, db *gorm.DB) {
 		expectStatus(t, as(reviewer, "POST", decisionPath, invalid, review.ReviewETag), 400)
 	}
 	// The grant, terminal receipt and pending-slot deletion must roll back together.
-	callback := "test_personal_request_audit_failure"
-	if err := db.Callback().Create().Before("gorm:create").Register(callback, func(tx *gorm.DB) {
-		if tx.Statement.Table == "audit_events" {
-			_ = tx.AddError(errors.New("test-only Personal request audit failure"))
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
+	auditFailureMode.Store(1)
+	defer auditFailureMode.Store(0)
 	failed := as(reviewer, "POST", decisionPath, decision, review.ReviewETag)
-	if err := db.Callback().Create().Remove(callback); err != nil {
-		t.Fatal(err)
-	}
+	auditFailureMode.Store(0)
 	expectStatus(t, failed, 500)
 	assertGrant(modelIDs["b"], false, nil)
 	afterRollback := detail(reviewer, applicant.auth.User.ID, pending.ID, true)
@@ -569,31 +605,12 @@ func testPersonalModelRequestsLifecycle(t *testing.T, db *gorm.DB) {
 	publication, _, _ := create(applicant, modelIDs["d"])
 	publicationReview := detail(reviewer, applicant.auth.User.ID, publication.ID, true)
 	publicationInput := service.PersonalModelDecisionInput{DecisionID: uuid(), Action: "approve"}
-	var outage atomic.Bool
-	publicationCallback := "test_personal_request_publication_failure"
-	if err := db.Callback().Query().Before("gorm:query").Register(publicationCallback, func(tx *gorm.DB) {
-		if outage.Load() && tx.Statement.Table == "api_keys" {
-			_ = tx.AddError(errors.New("test-only authorization publication outage"))
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Callback().Create().After("gorm:create").Register(publicationCallback, func(tx *gorm.DB) {
-		if tx.Statement.Table == "audit_events" && tx.Error == nil {
-			outage.Store(true)
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
+	armPublication.Store(true)
+	defer armPublication.Store(false)
 	publicationPath := memberPath(applicant.auth.User.ID) + "/" + publication.ID + "/decision"
 	unapplied := as(reviewer, "POST", publicationPath, publicationInput, publicationReview.ReviewETag)
+	armPublication.Store(false)
 	outage.Store(false)
-	if err := db.Callback().Query().Remove(publicationCallback); err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Callback().Create().Remove(publicationCallback); err != nil {
-		t.Fatal(err)
-	}
 	publicationReceipt := decodeCatalogResponse[service.PersonalModelDecisionRecord](t, unapplied, 200)
 	if !publicationReceipt.Committed || !publicationReceipt.CurrentGranted || publicationReceipt.RuntimeApplied || publicationReceipt.ApplicationStatus != "pending" {
 		t.Fatal("publication outage confused durable grant with current runtime")
@@ -626,18 +643,10 @@ func testPersonalModelRequestsLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("terminal race duplicated audit", auditCount, err)
 	}
 	// Applicant lifecycle cancellation shares the transaction with identity changes.
-	if err := db.Callback().Create().Before("gorm:create").Register(callback, func(tx *gorm.DB) {
-		if tx.Statement.Table == "audit_events" {
-			_ = tx.AddError(errors.New("test-only lifecycle audit failure"))
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
+	auditFailureMode.Store(2)
 	disabled := true
 	_, disableErr := svc.UpdateMember(ctx, admin.User.ID, applicant.auth.User.ID, &disabled, nil)
-	if err := db.Callback().Create().Remove(callback); err != nil {
-		t.Fatal(err)
-	}
+	auditFailureMode.Store(0)
 	if disableErr == nil {
 		t.Fatal("member disablement committed without cancellation audit")
 	}

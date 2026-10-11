@@ -230,18 +230,21 @@ func testModelCreationBatchLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	queuePath := filepath.Join(t.TempDir(), "model-batch-calls.db")
+	defer func() {
+		if svc == nil {
+			return
+		}
+		svc.StopRuntime()
+		if err := svc.StopCallRecorder(); err != nil {
+			t.Error(err)
+		}
+	}()
 	if err := svc.StartCallRecorder(ctx, queuePath); err != nil {
 		t.Fatal(err)
 	}
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	defer func() {
-		svc.StopRuntime()
-		if err := svc.StopCallRecorder(); err != nil {
-			t.Error(err)
-		}
-	}()
 	waitApplied := func(requestID string) service.ModelCreationBatchResult {
 		t.Helper()
 		deadline := time.Now().Add(30 * time.Second)

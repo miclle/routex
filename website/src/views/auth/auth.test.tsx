@@ -45,6 +45,18 @@ beforeEach(() => {
   })
   client.defaults.adapter = async (config) => {
     requests.push(config)
+    if (config.url === '/auth/policy')
+      return {
+        config: config,
+        status: 200,
+        statusText: '',
+        headers: new AxiosHeaders({
+          'Cache-Control': 'private, no-store',
+          'X-Content-Type-Options': 'nosniff',
+        }),
+        data: { enforced: false, password_login_enabled: true, emergency_entry_enabled: false },
+      }
+
     const key = `${config.method} ${config.url}`
     if (key === 'post /auth/login') await pendingLogin
     const status = fail[key] || (config.url === '/auth/session' && !authenticated ? 401 : 200)

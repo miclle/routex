@@ -26,6 +26,17 @@ Prefer targeted `Migrator` operations. The `migrateTables` helper creates only t
 
 MySQL can commit DDL implicitly. Design retryable steps and advance the migration ledger only after a complete version succeeds. Both supported databases must pass fresh installation, upgrades preserving data, repeated execution, concurrent startup, and constraint/index acceptance. Existing version 1–4 SQL is preserved unchanged because it has shipped; new migrations follow this policy.
 
+## Integration fixture lifecycle
+
+Install GORM fault and observation callbacks before starting heartbeat, runtime
+publication or call-recorder workers. Keep the callback registry unchanged while
+workers run; arm and disarm synchronized controls with exact existing predicates.
+Retain persistent faults until explicitly cleared and keep one-shot faults
+one-shot. Register shutdown before the first startup operation so an intermediate
+failure cannot leak workers. Join workers before removing callbacks or resetting
+tables. Controlled publication cadence must preserve real refresh, authorization
+lease, fault, retry and accounting assertions rather than relaxing expected results.
+
 ## Raw SQL exceptions
 
 An exception requires a GORM capability gap or measured performance need, a local rationale, parameterized inputs, and tests for each supported driver. Do not create parallel PostgreSQL/MySQL implementations of ordinary CRUD or table definitions.
@@ -1746,3 +1757,82 @@ is independent. The existing prepared-section anchor remains for stable links;
 its heading is not an acceptance receipt.
 See [API-Key delivery](API_KEY_DELIVERY.md) for authority, uncertainty, local-only
 publication recovery and pending browser/external caller boundaries.
+
+
+## Authentication policy and emergency provenance (V103 source)
+
+Frozen GORM V103 follows V102 without rewriting V1–V102. It adds enforced-policy
+revision and exact emergency administrator ID/birth to governance, plus five
+private fields each on Sessions and native MFA challenges: policy revision, user
+birth, native MFA generation, password commitment and actual factor completion.
+The initial off revision is zero64; later off revisions remain exact lowercase
+hex64 and advance on disable to prevent off/on revival. Off has blank/nil
+designation. Native MFA generations retain canonical43-byte URL-safe base64; no
+existing generation or encryption AAD is rewritten. Ordinary proof fields remain
+empty, and an emergency challenge has no invented factor completion. An emergency
+Session requires a real nonfuture completion no later than its persisted creation
+instant and before its expiry.
+
+Retained data, exact primary/purpose tuples, columns, indexes and portable CHECKs
+are validated through private frozen models before publishing V103. Repeated or
+interrupted MySQL DDL must resume without assumed rollback. There is no encrypted
+field/root-domain addition; preceding inventory V9 retains twelve domains.
+
+Installed authorization observations admit historical projection1 and current
+projection2, whose serializer uses `routex.gateway-authorization.v2` and includes
+policy/emergency Team Session authority. Historical observations and their first
+IDs/timestamps/digests are immutable. Projection1 current-match is null/unknown;
+it is never compared with a projection2 digest. The existing single-process
+scope, retention and shared250ms evidence budget remain unchanged.
+
+V103 empty/retained upgrade, repeat/concurrent startup, partial-DDL and exact
+constraint/index checks pass on PostgreSQL and MySQL in
+`54b4b3fb5c51725c4387837d1f24f111beeabc763dab1294584b9da16db4ab4f`. Process lifecycle acceptance is separately
+`ae8c8b73d503494fdf1c4a07ebb31d098e4242d8881063d5a96df2497ebaf193`. Historical projection observations remain immutable.
+See [AUTH_POLICY.md](AUTH_POLICY.md) for deferred browser and unproven external
+recovery boundaries.
+
+## Saved Vault certificate authentication (V104 source)
+
+Frozen GORM V104 follows V103 and precedes the separate V105 manual-publication
+receipt migration. It replaces only the Writer and Reader method CHECKs with
+exact byte predicates admitting `token`, `approle` and `certificate` on PostgreSQL
+and MySQL. Both retained column shapes and all method values are validated before
+any constraint DDL. Existing ciphertext, secret generation, auth-row identity,
+root references/AAD and historical migrations remain unchanged; partial MySQL DDL
+resumes through bounded Migrator repair without assumed transactional rollback.
+
+Certificate PEM tuples use the existing encrypted Writer/Reader rows. V104 adds
+no table, secret domain or inventory version: inventory V9 still has twelve
+domains. It does not change V103 policy/emergency provenance or projection2, and
+never relabels historical projection1 observations, inventory jobs or verified
+receipts as current certificate evidence. V105 command outcomes are independent
+of certificate configuration and do not establish remote readiness or fleet
+application.
+
+V104 empty/retained upgrade, repeat/concurrent startup, partial-DDL recovery and
+exact constraint/index preservation pass on PostgreSQL and MySQL in
+`54b4b3fb5c51725c4387837d1f24f111beeabc763dab1294584b9da16db4ab4f`. Separate local certificate Vault/restart
+acceptance is `79661eaa360ec0d9a2b7e4c458bb79ca218027b52216805eaf184f8865cdd7ad`, with its precise normal
+and negative cleanup dispositions. Browser acceptance remains deferred. See
+[Secrets](SECRETS.md).
+
+## Manual publication command receipts (V105)
+
+Frozen GORM V105 follows V104 without modifying V1–V104. It adds
+`runtime_publication_commands`, keyed by canonical UUIDv4 request ID, with exact
+actor ID/birth, reason, claiming instance ID/birth, claim/finalization timestamps,
+outcome and optional fixed failure code. The actor index orders actor ID, actor
+birth and claim time. Portable byte-exact CHECKs admit only `claimed`,
+`refresh_returned_nil` and `refresh_returned_error`; claimed rows have null
+finalization/failure, and terminal rows require finalization at or after the claim and the exact
+failure-code/null shape. Public pending/unknown states are
+derived from current owned work rather than additional stored terminal outcomes.
+
+Migration validates retained rows and exact column/index shapes before replacing
+the CHECK; partial MySQL DDL is resumed without assumed rollback or fabricated
+claim facts. V105 adds no encrypted field, root domain or inventory version and
+never rewrites prior runtime observations or resumes a claim after restart.
+Portable migration and command acceptance is
+`54b4b3fb5c51725c4387837d1f24f111beeabc763dab1294584b9da16db4ab4f`; see [Runtime](RUNTIME.md#manual-publication-command)
+for the wire break, original three-second budget, restart witness and outcome limits.

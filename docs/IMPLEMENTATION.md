@@ -1,8 +1,44 @@
 # RouteX Implementation and Acceptance Index
 
-Updated: 2026-10-11. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery and is resumed by the user's explicit instruction, prioritizing partially completed capabilities.
+Updated: 2026-10-12. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery and is resumed by the user's explicit instruction, prioritizing partially completed capabilities.
 
-## Current execution status (2026-10-11)
+## Current execution status (2026-10-12)
+
+The pre-phase baseline is `3976e5a59f5397218c36249be79de4ae2dec23f8`.
+This phase implements enforced OIDC/LDAP with MFA-protected emergency entry
+(V103), saved independent Vault certificate identities (V104), HTTPS proxy
+process coverage, and actor-owned durable manual publication receipts (V105).
+This verified phase is ready for delivery; Git history records its containing commit.
+Earlier accepted API-Key delivery evidence below retains its original scope.
+
+Verification binds the repaired phase separately from earlier source floors:
+
+- Coherent R7 gates (6,726 frontend cases, Go race/coverage, development lifecycle
+  and production assets passed): 059de8b5420faf4b52e825d077a3a521107e90838d0fa0442d4ae63895642ce5; source SHA-256
+  d50e4ce24294fc8efe4d59db21f025036b836682240e5f56e103174eb88498c3 (2495 paths).
+- The 18-scenario dual-driver focus: 7cebc34769ec809f927ad7eef4631cb4d3773d561b32ebff8f3181f42f2fb32d.
+- Original full R6 (9,834 ordinary Go passes, five expected skips and 542 named
+  passes on each database): 54b4b3fb5c51725c4387837d1f24f111beeabc763dab1294584b9da16db4ab4f; GOMAXPROCS=2 and GOFLAGS=-p=1,
+  with unchanged source, assertions and production budgets.
+- Authentication lifecycle R4: ae8c8b73d503494fdf1c4a07ebb31d098e4242d8881063d5a96df2497ebaf193.
+- Default-production build R7: 502293c38322976fca690ca4d885bc1d92f731392e2cec3d8df2bdd0fb91b1ba;
+  binary SHA-256 `576c254182f0f0c58e0efa767f883ec9dfc593d8ddad1081320719f46a5de6f8`.
+
+Native saved-certificate qualification passed all 12 steps on both databases,
+covering encrypted persistence, restart, exact audit attribution and scoped
+Provider cleanup. Receipt SHA-256:
+`79661eaa360ec0d9a2b7e4c458bb79ca218027b52216805eaf184f8865cdd7ad`.
+
+The mandatory-client-certificate negative case rejected both CA-only operator
+attempts without remote destruction. Their exact cleanup intent remains unknown;
+final durable process closures remain unproven despite OS exit and join. Failed
+runs and physical closure never establish functional acceptance; see
+[qualification history](current-work-handoff.md#enterprise-qualification-history).
+
+Browser acceptance is deferred. Separate Telegram and bounded API-Key receipt
+advisory implementations are source-complete but outside this qualification;
+F24 and controlled performance tooling remain separate drafts. Capability totals
+remain 15 Completed / 14 Partial / 1 Not started.
 
 ## API-Key delivery application: bounded phase — 2026-10-11
 
@@ -65,6 +101,23 @@ acceptance. Browser validation remains pending while the user cannot unlock.
 F03/A15 remain Partial; totals remain **15 Completed / 14 Partial / 1 Not started**.
 API-Key delivery and forced SSO remain private candidates, and the overall objective
 stays active.
+
+## F30 manual publication command: bounded phase (2026-10-11)
+
+Actor-owned idempotent commands use frozen V105 storage. Publication POST replaces
+an empty/`{}` body and `RuntimeStatus` response with a canonical UUIDv4,
+required reason and receipt; GET reads only the current actor's own receipt.
+The receipt records the original refresh outcome under one original three-second
+budget. Pending, unknown, recorded error and recorded nil remain distinct; restart
+never resumes a claim. See [the command contract](RUNTIME.md#manual-publication-command).
+
+Strict HTTP/body, authority, idempotency, fault and portable migration checks are
+covered by accepted full qualification `54b4b3fb5c51725c4387837d1f24f111beeabc763dab1294584b9da16db4ab4f`.
+The existing two-process HTTP restart witness preserves the original terminal
+receipt and command/audit rows. Direct service load-count evidence remains separate
+from process persistence; no interrupted in-flight process claim is inferred.
+A receipt proves no application/fleet acknowledgement, rollback or absence of
+effects. No publication UI is added. F30 remains Partial and totals are unchanged.
 
 ## Historical clock and formatting checkpoints
 
@@ -4086,7 +4139,7 @@ The binary capability count is 15 completed, 14 partially completed, and 1 not s
 | F27 | S3, owned attachments, SMTP, and notifications | Partially completed | S3-compatible configuration and administration UI, explicit user/Project attachment APIs, cleanup recovery, Key-scoped inference reads, single/comparison attachment interfaces, SMTP administration/test delivery, and durable operational email intents exist. External storage/mail acceptance, bounce handling, and inbox tracking remain open. |
 | F28 | Internal encryption, root-key rotation, and Vault switching | Partially completed | Internal Provider, egress, SMTP, retained Storage and MFA encryption is implemented. Guarded root rotation passed source, complete dual-driver regression and controlled production/browser/restart acceptance, including final mandatory checks. Vault Token settings, retained revisions, diagnostic probes and seven-domain root inventory are delivered in c2368ddb; the bounded credential KV-v2 SDK is delivered in 78c76d2. Bounded Vault-backed Provider storage switching, stable retained references, durable write compensation and root retirement pass source, dual-driver and controlled API/native/restart acceptance in this phase. Saved independent writer/reader AppRole activation is delivered as 77ece177 after source gates, Focus16, complete Full150 and real Vault API/native/root-key/original-Session restart acceptance. Administrator-previewed, explicitly confirmed cleanup of never-committed Provider objects is delivered as 5fda0737 after source, Full154 and real Vault API/restart acceptance; automatic scheduled deletion is excluded. Published-object drain and graceful closure are delivered in V88/V89. Genuine bilingual Vault/storage browser acceptance, certificate and workload identities, and external compatibility remain open. |
 | F29 | API Key Vault delivery and application identities | Partially completed | The application contract separates immutable manual/managed modes, exact-owner Consumer/Profile/Principal targets, independent Writer/Provisioner and JWT-template verification, explicit control approval and separate isolation attestation. Durable pre-I/O claims prevent Writer replay and plaintext fallback; acknowledgements, local runtime publication, descriptors and actual caller use remain distinct. Native-completed retirement remains mandatory. Controlled application, real local Vault, browser and external caller evidence are recorded separately below; coordinator and automatic rotation remain outside this bounded phase. |
-| F30 | Configuration publication, acknowledgement, rollback, revocation, and audit | Partially completed | Immutable runtime publication, durable events, current revocation, and audit foundations exist; node acknowledgement, complete rollback, and distributed emergency-revocation acceptance remain open. |
+| F30 | Configuration publication, acknowledgement, rollback, revocation, and audit | Partially completed | Immutable runtime publication, durable events, current revocation, and audit foundations exist. Actor-owned idempotent manual publication receipts are prepared in private source only; all compilation, database, process and runtime qualification remains pending. Node acknowledgement, complete rollback, and distributed emergency-revocation acceptance remain open. |
 
 ### Acceptance-case status
 

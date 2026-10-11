@@ -22,7 +22,7 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-const runtimeInstallationProjectionVersion = 1
+const runtimeInstallationProjectionVersion = 2
 const runtimeInstallationResponseLimit = 128 * 1024
 
 var runtimeInstallationID = regexp.MustCompile(`^rin_[0-7][0-9a-hjkmnp-tv-z]{25}$`)
@@ -61,7 +61,7 @@ func runtimeInstallationSource(routes *runtimeRoutes, auth *runtimeAuthorization
 		return "", false
 	}
 	h := sha256.New()
-	for _, part := range []string{"routex.gateway-installation.v1", routes.ID, routes.Digest, auth.installationProjectionDigest} {
+	for _, part := range []string{"routex.gateway-installation.v2", routes.ID, routes.Digest, auth.installationProjectionDigest} {
 		var size [8]byte
 		binary.BigEndian.PutUint64(size[:], uint64(len(part)))
 		_, _ = h.Write(size[:])
@@ -131,7 +131,7 @@ func (s *Service) recordRuntimeInstallation(ctx context.Context, routes *runtime
 			return err
 		}
 		if len(prior) > 0 {
-			if len(prior) != 1 || !validRuntimeInstallation(prior[0]) || prior[0].InstanceID != lease.id || !prior[0].InstanceStartedAt.Equal(lease.startedAt) || prior[0].SnapshotID != routes.ID || prior[0].SourceDigest != source || !prior[0].RoutesPublishedAt.Equal(routes.PublishedAt.UTC().Truncate(time.Microsecond)) || !current() {
+			if len(prior) != 1 || prior[0].ProjectionVersion != runtimeInstallationProjectionVersion || !validRuntimeInstallation(prior[0]) || prior[0].InstanceID != lease.id || !prior[0].InstanceStartedAt.Equal(lease.startedAt) || prior[0].SnapshotID != routes.ID || prior[0].SourceDigest != source || !prior[0].RoutesPublishedAt.Equal(routes.PublishedAt.UTC().Truncate(time.Microsecond)) || !current() {
 				return runtimeUnavailable
 			}
 			return nil
@@ -173,7 +173,7 @@ func runtimeInstallationMicrosecond(value time.Time) bool {
 }
 
 func validRuntimeInstallation(row entity.RuntimeInstallationObservation) bool {
-	return runtimeInstallationID.MatchString(row.ID) && systemInstanceIDPattern.MatchString(row.InstanceID) && runtimeSnapshotID.MatchString(row.SnapshotID) && row.ProjectionVersion == runtimeInstallationProjectionVersion && runtimeRouteDigest.MatchString(row.SourceDigest) && runtimeInstallationMicrosecond(row.InstanceStartedAt) && runtimeInstallationMicrosecond(row.RoutesPublishedAt) && runtimeInstallationMicrosecond(row.FirstObservedAt) && !row.RoutesPublishedAt.Before(row.InstanceStartedAt) && !row.FirstObservedAt.Before(row.RoutesPublishedAt)
+	return runtimeInstallationID.MatchString(row.ID) && systemInstanceIDPattern.MatchString(row.InstanceID) && runtimeSnapshotID.MatchString(row.SnapshotID) && (row.ProjectionVersion == 1 || row.ProjectionVersion == runtimeInstallationProjectionVersion) && runtimeRouteDigest.MatchString(row.SourceDigest) && runtimeInstallationMicrosecond(row.InstanceStartedAt) && runtimeInstallationMicrosecond(row.RoutesPublishedAt) && runtimeInstallationMicrosecond(row.FirstObservedAt) && !row.RoutesPublishedAt.Before(row.InstanceStartedAt) && !row.FirstObservedAt.Before(row.RoutesPublishedAt)
 }
 
 type RuntimeInstallationFilter struct {
@@ -319,7 +319,7 @@ func (s *Service) ListRuntimeInstallations(ctx context.Context, actorID string, 
 }
 
 func (s *Service) runtimeInstallationServingMatch(ctx context.Context, row entity.RuntimeInstallationObservation, instance entity.SystemInstance) *bool {
-	if !validRuntimeInstallation(row) || !s.instanceMu.TryRLock() {
+	if row.ProjectionVersion != runtimeInstallationProjectionVersion || !validRuntimeInstallation(row) || !s.instanceMu.TryRLock() {
 		return nil
 	}
 	lease := s.instance

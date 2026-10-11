@@ -18,6 +18,8 @@ import (
 func vaultIntent(v VaultConfigInput) string {
 	v.WriterAuth.Token, v.WriterAuth.AuthMount, v.WriterAuth.RoleID, v.WriterAuth.SecretID = "", "", "", ""
 	v.ReaderAuth.Token, v.ReaderAuth.AuthMount, v.ReaderAuth.RoleID, v.ReaderAuth.SecretID = "", "", "", ""
+	v.WriterAuth.CertificateRole, v.WriterAuth.CertificatePEM, v.WriterAuth.PrivateKeyPEM, v.WriterAuth.ServerCAPEM = "", "", "", ""
+	v.ReaderAuth.CertificateRole, v.ReaderAuth.CertificatePEM, v.ReaderAuth.PrivateKeyPEM, v.ReaderAuth.ServerCAPEM = "", "", "", ""
 	b, _ := json.Marshal(v)
 	return string(b)
 }
@@ -64,12 +66,12 @@ func vaultAuthValue(v VaultAuthInput, old string, creation bool) (string, error)
 		}
 		return value, nil
 	case "keep":
-		if creation || old == "" || (v.Token != "" || v.Method != "" || v.AuthMount != "" || v.RoleID != "" || v.SecretID != "") {
+		if creation || old == "" || (v.Token != "" || v.Method != "" || v.AuthMount != "" || v.RoleID != "" || v.SecretID != "" || v.CertificateRole != "" || v.CertificatePEM != "" || v.PrivateKeyPEM != "" || v.ServerCAPEM != "") {
 			return "", apperrors.ErrBadRequest
 		}
 		return old, nil
 	case "remove":
-		if v.Token != "" || v.Method != "" || v.AuthMount != "" || v.RoleID != "" || v.SecretID != "" {
+		if v.Token != "" || v.Method != "" || v.AuthMount != "" || v.RoleID != "" || v.SecretID != "" || v.CertificateRole != "" || v.CertificatePEM != "" || v.PrivateKeyPEM != "" || v.ServerCAPEM != "" {
 			return "", apperrors.ErrBadRequest
 		}
 		return "", nil
@@ -185,6 +187,18 @@ func (s *Service) SaveVaultIntegration(ctx context.Context, actorID, target, eta
 	}
 	if wt != "" && rt != "" && vaultTextEqual(wt, rt) {
 		return nil, apperrors.ErrBadRequest
+	}
+	// Pure descriptor/PEM validation also covers retained material when an HTTPS
+	// boundary is edited. No login or remote I/O is performed during Save.
+	for _, material := range []string{wt, rt} {
+		if material == "" {
+			continue
+		}
+		validation, e := vaultIdentityClient(entity.VaultRevision{Endpoint: input.Descriptor.Endpoint, Namespace: input.Descriptor.Namespace, Mount: input.Descriptor.Mount, Prefix: input.Descriptor.Prefix, DataField: input.Descriptor.DataField}, s.allowPrivateUpstream, vaultAuthMethod(material), material)
+		if e != nil {
+			return nil, apperrors.ErrBadRequest
+		}
+		validation.Close()
 	}
 	revisionID, err := id.NewPrefixed("vlr")
 	if err != nil {

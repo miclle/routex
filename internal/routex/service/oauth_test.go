@@ -155,20 +155,21 @@ func TestOAuthExternalIdentityAndReviewNeverAlias(t *testing.T) {
 	}
 }
 func TestOAuthPrimaryMarkersNeverDowngrade(t *testing.T) {
-	if e := primaryValidateSession(nil, entity.Session{}); e != nil {
+	tx := authenticationProofPolicyDB(t)
+	if e := primaryValidateSession(tx, entity.Session{}); e != nil {
 		t.Fatal("legacy local session", e)
 	}
 	now := time.Now()
 	for _, s := range []entity.Session{{PrimaryMethod: "local"}, {OAuthBindingID: "oab_retained"}, {OAuthBindingCreatedAt: &now}, {OAuthConfigRevision: strings.Repeat("a", 64)}, {OAuthPolicyRevision: strings.Repeat("b", 64)}, {OAuthUserCreatedAt: &now}, {PrimaryMethod: "oauth"}, {PrimaryMethod: "OAuth"}} {
-		if e := primaryValidateSession(nil, s); !errors.Is(e, apperrors.ErrUnauthorized) {
+		if e := primaryValidateSession(tx, s); !errors.Is(e, apperrors.ErrUnauthorized) {
 			t.Fatal("incomplete external provenance became local", e)
 		}
 	}
-	if e := primaryValidateChallenge(nil, entity.MFAChallenge{}); e != nil {
+	if e := primaryValidateChallenge(tx, entity.MFAChallenge{}); e != nil {
 		t.Fatal("legacy local challenge", e)
 	}
 	for _, c := range []entity.MFAChallenge{{PrimaryMethod: "local"}, {PrimaryMethod: "oauth"}, {OAuthBindingID: "oab_retained"}, {OAuthBindingCreatedAt: &now}, {OAuthConfigRevision: strings.Repeat("a", 64)}, {OAuthPolicyRevision: strings.Repeat("b", 64)}, {OAuthUserCreatedAt: &now}} {
-		if e := primaryValidateChallenge(nil, c); !errors.Is(e, apperrors.ErrUnauthorized) {
+		if e := primaryValidateChallenge(tx, c); !errors.Is(e, apperrors.ErrUnauthorized) {
 			t.Fatal("partial challenge provenance became local", e)
 		}
 	}
@@ -260,6 +261,7 @@ func TestOAuthConfigArraysAreExactAndBounded(t *testing.T) {
 	}
 }
 func TestOAuthMixedPrimaryNeverDowngradesLocalOrOIDC(t *testing.T) {
+	tx := authenticationProofPolicyDB(t)
 	now := time.Now()
 	for _, r := range []entity.Session{
 		{OIDCBindingID: "oib_old"}, {OAuthBindingID: "oab_old"},
@@ -268,11 +270,11 @@ func TestOAuthMixedPrimaryNeverDowngradesLocalOrOIDC(t *testing.T) {
 		{PrimaryMethod: "", OAuthUserCreatedAt: &now},
 		{PrimaryMethod: "unknown"},
 	} {
-		if primaryValidateSession(nil, r) == nil {
+		if primaryValidateSession(tx, r) == nil {
 			t.Fatal("mixed primary admitted")
 		}
 	}
-	if primaryValidateSession(nil, entity.Session{}) != nil || primaryValidateChallenge(nil, entity.MFAChallenge{}) != nil {
+	if primaryValidateSession(tx, entity.Session{}) != nil || primaryValidateChallenge(tx, entity.MFAChallenge{}) != nil {
 		t.Fatal("local compatibility")
 	}
 }

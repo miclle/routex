@@ -41,3 +41,23 @@ func (c *Client) LoginCertificate(ctx context.Context, authMount, role string) (
 	}
 	return c.login(ctx, authMount, map[string]string{"name": role}, start)
 }
+
+// NewServerCA creates an operation-local HTTPS client with explicit server
+// trust but no client certificate. It does not admit certificate login.
+func NewServerCA(d Descriptor, allowPrivate bool, serverCAPEM []byte) (*Client, error) {
+	client, err := New(d, allowPrivate)
+	if err != nil {
+		return nil, err
+	}
+	client.Close()
+	if client.endpoint.Scheme != "https" {
+		return nil, &Failure{Stage: "prepare", Code: "invalid_descriptor"}
+	}
+	transport, err := upstream.NewServerCAClient(allowPrivate, serverCAPEM)
+	if err != nil {
+		return nil, &Failure{Stage: "prepare", Code: "invalid_tls"}
+	}
+	transport.Timeout = requestTimeout
+	client.http = transport
+	return client, nil
+}

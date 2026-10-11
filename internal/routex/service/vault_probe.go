@@ -344,14 +344,23 @@ func (s *Service) RunVaultProbe(ctx context.Context, actorID, target, probeID, k
 	// Authentication belongs to the already claimed finite command. Login
 	// failures never claim that a KV operation was attempted.
 	writerToken, readerToken := wt, rt
+	var writerClient, readerClient *vault.Client
+	defer func() {
+		if writerClient != nil {
+			writerClient.Close()
+		}
+		if readerClient != nil {
+			readerClient.Close()
+		}
+	}()
 	var login vault.Observation
 	var closeWriter, closeReader func()
 	closeWriter, closeReader = func() {}, func() {}
 	if kind != "write" {
-		readerToken, closeReader, login, stageErr = vaultCommandToken(ctx, client, r.Method, rt)
+		readerClient, readerToken, closeReader, login, stageErr = vaultIdentityCommand(ctx, rev, s.allowPrivateUpstream, r.Method, rt)
 	}
 	if stageErr == nil {
-		writerToken, closeWriter, login, stageErr = vaultCommandToken(ctx, client, w.Method, wt)
+		writerClient, writerToken, closeWriter, login, stageErr = vaultIdentityCommand(ctx, rev, s.allowPrivateUpstream, w.Method, wt)
 	}
 	defer closeWriter()
 	defer closeReader()
@@ -371,7 +380,7 @@ func (s *Service) RunVaultProbe(ctx context.Context, actorID, target, probeID, k
 	} else {
 		switch kind {
 		case "write":
-			result, err := client.Write(ctx, writerToken, prepared)
+			result, err := writerClient.Write(ctx, writerToken, prepared)
 			stageErr = err
 			p.Version = result.Version
 			p.WriteJSON = vaultJSON(vaultObservation(result.Write))
@@ -381,7 +390,7 @@ func (s *Service) RunVaultProbe(ctx context.Context, actorID, target, probeID, k
 				p.CleanupJSON = vaultJSON(VaultCleanupView{"unknown", vaultEmptyObservation()})
 			}
 		case "read":
-			result, err := client.ReadAndCleanup(ctx, readerToken, writerToken, plan)
+			result, err := readerClient.ReadAndCleanupWithWriter(ctx, readerToken, writerToken, plan, writerClient)
 			stageErr = err
 			p.Version = max(p.Version, result.Version)
 			p.ReadJSON = vaultJSON(vaultObservation(result.Read))
@@ -391,7 +400,7 @@ func (s *Service) RunVaultProbe(ctx context.Context, actorID, target, probeID, k
 				p.State = "completed"
 			}
 		case "cleanup":
-			result, err := client.CleanupOwned(ctx, readerToken, writerToken, plan)
+			result, err := readerClient.CleanupOwnedWithWriter(ctx, readerToken, writerToken, plan, writerClient)
 			stageErr = err
 			p.Version = max(p.Version, result.Version)
 			ownership = vaultObservation(result.Ownership)

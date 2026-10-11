@@ -42,14 +42,19 @@ func credentialPhysicalObject(rev entity.VaultRevision, reference string) (strin
 // not an operation claim, and no observer is shared across commands or sources.
 // This local prerequisite has no durable process/fleet exclusion semantics.
 type credentialFiniteOperation struct {
-	mu      sync.Mutex
-	client  *vault.Client
-	holder  *credentialSourceHolder
-	process *credentialProcessTicket
-	purpose string
-	plan    vault.CredentialPlan
-	closed  bool
-	failed  bool
+	mu             sync.Mutex
+	client         *vault.Client
+	clients        []*vault.Client
+	identities     map[string]*vault.Client // Operation-local Token binding, cleared on close.
+	operatorClient *vault.Client
+	revision       entity.VaultRevision
+	allowPrivate   bool
+	holder         *credentialSourceHolder
+	process        *credentialProcessTicket
+	purpose        string
+	plan           vault.CredentialPlan
+	closed         bool
+	failed         bool
 }
 
 func (s *Service) credentialFiniteOperation(rev entity.VaultRevision, ref entity.CredentialVaultReference, method, purpose string) (*credentialFiniteOperation, error) {
@@ -108,7 +113,7 @@ func (s *Service) credentialFiniteOperationTicket(rev entity.VaultRevision, ref 
 			return nil, err
 		}
 	}
-	return &credentialFiniteOperation{client: client, holder: holder, process: ticket, purpose: purpose, plan: credentialPlan(ref)}, nil
+	return &credentialFiniteOperation{client: client, clients: []*vault.Client{client}, identities: map[string]*vault.Client{}, operatorClient: client, revision: rev, allowPrivate: s.allowPrivateUpstream, holder: holder, process: ticket, purpose: purpose, plan: credentialPlan(ref)}, nil
 }
 
 func (op *credentialFiniteOperation) admissible() bool {
@@ -116,7 +121,12 @@ func (op *credentialFiniteOperation) admissible() bool {
 }
 func (op *credentialFiniteOperation) observe(attempted bool, err error) error {
 	state := op.client.ResponseCloseState()
-	if state.Failed || state.Pending != 0 || (attempted && !state.Observed) {
+	bad := state.Failed || state.Pending != 0 || (attempted && !state.Observed)
+	for _, client := range op.clients {
+		state := client.ResponseCloseState()
+		bad = bad || state.Failed || state.Pending != 0
+	}
+	if bad {
 		op.failed = true
 		op.holder.poison()
 		op.process.poison()
@@ -134,22 +144,46 @@ func (op *credentialFiniteOperation) close() {
 	}
 	op.closed = true
 	_ = op.observe(false, nil)
-	op.client.Close() // Idle connection cleanup is not response-body drain proof.
+	for _, client := range op.clients {
+		client.Close()
+	}
+	// Idle cleanup never substitutes for the response proof observed above.
+	clear(op.identities)
+	op.clients = nil
 	op.holder.release()
 	op.process.release()
 }
 func (op *credentialFiniteOperation) token(ctx context.Context, method, material string) (string, func(), vault.Observation, error) {
 	op.mu.Lock()
 	defer op.mu.Unlock()
-	if !op.admissible() {
+	if !op.admissible() || len(op.identities) >= 2 {
 		return "", func() {}, vault.Observation{}, vaultUnavailable
 	}
-	token, release, observation, err := vaultCommandToken(ctx, op.client, method, material)
+	client, err := vaultIdentityClient(op.revision, op.allowPrivate, method, material)
+	if err != nil {
+		return "", func() {}, vault.Observation{}, err
+	}
+	op.clients = append(op.clients, client)
+	op.client = client
+	if op.purpose == "cleanup" {
+		operator, err := vaultOperatorClient(op.revision, op.allowPrivate, method, material)
+		if err != nil {
+			return "", func() {}, vault.Observation{}, err
+		}
+		op.operatorClient = operator
+		op.clients = append(op.clients, operator)
+	}
+	token, release, observation, err := vaultCommandToken(ctx, client, method, material)
 	err = op.observe(observation.Attempted, err)
 	if err != nil {
 		release()
 		return "", func() {}, observation, err
 	}
+	if _, duplicate := op.identities[token]; duplicate {
+		release()
+		return "", func() {}, vault.Observation{Failure: &vault.Failure{Stage: "prepare", Code: "invalid_auth"}}, vaultUnavailable
+	}
+	op.identities[token] = client
 	return token, release, observation, nil
 }
 func (op *credentialFiniteOperation) write(ctx context.Context, token string, prepared *vault.PreparedCredential, value []byte) (vault.CredentialWriteResult, error) {
@@ -158,7 +192,12 @@ func (op *credentialFiniteOperation) write(ctx context.Context, token string, pr
 	if !op.admissible() || op.purpose != "create" || prepared == nil || prepared.Plan() != op.plan {
 		return vault.CredentialWriteResult{}, vaultUnavailable
 	}
-	result, err := op.client.WriteCredential(ctx, token, prepared, value)
+	client := op.identities[token]
+	if client == nil {
+		return vault.CredentialWriteResult{}, vaultUnavailable
+	}
+	op.client = client
+	result, err := client.WriteCredential(ctx, token, prepared, value)
 	return result, op.observe(result.Write.Attempted, err)
 }
 func (op *credentialFiniteOperation) read(ctx context.Context, token string, plan vault.CredentialPlan) (*vault.CredentialValue, vault.CredentialReadResult, error) {
@@ -167,7 +206,12 @@ func (op *credentialFiniteOperation) read(ctx context.Context, token string, pla
 	if !op.admissible() || op.purpose == "cleanup" || plan != op.plan {
 		return nil, vault.CredentialReadResult{}, vaultUnavailable
 	}
-	value, result, err := op.client.ReadCredential(ctx, token, plan)
+	client := op.identities[token]
+	if client == nil {
+		return nil, vault.CredentialReadResult{}, vaultUnavailable
+	}
+	op.client = client
+	value, result, err := client.ReadCredential(ctx, token, plan)
 	err = op.observe(result.Read.Attempted, err)
 	if err != nil && value != nil {
 		value.Close()
@@ -181,6 +225,11 @@ func (op *credentialFiniteOperation) cleanup(ctx context.Context, token, cleanup
 	if !op.admissible() || op.purpose != "cleanup" || plan != op.plan {
 		return vault.CredentialCleanupResult{}, vaultUnavailable
 	}
-	result, err := op.client.CleanupCredentialOwned(ctx, token, cleanup, plan)
+	client := op.identities[token]
+	if client == nil || op.operatorClient == nil {
+		return vault.CredentialCleanupResult{}, vaultUnavailable
+	}
+	op.client = client
+	result, err := client.CleanupCredentialOwnedWithClient(ctx, token, cleanup, plan, op.operatorClient)
 	return result, op.observe(result.Ownership.Attempted || result.Cleanup.Observation.Attempted, err)
 }

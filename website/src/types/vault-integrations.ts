@@ -1,8 +1,17 @@
-export type VaultAuthMethod = 'token' | 'approle'
+export type VaultAuthMethod = 'token' | 'approle' | 'certificate'
 export type VaultAuthInput =
   | { action: 'keep' | 'remove' }
   | { action: 'replace'; method?: 'token'; token: string }
   | { action: 'replace'; method: 'approle'; auth_mount: string; role_id: string; secret_id: string }
+  | {
+      action: 'replace'
+      method: 'certificate'
+      auth_mount: string
+      certificate_role: string
+      certificate_pem: string
+      private_key_pem: string
+      server_ca_pem?: string
+    }
 export interface VaultDescriptor {
   endpoint: string
   namespace: string

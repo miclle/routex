@@ -20,7 +20,11 @@ func TestGoogleRegistry200ExactPrefixAndSuffix(t *testing.T) {
 	for _, m := range matches {
 		names = append(names, m[1]+":"+m[2])
 	}
-	if !apiKeyDeliveryRegistry210Current(names) || !strings.Contains(string(raw), "versions != 102") {
+	if !enterpriseRegistry218Current(names) {
+		t.Fatal("exact214 forced SSO successor required before historical210 checks")
+	}
+	names = names[:210] // Preserve the exact predecessor guard and its historical controls.
+	if !apiKeyDeliveryRegistry210Current(names) || !strings.Contains(string(raw), "versions != 105") {
 		t.Fatal("exact V102/210 current registry")
 	}
 	names = names[:200] // Exercise every unchanged historical V99 control below.

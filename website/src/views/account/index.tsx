@@ -1,3 +1,5 @@
+import { useReauthentication } from '@/views/auth-enforcement/reauthentication-state'
+import { useSecurityLifetime } from '@/views/auth-enforcement/security-lifetime'
 import AccountMFA from './mfa'
 import OIDCAccount from '@/views/oidc/account'
 import OAuthAccount from '@/views/oauth/account'
@@ -50,19 +52,19 @@ export default function AccountPage({ security = false }: { security?: boolean }
       setNotice('account.profileUpdated')
     },
   })
-  const password = useMutation({
-    mutationFn: (input: { current_password: string; new_password: string }) =>
-      changePassword(input, session!.csrf_token),
-    onSuccess: async (nextSession) => {
-      await cache.cancelQueries({ queryKey: sessionKey })
-      cache.setQueryData(sessionKey, nextSession)
-      await cache.invalidateQueries({ queryKey: ['account', 'sessions'] })
-      setNotice('account.passwordUpdated')
-      passwordForm.current?.reset()
-      password.reset()
-    },
-    gcTime: 0,
+  const reauthenticate = useReauthentication()
+  const [passwordPending, setPasswordPending] = useState(false)
+  const [passwordError, setPasswordError] = useState<Error | null>(null)
+  const passwordSettling = useRef(false)
+  const lifetime = useSecurityLifetime(() => {
+    setPasswordPending(false)
+    setPasswordError(null)
+    setValidation('')
+    setNotice('')
+    passwordForm.current?.reset()
+    if (!passwordSettling.current) setPasswordOpen(false)
   })
+  const password = { isPending: passwordPending, error: passwordError }
   const revoke = useMutation({
     mutationFn: (target: AccountSession) => revokeAccountSession(target.id, session!.csrf_token),
     onSuccess: async (_result, target) => {
@@ -79,9 +81,9 @@ export default function AccountPage({ security = false }: { security?: boolean }
       }
     },
   })
-  function submitPassword(event: FormEvent<HTMLFormElement>) {
+  async function submitPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (password.isPending) return
+    if (password.isPending || !lifetime.fresh()) return
     const form = event.currentTarget
     const values = new FormData(form)
     const newPassword = String(values.get('new_password') ?? '')
@@ -96,10 +98,42 @@ export default function AccountPage({ security = false }: { security?: boolean }
     }
     setValidation('')
     setNotice('')
-    password.mutate({
+    const operation = lifetime.start()
+    if (!operation) return
+    const input = {
       current_password: String(values.get('current_password') ?? ''),
       new_password: newPassword,
-    })
+    }
+    setPasswordPending(true)
+    setPasswordError(null)
+    form.reset()
+    try {
+      const next = await changePassword(input, operation.session.csrf_token, operation.signal)
+      if (!operation.current()) return
+      if ('reauthentication_required' in next) {
+        operation.settle()
+        reauthenticate()
+        return
+      }
+      await cache.cancelQueries({ queryKey: sessionKey })
+      if (!operation.current()) return
+      operation.settle()
+      passwordSettling.current = true
+      cache.setQueryData(sessionKey, next)
+      passwordSettling.current = false
+      void cache.resetQueries({
+        predicate: (query) => query.queryKey[0] !== 'auth' && query.queryKey[0] !== 'site',
+      })
+      setNotice('account.passwordUpdated')
+    } catch (error) {
+      if (operation.current())
+        setPasswordError(error instanceof Error ? error : new Error('Password request failed'))
+    } finally {
+      if (operation.current()) {
+        operation.settle()
+        setPasswordPending(false)
+      }
+    }
   }
   if (!session) return null
   return (
@@ -233,8 +267,15 @@ export default function AccountPage({ security = false }: { security?: boolean }
         </>
       )}
       <Dialog
-        open={passwordOpen}
-        onOpenChange={setPasswordOpen}
+        open={passwordOpen && lifetime.fresh()}
+        onOpenChange={(open) => {
+          setPasswordOpen(open)
+          if (!open) {
+            passwordForm.current?.reset()
+            setPasswordError(null)
+            setValidation('')
+          }
+        }}
         busy={password.isPending}
         title={t('account.changePasswordTitle')}
         description={t('account.changePasswordDescription')}
@@ -242,7 +283,7 @@ export default function AccountPage({ security = false }: { security?: boolean }
         <form
           ref={passwordForm}
           aria-label={t('account.changePassword')}
-          onSubmit={submitPassword}
+          onSubmit={(event) => void submitPassword(event)}
           className="space-y-5"
         >
           <fieldset disabled={password.isPending} className="space-y-5">

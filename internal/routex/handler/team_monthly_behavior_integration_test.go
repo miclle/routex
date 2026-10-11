@@ -28,6 +28,22 @@ import (
 // probes produce three native completions and three independent quota denials.
 func testTeamMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
+	// Keep the persistent fault dormant until its exact publication interval.
+	var failPublication atomic.Bool
+	callback := "test_team_monthly_behavior_publication"
+	if err := db.Callback().Query().Before("gorm:query").Register(callback, func(tx *gorm.DB) {
+		if failPublication.Load() && tx.Statement.Table == "models" {
+			_ = tx.AddError(errors.New("controlled Team mode publication outage"))
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		failPublication.Store(false)
+		if err := db.Callback().Query().Remove(callback); err != nil {
+			t.Error(err)
+		}
+	}()
 	store, err := secretstore.New(bytes.Repeat([]byte{121}, 32))
 	if err != nil {
 		t.Fatal(err)
@@ -199,21 +215,7 @@ func testTeamMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 	if get(path, adminCookie).Stored.TokensMonthBehavior != "alert_only" {
 		t.Fatal("sparse rate edit reset mode")
 	}
-	var failPublication atomic.Bool
-	callback := "test_team_monthly_behavior_publication"
-	if err := db.Callback().Query().Before("gorm:query").Register(callback, func(tx *gorm.DB) {
-		if failPublication.Load() && tx.Statement.Table == "models" {
-			_ = tx.AddError(errors.New("controlled Team mode publication outage"))
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		failPublication.Store(false)
-		if err := db.Callback().Query().Remove(callback); err != nil {
-			t.Error(err)
-		}
-	}()
+	defer failPublication.Store(false)
 	before := get(path, adminCookie)
 	uncertain := `{"money_month_behavior":"alert_only","reason":"Immutable uncertain Team money mode"}`
 	failPublication.Store(true)

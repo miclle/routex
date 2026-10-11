@@ -21,7 +21,6 @@ export interface MFAEnrollment {
 }
 export type MFAProof =
   { code: string; recovery_code?: never } | { recovery_code: string; code?: never }
-export interface MFARecovery {
-  session: Session
-  recovery_codes: string[]
-}
+export type MFARecovery =
+  | { session: Session; recovery_codes: string[] }
+  | { session: null; recovery_codes: string[]; reauthentication_required: true }

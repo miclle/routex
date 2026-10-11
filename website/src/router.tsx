@@ -6,6 +6,12 @@ import { UncertainIntentProvider } from '@/context/uncertain-intents'
 
 const routes: RouteObject[] = [
   {
+    path: '/auth/reauthenticate',
+    lazy: async () => ({
+      Component: (await import('@/views/auth-enforcement/reauthentication')).default,
+    }),
+  },
+  {
     path: '/auth/google/complete',
     lazy: async () => ({ Component: (await import('@/views/google/complete')).default }),
   },
@@ -49,6 +55,13 @@ const routes: RouteObject[] = [
         lazy: async () => {
           const { default: Page } = await import('@/views/auth')
           return { Component: () => <Page mode="register" /> }
+        },
+      },
+      {
+        path: '/login/emergency',
+        lazy: async () => {
+          const { default: Page } = await import('@/views/auth')
+          return { Component: () => <Page mode="emergency" /> }
         },
       },
       {

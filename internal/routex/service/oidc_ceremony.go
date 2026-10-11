@@ -113,10 +113,15 @@ func oidcOriginalSession(tx *gorm.DB, c entity.OIDCCeremony) (entity.User, error
 	return u, nil
 }
 func (s *Service) startOIDC(ctx context.Context, a *Authentication, etag string, in OIDCIdentityInput, purpose string) (*OIDCStart, error) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	ctx, local, cancel := authenticationContexts(ctx)
 	defer cancel()
 	var passwordHash string
 	var e error
+	if purpose == "login" {
+		if e := authenticationLoginAllowed(s.authDB(local), "oidc"); e != nil {
+			return nil, e
+		}
+	}
 	if purpose != "login" {
 		if a == nil {
 			return nil, apperrors.ErrUnauthorized
@@ -124,7 +129,7 @@ func (s *Service) startOIDC(ctx context.Context, a *Authentication, etag string,
 		if !validMemberRoleDigest(etag) || !validRegistrationReason(in.Reason) {
 			return nil, apperrors.ErrBadRequest
 		}
-		passwordHash, e = s.mfaPassword(ctx, a.User.ID, in.Password)
+		passwordHash, e = s.mfaPassword(local, a.User.ID, in.Password)
 		if e != nil {
 			return nil, e
 		}
@@ -144,7 +149,7 @@ func (s *Service) startOIDC(ctx context.Context, a *Authentication, etag string,
 	var captured entity.OIDCProvider
 	var c entity.OIDCCeremony
 	rejected := false
-	e = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+	e = s.authDB(local).Transaction(func(tx *gorm.DB) error {
 		if e := lockGovernance(tx); e != nil {
 			return e
 		}
@@ -154,6 +159,11 @@ func (s *Service) startOIDC(ctx context.Context, a *Authentication, etag string,
 		}
 		now := time.Now().UTC().Truncate(time.Microsecond)
 		c = entity.OIDCCeremony{ID: cid, StateHash: secret.SHA256Hex(state), CookieHash: secret.SHA256Hex(cookie), Purpose: purpose, Status: "pending", ConfigRevision: p.ConfigRevision, PolicyRevision: p.PolicyRevision, CreatedAt: now, ExpiresAt: now.Add(oidcCeremonyLifetime)}
+		if purpose == "login" {
+			if e := authenticationLoginAllowed(tx, "oidc"); e != nil {
+				return e
+			}
+		}
 		if purpose != "verify" && (!p.Enabled || !oidcVerified(p)) {
 			return apperrors.ErrUnauthorized
 		}
@@ -211,16 +221,16 @@ func (s *Service) startOIDC(ctx context.Context, a *Authentication, etag string,
 	}
 	client, closeClient, e := s.oidcProtocol(ctx, captured)
 	if e != nil {
-		s.oidcFailCeremony(ctx, c.ID)
+		s.oidcFailCeremony(local, c.ID)
 		return nil, e
 	}
 	defer closeClient()
 	authURL, e := client.AuthorizationURL(ctx, oidcprotocol.Authorization{State: state, Nonce: oidcDerived(cookie, c.ID, "nonce"), PKCEVerifier: oidcDerived(cookie, c.ID, "pkce")})
 	if e != nil {
-		s.oidcFailCeremony(ctx, c.ID)
+		s.oidcFailCeremony(local, c.ID)
 		return nil, oidcUnavailable
 	}
-	e = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+	e = s.authDB(local).Transaction(func(tx *gorm.DB) error {
 		if e := lockGovernance(tx); e != nil {
 			return e
 		}
@@ -238,6 +248,11 @@ func (s *Service) startOIDC(ctx context.Context, a *Authentication, etag string,
 		if current.Status != "pending" || current.CookieHash != c.CookieHash || current.StateHash != c.StateHash {
 			return catalogConflict
 		}
+		if c.Purpose == "login" {
+			if e := authenticationLoginAllowed(tx, "oidc"); e != nil {
+				return e
+			}
+		}
 		if c.Purpose != "login" {
 			u, e := oidcOriginalSession(tx, c)
 			if e != nil {
@@ -247,10 +262,10 @@ func (s *Service) startOIDC(ctx context.Context, a *Authentication, etag string,
 				return registrationPolicyAuthority(tx, u.ID)
 			}
 		}
-		return ctx.Err()
+		return local.Err()
 	})
 	if e != nil {
-		s.oidcFailCeremony(ctx, c.ID)
+		s.oidcFailCeremony(local, c.ID)
 		return nil, oidcError(e)
 	}
 	return &OIDCStart{AuthorizationURL: authURL, Cookie: cookie, ExpiresAt: c.ExpiresAt}, nil
@@ -271,11 +286,11 @@ func (s *Service) ReceiveOIDCCallback(ctx context.Context, cookie, state, code, 
 	if !oidcBrowserValue(cookie) || !oidcBrowserValue(state) || (code == "") == (remoteError == "") || len(code) > 4096 {
 		return apperrors.ErrUnauthorized
 	}
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	ctx, local, cancel := authenticationContexts(ctx)
 	defer cancel()
 	var c entity.OIDCCeremony
 	var p entity.OIDCProvider
-	e := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+	e := s.authDB(local).Transaction(func(tx *gorm.DB) error {
 		if e := lockGovernance(tx); e != nil {
 			return e
 		}
@@ -293,6 +308,11 @@ func (s *Service) ReceiveOIDCCallback(ctx context.Context, cookie, state, code, 
 		}
 		if c.Status != "pending" || !oidcCeremonyCurrent(p, c, time.Now().UTC()) || responseIssuer != "" && responseIssuer != p.Issuer {
 			return apperrors.ErrUnauthorized
+		}
+		if c.Purpose == "login" {
+			if e := authenticationLoginAllowed(tx, "oidc"); e != nil {
+				return e
+			}
 		}
 		if c.Purpose != "login" {
 			u, e := oidcOriginalSession(tx, c)
@@ -319,24 +339,24 @@ func (s *Service) ReceiveOIDCCallback(ctx context.Context, cookie, state, code, 
 		return oidcError(e)
 	}
 	if remoteError != "" {
-		s.oidcFailCeremony(ctx, c.ID)
+		s.oidcFailCeremony(local, c.ID)
 		return apperrors.ErrUnauthorized
 	}
 	client, closeClient, e := s.oidcProtocol(ctx, p)
 	if e != nil {
-		s.oidcFailCeremony(ctx, c.ID)
+		s.oidcFailCeremony(local, c.ID)
 		return e
 	}
 	defer closeClient()
 	identity, e := client.Exchange(ctx, oidcprotocol.Callback{Code: code, State: state, ExpectedState: state, ExpectedNonce: oidcDerived(cookie, c.ID, "nonce"), PKCEVerifier: oidcDerived(cookie, c.ID, "pkce")})
 	if e != nil {
-		s.oidcFailCeremony(ctx, c.ID)
+		s.oidcFailCeremony(local, c.ID)
 		if errors.Is(e, oidcprotocol.ErrUnavailable) {
 			return oidcUnavailable
 		}
 		return apperrors.ErrUnauthorized
 	}
-	e = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+	e = s.authDB(local).Transaction(func(tx *gorm.DB) error {
 		if e := lockGovernance(tx); e != nil {
 			return e
 		}
@@ -346,6 +366,11 @@ func (s *Service) ReceiveOIDCCallback(ctx context.Context, cookie, state, code, 
 		}
 		if !oidcCeremonyCurrent(p, c, time.Now().UTC()) || identity.Issuer != p.Issuer {
 			return apperrors.ErrUnauthorized
+		}
+		if c.Purpose == "login" {
+			if e := authenticationLoginAllowed(tx, "oidc"); e != nil {
+				return e
+			}
 		}
 		if c.Purpose != "login" {
 			u, e := oidcOriginalSession(tx, c)
@@ -375,7 +400,7 @@ func (s *Service) ReceiveOIDCCallback(ctx context.Context, cookie, state, code, 
 		return tx.Save(&current).Error
 	})
 	if e != nil {
-		s.oidcFailCeremony(ctx, c.ID)
+		s.oidcFailCeremony(local, c.ID)
 	}
 	return oidcError(e)
 }

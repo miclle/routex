@@ -79,6 +79,57 @@ func testRuntimeInstallationLifecycle(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Install the observer before heartbeat or runtime workers. Only its exact
+	// immutable target is published when the ordering assertion is exercised.
+	callbackName := "test:installation-evidence-before-ready-metadata"
+	type readyMetadataTarget struct {
+		SnapshotID string
+		Original   entity.RuntimeInstallationObservation
+	}
+	var readyMetadataArmed atomic.Pointer[readyMetadataTarget]
+	var readyMetadataSeen atomic.Int64
+	var readyMetadataEvidence atomic.Bool
+	if err := privateDB.Callback().Create().Before("gorm:create").Register(callbackName, func(tx *gorm.DB) {
+		target := readyMetadataArmed.Load()
+		if target == nil {
+			return
+		}
+		if tx.Statement.Schema == nil || tx.Statement.Schema.Table != "runtime_publications" {
+			return
+		}
+		publication, ok := tx.Statement.Dest.(*entity.RuntimePublication)
+		if !ok || publication.Status != "ready" || publication.ErrorCode != "" || publication.SnapshotID != target.SnapshotID {
+			return
+		}
+		readyMetadataSeen.Add(1)
+		status := svc.RuntimeStatus()
+		if !status.Ready || status.ErrorCode != "" || status.SnapshotID != publication.SnapshotID || status.LastRefreshAt == nil || !status.LastRefreshAt.Equal(publication.CreatedAt) {
+			return
+		}
+		// The independent harness connection can see only committed evidence.
+		// Its existing parent context is retained; no timing sleep or retry is used.
+		var observed []entity.RuntimeInstallationObservation
+		if db.WithContext(tx.Statement.Context).Session(&gorm.Session{QueryFields: true}).Where("instance_id = ? AND snapshot_id = ?", target.Original.InstanceID, publication.SnapshotID).Order("id").Limit(3).Find(&observed).Error != nil || len(observed) != 2 {
+			return
+		}
+		oldUnchanged, newCommitted := false, false
+		for _, row := range observed {
+			if row.ID == target.Original.ID {
+				oldUnchanged = reflect.DeepEqual(row, target.Original)
+				continue
+			}
+			newCommitted = row.ID != "" && row.InstanceID == target.Original.InstanceID && row.InstanceStartedAt.Equal(target.Original.InstanceStartedAt) && row.SnapshotID == target.Original.SnapshotID && row.RoutesPublishedAt.Equal(target.Original.RoutesPublishedAt) && row.ProjectionVersion == target.Original.ProjectionVersion && row.SourceDigest != "" && row.SourceDigest != target.Original.SourceDigest && !row.FirstObservedAt.Before(publication.CreatedAt.UTC().Truncate(time.Microsecond))
+		}
+		readyMetadataEvidence.Store(oldUnchanged && newCommitted)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		readyMetadataArmed.Store(nil)
+		if err := privateDB.Callback().Create().Remove(callbackName); err != nil {
+			t.Error(err)
+		}
+	}()
 	router := fox.New()
 	New(svc).RegisterRoutes(router)
 	setup := identityRequest(router, "POST", "/api/v1/setup", `{"email":"installation@example.invalid","password":"installation-test-password","name":"Installation administrator"}`, nil, "")
@@ -134,9 +185,6 @@ func testRuntimeInstallationLifecycle(t *testing.T, db *gorm.DB) {
 	if db.WithContext(ctx).Take(&calendar, "id = ?", 1).Error != nil || !calendar.AccountingStarted {
 		t.Fatal("pre-existing accounting baseline absent")
 	}
-	if err := svc.StartSystemInstance(ctx, service.SystemInstanceMetadata{Name: "Installation", Hostname: "installation.invalid", Version: "test", GoVersion: "test", OS: "test", Arch: "test", StoragePath: t.TempDir()}); err != nil {
-		t.Fatal(err)
-	}
 	defer func() {
 		svc.StopRuntime()
 		if err := svc.StopCallRecorder(); err != nil {
@@ -148,6 +196,9 @@ func testRuntimeInstallationLifecycle(t *testing.T, db *gorm.DB) {
 			t.Error(err)
 		}
 	}()
+	if err := svc.StartSystemInstance(ctx, service.SystemInstanceMetadata{Name: "Installation", Hostname: "installation.invalid", Version: "test", GoVersion: "test", OS: "test", Arch: "test", StoragePath: t.TempDir()}); err != nil {
+		t.Fatal(err)
+	}
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -165,7 +216,7 @@ func testRuntimeInstallationLifecycle(t *testing.T, db *gorm.DB) {
 		return decodeCatalogResponse[service.RuntimeInstallationPage](t, out, 200)
 	}
 	first := page()
-	if first.Scope != "single_process_gateway_admission" || len(first.Items) != 1 || first.Items[0].ProjectionVersion != 1 || first.Items[0].CurrentServingInstallationMatches == nil || !*first.Items[0].CurrentServingInstallationMatches {
+	if first.Scope != "single_process_gateway_admission" || len(first.Items) != 1 || first.Items[0].ProjectionVersion != 2 || first.Items[0].CurrentServingInstallationMatches == nil || !*first.Items[0].CurrentServingInstallationMatches {
 		t.Fatal("actual builder installation absent")
 	}
 	var public map[string]any
@@ -317,53 +368,11 @@ func testRuntimeInstallationLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	// Ready operational metadata must not be admitted ahead of the committed
 	// combined evidence for this exact owned process and retained route snapshot.
-	callbackName := "test:installation-evidence-before-ready-metadata"
-	var readyMetadataSeen atomic.Int64
-	var readyMetadataEvidence atomic.Bool
-	if err := privateDB.Callback().Create().Before("gorm:create").Register(callbackName, func(tx *gorm.DB) {
-		if tx.Statement.Schema == nil || tx.Statement.Schema.Table != "runtime_publications" {
-			return
-		}
-		publication, ok := tx.Statement.Dest.(*entity.RuntimePublication)
-		if !ok || publication.Status != "ready" || publication.ErrorCode != "" || publication.SnapshotID != first.Items[0].SnapshotID {
-			return
-		}
-		readyMetadataSeen.Add(1)
-		status := svc.RuntimeStatus()
-		if !status.Ready || status.ErrorCode != "" || status.SnapshotID != publication.SnapshotID || status.LastRefreshAt == nil || !status.LastRefreshAt.Equal(publication.CreatedAt) {
-			return
-		}
-		// The independent harness connection can see only committed evidence.
-		// Its existing parent context is retained; no timing sleep or retry is used.
-		var observed []entity.RuntimeInstallationObservation
-		if db.WithContext(tx.Statement.Context).Session(&gorm.Session{QueryFields: true}).Where("instance_id = ? AND snapshot_id = ?", original[0].InstanceID, publication.SnapshotID).Order("id").Limit(3).Find(&observed).Error != nil || len(observed) != 2 {
-			return
-		}
-		oldUnchanged, newCommitted := false, false
-		for _, row := range observed {
-			if row.ID == original[0].ID {
-				oldUnchanged = reflect.DeepEqual(row, original[0])
-				continue
-			}
-			newCommitted = row.ID != "" && row.InstanceID == original[0].InstanceID && row.InstanceStartedAt.Equal(original[0].InstanceStartedAt) && row.SnapshotID == original[0].SnapshotID && row.RoutesPublishedAt.Equal(original[0].RoutesPublishedAt) && row.ProjectionVersion == original[0].ProjectionVersion && row.SourceDigest != "" && row.SourceDigest != original[0].SourceDigest && !row.FirstObservedAt.Before(publication.CreatedAt.UTC().Truncate(time.Microsecond))
-		}
-		readyMetadataEvidence.Store(oldUnchanged && newCommitted)
-	}); err != nil {
-		t.Fatal(err)
-	}
-	var removeOrderingOnce sync.Once
-	removeOrderingCallback := func() {
-		removeOrderingOnce.Do(func() {
-			if err := privateDB.Callback().Create().Remove(callbackName); err != nil {
-				t.Error(err)
-			}
-		})
-	}
-	defer removeOrderingCallback()
+	readyMetadataArmed.Store(&readyMetadataTarget{SnapshotID: first.Items[0].SnapshotID, Original: original[0]})
 	if err := svc.RefreshRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	removeOrderingCallback()
+	readyMetadataArmed.Store(nil)
 	if readyMetadataSeen.Load() != 1 || !readyMetadataEvidence.Load() {
 		t.Fatal("ready operational metadata preceded committed exact installation evidence")
 	}

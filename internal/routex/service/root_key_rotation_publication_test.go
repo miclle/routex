@@ -7,6 +7,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -132,6 +133,8 @@ func rootPublicationService(t *testing.T) (*Service, *rootPublicationFixture) {
 			*dst = []entity.Egress{f.egress}
 		case *[]map[string]any:
 			*dst = []map[string]any{{"id": f.egress.ID, "auth_ciphertext": f.egress.AuthCiphertext, "secret_generation": f.egress.SecretGeneration}}
+		case *entity.GovernanceSetting:
+			*dst = entity.GovernanceSetting{ID: 1, AuthenticationPolicyRevision: strings.Repeat("0", 64)}
 		case *entity.QuotaSetting:
 			*dst = entity.QuotaSetting{ID: 1, TimeZone: "UTC"}
 		case *entity.PricingSetting:

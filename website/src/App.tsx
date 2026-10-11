@@ -1,3 +1,4 @@
+import { ReauthenticationProvider } from '@/views/auth-enforcement/reauthentication-provider'
 import { SitePresentation } from '@/components/app/SiteBranding'
 import { useSite } from '@/hooks/use-site'
 import { createBrowserRouter } from 'react-router'
@@ -13,7 +14,9 @@ function App() {
   return (
     <AppContext.Provider value={{ appName: site.data?.name || 'RouteX' }}>
       <SitePresentation />
-      <RouterProvider router={router} />
+      <ReauthenticationProvider router={router}>
+        <RouterProvider router={router} />
+      </ReauthenticationProvider>
     </AppContext.Provider>
   )
 }

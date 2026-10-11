@@ -63,6 +63,18 @@ beforeEach(async () => {
   }
   client.defaults.adapter = async (config) => {
     requests.push(config)
+    if (config.url === '/auth/policy')
+      return {
+        config: config,
+        status: 200,
+        statusText: '',
+        headers: new AxiosHeaders({
+          'Cache-Control': 'private, no-store',
+          'X-Content-Type-Options': 'nosniff',
+        }),
+        data: { enforced: false, password_login_enabled: true, emergency_entry_enabled: false },
+      }
+
     const response = {
       config,
       status: failures[config.url!] || 200,
@@ -411,6 +423,32 @@ describe('MFA authentication boundaries', () => {
     expect(document.querySelector('[name="mfa_password"]')).toBeNull()
     assertNoSecretCache()
   })
+  it('checks enrollment expiry at submit time before its timer fires and sends no enable proof', async () => {
+    await mount()
+    await enroll()
+    await fill('mfa_code', '123456')
+    expect((document.querySelector('[aria-label="Setup secret"]') as HTMLInputElement).value).toBe(
+      secret,
+    )
+    // Advance only the event clock; the real enrollment timer has not fired.
+    const submittedAt = Date.now() + expires + 1
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(submittedAt)
+    try {
+      await click('Confirm enable')
+    } finally {
+      clock.mockRestore()
+    }
+    await until(() => expect(host.textContent).toContain('This verification has expired.'))
+    expect(requests.filter((request) => request.url === '/account/mfa/enable')).toHaveLength(0)
+    expect(document.querySelector('[aria-label="Setup secret"]')).toBeNull()
+    expect(document.querySelector('svg[aria-label="Authenticator enrollment QR code"]')).toBeNull()
+    expect(document.querySelector('[name="mfa_password"]')).toBeNull()
+    expect(document.querySelector('[name="mfa_code"]')).toBeNull()
+    expect(session.csrf_token).toBe('csrf-old')
+    expect(cache.getQueryData(sessionKey)).toEqual(session)
+    expect(document.body.textContent).not.toContain(recovery)
+    assertNoSecretCache()
+  })
   it('clears expired enrollment and reports unavailable key storage without creating a secret', async () => {
     await mount()
     expires = -1
@@ -447,3 +485,55 @@ describe('MFA authentication boundaries', () => {
     assertNoSecretCache()
   })
 })
+
+function retainedMFAForm() {
+  const node = document.querySelector<HTMLFormElement>(
+    'form[aria-label="Regenerate recovery codes"]',
+  )!
+  expect(node).toBeTruthy()
+  const key = Object.getOwnPropertyNames(node).find((name) => name.startsWith('__reactProps$'))!
+  expect(key).toBeDefined()
+  const callback = (
+    node as unknown as Record<string, { onSubmit: (event: { preventDefault: () => void }) => void }>
+  )[key].onSubmit
+  expect(callback).toBeTypeOf('function')
+  return () => callback({ preventDefault: () => undefined })
+}
+it.each(['cancel', 'reopen'] as const)(
+  'refuses retained MFA proof submission after %s without restoring old credentials',
+  async (mode) => {
+    await mount()
+    status.enabled = true
+    status.recovery_codes_remaining = 10
+    await act(async () => cache.invalidateQueries({ queryKey: ['account', 'mfa'] }))
+    await until(() => expect(button('Regenerate recovery codes')).toBeDefined())
+    await click('Regenerate recovery codes')
+    await fill('mfa_password', password)
+    await fill('mfa_code', '123456')
+    const prior = retainedMFAForm()
+    await click('Cancel')
+    await act(async () => prior())
+    expect(
+      requests.filter((request) => request.url === '/account/mfa/recovery-codes'),
+    ).toHaveLength(0)
+    expect(document.querySelector('[name="mfa_password"]')).toBeNull()
+    assertNoSecretCache()
+    if (mode === 'reopen') {
+      await click('Regenerate recovery codes')
+      await fill('mfa_password', 'new current password')
+      await fill('mfa_code', '654321')
+      await act(async () => prior())
+      expect(
+        requests.filter((request) => request.url === '/account/mfa/recovery-codes'),
+      ).toHaveLength(0)
+      await click('Replace recovery codes')
+      await until(() => expect(document.body.textContent).toContain('Save your recovery codes'))
+      const sent = requests.filter((request) => request.url === '/account/mfa/recovery-codes')
+      expect(sent).toHaveLength(1)
+      expect(JSON.parse(sent[0].data)).toEqual({
+        current_password: 'new current password',
+        code: '654321',
+      })
+    }
+  },
+)

@@ -15,28 +15,43 @@ import (
 // TeamSessionIdentity is an exact request-local Team invocation subject. Its
 // private proofs must never be projected into a response or durable call fact.
 type TeamSessionIdentity struct {
-	SessionID               string
-	UserID                  string
-	TeamID                  string
-	TeamMembershipID        string
-	ModelIDs                []string
-	tokenHash               string
-	csrfProofHash           string
-	expiresAt               time.Time
-	teamCreatedAt           time.Time
-	oidcPolicyRevision      string
-	oidcBindingKey          string
-	oauthPolicyRevision     string
-	oauthBindingKey         string
-	ldapPolicyRevision      string
-	ldapBindingKey          string
-	samlPolicyRevision      string
-	samlBindingKey          string
-	namedIdentityPolicyKey  string
-	namedIdentityBindingKey string
+	primaryMethod              string
+	createdAt                  time.Time
+	emergencyPolicyRevision    string
+	emergencyUserCreatedAt     *time.Time
+	emergencyMFAGeneration     string
+	emergencyPasswordDigest    string
+	emergencyFactorCompletedAt *time.Time
+	SessionID                  string
+	UserID                     string
+	TeamID                     string
+	TeamMembershipID           string
+	ModelIDs                   []string
+	tokenHash                  string
+	csrfProofHash              string
+	expiresAt                  time.Time
+	teamCreatedAt              time.Time
+	oidcPolicyRevision         string
+	oidcBindingKey             string
+	oauthPolicyRevision        string
+	oauthBindingKey            string
+	ldapPolicyRevision         string
+	ldapBindingKey             string
+	samlPolicyRevision         string
+	samlBindingKey             string
+	namedIdentityPolicyKey     string
+	namedIdentityBindingKey    string
 }
 
 type runtimeTeamSession struct {
+	PrimaryMethod              string
+	CreatedAt                  time.Time
+	EmergencyPolicyRevision    string
+	EmergencyUserCreatedAt     *time.Time
+	EmergencyMFAGeneration     string
+	EmergencyPasswordDigest    string
+	EmergencyFactorCompletedAt *time.Time
+
 	ID, UserID, TokenHash   string
 	ExpiresAt               time.Time
 	OIDCPolicyRevision      string
@@ -58,6 +73,9 @@ type runtimeTeam struct {
 }
 
 type teamSessionRuntimeData struct {
+	AuthenticationPolicy   entity.GovernanceSetting
+	EmergencyUsers         map[string]entity.User
+	EmergencyMFA           map[string]entity.UserMFA
 	Sessions               []entity.Session
 	Teams                  []entity.Team
 	Memberships            []entity.TeamMembership
@@ -79,7 +97,10 @@ var teamSessionDigest = regexp.MustCompile(`^[a-f0-9]{64}$`)
 
 func loadTeamSessionRuntimeData(tx *gorm.DB) (*teamSessionRuntimeData, error) {
 	data := &teamSessionRuntimeData{}
-	if err := tx.Select("id", "user_id", "token_hash", "expires_at", "primary_method", "oidc_binding_id", "oidc_binding_created_at", "oidc_config_revision", "oidc_policy_revision", "oidc_user_created_at", "oauth_binding_id", "oauth_binding_created_at", "oauth_config_revision", "oauth_policy_revision", "oauth_user_created_at", "ldap_binding_id", "ldap_binding_created_at", "ldap_config_revision", "ldap_policy_revision", "ldap_user_created_at", "saml_binding_id", "saml_binding_created_at", "saml_config_revision", "saml_policy_revision", "saml_user_created_at", "named_identity_provider_id", "named_identity_profile_id", "named_identity_binding_id", "named_identity_binding_created_at", "named_identity_config_revision", "named_identity_policy_revision", "named_identity_user_created_at").Where("expires_at > ?", time.Now().UTC()).Find(&data.Sessions).Error; err != nil {
+	if e := loadAuthenticationRuntimeData(tx, data); e != nil {
+		return nil, e
+	}
+	if err := tx.Select("created_at", "emergency_policy_revision", "emergency_user_created_at", "emergency_mfa_generation", "emergency_password_digest", "emergency_factor_completed_at", "id", "user_id", "token_hash", "expires_at", "primary_method", "oidc_binding_id", "oidc_binding_created_at", "oidc_config_revision", "oidc_policy_revision", "oidc_user_created_at", "oauth_binding_id", "oauth_binding_created_at", "oauth_config_revision", "oauth_policy_revision", "oauth_user_created_at", "ldap_binding_id", "ldap_binding_created_at", "ldap_config_revision", "ldap_policy_revision", "ldap_user_created_at", "saml_binding_id", "saml_binding_created_at", "saml_config_revision", "saml_policy_revision", "saml_user_created_at", "named_identity_provider_id", "named_identity_profile_id", "named_identity_binding_id", "named_identity_binding_created_at", "named_identity_config_revision", "named_identity_policy_revision", "named_identity_user_created_at").Where("expires_at > ?", time.Now().UTC()).Find(&data.Sessions).Error; err != nil {
 		return nil, err
 	}
 	if err := loadOIDCSessionRuntimeData(tx, data); err != nil {
@@ -109,6 +130,7 @@ func addTeamSessionRuntimeAuthorization(auth *runtimeAuthorization, data *teamSe
 	if data == nil {
 		return
 	}
+	auth.AuthenticationPolicy = runtimePolicy(data.AuthenticationPolicy)
 	enabledUsers := map[string]bool{}
 	for _, user := range users {
 		if safeTeamSessionID(user.ID) && auth.UserAdmissions[user.ID].Eligible {
@@ -140,11 +162,14 @@ func addTeamSessionRuntimeAuthorization(auth *runtimeAuthorization, data *teamSe
 		namedBindings[b.ID] = b
 	}
 	for _, session := range data.Sessions {
-		if !primaryRuntimeSessionWithNamedIdentity(session, data.OIDCProvider, bindings, data.OAuthProvider, oauthBindings, data.LDAPProvider, ldapBindings, data.SAMLProvider, samlBindings, data.NamedIdentityProviders[session.PrimaryMethod], namedBindings, usersByID) {
+		if !authenticationRuntimeSession(data, session, time.Now().UTC()) {
+			continue
+		}
+		if session.PrimaryMethod != "emergency" && !primaryRuntimeSessionWithNamedIdentity(session, data.OIDCProvider, bindings, data.OAuthProvider, oauthBindings, data.LDAPProvider, ldapBindings, data.SAMLProvider, samlBindings, data.NamedIdentityProviders[session.PrimaryMethod], namedBindings, usersByID) {
 			continue
 		}
 		if safeTeamSessionID(session.ID) && enabledUsers[session.UserID] && teamSessionDigest.MatchString(session.TokenHash) {
-			auth.TeamSessions[session.TokenHash] = runtimeTeamSession{ID: session.ID, UserID: session.UserID, TokenHash: session.TokenHash, ExpiresAt: session.ExpiresAt, OIDCPolicyRevision: session.OIDCPolicyRevision, OIDCBindingKey: oidcRuntimeBindingKey(session.OIDCBindingID, session.OIDCBindingCreatedAt), OAuthPolicyRevision: session.OAuthPolicyRevision, OAuthBindingKey: oauthRuntimeBindingKey(session.OAuthBindingID, session.OAuthBindingCreatedAt), LDAPPolicyRevision: session.LDAPPolicyRevision, LDAPBindingKey: ldapRuntimeBindingKey(session.LDAPBindingID, session.LDAPBindingCreatedAt), SAMLPolicyRevision: session.SAMLPolicyRevision, SAMLBindingKey: samlRuntimeBindingKey(session.SAMLBindingID, session.SAMLBindingCreatedAt), NamedIdentityPolicyKey: namedIdentityRuntimePolicyKeyFor(session.PrimaryMethod, session.NamedIdentityPolicyRevision), NamedIdentityBindingKey: namedIdentityRuntimeBindingKeyFor(session.PrimaryMethod, session.NamedIdentityBindingID, session.NamedIdentityBindingCreatedAt)}
+			auth.TeamSessions[session.TokenHash] = runtimeTeamSession{PrimaryMethod: session.PrimaryMethod, CreatedAt: session.CreatedAt, EmergencyPolicyRevision: session.EmergencyPolicyRevision, EmergencyUserCreatedAt: session.EmergencyUserCreatedAt, EmergencyMFAGeneration: session.EmergencyMFAGeneration, EmergencyPasswordDigest: session.EmergencyPasswordDigest, EmergencyFactorCompletedAt: session.EmergencyFactorCompletedAt, ID: session.ID, UserID: session.UserID, TokenHash: session.TokenHash, ExpiresAt: session.ExpiresAt, OIDCPolicyRevision: session.OIDCPolicyRevision, OIDCBindingKey: oidcRuntimeBindingKey(session.OIDCBindingID, session.OIDCBindingCreatedAt), OAuthPolicyRevision: session.OAuthPolicyRevision, OAuthBindingKey: oauthRuntimeBindingKey(session.OAuthBindingID, session.OAuthBindingCreatedAt), LDAPPolicyRevision: session.LDAPPolicyRevision, LDAPBindingKey: ldapRuntimeBindingKey(session.LDAPBindingID, session.LDAPBindingCreatedAt), SAMLPolicyRevision: session.SAMLPolicyRevision, SAMLBindingKey: samlRuntimeBindingKey(session.SAMLBindingID, session.SAMLBindingCreatedAt), NamedIdentityPolicyKey: namedIdentityRuntimePolicyKeyFor(session.PrimaryMethod, session.NamedIdentityPolicyRevision), NamedIdentityBindingKey: namedIdentityRuntimeBindingKeyFor(session.PrimaryMethod, session.NamedIdentityBindingID, session.NamedIdentityBindingCreatedAt)}
 		}
 	}
 	auth.TeamCreationGrants = map[string]map[string]runtimeTeamCreationGrant{}
@@ -210,7 +235,7 @@ func (s *Service) RuntimeAuthenticateTeamSession(ctx context.Context, rawCookie,
 	}
 	hash := secret.SHA256Hex(rawCookie)
 	session, exists := auth.TeamSessions[hash]
-	if !exists || session.TokenHash != hash || !s.gatewayAttemptClock().Before(session.ExpiresAt) || runtimeDenied(&s.runtime.deniedSessions, session.ID) || runtimeDenied(&s.runtime.deniedSessionUsers, session.UserID) || runtimeDenied(&s.runtime.deniedUsers, session.UserID) || (s.runtimeOIDCSessionDenied(session) || s.runtimeOAuthSessionDenied(session) || s.runtimeLDAPSessionDenied(session) || s.runtimeSAMLSessionDenied(session) || s.runtimeNamedIdentitySessionDenied(session)) {
+	if !exists || s.runtimeAuthenticationPolicyDenied(auth, session) || session.TokenHash != hash || !s.gatewayAttemptClock().Before(session.ExpiresAt) || runtimeDenied(&s.runtime.deniedSessions, session.ID) || runtimeDenied(&s.runtime.deniedSessionUsers, session.UserID) || runtimeDenied(&s.runtime.deniedUsers, session.UserID) || (s.runtimeOIDCSessionDenied(session) || s.runtimeOAuthSessionDenied(session) || s.runtimeLDAPSessionDenied(session) || s.runtimeSAMLSessionDenied(session) || s.runtimeNamedIdentitySessionDenied(session)) {
 		return nil, teamSessionInvalid()
 	}
 	team, exists := auth.Teams[teamID]
@@ -224,7 +249,7 @@ func (s *Service) RuntimeAuthenticateTeamSession(ctx context.Context, rawCookie,
 		}
 	}
 	sort.Strings(models)
-	return &TeamSessionIdentity{SessionID: session.ID, UserID: session.UserID, TeamID: teamID, TeamMembershipID: team.Members[session.UserID], ModelIDs: models, tokenHash: hash, csrfProofHash: secret.SHA256Hex(secret.SHA256Hex("routex-csrf:" + rawCookie)), expiresAt: session.ExpiresAt, teamCreatedAt: team.CreatedAt, oidcPolicyRevision: session.OIDCPolicyRevision, oidcBindingKey: session.OIDCBindingKey, oauthPolicyRevision: session.OAuthPolicyRevision, oauthBindingKey: session.OAuthBindingKey, ldapPolicyRevision: session.LDAPPolicyRevision, ldapBindingKey: session.LDAPBindingKey, samlPolicyRevision: session.SAMLPolicyRevision, samlBindingKey: session.SAMLBindingKey, namedIdentityPolicyKey: session.NamedIdentityPolicyKey, namedIdentityBindingKey: session.NamedIdentityBindingKey}, nil
+	return &TeamSessionIdentity{primaryMethod: session.PrimaryMethod, createdAt: session.CreatedAt, emergencyPolicyRevision: session.EmergencyPolicyRevision, emergencyUserCreatedAt: session.EmergencyUserCreatedAt, emergencyMFAGeneration: session.EmergencyMFAGeneration, emergencyPasswordDigest: session.EmergencyPasswordDigest, emergencyFactorCompletedAt: session.EmergencyFactorCompletedAt, SessionID: session.ID, UserID: session.UserID, TeamID: teamID, TeamMembershipID: team.Members[session.UserID], ModelIDs: models, tokenHash: hash, csrfProofHash: secret.SHA256Hex(secret.SHA256Hex("routex-csrf:" + rawCookie)), expiresAt: session.ExpiresAt, teamCreatedAt: team.CreatedAt, oidcPolicyRevision: session.OIDCPolicyRevision, oidcBindingKey: session.OIDCBindingKey, oauthPolicyRevision: session.OAuthPolicyRevision, oauthBindingKey: session.OAuthBindingKey, ldapPolicyRevision: session.LDAPPolicyRevision, ldapBindingKey: session.LDAPBindingKey, samlPolicyRevision: session.SAMLPolicyRevision, samlBindingKey: session.SAMLBindingKey, namedIdentityPolicyKey: session.NamedIdentityPolicyKey, namedIdentityBindingKey: session.NamedIdentityBindingKey}, nil
 }
 
 // ValidateTeamSessionCSRF preserves the existing cookie-derived CSRF contract.
@@ -247,7 +272,7 @@ func (s *Service) ReauthorizeTeamSession(ctx context.Context, identity *TeamSess
 		return err
 	}
 	session, exists := auth.TeamSessions[identity.tokenHash]
-	if !exists || session.ID != identity.SessionID || session.UserID != identity.UserID || session.TokenHash != identity.tokenHash || session.OIDCPolicyRevision != identity.oidcPolicyRevision || session.OIDCBindingKey != identity.oidcBindingKey || session.OAuthPolicyRevision != identity.oauthPolicyRevision || session.OAuthBindingKey != identity.oauthBindingKey || session.LDAPPolicyRevision != identity.ldapPolicyRevision || session.LDAPBindingKey != identity.ldapBindingKey || session.SAMLPolicyRevision != identity.samlPolicyRevision || session.SAMLBindingKey != identity.samlBindingKey || session.NamedIdentityPolicyKey != identity.namedIdentityPolicyKey || session.NamedIdentityBindingKey != identity.namedIdentityBindingKey || !session.ExpiresAt.Equal(identity.expiresAt) || !s.gatewayAttemptClock().Before(session.ExpiresAt) || runtimeDenied(&s.runtime.deniedSessions, session.ID) || runtimeDenied(&s.runtime.deniedSessionUsers, session.UserID) || runtimeDenied(&s.runtime.deniedUsers, session.UserID) || (s.runtimeOIDCSessionDenied(session) || s.runtimeOAuthSessionDenied(session) || s.runtimeLDAPSessionDenied(session) || s.runtimeSAMLSessionDenied(session) || s.runtimeNamedIdentitySessionDenied(session)) {
+	if !exists || s.runtimeAuthenticationPolicyDenied(auth, session) || session.PrimaryMethod != identity.primaryMethod || !session.CreatedAt.Equal(identity.createdAt) || session.EmergencyPolicyRevision != identity.emergencyPolicyRevision || !authenticationInstantEqual(session.EmergencyUserCreatedAt, identity.emergencyUserCreatedAt) || session.EmergencyMFAGeneration != identity.emergencyMFAGeneration || session.EmergencyPasswordDigest != identity.emergencyPasswordDigest || !authenticationInstantEqual(session.EmergencyFactorCompletedAt, identity.emergencyFactorCompletedAt) || session.ID != identity.SessionID || session.UserID != identity.UserID || session.TokenHash != identity.tokenHash || session.OIDCPolicyRevision != identity.oidcPolicyRevision || session.OIDCBindingKey != identity.oidcBindingKey || session.OAuthPolicyRevision != identity.oauthPolicyRevision || session.OAuthBindingKey != identity.oauthBindingKey || session.LDAPPolicyRevision != identity.ldapPolicyRevision || session.LDAPBindingKey != identity.ldapBindingKey || session.SAMLPolicyRevision != identity.samlPolicyRevision || session.SAMLBindingKey != identity.samlBindingKey || session.NamedIdentityPolicyKey != identity.namedIdentityPolicyKey || session.NamedIdentityBindingKey != identity.namedIdentityBindingKey || !session.ExpiresAt.Equal(identity.expiresAt) || !s.gatewayAttemptClock().Before(session.ExpiresAt) || runtimeDenied(&s.runtime.deniedSessions, session.ID) || runtimeDenied(&s.runtime.deniedSessionUsers, session.UserID) || runtimeDenied(&s.runtime.deniedUsers, session.UserID) || (s.runtimeOIDCSessionDenied(session) || s.runtimeOAuthSessionDenied(session) || s.runtimeLDAPSessionDenied(session) || s.runtimeSAMLSessionDenied(session) || s.runtimeNamedIdentitySessionDenied(session)) {
 		return teamSessionInvalid()
 	}
 	team, exists := auth.Teams[identity.TeamID]

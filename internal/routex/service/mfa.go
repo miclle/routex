@@ -39,8 +39,9 @@ type MFALoginChallenge struct {
 	Methods        []string  `json:"methods"`
 }
 type MFAMutation struct {
-	Authentication *Authentication
-	RecoveryCodes  []string
+	ReauthenticationRequired bool
+	Authentication           *Authentication
+	RecoveryCodes            []string
 }
 type MFAProof struct{ Code, RecoveryCode string }
 
@@ -89,7 +90,20 @@ func mfaSession(tx *gorm.DB, auth *Authentication, now time.Time) error {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return apperrors.ErrUnauthorized
 	}
-	return err
+	if err != nil {
+		return err
+	}
+	if session.UserID != auth.User.ID || !authenticationSessionEqual(session, auth.Session) {
+		return apperrors.ErrUnauthorized
+	}
+	user, e := registrationAdmittedUser(tx, auth.User.ID, false)
+	if e != nil {
+		return e
+	}
+	if !user.CreatedAt.Equal(auth.User.CreatedAt) {
+		return apperrors.ErrUnauthorized
+	}
+	return primaryValidateSession(tx, session)
 }
 func (s *Service) mfaPassword(ctx context.Context, userID, password string) (string, error) {
 	if !validPassword(password) {
@@ -101,6 +115,9 @@ func (s *Service) mfaPassword(ctx context.Context, userID, password string) (str
 	}
 	if bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)) != nil {
 		return "", apperrors.ErrUnauthorized
+	}
+	if ctx.Err() != nil {
+		return "", authenticationError(ctx.Err())
 	}
 	return user.PasswordHash, nil
 }
@@ -125,6 +142,9 @@ func (s *Service) AccountMFA(ctx context.Context, userID string) (*MFAStatus, er
 	return result, keyServiceError(err)
 }
 func (s *Service) BeginMFAEnrollment(ctx context.Context, auth *Authentication, password string) (*MFAEnrollment, error) {
+	_, local, cancel := authenticationContexts(ctx)
+	defer cancel()
+	ctx = local
 	if auth == nil {
 		return nil, apperrors.ErrUnauthorized
 	}
@@ -137,6 +157,9 @@ func (s *Service) BeginMFAEnrollment(ctx context.Context, auth *Authentication, 
 	}
 	result := &MFAEnrollment{}
 	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if e := lockGovernance(tx); e != nil {
+			return e
+		}
 		user, err := mfaActiveUser(tx, auth.User.ID)
 		if err != nil {
 			return err
@@ -197,10 +220,16 @@ func (s *Service) BeginMFAEnrollment(ctx context.Context, auth *Authentication, 
 	return result, keyServiceError(err)
 }
 func (s *Service) CancelMFAEnrollment(ctx context.Context, auth *Authentication) error {
+	_, local, cancel := authenticationContexts(ctx)
+	defer cancel()
+	ctx = local
 	if auth == nil {
 		return apperrors.ErrUnauthorized
 	}
 	return keyServiceError(s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if e := lockGovernance(tx); e != nil {
+			return e
+		}
 		if _, err := mfaActiveUser(tx, auth.User.ID); err != nil {
 			return err
 		}

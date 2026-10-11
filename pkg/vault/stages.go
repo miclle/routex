@@ -182,8 +182,12 @@ func (c *Client) CleanupOwned(ctx context.Context, reader, writer string, plan P
 }
 
 func (c *Client) verifyAndClean(ctx context.Context, reader, writer string, plan ProbePlan) (int64, Observation, Cleanup, error) {
+	return c.verifyAndCleanWithWriter(ctx, reader, writer, plan, c)
+}
+
+func (c *Client) verifyAndCleanWithWriter(ctx context.Context, reader, writer string, plan ProbePlan, writerClient *Client) (int64, Observation, Cleanup, error) {
 	cleanup := Cleanup{State: "not_attempted"}
-	if !c.validPlan(plan) {
+	if c == nil || writerClient == nil || !c.validPlan(plan) || !writerClient.validPlan(plan) {
 		return 0, Observation{}, cleanup, &Failure{Stage: "prepare", Code: "invalid_plan"}
 	}
 	if !validToken(reader) || !validToken(writer) || reader == writer {
@@ -201,7 +205,7 @@ func (c *Client) verifyAndClean(ctx context.Context, reader, writer string, plan
 		return 0, observation, cleanup, observation.Failure
 	}
 	observation.Succeeded = true
-	raw, cleanup.Observation = c.request(ctx, "cleanup", http.MethodPut, "destroy", c.probePath(plan), "", writer, []byte(`{"versions":[1]}`))
+	raw, cleanup.Observation = writerClient.request(ctx, "cleanup", http.MethodPut, "destroy", c.probePath(plan), "", writer, []byte(`{"versions":[1]}`))
 	clear(raw)
 	cleanup.State = "acknowledged"
 	if failure := cleanup.Observation.Failure; failure != nil {
@@ -256,4 +260,27 @@ func matchesPlan(raw []byte, field, digest string) bool {
 	hash := sha256.Sum256([]byte(value))
 	expected, err := hex.DecodeString(digest)
 	return err == nil && subtle.ConstantTimeCompare(hash[:], expected) == 1
+}
+
+// ReadAndCleanupWithWriter keeps each saved identity on its own TLS transport.
+// Both clients must match the exact retained descriptor, namespace and plan.
+// It has the same two-request/20-second bound as ReadAndCleanup.
+func (c *Client) ReadAndCleanupWithWriter(ctx context.Context, reader, writer string, plan ProbePlan, writerClient *Client) (ReadResult, error) {
+	version, observation, cleanup, err := c.verifyAndCleanWithWriter(ctx, reader, writer, plan, writerClient)
+	id := ""
+	if c != nil && c.validPlan(plan) {
+		id = plan.ProbeID
+	}
+	return ReadResult{ProbeID: id, Version: version, Read: observation, Cleanup: cleanup}, err
+}
+
+// CleanupOwnedWithWriter retains the same fresh ownership read and owned-v1
+// destruction contract; changing transports never authorizes a different plan.
+func (c *Client) CleanupOwnedWithWriter(ctx context.Context, reader, writer string, plan ProbePlan, writerClient *Client) (CleanupResult, error) {
+	version, observation, cleanup, err := c.verifyAndCleanWithWriter(ctx, reader, writer, plan, writerClient)
+	id := ""
+	if c != nil && c.validPlan(plan) {
+		id = plan.ProbeID
+	}
+	return CleanupResult{ProbeID: id, Version: version, Ownership: observation, Cleanup: cleanup}, err
 }

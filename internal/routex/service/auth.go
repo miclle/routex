@@ -111,6 +111,9 @@ func (s *Service) BeginLogin(ctx context.Context, email, password string) (*Auth
 }
 
 func (s *Service) beginLogin(ctx context.Context, email, password string, challengeAllowed bool) (*Authentication, *MFALoginChallenge, error) {
+	_, local, cancel := authenticationContexts(ctx)
+	defer cancel()
+	ctx = local
 	email, valid := normalizeEmail(email)
 	if !valid || !validPassword(password) {
 		return nil, nil, apperrors.ErrUnauthorized
@@ -130,16 +133,25 @@ func (s *Service) beginLogin(ctx context.Context, email, password string, challe
 	if err != nil || passwordErr != nil || user.Disabled {
 		return nil, nil, apperrors.ErrUnauthorized
 	}
+	if ctx.Err() != nil {
+		return nil, nil, authenticationError(ctx.Err())
+	}
 	var auth *Authentication
 	var challenge *MFALoginChallenge
 	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockGovernance(tx); err != nil {
+			return err
+		}
+		if err := authenticationLoginAllowed(tx, ""); err != nil {
+			return err
+		}
 		var current entity.User
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&current, "id = ?", user.ID).Error; err != nil {
 			return err
 		}
 		// Password changes and account deactivation serialize with login, so a
 		// stale password verification cannot create a session afterward.
-		if current.Disabled || current.PasswordHash != user.PasswordHash {
+		if current.ID != user.ID || !current.CreatedAt.Equal(user.CreatedAt) || current.Disabled || current.PasswordHash != user.PasswordHash {
 			return apperrors.ErrUnauthorized
 		}
 		if err := requireRegistrationAdmission(tx.Session(&gorm.Session{}), current); err != nil {
@@ -169,6 +181,9 @@ func (s *Service) beginLogin(ctx context.Context, email, password string, challe
 }
 
 func createSession(db *gorm.DB, user entity.User) (*Authentication, error) {
+	if err := db.Statement.Context.Err(); err != nil {
+		return nil, err
+	}
 	current, err := registrationAdmittedUser(db, user.ID, true)
 	if err != nil {
 		return nil, err
@@ -184,6 +199,10 @@ func createSession(db *gorm.DB, user entity.User) (*Authentication, error) {
 	}
 	session := entity.Session{ID: sessionID, UserID: user.ID, TokenHash: secret.SHA256Hex(token), ExpiresAt: time.Now().UTC().Add(SessionLifetime)}
 	if err := db.Create(&session).Error; err != nil {
+		return nil, err
+	}
+	// Reuse the persisted birth/expiry rather than GORM's authored nanoseconds.
+	if err := db.Session(&gorm.Session{NewDB: true}).Take(&session, "id = ?", session.ID).Error; err != nil {
 		return nil, err
 	}
 	return &Authentication{User: user, Session: session, Token: token}, nil

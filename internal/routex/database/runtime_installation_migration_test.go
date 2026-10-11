@@ -16,7 +16,7 @@ func TestRuntimeInstallationV100FrozenSchema(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	current, err := schema.Parse(&entity.RuntimeInstallationObservation{}, &sync.Map{}, schema.NamingStrategy{})
+	current, err := schema.Parse(&forcedSSOHistoricalInstallationV100{}, &sync.Map{}, schema.NamingStrategy{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +29,7 @@ func TestRuntimeInstallationV100FrozenSchema(t *testing.T) {
 			t.Fatal("frozen field changed", name)
 		}
 	}
-	if current.FieldsByName["SourceDigest"].Tag.Get("json") != "-" {
+	if field, _ := reflect.TypeFor[entity.RuntimeInstallationObservation]().FieldByName("SourceDigest"); field.Tag.Get("json") != "-" {
 		t.Fatal("private digest became public")
 	}
 	indexes := frozen.ParseIndexes()
@@ -56,7 +56,7 @@ func TestRuntimeInstallationV100FrozenSchema(t *testing.T) {
 	}
 	for _, driver := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(driver)
-		if len(steps) != 102 || reflect.ValueOf(steps[99]).Pointer() != reflect.ValueOf(runtimeInstallationMigration).Pointer() || reflect.ValueOf(steps[98]).Pointer() != reflect.ValueOf(googleIdentityMigration).Pointer() || reflect.ValueOf(steps[100]).Pointer() != reflect.ValueOf(discordIdentityMigration).Pointer() || reflect.ValueOf(steps[101]).Pointer() != reflect.ValueOf(apiKeyDeliveryMigration).Pointer() {
+		if len(steps) != 105 || reflect.ValueOf(steps[99]).Pointer() != reflect.ValueOf(runtimeInstallationMigration).Pointer() || reflect.ValueOf(steps[98]).Pointer() != reflect.ValueOf(googleIdentityMigration).Pointer() || reflect.ValueOf(steps[100]).Pointer() != reflect.ValueOf(discordIdentityMigration).Pointer() || reflect.ValueOf(steps[101]).Pointer() != reflect.ValueOf(apiKeyDeliveryMigration).Pointer() || reflect.ValueOf(steps[102]).Pointer() != reflect.ValueOf(forcedSSOMigration).Pointer() || reflect.ValueOf(steps[103]).Pointer() != reflect.ValueOf(vaultCertificateMigration).Pointer() || reflect.ValueOf(steps[104]).Pointer() != reflect.ValueOf(runtimePublicationCommandMigration).Pointer() {
 			t.Fatal("V100 suffix changed")
 		}
 	}

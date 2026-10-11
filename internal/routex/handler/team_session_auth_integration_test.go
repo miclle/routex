@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -21,6 +22,25 @@ import (
 
 func testTeamSessionAuthLifecycle(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
+	// One dormant processor is installed before runtime workers; intervals
+	// retain their persistent fault and exact original diagnostic message.
+	var publicationFault atomic.Pointer[string]
+	const callback = "test_team_auth_publication_failure"
+	if err := db.Callback().Query().Before("gorm:query").Register(callback, func(tx *gorm.DB) {
+		message := publicationFault.Load()
+		if message != nil && tx.Statement.Table == "models" {
+			_ = tx.AddError(errors.New(*message))
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		publicationFault.Store(nil)
+		if err := db.Callback().Query().Remove(callback); err != nil {
+			t.Error(err)
+		}
+	}()
+	armPublicationFault := func(message string) { publicationFault.Store(&message) }
 	store, err := secretstore.New(bytes.Repeat([]byte{91}, 32))
 	if err != nil {
 		t.Fatal(err)
@@ -72,10 +92,10 @@ func testTeamSessionAuthLifecycle(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer svc.StopRuntime() // Final shutdown joins the live manual publisher.
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	defer svc.StopRuntime() // Final shutdown joins the live manual publisher.
 	before := svc.RuntimeStatus().SnapshotID
 	identity, err := svc.RuntimeAuthenticateTeamSession(ctx, auth.Token, teamID)
 	if err != nil {
@@ -183,20 +203,10 @@ func testTeamSessionAuthLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("folded Team grant replacement accepted")
 	}
 	// Fail only post-commit runtime publication, keeping saved resource mutation real.
-	callback := "test_team_auth_publication_failure"
-	t.Cleanup(func() { _ = db.Callback().Query().Remove(callback) })
-	if err := db.Callback().Query().Before("gorm:query").Register(callback, func(tx *gorm.DB) {
-		if tx.Statement.Table == "models" {
-			_ = tx.AddError(errors.New("controlled publication outage"))
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
+	armPublicationFault("controlled publication outage")
 	disabled := entity.ResourceDisabled
 	_, writeErr := svc.UpdateResource(ctx, admin.ID, service.TeamResource, teamID, service.ResourceUpdate{Status: &disabled})
-	if err := db.Callback().Query().Remove(callback); err != nil {
-		t.Fatal(err)
-	}
+	publicationFault.Store(nil)
 	if writeErr == nil {
 		t.Fatal("failed publication claimed success")
 	}
@@ -254,19 +264,11 @@ func testTeamSessionAuthLifecycle(t *testing.T, db *gorm.DB) {
 	if _, err := svc.RuntimeAuthenticateTeamSession(ctx, rotated.Token, teamID); err != nil {
 		t.Fatal(err)
 	}
-	if err := db.Callback().Query().Before("gorm:query").Register(callback, func(tx *gorm.DB) {
-		if tx.Statement.Table == "models" {
-			_ = tx.AddError(errors.New("controlled Session publication outage"))
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
+	armPublicationFault("controlled Session publication outage")
 	if err := svc.Logout(ctx, rotated); err != nil {
 		t.Fatal(err)
 	}
-	if err := db.Callback().Query().Remove(callback); err != nil {
-		t.Fatal(err)
-	}
+	publicationFault.Store(nil)
 	if _, err := svc.RuntimeAuthenticateTeamSession(ctx, rotated.Token, teamID); err == nil {
 		t.Fatal("logout retained Team authorization")
 	}
@@ -282,13 +284,7 @@ func testTeamSessionAuthLifecycle(t *testing.T, db *gorm.DB) {
 	if _, err := svc.UpdateMember(ctx, strings.ToUpper(admin.ID), member.ID, &accountDisabled, nil); err == nil {
 		t.Fatal("folded actor acquired administrator permissions")
 	}
-	if err := db.Callback().Query().Before("gorm:query").Register(callback, func(tx *gorm.DB) {
-		if tx.Statement.Table == "models" {
-			_ = tx.AddError(errors.New("controlled account publication outage"))
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
+	armPublicationFault("controlled account publication outage")
 	_, aliasErr := svc.UpdateMember(ctx, admin.ID, strings.ToUpper(member.ID), &accountDisabled, nil)
 	var stored entity.User
 	if err := db.First(&stored, "id = ?", member.ID).Error; err != nil {
@@ -302,9 +298,7 @@ func testTeamSessionAuthLifecycle(t *testing.T, db *gorm.DB) {
 	if _, err := svc.UpdateMember(ctx, admin.ID, member.ID, &accountDisabled, nil); err == nil {
 		t.Fatal("account publication failure claimed success")
 	}
-	if err := db.Callback().Query().Remove(callback); err != nil {
-		t.Fatal(err)
-	}
+	publicationFault.Store(nil)
 	if err := svc.ReauthorizeTeamSession(ctx, captured, "mdl_team_auth"); err == nil {
 		t.Fatal("disabled canonical actor retained Team admission")
 	}

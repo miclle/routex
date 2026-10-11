@@ -231,6 +231,53 @@ Both Vault R7 and Personal R6 API runs use the original R3 artifact `19320f5e167
 
 Browser, bilingual controls, AuthGate recovery and feature delivery remain pending for this phase. Desktop control reports a locked Mac and the in-app browser cannot attach a new webview; those observations do not prove a product cause or UI/download success. A bounded fresh normal-browser gate must verify the existing controls, independent authority and original-Session restart against an exact reviewed artifact. No complete F17/F28 or full-objective acceptance is claimed.
 
+## Saved certificate authentication (V104 source)
+
+A Vault integration may select Token, AppRole or Certificate independently for
+its Writer and Reader. Certificate authentication requires an explicit auth mount
+and named role, a PEM certificate chain and matching PEM private key. An optional
+PEM server CA belongs to that identity; omitted or empty CA uses system trust.
+Certificate endpoints must use verified HTTPS, including descriptor edits that
+retain saved certificate material. Host file paths and HSM references are not
+inputs. Token and AppRole behavior remains unchanged.
+
+Each certificate, private-key or server-CA PEM is at most 16KiB. The complete
+version-prefixed, ordered five-string encrypted tuple is at most 32KiB, including
+its JSON overhead; the enclosing configuration request is at most 64KiB. Save
+validates PEM/key matching locally without login or remote I/O. Material stays
+encrypted in the existing separate Writer/Reader envelopes. Public configuration
+returns only method/configured metadata, without PEM, expiry or secret fragments.
+The browser holds material transiently and clears it on dismissal or identity,
+action or method changes; it does not store it or put it in query/mutation caches.
+
+Login and KV operations use the selected identity's certificate and server trust.
+Login Tokens belong to one finite command; RouteX does not renew them or renew
+certificates. Provider orphan cleanup uses the separately supplied operator Token
+through a server-CA-only client, with no borrowed Reader/Writer client certificate.
+A mandatory-client-certificate listener therefore rejects that operator transport
+and cleanup fails closed. An unknown command is not acknowledged destruction or
+proof of durable process closure; do not reinterpret it as successful cleanup.
+
+After restart, enabled verified Vault-backed Provider credentials are prepared
+through their exact retained Reader identity. Unavailable external material is
+excluded from eligible routes; independent inline routes and management remain
+usable. A saved configuration or decrypted envelope alone proves neither remote
+authentication nor readiness. Root inventory V9 retains its twelve domains,
+including the existing `vault_writer_auth` and `vault_reader_auth` references/AAD.
+Certificate support adds no domain, inventory version or API-Key delivery authority.
+
+Controlled PostgreSQL/MySQL migration acceptance is
+`54b4b3fb5c51725c4387837d1f24f111beeabc763dab1294584b9da16db4ab4f`; separate local native certificate acceptance
+is `79661eaa360ec0d9a2b7e4c458bb79ca218027b52216805eaf184f8865cdd7ad`.
+Accepted scope: all 12 saved-certificate steps on PostgreSQL and MySQL, including encrypted persistence, restart, exact native audit attribution and scoped Provider cleanup.
+Mandatory-listener operator-negative disposition:
+both CA-only operator requests were rejected without a remote destroy; their exact cleanup intent remains unknown and their final process closures remain durably unproven despite OS exit and join.
+Normal durable closures, positive OS joins and deliberately unknown cleanup are
+reported separately. No unknown receipt proves destruction or durable closure.
+Bilingual browser acceptance remains deferred because the user cannot unlock the
+screen. Historical Token/AppRole and projection observations retain their original
+scope; these controlled fixtures do not certify external Vault installations.
+
 ## Custom OAuth inventory V4 acceptance (historical)
 
 Every retained OAuth client secret uses `oauth:<provider-id>:<secret-generation>`

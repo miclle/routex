@@ -4,7 +4,15 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import i18n from '@/i18n'
 import * as api from '@/api/vault-integrations'
 import { VaultDrawer, type VaultAuthority } from './vault-drawer'
-import { vault, vaultETag, vaultID } from './vault-fixtures'
+import {
+  certificatePEM,
+  privateKeyPEM,
+  certificateReplacement,
+  certificateVault,
+  vault,
+  vaultETag,
+  vaultID,
+} from './vault-fixtures'
 import type { VaultConfigIntent } from '@/types/vault-integrations'
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root,
@@ -12,17 +20,18 @@ let root: Root,
   gate: VaultAuthority | null,
   visible: boolean,
   closed: boolean,
+  reviewer: () => Promise<string | undefined>,
   saved: ReturnType<
     typeof vi.fn<(result: Awaited<ReturnType<typeof api.saveVaultIntegration>>) => void>
   >
-async function render(edit = true) {
+async function render(edit = true, integration = vault()) {
   await act(async () =>
     root.render(
       <VaultDrawer
         open={!closed}
         visible={visible}
         id={edit ? vaultID : undefined}
-        integration={edit ? vault() : undefined}
+        integration={edit ? integration : undefined}
         etag={vaultETag}
         canSave
         authority={() => gate}
@@ -30,7 +39,7 @@ async function render(edit = true) {
           closed = true
           void render(edit)
         }}
-        review={async () => vaultETag}
+        review={reviewer}
         saved={saved}
       />,
     ),
@@ -47,9 +56,13 @@ async function click(label: string) {
 async function input(label: string, value: string) {
   const node = [...document.querySelectorAll('label')]
     .find((item) => item.textContent?.startsWith(label))!
-    .querySelector('input')!
+    .querySelector('input, textarea')!
   await act(async () => {
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(node, value)
+    const prototype =
+      node instanceof HTMLTextAreaElement
+        ? HTMLTextAreaElement.prototype
+        : HTMLInputElement.prototype
+    Object.getOwnPropertyDescriptor(prototype, 'value')!.set!.call(node, value)
     node.dispatchEvent(new Event('input', { bubbles: true }))
     node.dispatchEvent(new Event('change', { bubbles: true }))
   })
@@ -62,6 +75,7 @@ beforeEach(async () => {
   gate = { csrf: 'c'.repeat(64), epoch: 1 }
   visible = true
   closed = false
+  reviewer = async () => vaultETag
   saved = vi.fn()
 })
 afterEach(async () => {
@@ -454,4 +468,314 @@ it('creation blocks identical complete AppRole replacements while accepting inde
   expect(button('Save configuration').disabled).toBe(true)
   await input('Reader Secret ID', 'different-secret')
   expect(button('Save configuration').disabled).toBe(false)
+})
+
+async function identityCertificate(kind: 'writer' | 'reader', create = false) {
+  if (!create) await identityPress(kind, 'Replace Token')
+  await identityPress(kind, 'TLS certificate')
+  const title = kind === 'writer' ? 'Writer' : 'Reader'
+  await input(title + ' authentication mount', 'cert/team')
+  await input(title + ' certificate role', kind + '-role')
+  await input(title + ' certificate chain (PEM)', certificatePEM)
+  await input(title + ' private key (PEM)', privateKeyPEM)
+}
+it('offers independent certificate identities with explicit mount, role and transient PEM fields', async () => {
+  const spy = vi.spyOn(api, 'saveVaultIntegration').mockRejectedValue(new api.VaultError(503))
+  await render(false)
+  await input('Integration name', 'Vault')
+  await input('Vault address', 'https://vault.test')
+  await input('Reason', 'Review certificate identities')
+  await identityCertificate('writer', true)
+  expect(button('Save configuration').disabled).toBe(true)
+  await identityCertificate('reader', true)
+  expect(button('Save configuration').disabled).toBe(false)
+  await input('Reader certificate role', 'writer-role')
+  expect(button('Save configuration').disabled).toBe(true)
+  await input('Reader certificate role', 'reader-role')
+  await click('Save configuration')
+  expect(spy).not.toHaveBeenCalled()
+  await click('Confirm action')
+  expect(spy).toHaveBeenCalledOnce()
+  expect(spy.mock.calls[0][0].input).toMatchObject({
+    writer_auth: certificateReplacement(),
+    reader_auth: { ...certificateReplacement(), certificate_role: 'reader-role' },
+  })
+})
+it('certificate drafts require HTTPS and a complete named identity before review', async () => {
+  await render()
+  await identityCertificate('writer')
+  await input('Reason', 'Review')
+  await input('Vault address', 'http://vault.test')
+  expect(button('Save configuration').disabled).toBe(true)
+  await input('Vault address', 'https://vault.test')
+  expect(button('Save configuration').disabled).toBe(false)
+  await input('Writer certificate role', '')
+  expect(button('Save configuration').disabled).toBe(true)
+  await input('Writer certificate role', 'writer-role')
+  await input('Writer private key (PEM)', '')
+  expect(button('Save configuration').disabled).toBe(true)
+})
+it('switching certificate method or auth action clears all obsolete PEM and role drafts', async () => {
+  await render()
+  await identityCertificate('writer')
+  await input('Writer server CA (PEM, optional)', certificatePEM)
+  await identityPress('writer', 'Token')
+  expect(document.querySelector('textarea')).toBeNull()
+  await identityPress('writer', 'TLS certificate')
+  expect([...document.querySelectorAll('textarea')].map((node) => node.value)).toEqual(['', '', ''])
+  await input('Writer certificate chain (PEM)', certificatePEM)
+  await identityPress('writer', 'Remove Token')
+  expect(document.querySelector('textarea')).toBeNull()
+  await identityPress('writer', 'Replace certificate')
+  expect([...document.querySelectorAll('textarea')].map((node) => node.value)).toEqual(['', '', ''])
+})
+it('certificate unknown intent survives rejected retry and language switch with exact original PEM bytes', async () => {
+  const spy = vi
+    .spyOn(api, 'saveVaultIntegration')
+    .mockRejectedValueOnce(new api.VaultError(503))
+    .mockRejectedValueOnce(new api.VaultError(409))
+  await render()
+  await identityCertificate('writer')
+  await input('Writer server CA (PEM, optional)', certificatePEM)
+  await input('Reason', 'Review original identity')
+  await click('Save configuration')
+  await click('Confirm action')
+  const original = structuredClone(spy.mock.calls[0][0])
+  gate = { csrf: 'd'.repeat(64), epoch: 2 }
+  await act(async () => {
+    await i18n.changeLanguage('zh')
+  })
+  expect(document.body.textContent).toContain('写入证书链（PEM）')
+  expect([...document.querySelectorAll('textarea')].map((node) => node.value)).toEqual([
+    certificatePEM,
+    privateKeyPEM,
+    certificatePEM,
+  ])
+  expect([...document.querySelectorAll('textarea')].every((node) => node.disabled)).toBe(true)
+  expect(spy).toHaveBeenCalledOnce()
+  await click('重试原始意图')
+  expect(spy.mock.calls[1][0]).toEqual(original)
+  expect(spy.mock.calls[1][1]).toBe('d'.repeat(64))
+  expect(saved).not.toHaveBeenCalled()
+  expect(button('重试原始意图')).toBeDefined()
+})
+it('keeps saved certificate metadata secret-free and requires explicit replacement or removal', async () => {
+  await render(true, certificateVault())
+  expect(document.querySelector('textarea')).toBeNull()
+  await input('Reason', 'Review')
+  await input('Vault address', 'http://vault.test')
+  expect(button('Save configuration').disabled).toBe(true)
+  await input('Vault address', 'https://vault.test')
+  expect(
+    [...document.querySelectorAll('button[aria-pressed=true]')].map((node) => node.textContent),
+  ).toEqual(['Keep saved certificate', 'Keep saved certificate'])
+  await identityPress('writer', 'Replace certificate')
+  expect([...document.querySelectorAll('textarea')].map((node) => node.value)).toEqual(['', '', ''])
+  await identityPress('writer', 'Remove certificate')
+  expect(document.querySelector('textarea')).toBeNull()
+})
+it('dismissed certificate drafts cannot return after remount', async () => {
+  await render()
+  await identityCertificate('writer')
+  await click('Cancel')
+  await act(async () => root.unmount())
+  root = createRoot(host)
+  closed = false
+  await render()
+  await identityPress('writer', 'Replace Token')
+  await identityPress('writer', 'TLS certificate')
+  expect([...document.querySelectorAll('textarea')].map((node) => node.value)).toEqual(['', '', ''])
+})
+
+it('successful certificate save clears all PEM drafts and retains only the safe receipt', async () => {
+  const spy = vi.spyOn(api, 'saveVaultIntegration').mockImplementation(async (intent) => ({
+    request_id: intent.input.request_id,
+    integration_id: vaultID,
+    revision_id: vault().revision_id,
+    committed: true,
+    changed: true,
+  }))
+  await render()
+  await identityCertificate('writer')
+  await input('Reason', 'Review')
+  await click('Save configuration')
+  await click('Confirm action')
+  expect(spy).toHaveBeenCalledOnce()
+  expect(saved).toHaveBeenCalledOnce()
+  expect([...document.querySelectorAll('textarea')].map((node) => node.value)).toEqual(['', '', ''])
+  expect(document.body.textContent).not.toContain('YQ==')
+  expect(document.body.textContent).not.toContain('Yg==')
+})
+it('late certificate completion after renewal stays unknown and never signals saved', async () => {
+  let resolve!: (value: Awaited<ReturnType<typeof api.saveVaultIntegration>>) => void
+  const spy = vi.spyOn(api, 'saveVaultIntegration').mockReturnValue(
+    new Promise((done) => {
+      resolve = done
+    }),
+  )
+  await render()
+  await identityCertificate('reader')
+  await input('Reason', 'Review')
+  await click('Save configuration')
+  await click('Confirm action')
+  const original = structuredClone(spy.mock.calls[0][0])
+  visible = false
+  gate = null
+  await render()
+  expect(document.querySelector('textarea')).toBeNull()
+  await act(async () =>
+    resolve({
+      request_id: original.input.request_id,
+      integration_id: vaultID,
+      revision_id: vault().revision_id,
+      committed: true,
+      changed: true,
+    }),
+  )
+  gate = { csrf: 'd'.repeat(64), epoch: 2 }
+  visible = true
+  await render()
+  expect(saved).not.toHaveBeenCalled()
+  expect(document.body.textContent).toContain('outcome is unknown')
+  expect(button('Retry original intent')).toBeDefined()
+  expect(spy).toHaveBeenCalledOnce()
+})
+
+// Keep the actual rendered callback: replacing a DOM listener is not a dispatch fence.
+function retainButtonCallback(node: HTMLButtonElement) {
+  const key = Object.getOwnPropertyNames(node).find((name) => name.startsWith('__reactProps$'))!
+  expect(key).toBeDefined()
+  const callback = (node as unknown as Record<string, { onClick: () => void }>)[key].onClick
+  expect(callback).toBeTypeOf('function')
+  return callback
+}
+function confirmationCancel() {
+  const confirm = button('Confirm action')
+  return [...confirm.closest('[role=dialog]')!.querySelectorAll<HTMLButtonElement>('button')].find(
+    (node) => node.textContent === 'Cancel',
+  )!
+}
+async function prepareCertificateConfirmation() {
+  await render()
+  await identityCertificate('writer')
+  await input('Reason', 'Original certificate review')
+  await click('Save configuration')
+}
+it('cancel revokes the retained certificate confirmation before any private tuple dispatch', async () => {
+  const spy = vi.spyOn(api, 'saveVaultIntegration').mockRejectedValue(new api.VaultError(503))
+  await prepareCertificateConfirmation()
+  const prior = retainButtonCallback(button('Confirm action'))
+  await act(async () => confirmationCancel().click())
+  await act(async () => prior())
+  expect(spy).not.toHaveBeenCalled()
+  expect(saved).not.toHaveBeenCalled()
+  await input('Reason', 'New explicit certificate review')
+  await click('Save configuration')
+  await act(async () => prior())
+  expect(spy).not.toHaveBeenCalled()
+  await click('Confirm action')
+  expect(spy).toHaveBeenCalledOnce()
+  expect(spy.mock.calls[0][0].input).toMatchObject({
+    reason: 'New explicit certificate review',
+    writer_auth: certificateReplacement(),
+  })
+})
+it.each(['review', 'method', 'action', 'renewal', 'hidden', 'dismissal', 'unmount'] as const)(
+  '%s invalidates a retained certificate confirmation without dispatch',
+  async (change) => {
+    const spy = vi.spyOn(api, 'saveVaultIntegration').mockRejectedValue(new api.VaultError(503))
+    await prepareCertificateConfirmation()
+    const prior = retainButtonCallback(button('Confirm action'))
+    if (change === 'review') await click('Review current status')
+    if (change === 'method') await identityPress('writer', 'Token')
+    if (change === 'action') await identityPress('writer', 'Keep saved Token')
+    if (change === 'renewal') gate = { csrf: 'd'.repeat(64), epoch: 2 }
+    if (change === 'hidden') {
+      visible = false
+      await render()
+    }
+    if (change === 'dismissal') {
+      const outerCancel = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
+        (node) => node.textContent === 'Cancel',
+      )!
+      await act(async () => outerCancel.click())
+    }
+    if (change === 'unmount') {
+      await act(async () => root.unmount())
+      root = createRoot(host)
+    }
+    await act(async () => prior())
+    expect(spy).not.toHaveBeenCalled()
+    expect(saved).not.toHaveBeenCalled()
+  },
+)
+it('obsolete confirmation Cancel cannot erase an already dispatched uncertain certificate intent', async () => {
+  const spy = vi
+    .spyOn(api, 'saveVaultIntegration')
+    .mockRejectedValueOnce(new api.VaultError(503))
+    .mockRejectedValueOnce(new api.VaultError(409))
+  await prepareCertificateConfirmation()
+  const cancel = retainButtonCallback(confirmationCancel()),
+    prior = retainButtonCallback(button('Confirm action'))
+  await click('Confirm action')
+  const original = structuredClone(spy.mock.calls[0][0])
+  await act(async () => {
+    cancel()
+    prior()
+  })
+  expect(spy).toHaveBeenCalledOnce()
+  expect(button('Retry original intent')).toBeDefined()
+  gate = { csrf: 'd'.repeat(64), epoch: 2 }
+  await render()
+  await click('Retry original intent')
+  expect(spy).toHaveBeenCalledTimes(2)
+  expect(spy.mock.calls[1][0]).toEqual(original)
+  expect(spy.mock.calls[1][1]).toBe('d'.repeat(64))
+  expect(original.input.writer_auth).toEqual(certificateReplacement())
+  expect(saved).not.toHaveBeenCalled()
+  expect(button('Retry original intent')).toBeDefined()
+})
+
+it('an explicit renewed status read admits only a new confirmation after its own query epochs', async () => {
+  const spy = vi.spyOn(api, 'saveVaultIntegration').mockRejectedValue(new api.VaultError(503))
+  await prepareCertificateConfirmation()
+  const prior = retainButtonCallback(button('Confirm action'))
+  let resolve!: (etag: string) => void
+  reviewer = () =>
+    new Promise((done) => {
+      resolve = done
+    })
+  await render()
+  await click('Review current status')
+  visible = false
+  gate = null
+  await render()
+  gate = { csrf: 'd'.repeat(64), epoch: 3 }
+  visible = true
+  await render()
+  await act(async () => resolve(vaultETag))
+  expect(button('Save configuration').disabled).toBe(false)
+  await act(async () => prior())
+  expect(spy).not.toHaveBeenCalled()
+  await click('Save configuration')
+  await click('Confirm action')
+  expect(spy).toHaveBeenCalledOnce()
+  expect(spy.mock.calls[0][1]).toBe('d'.repeat(64))
+})
+
+it('restoring visibility cannot revive an old certificate confirmation or its retained callback', async () => {
+  const spy = vi.spyOn(api, 'saveVaultIntegration').mockRejectedValue(new api.VaultError(503))
+  await prepareCertificateConfirmation()
+  const prior = retainButtonCallback(button('Confirm action'))
+  visible = false
+  await render()
+  visible = true
+  await render()
+  expect(button('Confirm action')).toBeUndefined()
+  await act(async () => prior())
+  expect(spy).not.toHaveBeenCalled()
+  await click('Save configuration')
+  await click('Confirm action')
+  expect(spy).toHaveBeenCalledOnce()
+  expect(spy.mock.calls[0][0].input.writer_auth).toEqual(certificateReplacement())
 })

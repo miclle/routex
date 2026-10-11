@@ -12,6 +12,15 @@ func primaryProofEmpty(id string, birth *time.Time, config, policy string, userB
 	return id == "" && birth == nil && config == "" && policy == "" && userBirth == nil
 }
 func primaryValidateSession(tx *gorm.DB, row entity.Session) error {
+	if err := authenticationLoginAllowed(tx, row.PrimaryMethod); err != nil {
+		return err
+	}
+	if row.PrimaryMethod == "emergency" {
+		return emergencyValidatePrimary(tx, row, false)
+	}
+	if !emergencyProofEmpty(row) {
+		return apperrors.ErrUnauthorized
+	}
 	oidcEmpty := primaryProofEmpty(row.OIDCBindingID, row.OIDCBindingCreatedAt, row.OIDCConfigRevision, row.OIDCPolicyRevision, row.OIDCUserCreatedAt)
 	oauthEmpty := primaryProofEmpty(row.OAuthBindingID, row.OAuthBindingCreatedAt, row.OAuthConfigRevision, row.OAuthPolicyRevision, row.OAuthUserCreatedAt)
 	ldapEmpty := primaryProofEmpty(row.LDAPBindingID, row.LDAPBindingCreatedAt, row.LDAPConfigRevision, row.LDAPPolicyRevision, row.LDAPUserCreatedAt)
@@ -53,7 +62,10 @@ func primaryValidateSession(tx *gorm.DB, row entity.Session) error {
 	}
 }
 func primaryValidateChallenge(tx *gorm.DB, row entity.MFAChallenge) error {
-	return primaryValidateSession(tx, entity.Session{UserID: row.UserID, PrimaryMethod: row.PrimaryMethod, OIDCBindingID: row.OIDCBindingID, OIDCBindingCreatedAt: row.OIDCBindingCreatedAt, OIDCConfigRevision: row.OIDCConfigRevision, OIDCPolicyRevision: row.OIDCPolicyRevision, OIDCUserCreatedAt: row.OIDCUserCreatedAt, OAuthBindingID: row.OAuthBindingID, OAuthBindingCreatedAt: row.OAuthBindingCreatedAt, OAuthConfigRevision: row.OAuthConfigRevision, OAuthPolicyRevision: row.OAuthPolicyRevision, OAuthUserCreatedAt: row.OAuthUserCreatedAt, LDAPBindingID: row.LDAPBindingID, LDAPBindingCreatedAt: row.LDAPBindingCreatedAt, LDAPConfigRevision: row.LDAPConfigRevision, LDAPPolicyRevision: row.LDAPPolicyRevision, LDAPUserCreatedAt: row.LDAPUserCreatedAt, SAMLBindingID: row.SAMLBindingID, SAMLBindingCreatedAt: row.SAMLBindingCreatedAt, SAMLConfigRevision: row.SAMLConfigRevision, SAMLPolicyRevision: row.SAMLPolicyRevision, SAMLUserCreatedAt: row.SAMLUserCreatedAt, NamedIdentityProviderID: row.NamedIdentityProviderID, NamedIdentityProfileID: row.NamedIdentityProfileID, NamedIdentityBindingID: row.NamedIdentityBindingID, NamedIdentityBindingCreatedAt: row.NamedIdentityBindingCreatedAt, NamedIdentityConfigRevision: row.NamedIdentityConfigRevision, NamedIdentityPolicyRevision: row.NamedIdentityPolicyRevision, NamedIdentityUserCreatedAt: row.NamedIdentityUserCreatedAt})
+	if row.PrimaryMethod == "emergency" {
+		return apperrors.ErrUnauthorized
+	}
+	return primaryValidateSession(tx, authenticationChallengeSession(row))
 }
 func (s *Service) primaryValidateSession(tx *gorm.DB, row entity.Session) error {
 	return primaryValidateSession(tx, row)

@@ -89,6 +89,15 @@ Focused tests use controlled local HTTP/TLS/SOCKS5 peers and injected DNS/dial f
 
 The PostgreSQL/MySQL integration suite exercises encrypted CRUD and strict HTTP requests, ETag conflicts, initial direct routing, default proxy routing for ordinary/SSE calls, disabled-proxy rejection, explicit direct override, stale diagnostic rejection, and service restart. Full dual-database acceptance is recorded by the coordinating test pipeline; focused package tests alone are not a claim of database acceptance.
 
+The controlled HTTPS CONNECT/target-TLS process scenario also passes on both real
+database drivers in `54b4b3fb5c51725c4387837d1f24f111beeabc763dab1294584b9da16db4ab4f`. It retains distinct proxy
+and target trust checks, proxy/upstream credential separation, rejected untrusted
+issuers, reviewed encrypted proxy selection and same-binary restart with original
+configuration and immutable call history. These are local controlled peers;
+external provider/TLS infrastructure, browser and fleet acceptance are unproven.
+The separate default production build is `502293c38322976fca690ca4d885bc1d92f731392e2cec3d8df2bdd0fb91b1ba`, not an
+inference from the integration process binary.
+
 Saved-Connection regressions also cover native/Azure metadata requests through
 the selected candidate, controlled Vault source reads, and source/adapter
 changes that must not overwrite current diagnostics. These use controlled local
