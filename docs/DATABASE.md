@@ -43,6 +43,25 @@ An exception requires a GORM capability gap or measured performance need, a loca
 
 Current exceptions include byte-exact authority comparison through the database-layer GORM expressions described below, and the database-level migration locks (`pg_advisory_lock` and `GET_LOCK`) and their release operations. GORM does not expose a portable connection-scoped advisory lock. These operations are contained in the database package, run on the same dedicated connection, and have concurrent-startup tests on both databases. Failed unlocks discard the physical connection to prevent a locked session from returning to the pool. Historical released DDL retains its existing dialect-specific collation and schema behavior for upgrade compatibility.
 
+Migration startup retains one shared 60-second context for lock acquisition and
+all schema steps, shortened by an earlier caller deadline. MySQL's parameterized
+`GET_LOCK` timeout uses the remaining context duration rounded up to whole seconds,
+capped at 60; it does not impose a separate 30-second cutoff. The query still uses
+the caller context, so cancellation does not wait for that rounded server timeout.
+This follows [MySQL's connection-scoped lock semantics](https://dev.mysql.com/doc/refman/8.4/en/locking-functions.html).
+The dedicated connection, independent five-second unlock context and discard-on-
+unlock-failure behavior are unchanged. `TestMigrationLockIntegration` requires
+`ROUTEX_TEST_MIGRATION_LOCK=1` and an explicit disposable `routex_test` DSN. Run it
+exclusively, outside concurrent matrix workers. It observes a real blocked query before
+holding it beyond 30 seconds; it also checks prompt caller cancellation, subsequent
+independent lock acquisition and unchanged migration history on both drivers.
+Cancellation return and physical driver cleanup are separate facts: a driver can
+close an interrupted connection asynchronously after returning the caller error.
+The regression independently observes the exact canceled backend/session absent
+within a fresh five-second context, verifies the fixture holder's release result,
+and then attempts independent acquisition exactly once. It does not infer cleanup
+from the caller error or retry acquisition until a lingering lock disappears.
+
 
 ## Credential replacement preparation (version 31)
 

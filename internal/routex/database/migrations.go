@@ -53,8 +53,12 @@ func migrateThrough(ctx context.Context, db *gorm.DB, lastVersion int) error {
 			}
 			unlock = "SELECT pg_advisory_unlock(724683901)"
 		case "mysql":
+			waitSeconds, err := migrationLockWaitSeconds(ctx)
+			if err != nil {
+				return fmt.Errorf("lock migrations: %w", err)
+			}
 			var locked sql.NullInt64
-			if err := conn.Raw("SELECT GET_LOCK('routex_schema_migrations', 30)").Scan(&locked).Error; err != nil {
+			if err := conn.Raw("SELECT GET_LOCK('routex_schema_migrations', ?)", waitSeconds).Scan(&locked).Error; err != nil {
 				return fmt.Errorf("lock migrations: %w", err)
 			}
 			if !locked.Valid || locked.Int64 != 1 {
@@ -123,6 +127,28 @@ func migrateThrough(ctx context.Context, db *gorm.DB, lastVersion int) error {
 		}
 		return nil
 	})
+}
+
+func migrationLockWaitSeconds(ctx context.Context) (int, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return 60, nil
+	}
+	remaining := time.Until(deadline)
+	if remaining <= 0 {
+		return 0, context.DeadlineExceeded
+	}
+	// GET_LOCK waits in seconds. Round up so its server-side timeout cannot
+	// expire before the context; the driver still enforces caller cancellation.
+	remaining = min(remaining, time.Minute)
+	seconds := int(remaining / time.Second)
+	if remaining%time.Second != 0 {
+		seconds++
+	}
+	return seconds, nil
 }
 
 // Released versions 1–4 retain their original SQL for reproducible upgrades.
