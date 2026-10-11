@@ -39,6 +39,20 @@ remote parity. Its Actionlint and GolangCI-Lint passed; no successor CI result i
 Earlier CI runs cancelled by subsequent main pushes remain cancelled, not passed.
 Local accepted evidence below retains its exact phase scope.
 
+## Rolling Key quota-warning test isolation (2026-10-12)
+
+The shared initial/restart test constructor uses a one-hour periodic runtime
+refresh interval, keeping explicit publication confirmations independent of the
+background timer. Explicit refreshes, the live warning worker, restart and joined
+shutdown checks, and all positive and negative assertions remain unchanged.
+Production refresh behavior is unchanged. The three-scenario regression focus
+(Model batch creation, rolling personal Key warnings and Discord) passed all
+17 named tests on each real PostgreSQL and MySQL driver. Independent readback
+confirmed owned process, Compose, port and helper cleanup and preserved the
+original development instance. Current main CI's earlier HTTP 503 remains a
+recorded failure; its exact confirmation branch was not recorded and is not
+claimed proven. Full coherent feature qualification continues separately.
+
 ## Reviewed Model reference assistance (2026-10-12)
 
 The existing Model name picker searches bounded reviewed aliases and returns only

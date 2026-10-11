@@ -151,7 +151,8 @@ func testPersonalKeyRollingQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	defer upstream.Close()
 	makeService := func() *service.Service {
 		t.Helper()
-		svc, e := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+		// Keep positive publication confirmations independent of the periodic timer.
+		svc, e := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 		if e != nil {
 			t.Fatal(e)
 		}
