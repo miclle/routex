@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
 import client from './client'
 import {
@@ -41,6 +42,8 @@ const available = [
   'roles.read',
   'secrets.read',
   'secrets.rotate',
+  'secrets.test',
+  'secrets.write',
   'site.write',
   'smtp.read',
   'smtp.test',
@@ -93,6 +96,42 @@ afterEach(() => {
   client.defaults.adapter = original
 })
 describe('resource-scoped Role definition wire contract', () => {
+  it('accepts the complete current server catalogue and reviewed Vault permission replacement', async () => {
+    const governanceSource = readFileSync('../internal/routex/service/governance.go', 'utf8')
+    const declaration = governanceSource.match(/var AvailablePermissions = \[\]string\{([^}]+)\}/s)
+    expect(declaration).not.toBeNull()
+    const reserved = ['roles.write', 'registration.write', 'members.approvals.write']
+    const serverCatalogue = [...declaration![1].matchAll(/"([a-z_.]+)"/g)]
+      .map((match) => match[1])
+      .filter((permission) => !reserved.includes(permission))
+      .sort()
+    expect(available).toEqual(serverCatalogue)
+    const data = { ...page(), available_permissions: serverCatalogue }
+    const reviewed = { ...input(), permissions: ['secrets.test', 'secrets.write'] }
+    const saved = { ...result(), permissions: [...reviewed.permissions] }
+    const writes: InternalAxiosRequestConfig[] = []
+    client.defaults.adapter = async (config) => {
+      if (config.method === 'put') writes.push(config)
+      return {
+        config,
+        status: 200,
+        statusText: '',
+        data: config.method === 'get' ? data : saved,
+        headers: new AxiosHeaders({
+          ETag: `"${config.method === 'get' ? review : definition}"`,
+          'Cache-Control': 'private, no-store',
+        }),
+      }
+    }
+    await expect(getRoleDefinition('rol_Custom')).resolves.toEqual(data)
+    await expect(
+      setRoleDefinition('rol_Custom', review, reviewed, 'csrf-current'),
+    ).resolves.toEqual(saved)
+    expect(writes).toHaveLength(1)
+    expect(JSON.parse(writes[0].data)).toEqual(reviewed)
+    expect(writes[0].headers.get('If-Match')).toBe(`"${review}"`)
+    expect(writes[0].headers.get('X-CSRF-Token')).toBe('csrf-current')
+  })
   it('preserves historical names/case and the complete named assignable catalogue', () => {
     const data = page()
     data.name = '\t'
@@ -171,6 +210,7 @@ describe('resource-scoped Role definition wire contract', () => {
     { permissions: ['projects.models.WRITE'] },
     { permissions: ['unknown.read'] },
     { permissions: ['roles.write'] },
+    { permissions: ['registration.write'] },
     { permissions: ['members.approvals.write'] },
     { permissions: ['providers.read', 'providers.read'] },
     { permissions: ['providers.write', 'providers.read'] },

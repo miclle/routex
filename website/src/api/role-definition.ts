@@ -25,6 +25,8 @@ const code = (v: unknown): v is string => typeof v === 'string' && /^[A-Za-z0-9.
 const implemented = [
   'secrets.read',
   'secrets.rotate',
+  'secrets.write',
+  'secrets.test',
   'members.read',
   'members.write',
   'members.approvals.write',

@@ -65,6 +65,8 @@ const roleDefinitionAvailablePermissions = [
   'roles.read',
   'secrets.read',
   'secrets.rotate',
+  'secrets.test',
+  'secrets.write',
   'site.write',
   'smtp.read',
   'smtp.test',

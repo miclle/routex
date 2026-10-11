@@ -1118,6 +1118,11 @@ current `available_permissions`, `definition_etag`, nullable `identity_etag`,
 `review_etag` and `can_edit`. Safe unknown recorded codes remain visible but do
 not become assignable; complete definition reads and replacement are bounded to
 100 permission codes. Unknown creation provenance yields a read-only review.
+The editor validates the complete current server permission catalog against its
+finite supported set, including independent `secrets.write` and `secrets.test`
+grants. Unknown catalog entries and the three reserved administrator powers are
+rejected; recorded unknown permissions remain read-only. Assigning Secrets grants
+does not replace the intrinsic-administrator checks on protected Secrets operations.
 PUT replaces the name, description and full sorted unique permission set, including explicit empty
 arrays, with the recorded identity proof, a strong quoted review If-Match and a
 nonempty reason. Names retain the existing 100-code-point bound; reasons are

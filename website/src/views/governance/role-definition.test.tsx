@@ -261,6 +261,35 @@ it('requires full explicit confirmation and confirms only the exact current stor
   ])
   expect(cache.getMutationCache().getAll()).toEqual([])
 })
+it('views recorded Vault permissions and edits independent write/test grants after review', async () => {
+  page = {
+    ...page,
+    permissions: ['secrets.read', 'secrets.write'],
+    available_permissions: ['secrets.read', 'secrets.rotate', 'secrets.test', 'secrets.write'],
+  }
+  mode = 'view'
+  await draw()
+  expect(document.querySelector('[aria-label="Reviewed permissions"]')?.textContent).toContain(
+    'secrets.write',
+  )
+  expect(setRoleDefinition).not.toHaveBeenCalled()
+  mode = 'edit'
+  await draw()
+  const testPermission = [...document.querySelectorAll('label')]
+    .find((node) => node.textContent?.trim() === 'secrets.test')
+    ?.querySelector('input')
+  expect(testPermission).toBeInstanceOf(HTMLInputElement)
+  await act(async () => testPermission!.click())
+  await edit('textarea[name=reason]', 'Review independent Vault diagnostics authority')
+  await click('roleDefinition.reviewSave')
+  expect(requests).toEqual([])
+  await click('roleDefinition.confirm')
+  expect(requests).toHaveLength(1)
+  expect(requests[0].input.permissions).toEqual(['secrets.read', 'secrets.test', 'secrets.write'])
+  expect(requests[0].etag).toBe(review)
+  expect(requests[0].csrf).toBe('csrf-first')
+  expect(cache.getMutationCache().getAll()).toEqual([])
+})
 it('releases the same-operation busy latch for503→409→success without artificial cache changes', async () => {
   failures = [503, 409]
   await draw()
