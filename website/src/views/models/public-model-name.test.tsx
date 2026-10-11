@@ -5,7 +5,7 @@ import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios
 import { beforeEach, afterEach, it, expect } from 'vitest'
 import client from '@/api/client'
 import i18n from '@/i18n'
-import { searchPublicModelNames } from '@/lib/public-model-references'
+import { publicModelReferenceMetadata, searchPublicModelNames } from '@/lib/public-model-references'
 import { PublicModelName } from './public-model-name'
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const original = client.defaults.adapter
@@ -108,6 +108,7 @@ beforeEach(async () => {
     const q = config.params.q
     const rows = searchPublicModelNames(q).map((name) => ({
       name,
+      reference: publicModelReferenceMetadata(name),
       available: !reserved.includes(name),
     }))
     const captured = hold
@@ -231,4 +232,46 @@ it('unmount aborts the owned read; a late result cannot recreate retained privat
     0,
   )
   root = createRoot(host)
+})
+
+it('alias search requires explicit canonical selection and shows localized advisory facts only after a fresh exact-name read', async () => {
+  await render()
+  await type('Sonnet 4.6')
+  await open()
+  await until(() => expect(options()).toEqual(['claude-sonnet-4-6']))
+  expect(input().value).toBe('Sonnet 4.6')
+  expect(host.querySelector('[role="note"]')).toBeNull()
+  await act(async () => document.querySelector<HTMLElement>('[role="option"]')!.click())
+  await until(() => expect(host.textContent).toContain('Reviewed protocols: Anthropic Messages'))
+  expect(input().value).toBe('claude-sonnet-4-6')
+  expect(host.textContent).toContain('Reference only.')
+  expect(host.textContent).toContain('Images')
+  expect(host.textContent).toContain('Oct 12, 2026')
+  expect(host.querySelector('a')!.href).toBe(
+    publicModelReferenceMetadata('claude-sonnet-4-6')!.source_url,
+  )
+  const count = requests.length
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(host.textContent).toContain('仅供参考')
+  expect(host.textContent).toContain('图片')
+  expect(host.textContent).toContain('2026年10月12日')
+  expect(requests).toHaveLength(count)
+  pause()
+  await render({ authority: '2' })
+  expect(host.querySelector('[role="note"]')).toBeNull()
+  authorized = false
+  release?.()
+  await render({ authority: '2' })
+  expect(host.querySelector('[role="note"]')).toBeNull()
+})
+it('custom names and a failed renewal never retain advisory facts from a previous canonical selection', async () => {
+  await render()
+  await until(() => expect(host.querySelector('[role="note"]')).not.toBeNull())
+  await type('my-custom-name')
+  expect(host.querySelector('[role="note"]')).toBeNull()
+  fail = true
+  await render({ authority: '2' })
+  await type('gpt-5.2')
+  await until(() => expect(host.textContent).toContain('Name suggestions are unavailable'))
+  expect(host.querySelector('[role="note"]')).toBeNull()
 })

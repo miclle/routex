@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/miclle/routex/internal/routex/entity"
+	"github.com/miclle/routex/internal/routex/modelreferences"
 	"reflect"
 	"testing"
 )
@@ -22,5 +23,22 @@ func TestPublicNameReservationProjectionPreservesExactHistoricalReservations(t *
 	}
 	if _, err := projectModelCreationPublicNames([]string{"a", "a"}, nil); err == nil {
 		t.Fatal("duplicate candidate accepted")
+	}
+}
+
+func TestPublicNameSearchAliasesCannotReplaceCanonicalReservationFacts(t *testing.T) {
+	references, err := modelreferences.Embedded()
+	if err != nil {
+		t.Fatal(err)
+	}
+	candidates := references.Search("GPT 5.2")
+	got, err := projectModelCreationPublicNames(candidates, []entity.ModelName{{Name: "gpt-5.2"}})
+	if err != nil || len(got) != 2 || got[0].Name != "gpt-5.2" || got[0].Available || got[1].Name != "gpt-5.2-2025-12-11" || !got[1].Available {
+		t.Fatal("alias query rewrote canonical reservations", got, err)
+	}
+	for _, alias := range []string{"GPT 5.2", "GPT-5.2", "gpt-5.2 "} {
+		if _, err := projectModelCreationPublicNames(candidates, []entity.ModelName{{Name: alias}}); err == nil {
+			t.Fatal("nonexact reservation row accepted", alias)
+		}
 	}
 }

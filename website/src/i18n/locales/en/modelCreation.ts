@@ -106,6 +106,15 @@ export default {
   new: 'Create a new Model',
   existing: 'Link an existing Model',
   publicName: 'Public Model name for {{name}}',
+  publicNameReference: 'Reviewed reference',
+  publicNameAdvisory:
+    'Reference only. Confirm actual Connection protocol and Provider-model input declarations separately; these hints do not change configuration or prove readiness.',
+  publicNameProtocols: 'Reviewed protocols: {{protocols}}',
+  publicNameCapabilities: 'Reviewed input capabilities: {{capabilities}}',
+  publicNameImageInput: 'Images',
+  publicNamePDFInput: 'PDF',
+  publicNameReviewed: 'Reviewed {{date}}.',
+  publicNameSource: 'Official documentation',
   publicNameSuggestions:
     'Public names are suggestions only. You can enter a custom name; the server reviews availability.',
   publicNameChecking: 'Checking current name reservations…',

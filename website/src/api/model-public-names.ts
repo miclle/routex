@@ -1,5 +1,5 @@
 import client from './client'
-import { searchPublicModelNames } from '@/lib/public-model-references'
+import { publicModelReferenceMetadata, searchPublicModelNames } from '@/lib/public-model-references'
 import type { ModelPublicNames } from '@/types/model-public-names'
 export function validPublicNameQuery(query: string) {
   return (
@@ -40,9 +40,17 @@ export async function getModelPublicNames(
   for (const [index, item] of data.items.entries()) {
     if (
       !object(item) ||
-      Object.keys(item).sort().join(',') !== 'available,name' ||
+      Object.keys(item).sort().join(',') !== 'available,name,reference' ||
       item.name !== expected[index] ||
-      typeof item.available !== 'boolean'
+      typeof item.available !== 'boolean' ||
+      !object(item.reference) ||
+      Object.keys(item.reference).sort().join(',') !==
+        'aliases,capabilities,protocols,reviewed_at,source_url' ||
+      !Object.entries(publicModelReferenceMetadata(expected[index]) ?? {}).every(
+        ([key, value]) =>
+          JSON.stringify(item.reference && (item.reference as Record<string, unknown>)[key]) ===
+          JSON.stringify(value),
+      )
     )
       throw new Error('Invalid public name response')
   }

@@ -64,7 +64,7 @@ test('development server accepts localhost and rejects untrusted hosts', async (
         assert.equal(module.status, 200)
         const text = await module.text()
         const referencePath = text.match(
-          /from ["']([^"']*public-model-references\.v1\.json[^"']*)["']/,
+          /from ["']([^"']*public-model-references\.v2\.json[^"']*)["']/,
         )?.[1]
         assert.ok(referencePath, 'public reference import was not transformed')
         const reference = await fetch(new URL(referencePath, origin))

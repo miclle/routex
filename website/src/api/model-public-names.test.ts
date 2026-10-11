@@ -2,7 +2,7 @@ import { beforeEach, afterEach, it, expect } from 'vitest'
 import { AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
 import client from './client'
 import { getModelPublicNames } from './model-public-names'
-import { searchPublicModelNames } from '@/lib/public-model-references'
+import { publicModelReferenceMetadata, searchPublicModelNames } from '@/lib/public-model-references'
 const original = client.defaults.adapter
 let data: unknown, requests: InternalAxiosRequestConfig[]
 beforeEach(() => {
@@ -10,7 +10,11 @@ beforeEach(() => {
   data = {
     connection_id: 'con_one',
     query: 'gpt',
-    items: searchPublicModelNames('gpt').map((name) => ({ name, available: name !== 'gpt-5.2' })),
+    items: searchPublicModelNames('gpt').map((name) => ({
+      name,
+      reference: publicModelReferenceMetadata(name),
+      available: name !== 'gpt-5.2',
+    })),
   }
   client.defaults.adapter = async (config) => {
     requests.push(config)
@@ -71,4 +75,42 @@ it('rejects malformed identity/query before any request, but empty/literal custo
   expect(requests).toHaveLength(0)
   data = { connection_id: 'con_one', query: '_%!', items: [] }
   expect((await getModelPublicNames('con_one', '_%!')).items).toEqual([])
+})
+
+it('requires exact maintained metadata, never remote guesses or unknown hints', async () => {
+  const valid = structuredClone(data) as {
+    items: { name: string; available: boolean; reference: Record<string, unknown> }[]
+  }
+  for (const reference of [
+    undefined,
+    null,
+    {},
+    { ...valid.items[0].reference, aliases: ['invented'] },
+    { ...valid.items[0].reference, protocols: ['anthropic_messages'] },
+    { ...valid.items[0].reference, capabilities: ['pdf_input'] },
+    { ...valid.items[0].reference, source_url: 'https://attacker.invalid/' },
+    { ...valid.items[0].reference, reviewed_at: '2025-01-01' },
+    { ...valid.items[0].reference, readiness: true },
+  ]) {
+    data = { ...valid, items: [{ ...valid.items[0], reference }, valid.items[1]] }
+    await expect(getModelPublicNames('con_one', 'gpt')).rejects.toThrow(
+      'Invalid public name response',
+    )
+  }
+})
+it('alias queries retain exact query binding and return canonical names with their reviewed hints', async () => {
+  data = {
+    connection_id: 'con_one',
+    query: 'Sonnet 4.6',
+    items: [
+      {
+        name: 'claude-sonnet-4-6',
+        available: true,
+        reference: publicModelReferenceMetadata('claude-sonnet-4-6'),
+      },
+    ],
+  }
+  const result = await getModelPublicNames('con_one', 'Sonnet 4.6')
+  expect(result.items[0].name).toBe('claude-sonnet-4-6')
+  expect(result.items[0].reference.capabilities).toEqual(['image_input'])
 })

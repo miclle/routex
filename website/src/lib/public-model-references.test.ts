@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import data from '../../../internal/routex/modelreferences/public-model-references.v1.json'
+import data from '../../../internal/routex/modelreferences/public-model-references.v2.json'
 import {
   publicModelReferences,
   readPublicModelReferences,
+  publicModelReferenceMetadata,
   searchPublicModelNames,
 } from './public-model-references'
 
@@ -14,13 +15,24 @@ describe('versioned advisory public Model identities', () => {
       'claude-sonnet-4-6',
       'gemini-2.5-flash',
     ])
-    expect(publicModelReferences.every((row) => row.reviewed_at === '2026-10-04')).toBe(true)
+    expect(publicModelReferences.every((row) => row.reviewed_at === '2026-10-12')).toBe(true)
     expect(Object.isFrozen(publicModelReferences)).toBe(true)
     expect(Object.isFrozen(publicModelReferences[0])).toBe(true)
   })
   it.each([
     null,
-    { ...data, version: 2 },
+    { ...data, entries: [{ ...data.entries[0], source_url: data.entries[0].source_url + '?' }] },
+    { ...data, entries: [{ ...data.entries[0], source_url: data.entries[0].source_url + '#' }] },
+    { ...data, entries: [{ ...data.entries[0], name: 'gpt-5.2\n' }] },
+    { ...data, entries: [{ ...data.entries[0], aliases: null }] },
+    { ...data, entries: [{ ...data.entries[0], aliases: ['GPT 5.2', 'gpt 5.2'] }] },
+    { ...data, entries: [{ ...data.entries[0], aliases: ['bad\n'] }] },
+    { ...data, entries: [{ ...data.entries[0], aliases: ['x'.repeat(129)] }] },
+    { ...data, entries: [{ ...data.entries[0], aliases: Array(9).fill('alias') }] },
+    { ...data, entries: [{ ...data.entries[0], protocols: ['made_up'] }] },
+    { ...data, entries: [{ ...data.entries[0], capabilities: ['image_input', 'image_input'] }] },
+    { ...data, entries: [{ ...data.entries[0], capabilities: ['arbitrary'] }] },
+    { ...data, version: 3 },
     { ...data, capabilities: ['image'] },
     { ...data, entries: Array(101).fill(data.entries[0]) },
     { ...data, entries: [data.entries[0], data.entries[0]] },
@@ -50,6 +62,12 @@ describe('versioned advisory public Model identities', () => {
     expect(searchPublicModelNames('custom/Exact', [], rows)).toEqual([])
   })
   it('searches literals without rewriting exact identities and bounds the list', () => {
+    expect(searchPublicModelNames('GPT 5.2')).toEqual(['gpt-5.2', 'gpt-5.2-2025-12-11'])
+    expect(searchPublicModelNames('Sonnet 4.6')).toEqual(['claude-sonnet-4-6'])
+    expect(publicModelReferenceMetadata('GPT 5.2')).toBeUndefined()
+    expect(Object.isFrozen(publicModelReferences[0].aliases)).toBe(true)
+    expect(Object.isFrozen(publicModelReferences[0].protocols)).toBe(true)
+    expect(Object.isFrozen(publicModelReferences[0].capabilities)).toBe(true)
     expect(searchPublicModelNames('GPT-5.2')).toEqual(['gpt-5.2', 'gpt-5.2-2025-12-11'])
     expect(searchPublicModelNames('gpt', ['gpt-5.2'])).toEqual(['gpt-5.2-2025-12-11'])
     expect(searchPublicModelNames('gpt', ['GPT-5.2'])).toHaveLength(2)

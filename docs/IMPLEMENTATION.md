@@ -11,23 +11,73 @@ and reserved permissions remain rejected. All 165 focused API/component tests,
 TypeScript, formatting and mandatory checks passed; main was pushed with exact
 remote parity. This adds no new browser or external-provider acceptance.
 
-Telegram and the Key replacement-call advisory are independently source-complete.
-Their repaired candidate passes mandatory checks and the complete Task, including
-6,831 frontend tests in 252 files, Go race/coverage, development lifecycle and
-production assets. Its full PostgreSQL/MySQL matrix remains in progress; auth
-lifecycle and fresh default-production qualification are pending. Operational
-analysis is being reconciled in its separate worktree using current-user models,
-personal quota and authorized aggregates only. Saved-report policy remains open.
+Telegram and the Key replacement-call advisory pass repaired mandatory checks
+and the complete Task, including 6,831 frontend cases. Their first full database
+matrix failed historical fixtures; the retained focused successor also failed a
+Telegram callback fixture and MySQL migration-lock preparation. Both failed runs
+have independently verified resource cleanup. The callback fixture repair keeps
+the strict production parser and duplicate-input negatives. Operational analysis
+passes coherent mandatory and complete checks, including 6,933 frontend cases,
+using current-user models, personal quota and authorized aggregates only. Its
+first real-driver focus passed PostgreSQL but failed MySQL migration preparation.
+No database or delivery acceptance is inferred from these partial results.
+The next full qualification will bind one latest-main candidate containing both
+features and the migration-lock repair, followed by authentication lifecycle and
+a fresh default-production build on that same source. Saved-report policy remains
+open. Reviewed Model aliases and positive advisory metadata are delivered by the
+containing commit after complete checks and real-driver focused acceptance;
+actual protocols, capabilities, routes and grants are unchanged.
 Recorded routing-snapshot review is verified in this phase, with exact filters and
 optional all-recorded-process review in the existing System Status dialog. Its
 104 frontend/localization cases, focused Go race tests, mandatory check and real
 PostgreSQL/MySQL scenario passed. Telegram and operational analysis remain
 independently pending delivery; F30 remains Partial.
 
-Current totals: **16 Completed / 13 Partial / 1 Not started**. The previous
-enterprise CI was cancelled by the subsequent main push under the configured
-concurrency policy; the newest main CI remains pending. Local accepted evidence
-below retains its exact phase scope.
+Current totals: **16 Completed / 13 Partial / 1 Not started**. Snapshot review is
+committed and pushed as `5b2aac9d908b1f37819be52a85762a7211af94cb`, with exact
+remote parity. Its Actionlint and GolangCI-Lint passed; no successor CI result is claimed.
+Earlier CI runs cancelled by subsequent main pushes remain cancelled, not passed.
+Local accepted evidence below retains its exact phase scope.
+
+## Reviewed Model reference assistance (2026-10-12)
+
+The existing Model name picker searches bounded reviewed aliases and returns only
+canonical names for reservation and confirmation. A fresh exact selected name may
+show positive protocol/image-input hints, the localized review date and a vetted
+HTTPS source link. The same four canonical identities are retained in version2
+of the embedded reference file. Omitted hints stay unreviewed; this assistance
+changes no Connection protocol, Provider-model declaration, route or grant.
+
+Focused verification passed 104 frontend cases, six Go tests, TypeScript, ESLint
+and formatting. The real model_creation_batch scenario passed on PostgreSQL and
+MySQL, with three named events per driver including parents and no skips. The
+independent receipt
+`d6d70f7336b3edd2662f28f049f131c5c6835b9e78bf915f93cc6d6033b2bcfe`
+confirms eight joined workers, exact Compose/helper/port closure, 2,496 unchanged
+source paths and preserved development. The first run failed during MySQL's
+shared migration preparation before the feature leaf; its positive cleanup is
+separate and does not establish acceptance. Subsequent database qualifications
+are serialized to avoid overlapping their heavy migration preparation.
+
+The complete Task passed Go race/coverage and all 6,754 frontend cases in250files,
+but then failed the development-host oracle's obsolete v1 import filename. The
+exact v2 correction preserves Host validation and the private Go source403
+assertion; all five Node tests pass from their required website working directory.
+A mistaken root-directory invocation remains failed and is not acceptance.
+The repaired complete Task passed: Go race/coverage, 6,754 frontend cases in
+250 files, five website Node checks, thirteen script/lifecycle checks, TypeScript,
+production build and production asset serving. Original tool 74874 joined zero;
+its owned Task process/group closed. Final mandatory check 18278 also joined
+zero with its owned group absent. Final formatting changed no source. Complete
+Task readback SHA-256:
+`74fca1f5b19a754e50ebb177c437bc8c8b1ea3af059e950e6381d7e60c9bf9d0`.
+The final 2,496-path source floor is
+`2d410516676719fa569975b34d928860aca0edee77b0a7605a9bff0530d959dc`;
+the only code delta after database acceptance is the development-host fixture.
+The failed predecessor remains failed. Browser and external-provider acceptance
+are deferred; F12 as a whole remains Partial. The next bounded implementation
+gap is administrative Model input-capability display from authorized, bounded
+per-protocol configured facts, preserving Unknown versus known-empty values.
 
 ## Recorded Gateway installation review (2026-10-12)
 
@@ -57,7 +107,7 @@ routing snapshots do not establish equal installed authorization. Missing proces
 facts and unavailable local comparisons remain Unknown. Complete configuration
 rollback and distributed revocation acceptance remain separate F30 work; no
 additional historical Vault restore workflow is implied. Browser acceptance is
-deferred, and the independent Telegram full matrix remains in progress.
+deferred. Telegram and operational analysis await coherent successor qualification.
 
 ## Enterprise access delivery (2026-10-12)
 
@@ -4178,7 +4228,7 @@ The binary capability count is 16 completed, 13 partially completed, and 1 not s
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows are implemented. Genuine OIDC, custom OAuth, LDAP, SAML, GitHub and Google departure controls pass controlled complete dual-driver qualification, preserving Project assets while revoking personal authority. Bilingual browser, external IdP and complete enterprise continuity acceptance remain open; local departure does not claim remote IdP logout or account deletion. |
 | F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, reviewed deletion, staged replacement preparation, immutable per-attempt Credential/publication attribution, and parser-owned native completion evidence are available; evidence-gated predecessor retirement with historical receipt/current-application separation is available; Provider Models table, conjunctive filters, resource links and complete stored-binding projection have controlled bilingual permission/restart and full129 dual-driver acceptance; Whole-Provider availability, admitted-call continuity and disabled-child preservation are delivered in `3223974` with complete dual-driver, native/restart and bilingual browser acceptance. Recorded inference statistics, adapter metadata and directory stored Status now have controlled local acceptance. No additional finite pool workflow was established by source review; real-provider and wider release acceptance remain open. |
-| F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; reviewed compatibility-name Early stop has complete controlled source, dual-driver, native/browser/restart and full-matrix delivery. Guided batch creation has complete source, repaired driver, production/browser/restart and full-matrix acceptance, with one atomic reviewed transaction, bounded historical receipts and no implicit grants or existing-Key expansion. Advisory public-name assistance and its bounded popup-label compatibility repair have complete controlled source and final R2 browser/native/restart acceptance; checked delivery is represented by the containing acceptance-record commit, with new remote CI pending. Complete public-catalog assistance and broader routing acceptance remain open. |
+| F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; reviewed compatibility-name Early stop has complete controlled source, dual-driver, native/browser/restart and full-matrix delivery. Guided batch creation has complete source, repaired driver, production/browser/restart and full-matrix acceptance, with one atomic reviewed transaction, bounded historical receipts and no implicit grants or existing-Key expansion. Advisory public-name assistance and its bounded popup-label compatibility repair have complete controlled source and final R2 browser/native/restart acceptance; checked delivery is represented by the containing acceptance-record commit, with new remote CI pending. Reviewed alias search and positive advisory protocol/image metadata pass focused frontend/Go, mandatory and complete Task checks plus real PostgreSQL/MySQL batch acceptance in the containing delivery. Administrative Model input-capability display, broader routing and real-provider acceptance remain separate gaps. |
 | F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini now use bounded replay-safe same-protocol failover with process-local health, one admission/settlement, durable ordered diagnostics, and no retry after a usable response. Azure Chat adaptation and exact Credential deployment declarations are delivered as 5fda0737 with controlled dual-driver/native/restart evidence; real-provider and measured multi-node health acceptance remain open. |
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
 | F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Completed | Individual price editing, reviewed CSV/XLS/XLSX imports, management API and the approved embedded repository source have source, dual-driver and controlled UI/native/restart evidence. Exact mappings, manual preview/confirmation, custom/zero/disabled-rate protection, atomic row errors, ETags and omission preservation are accepted. Four genuine Excel/CSV browser downloads, independent read authority, revocation/restoration, bilingual controls and original Reader browser Session restart close the final bounded gap. Arbitrary network fetching, scheduling and wider release acceptance remain separate A09 work. |

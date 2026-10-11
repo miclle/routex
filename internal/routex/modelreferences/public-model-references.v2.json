@@ -1,0 +1,37 @@
+{
+  "version": 2,
+  "entries": [
+    {
+      "name": "gpt-5.2",
+      "source_url": "https://developers.openai.com/api/docs/models/gpt-5.2",
+      "reviewed_at": "2026-10-12",
+      "aliases": ["GPT 5.2", "GPT5.2"],
+      "protocols": ["openai_chat", "openai_responses"],
+      "capabilities": ["image_input"]
+    },
+    {
+      "name": "gpt-5.2-2025-12-11",
+      "source_url": "https://developers.openai.com/api/docs/models/gpt-5.2",
+      "reviewed_at": "2026-10-12",
+      "aliases": ["GPT 5.2 December 2025"],
+      "protocols": ["openai_chat", "openai_responses"],
+      "capabilities": ["image_input"]
+    },
+    {
+      "name": "claude-sonnet-4-6",
+      "source_url": "https://platform.claude.com/docs/en/models/sonnet-4-6/overview",
+      "reviewed_at": "2026-10-12",
+      "aliases": ["Claude Sonnet 4.6", "Sonnet 4.6"],
+      "protocols": ["anthropic_messages"],
+      "capabilities": ["image_input"]
+    },
+    {
+      "name": "gemini-2.5-flash",
+      "source_url": "https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash",
+      "reviewed_at": "2026-10-12",
+      "aliases": ["Gemini 2.5 Flash", "Gemini Flash 2.5"],
+      "protocols": ["gemini_generate_content"],
+      "capabilities": ["image_input"]
+    }
+  ]
+}

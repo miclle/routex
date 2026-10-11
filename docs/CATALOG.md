@@ -571,18 +571,26 @@ provider and wider Model capability acceptance remain independent.
 
 The composed guided-creation candidate offers advisory suggestions through the
 local Base UI Autocomplete while retaining fully custom input. The versioned
-`internal/routex/modelreferences/public-model-references.v1.json` contains the
+`internal/routex/modelreferences/public-model-references.v2.json` contains the
 same four reviewed exact identities: `gpt-5.2`, `gpt-5.2-2025-12-11`,
 `claude-sonnet-4-6` and `gemini-2.5-flash`. Each entry retains its official
-documentation URL and review date. Go embeds this data-only package and the SPA
+documentation URL, review date, bounded human-readable search aliases and
+positive-only reviewed protocol/input hints. Go embeds this data-only package and the SPA
 imports the same JSON bytes; the former frontend data file is removed. These are
-maintained identity suggestions, not claims of routing availability, current
-provider releases, input capabilities, capacity or prices. No external reference
+maintained reference suggestions, not claims of actual supply, routing
+availability, current releases, configured input declarations, capacity or prices. No external reference
 API or automatic catalogue synchronization is introduced.
 
-The strict version-1 parser accepts at most 100 unique bounded ASCII names,
-canonical credential-free HTTPS URLs on reviewed official hosts and valid review
-dates. Search is literal and case-insensitive and preserves exact spelling.
+The strict version-2 parser accepts at most 100 unique bounded ASCII names,
+at most eight unique case-insensitive aliases per entry (each at most 128 UTF-8
+bytes, trimmed, control-free), at most four distinct supported native protocols
+and two distinct input hints (`image_input`, `pdf_input`). Lists are required;
+empty lists mean unreviewed rather than unsupported. Unknown fields, enum values,
+versions or duplicate values reject the entire file. Source URLs remain canonical
+credential-free HTTPS URLs on reviewed official hosts, with valid review dates.
+Search is literal and case-insensitive across names and aliases and returns only
+canonical exact names in maintained order. Alias text is not an output name or a
+new reservation. The earlier version-1 file is retained as a historical source.
 Malformed metadata disables suggestions without disabling custom input.
 
 `GET /api/v1/admin/connections/:connection_id/model-creation/public-names?q=<literal>`
@@ -597,7 +605,9 @@ Current names and retained aliases remain reserved, including expired aliases.
 Arbitrary custom queries cannot enumerate unrelated reserved names.
 
 The response contains only `connection_id`, the exact `query`, and `items` with
-`name` and `available`. Availability describes the current public-name reservation
+`name`, `available` and `reference`. The required reference object contains only
+`aliases`, `protocols`, `capabilities`, `source_url` and `reviewed_at`; the SPA
+requires an exact match to its bundled reviewed entry. Availability describes the current public-name reservation
 only. The control displays available candidates and excludes exact selected
 sibling names; it preserves custom text even when the read is unavailable or the
 name is reserved. Assistance makes no write or upstream request. The final server
@@ -608,10 +618,30 @@ Arrow navigation does not fill the field. Explicit pointer or Enter selection
 changes only that row's name; Escape dismisses suggestions while retaining custom
 text. Selection changes no Connection, Provider-model, row mode, reason, sibling
 row, routing weight, price, grant or credential. It makes no creation request and
-claims no protocol, media capability, capacity or supply readiness. The existing
+claims no actual protocol, media capability, capacity or supply readiness.
+After a fresh exact canonical-name read, a compact note shows the reviewed positive
+protocol/input hints, localized review date and vetted official documentation
+link. Renewal, errors, custom text and authority changes hide that note with the
+suggestions. No hint prefills or mutates a Connection protocol, Provider-model
+input declaration, routing or grant; actual declarations require separate review. The existing
 server preview, required reason, explicit confirmation and immutable UUID receipt
 workflow are unchanged. Only that independently confirmed operation can create a
 Model or binding.
+
+The 2026-10-12 review retains the same four identities. The official
+[GPT-5.2 model documentation](https://developers.openai.com/api/docs/models/gpt-5.2)
+lists the exact snapshot and Chat Completions/Responses endpoints plus image
+input. The [Claude Sonnet 4.6 documentation](https://platform.claude.com/docs/en/models/sonnet-4-6/overview)
+describes text/image input for the Claude API; the reviewed native protocol is
+[Messages](https://platform.claude.com/docs/en/api/messages/create). The
+[Gemini 2.5 Flash documentation](https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash)
+confirms image input; its reviewed native protocol is
+[GenerateContent](https://ai.google.dev/api/generate-content). Human-readable
+aliases are maintained search terms derived from these documented names, not
+claims of additional upstream API IDs. PDF and other uncertain hints are omitted.
+This reference is finite and maintained by code review, with no external fetch at
+runtime. Database and browser qualification for this extension remain separate
+from its focused source/unit verification.
 
 Actor, exact Connection and row identity, current mode/removal, synchronous busy
 lock and fresh Session/permission/context/picker generations guard suggestion

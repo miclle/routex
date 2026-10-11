@@ -1,6 +1,7 @@
 import { useCallback, useId, useSyncExternalStore } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { protocolLabels } from '@/lib/protocols'
 import { Autocomplete } from '@/components/ui/autocomplete'
 import { getModelPublicNames, validPublicNameQuery } from '@/api/model-public-names'
 import { searchPublicModelNames } from '@/lib/public-model-references'
@@ -44,7 +45,7 @@ export function PublicModelName({
   authority: string
   fresh: () => boolean
 }) {
-  const { t } = useTranslation('modelCreation'),
+  const { t, i18n } = useTranslation('modelCreation'),
     cache = useQueryClient(),
     descriptionId = useId()
   const key = ['model-creation-public-names', actor, connectionId, authority, value] as const
@@ -75,6 +76,9 @@ export function PublicModelName({
     current()
       ?.items.filter((item) => item.available && !excludedNames.includes(item.name))
       .map((item) => item.name) ?? []
+  const selected = current()?.items.find(
+    (item) => item.name === value && item.available && !excludedNames.includes(item.name),
+  )
   return (
     <div className="min-w-0 flex-1 space-y-1">
       <Autocomplete
@@ -95,6 +99,49 @@ export function PublicModelName({
       <p id={descriptionId} className="text-xs text-muted-foreground">
         {t('publicNameSuggestions')}
       </p>
+      {selected && (
+        <div
+          className="space-y-1 text-xs text-muted-foreground"
+          role="note"
+          aria-label={t('publicNameReference')}
+        >
+          <p>{t('publicNameAdvisory')}</p>
+          {selected.reference.protocols.length > 0 && (
+            <p>
+              {t('publicNameProtocols', {
+                protocols: protocolLabels([...selected.reference.protocols]),
+              })}
+            </p>
+          )}
+          {selected.reference.capabilities.length > 0 && (
+            <p>
+              {t('publicNameCapabilities', {
+                capabilities: selected.reference.capabilities
+                  .map((capability) =>
+                    t(capability === 'image_input' ? 'publicNameImageInput' : 'publicNamePDFInput'),
+                  )
+                  .join(', '),
+              })}
+            </p>
+          )}
+          <p>
+            {t('publicNameReviewed', {
+              date: new Intl.DateTimeFormat(i18n.language === 'zh' ? 'zh-CN' : 'en', {
+                dateStyle: 'medium',
+                timeZone: 'UTC',
+              }).format(new Date(selected.reference.reviewed_at)),
+            })}{' '}
+            <a
+              href={selected.reference.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              {t('publicNameSource')}
+            </a>
+          </p>
+        </div>
+      )}
       {enabled && names.isFetching && (
         <p role="status" className="text-xs text-muted-foreground">
           {t('publicNameChecking')}

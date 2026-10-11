@@ -1,4 +1,4 @@
-// Package modelreferences owns reviewed advisory Model identities, never routing metadata.
+// Package modelreferences owns reviewed advisory Model identities, never routing authority.
 package modelreferences
 
 import (
@@ -18,24 +18,49 @@ import (
 	"unicode/utf8"
 )
 
-//go:embed public-model-references.v1.json
+//go:embed public-model-references.v2.json
 var embedded []byte
 var ErrInvalid = errors.New("invalid public Model references")
 var namePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$`)
 
-type entry struct {
-	Name       string `json:"name"`
-	SourceURL  string `json:"source_url"`
-	ReviewedAt string `json:"reviewed_at"`
+// Metadata records positive reviewed hints only. Omission is not a denial of support.
+type Metadata struct {
+	Aliases      []string `json:"aliases"`
+	Protocols    []string `json:"protocols"`
+	Capabilities []string `json:"capabilities"`
+	SourceURL    string   `json:"source_url"`
+	ReviewedAt   string   `json:"reviewed_at"`
+}
+type Entry struct {
+	Name string `json:"name"`
+	Metadata
 }
 type Snapshot struct {
-	names  []string
-	digest string
+	entries []Entry
+	digest  string
 }
 
-func Embedded() (*Snapshot, error)  { return Parse(embedded) }
-func (s *Snapshot) Names() []string { return slices.Clone(s.names) }
-func (s *Snapshot) Digest() string  { return s.digest }
+func Embedded() (*Snapshot, error) { return Parse(embedded) }
+func (s *Snapshot) Names() []string {
+	names := make([]string, 0, len(s.entries))
+	for _, entry := range s.entries {
+		names = append(names, entry.Name)
+	}
+	return names
+}
+func (s *Snapshot) Metadata(name string) (Metadata, bool) {
+	for _, entry := range s.entries {
+		if entry.Name == name {
+			m := entry.Metadata
+			m.Aliases = slices.Clone(m.Aliases)
+			m.Protocols = slices.Clone(m.Protocols)
+			m.Capabilities = slices.Clone(m.Capabilities)
+			return m, true
+		}
+	}
+	return Metadata{}, false
+}
+func (s *Snapshot) Digest() string { return s.digest }
 func ValidQuery(q string) bool {
 	return len(q) <= 128 && utf8.ValidString(q) && !strings.ContainsFunc(q, unicode.IsControl)
 }
@@ -44,9 +69,13 @@ func (s *Snapshot) Search(q string) []string {
 	if !ValidQuery(q) {
 		return result
 	}
-	for _, name := range s.names {
-		if strings.Contains(strings.ToLower(name), strings.ToLower(q)) {
-			result = append(result, name)
+	for _, entry := range s.entries {
+		matches := strings.Contains(strings.ToLower(entry.Name), strings.ToLower(q))
+		for _, alias := range entry.Aliases {
+			matches = matches || strings.Contains(strings.ToLower(alias), strings.ToLower(q))
+		}
+		if matches {
+			result = append(result, entry.Name)
 			if len(result) == 8 {
 				break
 			}
@@ -94,18 +123,41 @@ func Parse(raw []byte) (*Snapshot, error) {
 	}
 	var version int
 	var entries []json.RawMessage
-	if json.Unmarshal(f["version"], &version) != nil || version != 1 || json.Unmarshal(f["entries"], &entries) != nil || bytes.Equal(bytes.TrimSpace(f["entries"]), []byte("null")) || len(entries) > 100 {
+	if json.Unmarshal(f["version"], &version) != nil || version != 2 || json.Unmarshal(f["entries"], &entries) != nil || bytes.Equal(bytes.TrimSpace(f["entries"]), []byte("null")) || len(entries) > 100 {
 		return nil, ErrInvalid
 	}
-	names := []string{}
+	parsed := []Entry{}
 	seen := map[string]bool{}
 	for _, rawEntry := range entries {
-		if _, err = fields(rawEntry, "name", "source_url", "reviewed_at"); err != nil {
+		if _, err = fields(rawEntry, "name", "aliases", "protocols", "capabilities", "source_url", "reviewed_at"); err != nil {
 			return nil, err
 		}
-		var e entry
+		var e Entry
 		if json.Unmarshal(rawEntry, &e) != nil || !namePattern.MatchString(e.Name) || seen[e.Name] || len(e.SourceURL) > 256 {
 			return nil, ErrInvalid
+		}
+		if e.Aliases == nil || len(e.Aliases) > 8 || e.Protocols == nil || len(e.Protocols) > 4 || e.Capabilities == nil || len(e.Capabilities) > 2 {
+			return nil, ErrInvalid
+		}
+		aliases := map[string]bool{}
+		for _, alias := range e.Aliases {
+			normalized := strings.ToLower(alias)
+			if alias == "" || strings.TrimSpace(alias) != alias || !ValidQuery(alias) || aliases[normalized] || normalized == strings.ToLower(e.Name) {
+				return nil, ErrInvalid
+			}
+			aliases[normalized] = true
+		}
+		for _, group := range []struct{ values, allowed []string }{
+			{e.Protocols, []string{"openai_chat", "openai_responses", "anthropic_messages", "gemini_generate_content"}},
+			{e.Capabilities, []string{"image_input", "pdf_input"}},
+		} {
+			seen := map[string]bool{}
+			for _, value := range group.values {
+				if !slices.Contains(group.allowed, value) || seen[value] {
+					return nil, ErrInvalid
+				}
+				seen[value] = true
+			}
 		}
 		u, err := url.Parse(e.SourceURL)
 		if err != nil || u.String() != e.SourceURL || u.Scheme != "https" || u.User != nil || u.Port() != "" || u.ForceQuery || u.RawQuery != "" || u.Fragment != "" || !slices.Contains([]string{"developers.openai.com", "platform.claude.com", "ai.google.dev"}, u.Hostname()) || u.Host != u.Hostname() {
@@ -116,8 +168,8 @@ func Parse(raw []byte) (*Snapshot, error) {
 			return nil, ErrInvalid
 		}
 		seen[e.Name] = true
-		names = append(names, e.Name)
+		parsed = append(parsed, e)
 	}
 	hash := sha256.Sum256(raw)
-	return &Snapshot{names: names, digest: hex.EncodeToString(hash[:])}, nil
+	return &Snapshot{entries: parsed, digest: hex.EncodeToString(hash[:])}, nil
 }

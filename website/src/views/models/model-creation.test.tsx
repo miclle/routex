@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import client from '@/api/client'
-import { searchPublicModelNames } from '@/lib/public-model-references'
+import { publicModelReferenceMetadata, searchPublicModelNames } from '@/lib/public-model-references'
 import i18n from '@/i18n'
 import { sessionKey } from '@/hooks/use-auth'
 import type { Session } from '@/types/auth'
@@ -100,6 +100,7 @@ beforeEach(async () => {
         query: config.params?.q ?? '',
         items: searchPublicModelNames(config.params?.q ?? '').map((name) => ({
           name,
+          reference: publicModelReferenceMetadata(name),
           available: !reservedNames.includes(name),
         })),
       }

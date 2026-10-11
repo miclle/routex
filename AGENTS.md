@@ -746,11 +746,14 @@ name. New100 means configured unavailable supply until coverage is independently
 recorded; backup0 preserves the existing complete protocol total.
 
 Public Model name assistance stays inside the guided creation name control. The
-versioned local reference file contains only reviewed official identities, source
-URLs and review dates. The local Base UI Autocomplete accepts custom names and
+versioned local reference file contains reviewed official identities, bounded
+search aliases, positive-only protocol/input hints, source URLs and review dates. The local Base UI Autocomplete accepts custom names and
 requires explicit selection; malformed reference metadata disables suggestions
-without disabling input. Suggestions never infer Connection/ProviderModel
-selection, routing readiness, protocols, capabilities, prices or grants. Preserve
+without disabling input. Aliases return canonical names only and never become reservations or output
+names automatically. Show reviewed metadata only for a fresh exact canonical
+name inside the existing control; absent hints mean unreviewed, not unsupported.
+Suggestions never change Connection/ProviderModel selection, configured protocols
+or input declarations, routing readiness, prices or grants. Preserve
 exact actor/Connection/row authority and the existing server preview, reason and
 immutable creation intent; close obsolete suggestion interactions on renewed
 reads or resource changes. Keep paired modelCreation copy.

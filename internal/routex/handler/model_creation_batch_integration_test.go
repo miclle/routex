@@ -386,6 +386,15 @@ func testModelCreationBatchLifecycle(t *testing.T, db *gorm.DB) {
 	if initialNames.ConnectionID != connectionID || initialNames.Query != "gpt-5.2" || len(initialNames.Items) != 2 || !initialNames.Items[0].Available || !initialNames.Items[1].Available {
 		t.Fatal("bounded read-only maintained candidates missing", initialNames)
 	}
+	aliasNames := decodeCatalogResponse[service.ModelCreationPublicNames](t, request(readCookie, "", "GET", namesPath+"?q=GPT%205.2", nil, ""), 200)
+	if aliasNames.Query != "GPT 5.2" || len(aliasNames.Items) != 2 || !reflect.DeepEqual(aliasNames.Items, initialNames.Items) {
+		t.Fatal("search alias changed canonical name/reservation/reference", aliasNames)
+	}
+	for _, item := range initialNames.Items {
+		if !slices.Equal(item.Reference.Protocols, []string{"openai_chat", "openai_responses"}) || !slices.Equal(item.Reference.Capabilities, []string{"image_input"}) || item.Reference.SourceURL != "https://developers.openai.com/api/docs/models/gpt-5.2" || item.Reference.ReviewedAt != "2026-10-12" || len(item.Reference.Aliases) == 0 {
+			t.Fatal("reviewed advisory metadata missing", item)
+		}
+	}
 	// Reserve these after the assistance read: advisory availability is never a commit token.
 	expired := time.Now().UTC().Add(-time.Hour)
 	active := time.Now().UTC().Add(time.Hour)
@@ -424,7 +433,7 @@ func testModelCreationBatchLifecycle(t *testing.T, db *gorm.DB) {
 	if namesResponse.Header().Get("Cache-Control") != "private, no-store" || namesResponse.Header().Get("X-Content-Type-Options") != "nosniff" {
 		t.Fatal("reservation response cache headers")
 	}
-	for _, private := range []string{"model_id", "provider_id", "ciphertext", "source_url", "reviewed_at", "expires_at", "test-only-batch-secret"} {
+	for _, private := range []string{"model_id", "provider_id", "ciphertext", "expires_at", "test-only-batch-secret"} {
 		if strings.Contains(namesResponse.Body.String(), private) {
 			t.Fatal("reservation response exposed unrelated metadata", private)
 		}

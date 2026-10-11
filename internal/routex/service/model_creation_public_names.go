@@ -12,8 +12,9 @@ import (
 )
 
 type ModelCreationPublicName struct {
-	Name      string `json:"name"`
-	Available bool   `json:"available"`
+	Name      string                   `json:"name"`
+	Available bool                     `json:"available"`
+	Reference modelreferences.Metadata `json:"reference"`
 }
 type ModelCreationPublicNames struct {
 	ConnectionID string                    `json:"connection_id"`
@@ -52,7 +53,17 @@ func (s *Service) ListModelCreationPublicNames(ctx context.Context, actor, conne
 		}
 		var err error
 		result.Items, err = projectModelCreationPublicNames(candidates, rows)
-		return err
+		if err != nil {
+			return err
+		}
+		for i := range result.Items {
+			metadata, ok := references.Metadata(result.Items[i].Name)
+			if !ok {
+				return apperrors.ErrInternal
+			}
+			result.Items[i].Reference = metadata
+		}
+		return nil
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	return result, catalogError(err)
 }
