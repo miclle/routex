@@ -501,8 +501,12 @@ func TestProjectKeyMonthlyBehaviorRegistryTail(t *testing.T) {
 	for _, pair := range matches {
 		pairs = append(pairs, pair[1]+":"+pair[2])
 	}
-	if !enterpriseRegistry218Current(pairs) {
-		t.Fatal("exact218 enterprise successor required before historical210 checks")
+	if !insightsRegistry222Current(pairs) {
+		t.Fatal("exact222 Insights successor required before historical221 checks")
+	}
+	pairs = pairs[:221]
+	if !telegramRegistry221Current(pairs) {
+		t.Fatal("exact221 Telegram successor required before historical210 checks")
 	}
 	pairs = pairs[:210] // Preserve the exact predecessor guard and its historical controls.
 	if !apiKeyDeliveryRegistry210Current(pairs) {
@@ -521,7 +525,7 @@ func TestProjectKeyMonthlyBehaviorRegistryTail(t *testing.T) {
 		t.Fatal("exact V93/181 successor changed")
 	}
 	pairs = pairs[:179]
-	if len(pairs) != 179 || !strings.Contains(string(raw), "versions != 105") {
+	if len(pairs) != 179 || !strings.Contains(string(raw), "versions != 106") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if !projectKeyMonthlyBehaviorRegistryMatches(pairs) {

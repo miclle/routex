@@ -235,7 +235,7 @@ func (s *Service) RuntimeAuthenticateTeamSession(ctx context.Context, rawCookie,
 	}
 	hash := secret.SHA256Hex(rawCookie)
 	session, exists := auth.TeamSessions[hash]
-	if !exists || s.runtimeAuthenticationPolicyDenied(auth, session) || session.TokenHash != hash || !s.gatewayAttemptClock().Before(session.ExpiresAt) || runtimeDenied(&s.runtime.deniedSessions, session.ID) || runtimeDenied(&s.runtime.deniedSessionUsers, session.UserID) || runtimeDenied(&s.runtime.deniedUsers, session.UserID) || (s.runtimeOIDCSessionDenied(session) || s.runtimeOAuthSessionDenied(session) || s.runtimeLDAPSessionDenied(session) || s.runtimeSAMLSessionDenied(session) || s.runtimeNamedIdentitySessionDenied(session)) {
+	if !exists || session.TokenHash != hash || !s.runtimeSessionActive(auth, session) {
 		return nil, teamSessionInvalid()
 	}
 	team, exists := auth.Teams[teamID]
@@ -272,7 +272,7 @@ func (s *Service) ReauthorizeTeamSession(ctx context.Context, identity *TeamSess
 		return err
 	}
 	session, exists := auth.TeamSessions[identity.tokenHash]
-	if !exists || s.runtimeAuthenticationPolicyDenied(auth, session) || session.PrimaryMethod != identity.primaryMethod || !session.CreatedAt.Equal(identity.createdAt) || session.EmergencyPolicyRevision != identity.emergencyPolicyRevision || !authenticationInstantEqual(session.EmergencyUserCreatedAt, identity.emergencyUserCreatedAt) || session.EmergencyMFAGeneration != identity.emergencyMFAGeneration || session.EmergencyPasswordDigest != identity.emergencyPasswordDigest || !authenticationInstantEqual(session.EmergencyFactorCompletedAt, identity.emergencyFactorCompletedAt) || session.ID != identity.SessionID || session.UserID != identity.UserID || session.TokenHash != identity.tokenHash || session.OIDCPolicyRevision != identity.oidcPolicyRevision || session.OIDCBindingKey != identity.oidcBindingKey || session.OAuthPolicyRevision != identity.oauthPolicyRevision || session.OAuthBindingKey != identity.oauthBindingKey || session.LDAPPolicyRevision != identity.ldapPolicyRevision || session.LDAPBindingKey != identity.ldapBindingKey || session.SAMLPolicyRevision != identity.samlPolicyRevision || session.SAMLBindingKey != identity.samlBindingKey || session.NamedIdentityPolicyKey != identity.namedIdentityPolicyKey || session.NamedIdentityBindingKey != identity.namedIdentityBindingKey || !session.ExpiresAt.Equal(identity.expiresAt) || !s.gatewayAttemptClock().Before(session.ExpiresAt) || runtimeDenied(&s.runtime.deniedSessions, session.ID) || runtimeDenied(&s.runtime.deniedSessionUsers, session.UserID) || runtimeDenied(&s.runtime.deniedUsers, session.UserID) || (s.runtimeOIDCSessionDenied(session) || s.runtimeOAuthSessionDenied(session) || s.runtimeLDAPSessionDenied(session) || s.runtimeSAMLSessionDenied(session) || s.runtimeNamedIdentitySessionDenied(session)) {
+	if !exists || session.PrimaryMethod != identity.primaryMethod || !session.CreatedAt.Equal(identity.createdAt) || session.EmergencyPolicyRevision != identity.emergencyPolicyRevision || !authenticationInstantEqual(session.EmergencyUserCreatedAt, identity.emergencyUserCreatedAt) || session.EmergencyMFAGeneration != identity.emergencyMFAGeneration || session.EmergencyPasswordDigest != identity.emergencyPasswordDigest || !authenticationInstantEqual(session.EmergencyFactorCompletedAt, identity.emergencyFactorCompletedAt) || session.ID != identity.SessionID || session.UserID != identity.UserID || session.TokenHash != identity.tokenHash || session.OIDCPolicyRevision != identity.oidcPolicyRevision || session.OIDCBindingKey != identity.oidcBindingKey || session.OAuthPolicyRevision != identity.oauthPolicyRevision || session.OAuthBindingKey != identity.oauthBindingKey || session.LDAPPolicyRevision != identity.ldapPolicyRevision || session.LDAPBindingKey != identity.ldapBindingKey || session.SAMLPolicyRevision != identity.samlPolicyRevision || session.SAMLBindingKey != identity.samlBindingKey || session.NamedIdentityPolicyKey != identity.namedIdentityPolicyKey || session.NamedIdentityBindingKey != identity.namedIdentityBindingKey || !session.ExpiresAt.Equal(identity.expiresAt) || !s.runtimeSessionActive(auth, session) {
 		return teamSessionInvalid()
 	}
 	team, exists := auth.Teams[identity.TeamID]
@@ -339,4 +339,12 @@ func (s *Service) publishSessionMutation(ctx context.Context) {
 	// failure does not change that contract; native admission still requires a
 	// fresh lease and the local revocation tombstones remain effective.
 	_ = s.RefreshRuntime(ctx)
+}
+
+// runtimeSessionActive is independent of Team membership. Both Session Gateway
+// subjects use the same leased primary-authentication and revocation fences.
+func (s *Service) runtimeSessionActive(auth *runtimeAuthorization, session runtimeTeamSession) bool {
+	return s.runtime != nil && auth != nil && !s.runtimeAuthenticationPolicyDenied(auth, session) && s.gatewayAttemptClock().Before(auth.ValidUntil) && s.gatewayAttemptClock().Before(session.ExpiresAt) &&
+		!runtimeDenied(&s.runtime.deniedSessions, session.ID) && !runtimeDenied(&s.runtime.deniedSessionUsers, session.UserID) && !runtimeDenied(&s.runtime.deniedUsers, session.UserID) &&
+		!s.runtimeOIDCSessionDenied(session) && !s.runtimeOAuthSessionDenied(session) && !s.runtimeLDAPSessionDenied(session) && !s.runtimeSAMLSessionDenied(session) && !s.runtimeNamedIdentitySessionDenied(session)
 }

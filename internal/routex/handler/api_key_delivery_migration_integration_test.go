@@ -412,7 +412,7 @@ func testAPIKeyDeliveryMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal("restore full103", safeCategory(err))
 	}
 	after103 := personalKeyBehaviorLedger(t, db)
-	if len(after103) != 105 || after103[104].Version != 105 || after103[103].Version != 104 || after103[102].Version != 103 || !reflect.DeepEqual(before103, after103[:102]) {
+	if len(after103) != 106 || after103[105].Version != 106 || after103[104].Version != 105 || after103[103].Version != 104 || after103[102].Version != 103 || !reflect.DeepEqual(before103, after103[:102]) {
 		t.Fatal("103 restoration changed102 receipts")
 	}
 }

@@ -52,6 +52,10 @@ func runtimeAuthorizationProjection(ctx context.Context, auth *runtimeAuthorizat
 		w.text(v.Revision)
 		w.text(v.Hash)
 	})
+	w.field("PersonalModels")
+	runtimeProjectionMap(w, auth.PersonalModels, func(key string, v map[string]bool) {
+		runtimeProjectionMap(w, v, func(_ string, value bool) { w.boolean(value) })
+	})
 	w.field("ModelEligibilityHashes")
 	runtimeProjectionMap(w, auth.ModelEligibilityHashes, func(key string, v string) { w.text(v) })
 	w.field("PersonalKeyStates")
@@ -527,7 +531,7 @@ func (w *runtimeProjectionWriter) authenticationPolicy(p runtimeAuthenticationPo
 func (w *runtimeProjectionWriter) emergencySession(v runtimeTeamSession, p runtimeAuthenticationPolicy) {
 	w.text(v.PrimaryMethod)
 	switch v.PrimaryMethod {
-	case "", "local", "oidc", "oauth", "ldap", "saml", "github", "google", "discord":
+	case "", "local", "oidc", "oauth", "ldap", "saml", "github", "google", "discord", "telegram":
 		if v.EmergencyPolicyRevision != "" || v.EmergencyUserCreatedAt != nil || v.EmergencyMFAGeneration != "" || v.EmergencyPasswordDigest != "" || v.EmergencyFactorCompletedAt != nil {
 			w.fail()
 			return

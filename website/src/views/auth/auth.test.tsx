@@ -94,10 +94,16 @@ beforeEach(() => {
       key === 'get /auth/oidc' ||
       key === 'get /auth/github' ||
       key === 'get /auth/google' ||
-      key === 'get /auth/discord'
+      key === 'get /auth/discord' ||
+      key === 'get /auth/telegram'
     )
       response.data = { available: false, name: '' }
-    if (key === 'get /auth/github' || key === 'get /auth/google' || key === 'get /auth/discord') {
+    if (
+      key === 'get /auth/github' ||
+      key === 'get /auth/google' ||
+      key === 'get /auth/discord' ||
+      key === 'get /auth/telegram'
+    ) {
       response.headers.set('Cache-Control', 'private, no-store')
       response.headers.set('X-Content-Type-Options', 'nosniff')
       response.headers.set('Referrer-Policy', 'no-referrer')

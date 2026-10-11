@@ -108,6 +108,7 @@ beforeEach(async () => {
         '/auth/ldap',
         '/auth/saml',
         '/auth/github',
+        '/auth/telegram',
         '/auth/discord',
       ].includes(path)
     )

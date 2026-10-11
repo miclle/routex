@@ -157,6 +157,7 @@ beforeEach(async () => {
         '/admin/auth/oauth',
         '/admin/auth/github',
         '/admin/auth/google',
+        '/admin/auth/telegram',
       ].includes(config.url ?? '') &&
       config.method === 'get'
     )

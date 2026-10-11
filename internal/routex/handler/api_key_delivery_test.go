@@ -121,7 +121,7 @@ func TestAPIKeyDeliveryManagedResponseIsOnlySafeMetadata(t *testing.T) {
 	review := strings.Repeat("a", 64)
 	for _, project := range []string{"", "prj_owned"} {
 		for _, status := range []int{http.StatusOK, http.StatusCreated, http.StatusAccepted} {
-			v := &service.ManagedAPIKeyResult{HTTPStatus: status, Delivery: service.APIKeyDeliveryReceiptView{KeyID: "key_owned", Mode: "managed_vault", DeliveryStatus: "unknown", RuntimeStatus: "unknown", ReviewETag: review}}
+			v := &service.ManagedAPIKeyResult{HTTPStatus: status, Delivery: service.APIKeyDeliveryReceiptView{KeyID: "key_owned", Mode: "managed_vault", DeliveryStatus: "unknown", RuntimeStatus: "unknown", ReplacementCallStatus: "not_applicable", ReviewETag: review}}
 			if project == "" {
 				v.Personal = &service.KeyRecord{Key: entity.APIKey{ID: "key_owned", UserID: "usr_owned", TokenHash: "private-token", DeliveryMode: "managed_vault", Status: entity.KeyPending}, ModelIDs: []string{"mdl_owned"}}
 			} else {
@@ -163,7 +163,7 @@ func TestAPIKeyDeliveryManagedResponseIsOnlySafeMetadata(t *testing.T) {
 
 func TestAPIKeyDeliveryManagedResponseRejectsMixedOrUnsupportedRecords(t *testing.T) {
 	good := func() *service.ManagedAPIKeyResult {
-		return &service.ManagedAPIKeyResult{HTTPStatus: 202, Personal: &service.KeyRecord{Key: entity.APIKey{ID: "key_owned", DeliveryMode: "managed_vault"}}, Delivery: service.APIKeyDeliveryReceiptView{KeyID: "key_owned", Mode: "managed_vault", ReviewETag: strings.Repeat("a", 64)}}
+		return &service.ManagedAPIKeyResult{HTTPStatus: 202, Personal: &service.KeyRecord{Key: entity.APIKey{ID: "key_owned", DeliveryMode: "managed_vault"}}, Delivery: service.APIKeyDeliveryReceiptView{KeyID: "key_owned", Mode: "managed_vault", ReplacementCallStatus: "not_applicable", ReviewETag: strings.Repeat("a", 64)}}
 	}
 	for _, change := range []func(*service.ManagedAPIKeyResult){
 		func(v *service.ManagedAPIKeyResult) { v.HTTPStatus = 500 },
@@ -264,16 +264,34 @@ func TestAPIKeyDeliveryDescriptorRevisionHasExactClosedWireShape(t *testing.T) {
 				t.Fatal("descriptor marshal failed")
 			}
 			check(raw)
-			receipt := service.APIKeyDeliveryReceiptView{RequestID: "request_owned", KeyID: "key_owned", Mode: "managed_vault", DeliveryStatus: "written", KeyStatus: "active", RuntimeStatus: "applied", Descriptor: original, ReviewETag: strings.Repeat("a", 64)}
+			receipt := service.APIKeyDeliveryReceiptView{RequestID: "request_owned", KeyID: "key_owned", Mode: "managed_vault", DeliveryStatus: "written", KeyStatus: "active", RuntimeStatus: "applied", ReplacementCallStatus: "completed", Descriptor: original, ReviewETag: strings.Repeat("a", 64)}
 			raw, e = json.Marshal(apiKeyDeliveryReceiptDTO(receipt))
 			if e != nil {
 				t.Fatal("receipt marshal failed")
 			}
 			var fields map[string]json.RawMessage
-			if json.Unmarshal(raw, &fields) != nil || len(fields) != 9 {
+			if json.Unmarshal(raw, &fields) != nil || len(fields) != 10 {
 				t.Fatal("receipt fields are not closed")
 			}
+			for _, key := range []string{"request_id", "key_id", "mode", "delivery_status", "key_status", "runtime_status", "replacement_call_status", "failure_code", "descriptor", "review_etag"} {
+				if fields[key] == nil {
+					t.Fatal("required receipt field missing", key)
+				}
+			}
+			if string(fields["replacement_call_status"]) != `"completed"` {
+				t.Fatal("replacement-call proof projection changed")
+			}
 			check(fields["descriptor"])
+			for _, status := range []string{"not_applicable", "not_recorded", "completed"} {
+				projected := receipt
+				projected.ReplacementCallStatus = status
+				encoded, err := json.Marshal(apiKeyDeliveryReceiptDTO(projected))
+				var wire map[string]json.RawMessage
+				if err != nil || json.Unmarshal(encoded, &wire) != nil || len(wire) != 10 || string(wire["replacement_call_status"]) != strconv.Quote(status) {
+					t.Fatal("required replacement-call enum was omitted or changed")
+				}
+				check(wire["descriptor"])
+			}
 			v := &service.ManagedAPIKeyResult{HTTPStatus: 200, Personal: &service.KeyRecord{Key: entity.APIKey{ID: "key_owned", DeliveryMode: "managed_vault"}}, Delivery: receipt}
 			safe, e := apiKeyDeliveryManagedDTO(v, "")
 			if e != nil {

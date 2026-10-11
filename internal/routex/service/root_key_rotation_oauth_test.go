@@ -7,7 +7,7 @@ import (
 
 func TestOAuthRootInventoryPreservesHistoricalVersionPrefixes(t *testing.T) {
 	want := []string{"provider_credentials", "egresses", "smtp_settings", "storage_revisions", "user_mfa", "vault_writer_auth", "vault_reader_auth", "oidc_providers", "oauth_providers"}
-	if rootInventoryVersion != 9 || !reflect.DeepEqual(rootDomains, append(append([]string(nil), want...), "ldap_providers", "named_identity_providers", "api_key_delivery_auth")) {
+	if rootInventoryVersion != 10 || !reflect.DeepEqual(rootDomains, append(append([]string(nil), want...), "ldap_providers", "named_identity_providers", "api_key_delivery_auth")) {
 		t.Fatal("current root domain contract")
 	}
 	for v, n := range map[int]int{1: 5, 2: 7, 3: 8, 4: 9} {
@@ -18,7 +18,7 @@ func TestOAuthRootInventoryPreservesHistoricalVersionPrefixes(t *testing.T) {
 	if !reflect.DeepEqual(rootInventoryDomains(5), rootDomains[:10]) {
 		t.Fatal("current LDAP inventory omitted a domain")
 	}
-	for _, v := range []int{-1, 0, 10} {
+	for _, v := range []int{-1, 0, 11} {
 		if rootInventoryDomains(v) != nil {
 			t.Fatal("unsupported root inventory", v)
 		}

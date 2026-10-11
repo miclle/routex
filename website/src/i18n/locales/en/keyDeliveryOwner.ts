@@ -66,6 +66,12 @@ export default {
   deliveryStatus: 'Vault delivery',
   keyStatus: 'Key status',
   runtimeStatus: 'Runtime publication',
+  replacementCallStatus: 'Replacement Key native call',
+  replacementCall_not_applicable: 'Not applicable to this receipt',
+  replacementCall_not_recorded: 'No qualifying native-completed call recorded',
+  replacementCall_completed: 'Qualifying native-completed call recorded',
+  replacementCallBoundary:
+    'Recorded replacement-call evidence only. This does not prove deployment, current Key usability or eligibility to retire the original Key.',
   delivery_pending: 'Pending; no acknowledgment recorded',
   delivery_acknowledged: 'Write acknowledged',
   delivery_unknown: 'Unknown outcome; no new write is permitted',

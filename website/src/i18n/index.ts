@@ -6,6 +6,8 @@ import enKeyDeliveryOwner from './locales/en/keyDeliveryOwner'
 import zhKeyDeliveryOwner from './locales/zh/keyDeliveryOwner'
 import enDiscord from './locales/en/discord'
 import zhDiscord from './locales/zh/discord'
+import enTelegram from './locales/en/telegram'
+import zhTelegram from './locales/zh/telegram'
 import enGoogle from './locales/en/google'
 import zhGoogle from './locales/zh/google'
 import enGitHub from './locales/en/github'
@@ -50,6 +52,8 @@ import enPlayground from './locales/en/playground'
 import zhPlayground from './locales/zh/playground'
 import enUsage from './locales/en/usage'
 import zhUsage from './locales/zh/usage'
+import enInsights from './locales/en/insights'
+import zhInsights from './locales/zh/insights'
 import enMFA from './locales/en/mfa'
 import zhMFA from './locales/zh/mfa'
 import enLimits from './locales/en/limits'
@@ -125,6 +129,7 @@ void i18n.use(initReactI18next).init({
       github: enGitHub,
       google: enGoogle,
       discord: enDiscord,
+      telegram: enTelegram,
       modelCreation: enModelCreation,
       secrets: enSecrets,
       keyDelivery: enKeyDelivery,
@@ -142,6 +147,7 @@ void i18n.use(initReactI18next).init({
       announcements: enAnnouncements,
       playground: enPlayground,
       usage: enUsage,
+      insights: enInsights,
       mfa: enMFA,
       limits: enLimits,
       pricing: enPricing,
@@ -167,6 +173,7 @@ void i18n.use(initReactI18next).init({
       github: zhGitHub,
       google: zhGoogle,
       discord: zhDiscord,
+      telegram: zhTelegram,
       modelCreation: zhModelCreation,
       secrets: zhSecrets,
       keyDelivery: zhKeyDelivery,
@@ -184,6 +191,7 @@ void i18n.use(initReactI18next).init({
       announcements: zhAnnouncements,
       playground: zhPlayground,
       usage: zhUsage,
+      insights: zhInsights,
       mfa: zhMFA,
       limits: zhLimits,
       pricing: zhPricing,

@@ -313,7 +313,37 @@ func (s *Service) apiKeyDeliveryDescriptor(tx *gorm.DB, c entity.APIKeyDeliveryC
 	}
 	return &APIKeyDeliveryDescriptorView{SchemaVersion: 1, KeyID: b.KeyID, ProfileID: b.ProfileID, PrincipalID: b.PrincipalID, SlotID: b.SlotID, DescriptorRevision: b.DescriptorRevision, Endpoint: rev.Endpoint, Namespace: rev.Namespace, Mount: b.Mount, Path: b.Path, DataField: b.DataField, Version: 1, Method: "jwt", AuthMount: b.AuthMount, Role: "routex-api-key-" + b.PrincipalID, Coordinator: "not_configured", ApplicationStatus: "unknown"}, nil
 }
+func apiKeyDeliveryReplacementCallStatus(tx *gorm.DB, owner apiKeyDeliveryOwner, purpose string, key entity.APIKey) (string, error) {
+	if purpose == "create" {
+		return "not_applicable", nil
+	}
+	if purpose != "rotate" {
+		return "", apiKeyDeliveryUnavailable
+	}
+	userID, projectID := "", ""
+	switch owner.Kind {
+	case "personal":
+		userID = owner.ID
+	case "project":
+		projectID = owner.ID
+	default:
+		return "", apiKeyDeliveryUnavailable
+	}
+	completed, err := hasCompletedReplacementKeyCall(tx, userID, projectID, key.ID, key.CreatedAt)
+	if err != nil {
+		return "", err
+	}
+	if completed {
+		return "completed", nil
+	}
+	return "not_recorded", nil
+}
+
 func (s *Service) apiKeyDeliveryResult(ctx context.Context, a *Authentication, project, request string, status int) (*ManagedAPIKeyResult, error) {
+	return s.apiKeyDeliveryReadResult(ctx, a, project, request, status, true)
+}
+
+func (s *Service) apiKeyDeliveryReadResult(ctx context.Context, a *Authentication, project, request string, status int, replacementProof bool) (*ManagedAPIKeyResult, error) {
 	var result ManagedAPIKeyResult
 	result.HTTPStatus = status
 	e := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
@@ -336,7 +366,14 @@ func (s *Service) apiKeyDeliveryResult(ctx context.Context, a *Authentication, p
 		if runtimeStatus == "confirmed" && !s.apiKeyDeliveryPublished(r.Key, project, r.Models) {
 			runtimeStatus = "unknown"
 		}
-		result.Delivery = APIKeyDeliveryReceiptView{RequestID: c.RequestID, KeyID: c.KeyID, Mode: "managed_vault", DeliveryStatus: c.DeliveryStatus, KeyStatus: r.Key.Status, RuntimeStatus: runtimeStatus, FailureCode: apiKeyDeliveryFailure(c.FailureCode), ReviewETag: apiKeyDeliveryReceiptReview(c, r.Key, a)}
+		replacementCallStatus := ""
+		if replacementProof {
+			replacementCallStatus, e = apiKeyDeliveryReplacementCallStatus(tx, o, c.Purpose, r.Key)
+			if e != nil {
+				return e
+			}
+		}
+		result.Delivery = APIKeyDeliveryReceiptView{RequestID: c.RequestID, KeyID: c.KeyID, Mode: "managed_vault", DeliveryStatus: c.DeliveryStatus, KeyStatus: r.Key.Status, RuntimeStatus: runtimeStatus, ReplacementCallStatus: replacementCallStatus, FailureCode: apiKeyDeliveryFailure(c.FailureCode), ReviewETag: apiKeyDeliveryReceiptReview(c, r.Key, a)}
 		if c.RevokedAt == nil && c.DeliveryStatus == "acknowledged" && runtimeStatus == "confirmed" {
 			b, e := apiKeyDeliveryAcknowledged(tx, o.Kind, c.KeyID, *c.KeyBirth)
 			if e != nil {
@@ -582,7 +619,8 @@ func (s *Service) APIKeyDeliveryDescriptor(parent context.Context, a *Authentica
 	if e != nil {
 		return nil, apiKeyDeliveryError(e)
 	}
-	r, e := s.apiKeyDeliveryResult(ctx, a, project, request, 200)
+	// Descriptor-only reads retain their existing queries and do not project a receipt.
+	r, e := s.apiKeyDeliveryReadResult(ctx, a, project, request, 200, false)
 	if e != nil {
 		return nil, e
 	}

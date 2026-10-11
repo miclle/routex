@@ -23,6 +23,14 @@ export interface AuditBeforeAfterChanges {
   reason?: string
   etag?: string
 }
+export interface ModelLifecycleAuditChanges {
+  model_id: string
+  created_at: string
+  before: 'active' | 'disabled' | 'archived'
+  after: 'active' | 'disabled' | 'archived'
+  reason: string
+  etag?: never
+}
 export interface SystemInstanceCleanupAuditChanges {
   revision: number
 }
@@ -54,8 +62,13 @@ export interface DiscordIdentityAuditChanges {
   kind: 'discord_identity'
   reason: string
 }
+export interface TelegramIdentityAuditChanges {
+  kind: 'telegram_identity'
+  reason: string
+}
 export type AuditChanges =
   | AuditBeforeAfterChanges
+  | ModelLifecycleAuditChanges
   | SystemInstanceCleanupAuditChanges
   | OIDCIdentityAuditChanges
   | OAuthIdentityAuditChanges
@@ -64,6 +77,7 @@ export type AuditChanges =
   | GitHubIdentityAuditChanges
   | GoogleIdentityAuditChanges
   | DiscordIdentityAuditChanges
+  | TelegramIdentityAuditChanges
 export interface AuditRecord {
   id: string
   actor_id: string

@@ -1,0 +1,27 @@
+# Telegram authentication
+
+Telegram is an independent named sign-in method. Its fixed OIDC profile is `telegram.oidc.v1` and its exact issuer is `https://oauth.telegram.org`. Configuration uses Client ID and Client Secret with the authorization-code flow and PKCE S256. The method does not use legacy widget signatures or bot-token authentication.
+
+To configure the method in the registration settings, use a registered Telegram OIDC client's Client ID and Client Secret. Save an explicit HTTPS callback such as `https://gateway.example/api/v1/auth/telegram/callback`, and register that exact saved URL as the client's redirect URI. The path must be `/api/v1/auth/telegram/callback`, without user information, a query, fragment or escaped path. The displayed application origin is guidance only; it does not authorize the callback. Keep the client's default RS256 signing algorithm. RouteX fixes authorization to `https://oauth.telegram.org/auth`, token exchange to `https://oauth.telegram.org/token` and JWKS to `https://oauth.telegram.org/.well-known/jwks.json`. It requests only `openid`, uses PKCE S256 and authenticates the token request with HTTP Basic plus the Client ID form field. State and the exact signed ID-token nonce are mandatory.
+
+Configuration, verification and enablement are separate actions:
+
+1. Review and save the Client ID, callback, secret and required reason. An empty secret keeps the saved secret; a replacement is never returned. Saving does not verify or enable sign-in.
+2. While the method is disabled, choose **Verify callback and link this account**, confirm the current local password and native two-step verification when enabled, and continue to Telegram. Keep the originating administrator Session valid. On the clean completion page, explicitly continue once to verify the saved configuration and link that existing administrator account.
+3. Review **Enable** separately. The server requires the exact current verified configuration and a current administrator binding. A client, callback or secret change disables the method, clears verification, removes its bindings and revokes dependent Telegram Sessions and challenges; changing only the display name preserves these facts.
+
+Existing members link Telegram from their account's Telegram identity card, confirming their local password and native two-step verification when enabled. There is no automatic member creation. Public sign-in uses **Continue with** the configured method, returns to the clean `/auth/telegram/complete` page and requires an explicit continuation. An HTTP 202 completion is a transient native MFA challenge, not a Session; finish the authenticator or recovery-code step before entering the workspace. Email, username, display name and a separate numeric `id` claim never select or create the member. Unlinking revokes the exact dependent proof and Sessions, including the current Telegram Session when applicable.
+
+The browser keeps entered secrets, passwords, MFA proofs and pending request bodies transient, outside browser storage and query/mutation caches. Callback correlation uses a short-lived Secure, HttpOnly, host-only cookie. An uncertain save retains its original request only in the mounted flow for explicit retry; reading matching facts does not prove the original operation. Completion is never automatically replayed.
+
+A Telegram subject is an opaque JSON string containing 1–255 printable ASCII bytes. Leading zeros remain significant. Numeric JSON subjects, blank subjects, control characters, non-ASCII subjects and longer subjects are rejected. Provider, profile and issuer must match the exact tuple; another named provider cannot supply Telegram proof.
+
+V106 extends the existing named-provider, binding and ceremony constraints and the Session/MFA primary-proof constraints. It seeds a disabled, unconfigured Telegram singleton. Existing member and binding birth, configuration revision and policy revision proofs remain required. Telegram proof cannot be combined with OIDC, OAuth, LDAP, SAML or emergency proof. The existing emergency branches remain unchanged, and Telegram cannot acquire the emergency MFA purpose.
+
+Client secrets remain encrypted in the existing `named_identity_providers` domain. Root inventory V10 retains the same twelve domains. Historical V9 records keep their twelve-domain scope; V6–V8 retain eleven domains. A V9 process or observation is not current Telegram coverage.
+
+Forced SSO continues to permit only the configured enterprise OIDC or LDAP method for public sign-in. Adding Telegram does not change that allowlist or turn an authenticated binding/configuration-test ceremony into public-login authority.
+
+V1–V105 migrations remain frozen. V106 uses private frozen schema definitions, validates retained rows and physical metadata before replacing CHECKs, and supports replay after interrupted DDL. PostgreSQL/MySQL migration, protocol, restart and browser acceptance are tracked separately; authored test sources alone do not establish execution or acceptance.
+
+Controlled protocol, migration and same-binary restart qualification for the containing delivery is indexed in [Implementation](IMPLEMENTATION.md), with source and actual receipt provenance recorded there. Registered-client nonce echo, live external-provider interoperability and browser acceptance remain unverified; controlled peers do not establish those external facts.

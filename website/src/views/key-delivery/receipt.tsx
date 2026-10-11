@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   getKeyDeliveryDescriptor,
@@ -40,6 +40,12 @@ export default function DeliveryReceiptDialog({
   onResolved?: (receipt: KeyDeliveryReceipt) => void
 }) {
   const { t } = useTranslation('keyDeliveryOwner')
+  const target = JSON.stringify([
+    owner.kind,
+    owner.kind === 'project' ? owner.projectId : '',
+    keyId,
+    requestId ?? '',
+  ])
   const deliveryStatusLabels = {
     pending: t('delivery_pending'),
     acknowledged: t('delivery_acknowledged'),
@@ -57,22 +63,45 @@ export default function DeliveryReceiptDialog({
     confirmed: t('runtime_confirmed'),
     unknown: t('runtime_unknown'),
   }
+  const replacementCallStatusLabels = {
+    not_applicable: t('replacementCall_not_applicable'),
+    not_recorded: t('replacementCall_not_recorded'),
+    completed: t('replacementCall_completed'),
+  }
   const life = useRef({
     mounted: true,
     turn: 0,
     busy: false,
     confirmed: null as ReconcileIntent | null,
     actor: authority.actor,
+    authority,
+    target,
     ticket: null as OwnerTicket | null,
   })
-  const [receipt, setReceipt] = useState<KeyDeliveryReceipt | null>(null)
-  const [descriptor, setDescriptor] = useState<KeyDeliveryDescriptor | null>(null)
+  const [receiptFact, setReceipt] = useState<{
+    value: KeyDeliveryReceipt
+    target: string
+    authority: OwnerAuthority
+  } | null>(null)
+  const [descriptorFact, setDescriptor] = useState<{
+    value: KeyDeliveryDescriptor
+    target: string
+    authority: OwnerAuthority
+  } | null>(null)
+  const receipt =
+    authority.fresh && receiptFact?.target === target && receiptFact.authority === authority
+      ? receiptFact.value
+      : null
+  const descriptor =
+    authority.fresh && descriptorFact?.target === target && descriptorFact.authority === authority
+      ? descriptorFact.value
+      : null
   const [reason, setReason] = useState('')
   const [pending, setPending] = useState(false)
   const [confirm, setConfirm] = useState<ReconcileIntent | null>(null)
   const [intent, setIntent] = useState<ReconcileIntent | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  useEffect(() => {
+  useLayoutEffect(() => {
     const cell = life.current
     cell.mounted = true
     return () => {
@@ -82,7 +111,7 @@ export default function DeliveryReceiptDialog({
       cell.ticket?.controller.abort()
     }
   }, [life])
-  useEffect(() => {
+  useLayoutEffect(() => {
     life.current.turn++
     life.current.busy = false
     life.current.confirmed = null
@@ -92,14 +121,24 @@ export default function DeliveryReceiptDialog({
     setConfirm(null)
     setReceipt(null)
     setDescriptor(null)
-    if (life.current.actor !== authority.actor) {
-      life.current.actor = authority.actor
+    if (life.current.actor !== authority.actor || life.current.target !== target) {
       setIntent(null)
       setReason('')
+      setNotice(null)
     }
-  }, [authority, life])
+    life.current.actor = authority.actor
+    life.current.authority = authority
+    life.current.target = target
+  }, [authority, life, target])
   function begin() {
-    if (!life.current.mounted || life.current.busy || !authority.fresh) return null
+    if (
+      !life.current.mounted ||
+      life.current.busy ||
+      !authority.fresh ||
+      life.current.authority !== authority ||
+      life.current.target !== target
+    )
+      return null
     let ticket: OwnerTicket
     try {
       ticket = authority.capture()
@@ -113,7 +152,13 @@ export default function DeliveryReceiptDialog({
     return { ticket, turn: ++life.current.turn }
   }
   function current(op: { ticket: OwnerTicket; turn: number }) {
-    return life.current.mounted && life.current.turn === op.turn && authority.current(op.ticket)
+    return (
+      life.current.mounted &&
+      life.current.authority === authority &&
+      life.current.target === target &&
+      life.current.turn === op.turn &&
+      authority.current(op.ticket)
+    )
   }
   function finish(op: { ticket: OwnerTicket; turn: number }) {
     authority.finish(op.ticket)
@@ -130,10 +175,14 @@ export default function DeliveryReceiptDialog({
     try {
       if (requestId) {
         const value = await getKeyDeliveryReceipt(owner, requestId, op.ticket.controller.signal)
-        if (current(op)) setReceipt(value)
+        // An uncertain issuance has no Key ID yet; the exact owner/request read supplies it.
+        if (keyId !== '' && value.key_id !== keyId)
+          throw new Error('Receipt does not match the reviewed Key')
+        if (current(op)) setReceipt({ value, target, authority })
       } else {
         const value = await getKeyDeliveryDescriptor(owner, keyId, op.ticket.controller.signal)
-        if (current(op)) setDescriptor(value)
+        if (value.key_id !== keyId) throw new Error('Descriptor does not match the reviewed Key')
+        if (current(op)) setDescriptor({ value, target, authority })
       }
     } catch {
       if (current(op)) setNotice('receiptUnavailable')
@@ -142,12 +191,22 @@ export default function DeliveryReceiptDialog({
     }
   }
   async function reconcile(value: ReconcileIntent) {
-    if (!life.current.mounted || life.current.confirmed !== value) return
+    if (
+      !life.current.mounted ||
+      life.current.confirmed !== value ||
+      value.keyId === '' ||
+      (keyId !== '' && value.keyId !== keyId) ||
+      (keyId === '' && !requestId) ||
+      (requestId !== undefined && value.input.request_id !== requestId)
+    )
+      return
     life.current.confirmed = null
     setConfirm(null)
     const op = begin()
     if (!op) return
     setIntent(value)
+    setReceipt(null)
+    setDescriptor(null)
     try {
       const result = await reconcileManagedKey(
         owner,
@@ -158,8 +217,10 @@ export default function DeliveryReceiptDialog({
         op.ticket.controller.signal,
       )
       if (!current(op)) return
+      if (result.delivery.key_id !== value.keyId)
+        throw new Error('Receipt does not match the reviewed Key')
       setIntent(null)
-      setReceipt(result.delivery)
+      setReceipt({ value: result.delivery, target, authority })
       onChanged()
     } catch {
       if (current(op)) setNotice('reconcileFailed')
@@ -187,7 +248,12 @@ export default function DeliveryReceiptDialog({
       <Dialog
         open={authority.fresh}
         onOpenChange={(open) => {
-          if (!open && !life.current.busy) {
+          if (
+            !open &&
+            !life.current.busy &&
+            life.current.authority === authority &&
+            life.current.target === target
+          ) {
             life.current.turn++
             life.current.confirmed = null
             onClose()
@@ -220,6 +286,11 @@ export default function DeliveryReceiptDialog({
                 <dt>{t('runtimeStatus')}</dt>
                 <dd>{runtimeStatusLabels[receipt.runtime_status]}</dd>
               </div>
+              <div>
+                <dt>{t('replacementCallStatus')}</dt>
+                <dd>{replacementCallStatusLabels[receipt.replacement_call_status]}</dd>
+                <dd className="text-muted-foreground">{t('replacementCallBoundary')}</dd>
+              </div>
             </dl>
           )}
           {value && (
@@ -251,6 +322,8 @@ export default function DeliveryReceiptDialog({
                   onClick={() => {
                     if (
                       !life.current.mounted ||
+                      life.current.authority !== authority ||
+                      life.current.target !== target ||
                       !authority.fresh ||
                       life.current.busy ||
                       !reason.trim() ||
@@ -282,7 +355,13 @@ export default function DeliveryReceiptDialog({
               <Button
                 disabled={pending}
                 onClick={() => {
-                  if (!life.current.mounted || life.current.busy) return
+                  if (
+                    !life.current.mounted ||
+                    life.current.busy ||
+                    life.current.authority !== authority ||
+                    life.current.target !== target
+                  )
+                    return
                   let ticket: OwnerTicket
                   try {
                     ticket = authority.capture()
@@ -302,7 +381,7 @@ export default function DeliveryReceiptDialog({
       <Dialog
         open={authority.fresh && !!confirm}
         onOpenChange={(open) => {
-          if (!open) {
+          if (!open && life.current.authority === authority && life.current.target === target) {
             life.current.confirmed = null
             setConfirm(null)
           }

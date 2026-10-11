@@ -20,7 +20,8 @@ let identity: Session,
   permissions: string[],
   models: Model[],
   requests: InternalAxiosRequestConfig[],
-  monthlyStatus: number
+  monthlyStatus: number,
+  catalogueStatus: number
 let holds: Record<string, (() => Promise<void>) | undefined>, counts: Record<string, string>
 let ignoreCancellation: boolean, signals: AbortSignal[]
 function row(id: string, recorded = true): Model {
@@ -68,6 +69,7 @@ beforeEach(async () => {
   models = [row('mdl_one'), row('mdl_two', false)]
   requests = []
   monthlyStatus = 200
+  catalogueStatus = 200
   holds = {}
   ignoreCancellation = false
   signals = []
@@ -86,8 +88,10 @@ beforeEach(async () => {
     const url = config.url!
     if (url === '/auth/session') data = structuredClone(identity)
     else if (url === '/auth/permissions') data = { permissions: [...permissions] }
-    else if (url === '/admin/models') data = { items: structuredClone(models) }
-    else if (url.startsWith('/admin/models/') && config.method === 'get')
+    else if (url === '/admin/models') {
+      data = { items: structuredClone(models) }
+      status = catalogueStatus
+    } else if (url.startsWith('/admin/models/') && config.method === 'get')
       data = structuredClone(models.find((item) => item.id === url.split('/')[3]))
     else if (url === '/admin/providers')
       data = { items: [{ id: 'prv_one', name: 'Provider One', connections: [] }] }
@@ -95,6 +99,7 @@ beforeEach(async () => {
       status = monthlyStatus
       data = report(new URLSearchParams(url.split('?')[1]).getAll('model_id'))
     }
+    if (ignoreCancellation && url.startsWith('/admin/models')) config.signal = undefined
     if (url.startsWith('/admin/model-monthly-requests?') && config.signal) {
       signals.push(config.signal as AbortSignal)
       if (ignoreCancellation) config.signal = undefined
@@ -184,7 +189,7 @@ describe('Administrative Model recorded metadata and independent monthly facts',
     expect([...host.querySelectorAll('thead th')].map((th) => th.textContent)).toEqual([
       'Public model name',
       'Protocol type',
-      'Capability type',
+      'Configured input',
       'Provider',
       'Configured availability',
       'Granted members',
@@ -206,7 +211,7 @@ describe('Administrative Model recorded metadata and independent monthly facts',
     )
     expect(host.querySelectorAll('tbody tr')[1].textContent).toContain('Unknown')
     await act(async () => i18n.changeLanguage('zh'))
-    expect(host.textContent).toContain('能力类型')
+    expect(host.textContent).toContain('已配置输入')
     expect(host.textContent).toContain(
       new Date('2026-10-02T03:04:05.123456Z').toLocaleString('zh-CN'),
     )
@@ -216,7 +221,7 @@ describe('Administrative Model recorded metadata and independent monthly facts',
     expect([...host.querySelectorAll('dl dt')].map((dt) => dt.textContent)).toEqual([
       '模型 ID',
       '协议类型',
-      '能力类型',
+      '已配置输入',
       '供应关系',
       '已授权成员',
       '本月请求',
@@ -589,4 +594,173 @@ describe('Administrative Model server-configured availability', () => {
     )
     expect(host.textContent).toContain('Private mdl_one')
   })
+})
+
+describe('Administrative configured input facts', () => {
+  it.each([
+    [null, 'Unknown'],
+    [{}, 'No configured input routes'],
+    [{ openai_chat: [] }, 'OpenAI Chat: No image/PDF input'],
+    [
+      { openai_chat: ['image', 'pdf'], openai_responses: ['pdf'] },
+      'OpenAI Chat: Image input, PDF input, OpenAI Responses: PDF input',
+    ],
+  ] as const)(
+    'keeps exact per-protocol known/empty/unknown facts %j in list and detail',
+    async (inputs, expected) => {
+      models = [
+        {
+          ...row('mdl_one'),
+          configured_input_capabilities: structuredClone(
+            inputs,
+          ) as Model['configured_input_capabilities'],
+        },
+      ]
+      models[0].bindings[0].ready = false
+      await mount()
+      await until(() =>
+        expect(host.querySelector('tbody tr')?.querySelectorAll('td')[2].textContent).toBe(
+          expected,
+        ),
+      )
+      await act(async () => router.navigate('/admin/models/mdl_one'))
+      await until(() => expect(host.querySelectorAll('dl dd')[2]?.textContent).toBe(expected))
+      expect(requests.filter((r) => r.url === '/admin/models/mdl_one')).toHaveLength(1)
+      expect(requests.every((r) => r.method === 'get')).toBe(true)
+      expect(host.textContent).not.toContain('Image generation')
+    },
+  )
+  it('switches input labels live without requests and suppresses denied Provider facts', async () => {
+    models = [
+      { ...row('mdl_one'), configured_input_capabilities: { openai_chat: ['image', 'pdf'] } },
+    ]
+    await mount()
+    await until(() => expect(host.textContent).toContain('Image input'))
+    const capturedRequests = requests.length
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(host.textContent).toContain('已配置输入')
+    expect(host.textContent).toContain('图像输入')
+    expect(host.textContent).toContain('PDF 输入')
+    expect(requests).toHaveLength(capturedRequests)
+    permissions = ['models.read_all']
+    const key = cache
+      .getQueryCache()
+      .findAll()
+      .find((q) => q.queryKey.includes('permissions'))!.queryKey
+    await act(async () => cache.refetchQueries({ queryKey: key, exact: true }))
+    await until(() =>
+      expect(host.querySelector('tbody tr')?.querySelectorAll('td')[2].textContent).toBe('未知'),
+    )
+    expect(host.textContent).not.toContain('图像输入')
+  })
+  it.each(['session', 'catalogue'])(
+    'hides earlier capabilities throughout held %s refresh and never invents empty facts on failure',
+    async (scope) => {
+      models = [{ ...row('mdl_one'), configured_input_capabilities: { openai_chat: ['image'] } }]
+      await mount()
+      await until(() => expect(host.textContent).toContain('Image input'))
+      let release!: () => void
+      const pending = new Promise<void>((resolve) => {
+        release = resolve
+      })
+      const url = scope === 'session' ? '/auth/session' : '/admin/models'
+      holds[url] = () => pending
+      if (scope === 'catalogue') catalogueStatus = 503
+      const key =
+        scope === 'session'
+          ? sessionKey
+          : cache
+              .getQueryCache()
+              .findAll()
+              .find((q) => q.queryKey[2] === 'list')!.queryKey
+      let refresh!: Promise<void>
+      await act(async () => {
+        refresh = cache.refetchQueries({ queryKey: key, exact: true })
+        await Promise.resolve()
+      })
+      expect(host.textContent).not.toContain('Image input')
+      models[0].configured_input_capabilities = null
+      delete holds[url]
+      await act(async () => {
+        release()
+        await refresh
+      })
+      if (scope === 'session')
+        await until(() =>
+          expect(host.querySelector('tbody tr')?.querySelectorAll('td')[2].textContent).toBe(
+            'Unknown',
+          ),
+        )
+      else await until(() => expect(host.querySelector('tbody')).toBeNull())
+      expect(host.textContent).not.toContain('No configured input routes')
+    },
+  )
+})
+
+it.each(['actor', 'target'])(
+  'does not restore a held old-target input projection across %s change',
+  async (scope) => {
+    models = [
+      { ...row('mdl_one'), configured_input_capabilities: { openai_chat: ['image'] } },
+      { ...row('mdl_two'), configured_input_capabilities: null },
+    ]
+    await mount('/admin/models/mdl_one')
+    await until(() => expect(host.textContent).toContain('Image input'))
+    let release!: () => void
+    const pending = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    holds['/admin/models/mdl_one'] = () => pending
+    ignoreCancellation = true
+    const key = cache
+      .getQueryCache()
+      .findAll()
+      .find((q) => q.queryKey.includes('mdl_one') && q.queryKey.includes('detail'))!.queryKey
+    let refresh!: Promise<void>
+    await act(async () => {
+      refresh = cache.refetchQueries({ queryKey: key, exact: true })
+      await Promise.resolve()
+    })
+    expect(host.textContent).not.toContain('Image input')
+    models[0].configured_input_capabilities = null
+    delete holds['/admin/models/mdl_one']
+    if (scope === 'target') await act(async () => router.navigate('/admin/models/mdl_two'))
+    else {
+      identity = {
+        ...identity,
+        user: { ...identity.user, id: 'usr_other' },
+        csrf_token: 'csrf-other',
+      }
+      await act(async () => {
+        cache.setQueryData(sessionKey, identity)
+      })
+    }
+    await until(() => expect(host.querySelectorAll('dl dd')[2]?.textContent).toBe('Unknown'))
+    await act(async () => {
+      release()
+      await refresh
+    })
+    expect(host.textContent).not.toContain('Image input')
+    expect(host.querySelectorAll('dl dd')[2]?.textContent).toBe('Unknown')
+  },
+)
+
+it('searches only current authorized localized input labels without catalogue expansion', async () => {
+  models = [
+    { ...row('mdl_one'), configured_input_capabilities: { openai_chat: ['image'] } },
+    { ...row('mdl_two'), configured_input_capabilities: { openai_chat: ['pdf'] } },
+  ]
+  await mount()
+  await until(() => expect(host.querySelectorAll('tbody tr')).toHaveLength(2))
+  const catalogueReads = () =>
+    requests.filter((r) => r.url === '/admin/models' || r.url === '/admin/providers').length
+  const reads = catalogueReads()
+  await search('Image input')
+  expect(host.querySelectorAll('tbody tr')).toHaveLength(1)
+  expect(host.textContent).toContain('Private mdl_one')
+  await act(async () => i18n.changeLanguage('zh'))
+  await search('PDF 输入')
+  expect(host.querySelectorAll('tbody tr')).toHaveLength(1)
+  expect(host.textContent).toContain('Private mdl_two')
+  expect(catalogueReads()).toBe(reads)
 })

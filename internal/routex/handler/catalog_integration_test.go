@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -126,6 +127,10 @@ func testCatalogLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("new model must have a zero-weight candidate and explicit creator grant")
 	}
 	modelPath := "/api/v1/admin/models/" + model.ID
+	zeroWeight := decodeCatalogResponse[ModelResponse](t, request("GET", modelPath, nil), 200)
+	if zeroWeight.ConfiguredInputCapabilities == nil || len(zeroWeight.ConfiguredInputCapabilities) != 0 {
+		t.Fatal("zero-weight Model detail did not preserve known empty configured inputs", zeroWeight.ConfiguredInputCapabilities)
+	}
 	weights := func(a int) map[string]any {
 		return map[string]any{"weights": []map[string]any{{"binding_id": model.Bindings[0].ID, "weight": a}}}
 	}
@@ -145,6 +150,18 @@ func testCatalogLifecycle(t *testing.T, db *gorm.DB) {
 	model = decodeCatalogResponse[ModelResponse](t, request("PUT", modelPath+"/weights", weights(100)), 200)
 	if !model.Bindings[0].Ready || model.Bindings[0].Weight != 100 {
 		t.Fatal("validated binding did not activate")
+	}
+	if model.ConfiguredInputCapabilities != nil {
+		t.Fatal("unenriched mutation manufactured configured input facts")
+	}
+	configured := decodeCatalogResponse[ModelResponse](t, request("GET", modelPath, nil), 200)
+	inputs := configured.ConfiguredInputCapabilities[entity.ProtocolOpenAIChat]
+	if len(inputs) != 2 || inputs[0] != "image" || inputs[1] != "pdf" {
+		t.Fatal("authorized current administrative input intersection lost declarations", configured.ConfiguredInputCapabilities)
+	}
+	configuredList := decodeCatalogResponse[ModelsResponse](t, request("GET", "/api/v1/admin/models", nil), 200)
+	if len(configuredList.Items) != 1 || configuredList.Items[0].ID != model.ID || !reflect.DeepEqual(configuredList.Items[0].ConfiguredInputCapabilities, configured.ConfiguredInputCapabilities) {
+		t.Fatal("authorized configured media inputs differ between Model list and detail")
 	}
 	// Model discovery, including case-sensitive upstream names, survives a fresh service.
 	var discovered []entity.ProviderModel
@@ -276,6 +293,7 @@ func testCatalogLifecycle(t *testing.T, db *gorm.DB) {
 	if len(capabilities) != 2 || capabilities[0] != "image" || capabilities[1] != "pdf" {
 		t.Fatal("effective input capabilities not reflected", memberAfter.Items[0].InputCapabilities)
 	}
+	lifecycleKey := testReviewedModelLifecycle(t, db, router, model.ID, admin, adminCookie, memberSession, memberCookie)
 	expectStatus(t, request("PUT", modelPath+"/grants", map[string]any{"user_ids": []string{"usr_missing"}}), 400)
 	var remaining int64
 	if err := db.Model(&entity.UserModelGrant{}).Where("model_id = ? AND user_id = ?", model.ID, member.ID).Count(&remaining).Error; err != nil || remaining != 1 {
@@ -301,6 +319,7 @@ func testCatalogLifecycle(t *testing.T, db *gorm.DB) {
 	// Restore the controlled peer before the independent candidate lifecycle.
 	upstreamFailure.Store(false)
 	testModelRoutingCandidates(t, db, svc, router, admin.User.ID, upstreamServer.URL, model.ID, request)
+	testReviewedModelArchive(t, db, router, model.ID, admin, adminCookie, memberSession, lifecycleKey)
 	var auditCount int64
 	if err := db.Table("audit_events").Where("actor_id = ?", admin.User.ID).Count(&auditCount).Error; err != nil || auditCount < 10 {
 		t.Fatalf("catalog changes not audited: %d %v", auditCount, err)

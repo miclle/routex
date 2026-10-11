@@ -30,6 +30,7 @@ func modelConfiguredReadinessBounded(models []ModelCatalog) bool {
 func enrichModelConfiguredReadiness(tx *gorm.DB, actorID string, models []ModelCatalog) error {
 	for i := range models {
 		models[i].ConfiguredReady = nil
+		models[i].ConfiguredInputCapabilities = nil
 	}
 	actor, err := exactEnabledActor(modelCreationDB(tx), actorID)
 	if err != nil {
@@ -47,6 +48,7 @@ func enrichModelConfiguredReadiness(tx *gorm.DB, actorID string, models []ModelC
 func loadModelConfiguredReadiness(tx *gorm.DB, models []ModelCatalog) error {
 	for i := range models {
 		models[i].ConfiguredReady = nil
+		models[i].ConfiguredInputCapabilities = nil
 	}
 	if !modelConfiguredReadinessBounded(models) {
 		return nil
@@ -120,6 +122,7 @@ func loadModelConfiguredReadiness(tx *gorm.DB, models []ModelCatalog) error {
 func projectModelConfiguredReadiness(models []ModelCatalog, pms []entity.ProviderModel, connections []entity.ProviderConnection, providers []entity.Provider, states map[string]routingSupplyState) {
 	for i := range models {
 		models[i].ConfiguredReady = nil
+		models[i].ConfiguredInputCapabilities = nil
 	}
 	if !modelConfiguredReadinessBounded(models) || len(pms) > modelConfiguredReadinessLimit || len(connections) > modelConfiguredReadinessLimit || len(providers) > modelConfiguredReadinessLimit || len(states) > modelConfiguredReadinessLimit {
 		return
@@ -148,12 +151,16 @@ func projectModelConfiguredReadiness(models []ModelCatalog, pms []entity.Provide
 	usedPMs, usedConnections, usedProviders := map[string]bool{}, map[string]bool{}, map[string]bool{}
 	modelIDs, bindingIDs := map[string]bool{}, map[string]bool{}
 	values := make([]bool, len(models))
+	inputs := make([]map[string][]string, len(models))
 	for i, model := range models {
 		if model.Model.ID == "" || modelIDs[model.Model.ID] ||
 			(model.Model.Status != entity.ResourceActive && model.Model.Status != entity.ResourceDisabled && model.Model.Status != entity.ResourceArchived) {
 			return
 		}
 		modelIDs[model.Model.ID] = true
+		totals := map[string]int{}
+		intersections := map[string]*inputCapabilityIntersection{}
+		inputs[i] = map[string][]string{}
 		for _, binding := range model.Bindings {
 			pm, foundPM := pmRows[binding.Binding.ProviderModelID]
 			connection, foundConnection := connectionRows[pm.ConnectionID]
@@ -169,11 +176,23 @@ func projectModelConfiguredReadiness(models []ModelCatalog, pms []entity.Provide
 				return
 			}
 			bindingIDs[binding.Binding.ID] = true
+			totals[connection.Protocol] += binding.Binding.Weight
 			usedPMs[pm.ID], usedConnections[connection.ID], usedProviders[provider.ID] = true, true, true
 			if model.Model.Status == entity.ResourceActive && binding.Binding.Weight > 0 &&
 				provider.Enabled && connection.Enabled && !pm.Disabled && capabilityTransportCurrent(pm, connection) &&
 				state.Enabled && state.Covered && state.SourceAvailable {
 				values[i] = true
+				intersection := intersections[connection.Protocol]
+				if intersection == nil {
+					intersection = &inputCapabilityIntersection{}
+					intersections[connection.Protocol] = intersection
+				}
+				intersection.include(gatewayRoute{SupportsImageInput: pm.SupportsImageInput, SupportsPDFInput: pm.SupportsPDFInput})
+			}
+		}
+		for protocol, intersection := range intersections {
+			if entity.SupportedNativeProtocol(protocol) && totals[protocol] == 100 {
+				inputs[i][protocol] = intersection.values()
 			}
 		}
 	}
@@ -183,5 +202,6 @@ func projectModelConfiguredReadiness(models []ModelCatalog, pms []entity.Provide
 	for i := range models {
 		value := values[i]
 		models[i].ConfiguredReady = &value
+		models[i].ConfiguredInputCapabilities = inputs[i]
 	}
 }

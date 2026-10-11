@@ -52,13 +52,13 @@ func TestAdminModelDetailPreservesExistingBoundedDTO(t *testing.T) {
 		keys = append(keys, key)
 	}
 	slices.Sort(keys)
-	if !reflect.DeepEqual(keys, []string{"bindings", "config_updated_at", "configured_ready", "created_at", "granted_user_ids", "id", "name", "names", "status"}) {
+	if !reflect.DeepEqual(keys, []string{"bindings", "config_updated_at", "configured_input_capabilities", "configured_ready", "created_at", "granted_user_ids", "id", "name", "names", "status"}) {
 		t.Fatal("detail exposed uncontracted fields", keys)
 	}
 	if response.CreatedAt != nil || response.ConfigUpdatedAt != nil || string(object["created_at"]) != "null" || string(object["config_updated_at"]) != "null" {
 		t.Fatal("legacy missing Model birth/configuration dates must remain unknown", response)
 	}
-	if response.ConfiguredReady != nil || string(object["configured_ready"]) != "null" {
+	if response.ConfiguredReady != nil || string(object["configured_ready"]) != "null" || string(object["configured_input_capabilities"]) != "null" {
 		t.Fatal("unavailable or restricted configuration summary must remain unknown")
 	}
 	var bindings []map[string]json.RawMessage
@@ -101,5 +101,26 @@ func TestAdminModelConfiguredReadinessDTOThreeStates(t *testing.T) {
 				t.Fatal("nullable Model summary changed legacy route readiness or lost explicit state")
 			}
 		})
+	}
+}
+
+func TestAdminModelConfiguredInputsDTOUnknownEmptyAndProtocolIntersection(t *testing.T) {
+	for _, inputs := range []map[string][]string{nil, {}, {entity.ProtocolOpenAIChat: {}}, {entity.ProtocolOpenAIChat: {"image", "pdf"}, entity.ProtocolOpenAIResponses: {"pdf"}}} {
+		response := modelResponse(service.ModelCatalog{ConfiguredInputCapabilities: inputs})
+		raw, err := json.Marshal(response)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var object map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &object); err != nil {
+			t.Fatal(err)
+		}
+		expected, err := json.Marshal(inputs)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(object["configured_input_capabilities"]) != string(expected) {
+			t.Fatal("input projection lost null/empty/protocol distinction", string(raw))
+		}
 	}
 }

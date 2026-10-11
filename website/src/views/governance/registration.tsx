@@ -8,6 +8,7 @@ import SAMLConfiguration from '@/views/saml/config'
 import GitHubConfiguration from '@/views/github/config'
 import GoogleConfiguration from '@/views/google/config'
 import DiscordConfiguration from '@/views/discord/config'
+import TelegramConfiguration from '@/views/telegram/config'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { AxiosError } from 'axios'
@@ -294,6 +295,7 @@ function Policy({ actor }: { actor: string }) {
       <GitHubConfiguration />
       <GoogleConfiguration />
       <DiscordConfiguration />
+      <TelegramConfiguration />
       <Drawer
         open={open && !!page}
         onOpenChange={(value) => {

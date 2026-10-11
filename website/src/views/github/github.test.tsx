@@ -98,7 +98,14 @@ beforeEach(async () => {
     else if (path === '/auth/registration')
       data = { enabled: false, approval_required: false, allowed_email_domains: [] }
     else if (
-      ['/auth/oidc', '/auth/oauth', '/auth/ldap', '/auth/saml', '/auth/google'].includes(path)
+      [
+        '/auth/oidc',
+        '/auth/oauth',
+        '/auth/ldap',
+        '/auth/saml',
+        '/auth/google',
+        '/auth/telegram',
+      ].includes(path)
     )
       data = { available: false, name: '' }
     else if (path === '/auth/github') data = { available: true, name: config.name }

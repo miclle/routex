@@ -177,6 +177,30 @@ func WithGatewayClientIP(ctx context.Context, ip netip.Addr) context.Context {
 	return context.WithValue(ctx, gatewayIPKey{}, ip)
 }
 func (s *Service) gatewayLimits(ctx context.Context, result *GatewayResult) ([]eventqueue.Limit, error) {
+	if result.identity.personal != nil {
+		if result.identity.selectedModelID == "" || result.ModelID != result.identity.selectedModelID || result.identity.key != nil || result.identity.team != nil || result.UserID != result.identity.personal.UserID || result.KeyID != "" || result.TeamID != "" || result.TeamMembershipID != "" || result.ProjectID != "" {
+			return nil, runtimeUnavailable
+		}
+		if err := s.ReauthorizePersonalSession(ctx, result.identity.personal, result.ModelID); err != nil {
+			return nil, err
+		}
+		auth := s.runtime.auth.Load()
+		if auth == nil || !s.gatewayAttemptClock().Before(auth.ValidUntil) {
+			return nil, runtimeUnavailable
+		}
+		// A real Personal Session charges only the existing User account. It
+		// has no Key ancestry and never borrows Team or Project capacity.
+		account := limitAccount("user", result.UserID)
+		if runtimeDenied(&s.runtime.deniedLimits, account) {
+			return nil, runtimeUnavailable
+		}
+		policy := auth.LimitPolicies[account]
+		ip, _ := ctx.Value(gatewayIPKey{}).(netip.Addr)
+		if !limits.Allows(policy, ip) {
+			return nil, gatewayError(403, "ip_not_allowed", "The request source is not permitted.")
+		}
+		return []eventqueue.Limit{{Account: account, RPM: policy.RPM, Concurrency: policy.Concurrency}}, nil
+	}
 	if result.TeamID != "" {
 		if result.identity.team == nil || result.UserID != result.identity.team.UserID || result.TeamID != result.identity.team.TeamID || result.TeamMembershipID != result.identity.team.TeamMembershipID || result.KeyID != "" || result.ProjectID != "" {
 			return nil, runtimeUnavailable

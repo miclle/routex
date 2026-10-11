@@ -25,6 +25,8 @@ func namedIdentityDescriptor(providerID string) (namedIdentityFixedProfile, bool
 		return namedIdentityFixedProfile{githubProfileID, githubIdentityIssuer, "/api/v1/auth/github/callback"}, true
 	case googleProviderID:
 		return namedIdentityFixedProfile{googleProfileID, googleIdentityIssuer, "/api/v1/auth/google/callback"}, true
+	case telegramProviderID:
+		return namedIdentityFixedProfile{telegramProfileID, telegramIdentityIssuer, "/api/v1/auth/telegram/callback"}, true
 	case discordProviderID:
 		return namedIdentityFixedProfile{discordProfileID, discordIdentityIssuer, "/api/v1/auth/discord/callback"}, true
 	default:
@@ -43,7 +45,7 @@ func namedIdentityProfileSubject(providerID, kind, value string) bool {
 	if providerID == githubProviderID {
 		return namedIdentitySubject(kind, value)
 	}
-	if providerID != googleProviderID || kind != "string" || len(value) == 0 || len(value) > 255 {
+	if providerID != googleProviderID && providerID != telegramProviderID || kind != "string" || len(value) == 0 || len(value) > 255 {
 		return false
 	}
 	for _, c := range []byte(value) {
@@ -96,6 +98,9 @@ func (a googleProtocolAdapter) Exchange(ctx context.Context, in namedIdentityCal
 	return namedIdentityRemoteIdentity{Kind: "string", Subject: v.Subject}, nil
 }
 func (s *Service) namedIdentityProfileProtocol(ctx context.Context, p entity.NamedIdentityProvider) (namedIdentityProtocolClient, func() error, error) {
+	if p.ID == telegramProviderID {
+		return s.telegramProtocol(ctx, p)
+	}
 	if p.ID == discordProviderID {
 		return s.discordProtocol(ctx, p)
 	}

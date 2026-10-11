@@ -47,6 +47,9 @@ export interface Model {
   status: 'active' | 'disabled' | 'archived'
   // Legacy absence and null mean unknown; this is stored configuration, not runtime health.
   configured_ready?: boolean | null
+  configured_input_capabilities?: Partial<
+    Record<import('./model-routing').RoutingProtocol, ('image' | 'pdf')[]>
+  > | null
   names: { name: string; is_current: boolean; expires_at: string | null }[]
   bindings: {
     id: string

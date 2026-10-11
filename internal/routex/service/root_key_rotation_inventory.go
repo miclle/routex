@@ -14,7 +14,7 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-const rootInventoryVersion = 9
+const rootInventoryVersion = 10
 
 var rootDomains = []string{"provider_credentials", "egresses", "smtp_settings", "storage_revisions", "user_mfa", "vault_writer_auth", "vault_reader_auth", "oidc_providers", "oauth_providers", "ldap_providers", "named_identity_providers", "api_key_delivery_auth"}
 

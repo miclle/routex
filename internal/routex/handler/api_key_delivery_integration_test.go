@@ -433,7 +433,12 @@ type deliveryFixture struct {
 	publicationFailureObserved    atomic.Bool
 	ackPersistenceFailureArmed    atomic.Bool
 	ackPersistenceFailureObserved atomic.Bool
-	managedBirth                  atomic.Pointer[deliveryFixtureManagedBirthTarget]
+	replacementProofFailure       struct {
+		sync.Mutex
+		armed    bool
+		injected int
+	}
+	managedBirth atomic.Pointer[deliveryFixtureManagedBirthTarget]
 }
 
 func (f *deliveryFixture) uuid() string {
@@ -570,6 +575,21 @@ func newDeliveryFixture(t *testing.T, db *gorm.DB) *deliveryFixture {
 		t.Fatal(e)
 	}
 	f := &deliveryFixture{t: t, db: db, store: store, stopped: map[*service.Service]bool{}, unproven: map[*service.Service]bool{}}
+	// The callback registry is fixed before any fixture Service or heartbeat starts.
+	// Live controls change only mutex-protected state, never GORM callback slices.
+	if e := db.Callback().Query().Before("gorm:query").Register("test:replacement-call-query-failure", func(tx *gorm.DB) {
+		if tx.Statement.TableExpr == nil || tx.Statement.TableExpr.SQL != "call_records AS calls" {
+			return
+		}
+		f.replacementProofFailure.Lock()
+		defer f.replacementProofFailure.Unlock()
+		if f.replacementProofFailure.armed {
+			f.replacementProofFailure.injected++
+			_ = tx.AddError(errors.New("controlled replacement-proof query failure"))
+		}
+	}); e != nil {
+		t.Fatal("register replacement-proof failure control")
+	}
 	// Install fault callbacks before any Service or heartbeat starts. Live tests
 	// only arm one-shot atomic controls; they never mutate GORM callback slices.
 	if e := db.Callback().Query().Before("gorm:query").Register("test:delivery-runtime-publication-once", func(tx *gorm.DB) {
@@ -762,15 +782,16 @@ type deliveryFixtureDescriptor struct {
 	ApplicationStatus  string `json:"application_status"`
 }
 type deliveryFixtureReceipt struct {
-	RequestID      string                     `json:"request_id"`
-	KeyID          string                     `json:"key_id"`
-	Mode           string                     `json:"mode"`
-	DeliveryStatus string                     `json:"delivery_status"`
-	KeyStatus      string                     `json:"key_status"`
-	RuntimeStatus  string                     `json:"runtime_status"`
-	FailureCode    *string                    `json:"failure_code"`
-	Descriptor     *deliveryFixtureDescriptor `json:"descriptor"`
-	ReviewETag     string                     `json:"review_etag"`
+	RequestID             string                     `json:"request_id"`
+	KeyID                 string                     `json:"key_id"`
+	Mode                  string                     `json:"mode"`
+	DeliveryStatus        string                     `json:"delivery_status"`
+	KeyStatus             string                     `json:"key_status"`
+	RuntimeStatus         string                     `json:"runtime_status"`
+	ReplacementCallStatus string                     `json:"replacement_call_status"`
+	FailureCode           *string                    `json:"failure_code"`
+	Descriptor            *deliveryFixtureDescriptor `json:"descriptor"`
+	ReviewETag            string                     `json:"review_etag"`
 }
 type deliveryFixtureManaged struct {
 	Key struct {
@@ -802,6 +823,116 @@ func (f *deliveryFixture) command(request string) entity.APIKeyDeliveryCommand {
 	}
 	return c
 }
+
+// Synthetic history controls exercise the real authorized receipt endpoint; they
+// are not native-completion acceptance. The later Gateway call supplies that proof.
+func (f *deliveryFixture) replacementCallNegatives(a deliveryFixtureActor, base string, receipt deliveryFixtureReceipt) {
+	f.t.Helper()
+	userID, projectID := a.Session.User.ID, ""
+	var birth time.Time
+	if strings.HasPrefix(base, "/api/v1/projects/") {
+		projectID = strings.TrimSuffix(strings.TrimPrefix(base, "/api/v1/projects/"), "/keys")
+		userID = ""
+		var key entity.ProjectKey
+		if f.db.Take(&key, "id = ?", receipt.KeyID).Error != nil || key.ID != receipt.KeyID || key.ProjectID != projectID {
+			f.t.Fatal("exact Project replacement birth missing")
+		}
+		birth = key.CreatedAt
+	} else {
+		var key entity.APIKey
+		if f.db.Take(&key, "id = ?", receipt.KeyID).Error != nil || key.ID != receipt.KeyID || key.UserID != userID {
+			f.t.Fatal("exact personal replacement birth missing")
+		}
+		birth = key.CreatedAt
+	}
+	beforeWrites, beforeReads, beforeMetadata := f.peer.counts()
+	for _, tc := range []struct {
+		name   string
+		mutate func(*entity.CallRecord, *[]entity.CallAttempt)
+	}{
+		{"HTTP_success", func(_ *entity.CallRecord, attempts *[]entity.CallAttempt) {
+			(*attempts)[0].NativeCompletionEvidence = "unknown"
+			(*attempts)[0].FinalUsageKnown = true
+		}},
+		{"handoff", func(_ *entity.CallRecord, attempts *[]entity.CallAttempt) {
+			(*attempts)[0].NativeCompletionEvidence = "handoff"
+		}},
+		{"unknown", func(_ *entity.CallRecord, attempts *[]entity.CallAttempt) {
+			(*attempts)[0].NativeCompletionEvidence = "unknown"
+		}},
+		{"precreation", func(call *entity.CallRecord, _ *[]entity.CallAttempt) { call.StartedAt = birth.Add(-time.Microsecond) }},
+		{"superseded", func(call *entity.CallRecord, attempts *[]entity.CallAttempt) {
+			*attempts = append(*attempts, entity.CallAttempt{ID: fmt.Sprintf("att_del_%012x", f.seq.Add(1)), RequestID: call.RequestID, AttemptNumber: 2, Status: "error", NativeCompletionEvidence: "unknown", StartedAt: call.StartedAt, CompletedAt: call.CompletedAt})
+		}},
+		{"owner_alias", func(call *entity.CallRecord, _ *[]entity.CallAttempt) {
+			if userID != "" {
+				call.UserID = strings.ToUpper(userID)
+			} else {
+				call.ProjectID = strings.ToUpper(projectID)
+			}
+		}},
+		{"wrong_scope", func(call *entity.CallRecord, _ *[]entity.CallAttempt) {
+			if userID != "" {
+				call.UserID = ""
+				call.ProjectID = "prj_other_history"
+			} else {
+				call.ProjectID = ""
+				call.UserID = a.Session.User.ID
+			}
+		}},
+		{"key_alias", func(call *entity.CallRecord, _ *[]entity.CallAttempt) { call.KeyID = strings.ToUpper(call.KeyID) }},
+	} {
+		func() {
+			now := time.Now().UTC().Truncate(time.Microsecond)
+			call := entity.CallRecord{RequestID: fmt.Sprintf("req_del_%012x", f.seq.Add(1)), UserID: userID, ProjectID: projectID, KeyID: receipt.KeyID, Protocol: entity.ProtocolOpenAIChat, Status: "success", StartedAt: now, CompletedAt: now}
+			attempts := []entity.CallAttempt{{ID: fmt.Sprintf("att_del_%012x", f.seq.Add(1)), RequestID: call.RequestID, AttemptNumber: 1, Status: "success", FailureClass: "success", WorkEvidence: "completed", NativeCompletionEvidence: "completed", StartedAt: now, CompletedAt: now}}
+			tc.mutate(&call, &attempts)
+			defer func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+				defer cancel()
+				if f.db.WithContext(ctx).Where("request_id = ?", call.RequestID).Delete(&entity.CallAttempt{}).Error != nil || f.db.WithContext(ctx).Where("request_id = ?", call.RequestID).Delete(&entity.CallRecord{}).Error != nil {
+					f.t.Error("owned replacement-call control cleanup failed")
+				}
+			}()
+			if f.db.Create(&call).Error != nil {
+				f.t.Fatal("store replacement-call negative", tc.name)
+			}
+			for _, attempt := range attempts {
+				if f.db.Create(&attempt).Error != nil {
+					f.t.Fatal("store replacement attempt negative", tc.name)
+				}
+			}
+			got := f.receipt(a, base, receipt.RequestID)
+			if got.ReplacementCallStatus != "not_recorded" || got.KeyID != receipt.KeyID || got.ReviewETag != receipt.ReviewETag || !reflect.DeepEqual(got.Descriptor, receipt.Descriptor) {
+				f.t.Fatal("receipt promoted nonqualifying native history", tc.name)
+			}
+		}()
+	}
+	f.replacementProofFailure.Lock()
+	f.replacementProofFailure.armed = true
+	f.replacementProofFailure.injected = 0
+	f.replacementProofFailure.Unlock()
+	func() {
+		defer func() {
+			f.replacementProofFailure.Lock()
+			f.replacementProofFailure.armed = false
+			f.replacementProofFailure.Unlock()
+		}()
+		expectStatus(f.t, f.request(a, "GET", base+"/delivery-receipts/"+receipt.RequestID, "", nil), 503)
+		expectStatus(f.t, f.request(a, "GET", base+"/"+receipt.KeyID+"/delivery-descriptor", "", nil), 200)
+	}()
+	f.replacementProofFailure.Lock()
+	injected := f.replacementProofFailure.injected
+	f.replacementProofFailure.Unlock()
+	if injected != 1 {
+		f.t.Fatal("receipt database-failure control did not reach native proof query")
+	}
+	afterWrites, afterReads, afterMetadata := f.peer.counts()
+	if beforeWrites != afterWrites || beforeReads != afterReads || beforeMetadata != afterMetadata {
+		f.t.Fatal("receipt history review performed Vault I/O")
+	}
+}
+
 func (f *deliveryFixture) receipt(a deliveryFixtureActor, base, request string) deliveryFixtureReceipt {
 	return deliveryFixtureDecode[deliveryFixtureReceipt](f.t, f.request(a, "GET", base+"/delivery-receipts/"+request, "", nil), 200)
 }
@@ -979,7 +1110,7 @@ func testAPIKeyDeliveryLifecycle(t *testing.T, db *gorm.DB) {
 		assertBirth := deliveryFixtureManagedBirth(t, f, "personal", f.admin.Session.User.ID, f.admin.Session.User.ID)
 		first = f.managed(f.admin, base, etag, in, 201)
 		assertBirth(first.Key.ID)
-		if first.Key.Status != entity.KeyActive || first.Delivery.DeliveryStatus != "acknowledged" || first.Delivery.RuntimeStatus != "confirmed" || first.Delivery.Descriptor == nil {
+		if first.Key.Status != entity.KeyActive || first.Delivery.DeliveryStatus != "acknowledged" || first.Delivery.RuntimeStatus != "confirmed" || first.Delivery.ReplacementCallStatus != "not_applicable" || first.Delivery.Descriptor == nil {
 			t.Fatal("delivery receipt did not separate acknowledged/runtime proof")
 		}
 		descriptor := deliveryFixtureDecode[deliveryFixtureDescriptor](t, f.request(f.admin, "GET", base+"/"+first.Key.ID+"/delivery-descriptor", "", nil), 200)
@@ -1018,6 +1149,9 @@ func testAPIKeyDeliveryLifecycle(t *testing.T, db *gorm.DB) {
 		if e := db.Where("request_id = ?", call.RequestID).Find(&attempts).Error; e != nil || len(attempts) != 1 || attempts[0].NativeCompletionEvidence != "completed" {
 			t.Fatal("real native completed use missing")
 		}
+		if got := f.receipt(f.admin, base, c.RequestID); got.ReplacementCallStatus != "not_applicable" {
+			t.Fatal("create receipt acquired replacement-call status")
+		}
 		f.assertNoDeliveryRead()
 	}) {
 		return
@@ -1032,6 +1166,10 @@ func testAPIKeyDeliveryLifecycle(t *testing.T, db *gorm.DB) {
 		if replacement.Key.ReplacesKeyID == nil || *replacement.Key.ReplacesKeyID != first.Key.ID || replacement.Delivery.Descriptor == nil || replacement.Delivery.Descriptor.DescriptorRevision != "2" || replacement.Delivery.Descriptor.SlotID != first.Delivery.Descriptor.SlotID || replacement.Delivery.Descriptor.Path == first.Delivery.Descriptor.Path {
 			t.Fatal("rotation did not append a distinct CAS0 descriptor revision")
 		}
+		if replacement.Delivery.ReplacementCallStatus != "not_recorded" {
+			t.Fatal("managed rotation inferred replacement-call proof")
+		}
+		f.replacementCallNegatives(f.admin, base, replacement.Delivery)
 		complete := map[string]string{"replacement_key_id": replacement.Key.ID}
 		expectStatus(t, f.request(f.admin, "POST", base+"/"+first.Key.ID+"/complete-rotation", "", complete), 409)
 		if _, e := f.svc.AuthenticateAPIKey(t.Context(), f.peer.bearer(t, first.Key.ID)); e != nil {
@@ -1040,6 +1178,9 @@ func testAPIKeyDeliveryLifecycle(t *testing.T, db *gorm.DB) {
 		expectStatus(t, f.native(f.peer.bearer(t, replacement.Key.ID)), 200)
 		if e := f.svc.FlushCallRecorder(t.Context()); e != nil {
 			t.Fatal(e)
+		}
+		if got := f.receipt(f.admin, base, replacement.Delivery.RequestID); got.ReplacementCallStatus != "completed" || got.ReviewETag != replacement.Delivery.ReviewETag || !reflect.DeepEqual(got.Descriptor, replacement.Delivery.Descriptor) {
+			t.Fatal("recorded native completion missing or changed descriptor/review")
 		}
 		expectStatus(t, f.request(f.admin, "POST", base+"/"+first.Key.ID+"/complete-rotation", "", complete), 204)
 		if _, e := f.svc.AuthenticateAPIKey(t.Context(), f.peer.bearer(t, first.Key.ID)); e == nil {
@@ -1064,6 +1205,28 @@ func testAPIKeyDeliveryLifecycle(t *testing.T, db *gorm.DB) {
 		if e != nil || auth.ProjectID == "" || auth.Key.UserID != "" || descriptor.ProfileID != owned.ID {
 			t.Fatal("Project delivery borrowed manager personal authority")
 		}
+		if managed.Delivery.ReplacementCallStatus != "not_applicable" {
+			t.Fatal("Project create receipt inferred replacement history")
+		}
+		rotationTarget := deliveryFixtureDecode[service.APIKeyDeliveryTargetView](t, f.request(manager, "GET", projectBase+"/delivery-targets/"+owned.ID, "", nil), 200)
+		rotationInput := f.input(rotationTarget)
+		rotationInput.Name, rotationInput.ModelIDs = "", []string{}
+		replacement := deliveryFixtureDecode[deliveryFixtureManaged](t, f.request(manager, "POST", projectBase+"/"+managed.Key.ID+"/managed-rotation", f.context(manager, projectBase).ReviewETag, rotationInput), 201)
+		if replacement.Key.ReplacesKeyID == nil || *replacement.Key.ReplacesKeyID != managed.Key.ID || replacement.Delivery.ReplacementCallStatus != "not_recorded" {
+			t.Fatal("Project rotation inferred replacement-call proof")
+		}
+		f.replacementCallNegatives(manager, projectBase, replacement.Delivery)
+		expectStatus(t, f.request(manager, "POST", projectBase+"/"+managed.Key.ID+"/complete-rotation", "", map[string]string{"replacement_key_id": replacement.Key.ID}), 409)
+		expectStatus(t, f.native(f.peer.bearer(t, replacement.Key.ID)), 200)
+		if e := f.svc.FlushCallRecorder(t.Context()); e != nil {
+			t.Fatal(e)
+		}
+		if got := f.receipt(successor, projectBase, replacement.Delivery.RequestID); got.ReplacementCallStatus != "completed" || got.KeyID != replacement.Key.ID || !reflect.DeepEqual(got.Descriptor, replacement.Delivery.Descriptor) {
+			t.Fatal("Project native completion not recorded for current exact manager")
+		}
+		if _, e := f.svc.AuthenticateAPIKey(t.Context(), f.peer.bearer(t, managed.Key.ID)); e != nil {
+			t.Fatal("replacement-call receipt prematurely retired Project predecessor")
+		}
 		expectStatus(t, f.request(successor, "DELETE", projectBase+"/"+managed.Key.ID, "", nil), 204)
 		if _, e = f.svc.AuthenticateAPIKey(t.Context(), f.peer.bearer(t, managed.Key.ID)); e == nil {
 			t.Fatal("urgent Project revocation not applied")
@@ -1073,8 +1236,8 @@ func testAPIKeyDeliveryLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal("revocation discarded historical receipt or kept current publication")
 		}
 		after, _, _ := f.peer.counts()
-		if after != before+1 {
-			t.Fatal("Project ownership/revocation performed extra Writer")
+		if after != before+2 {
+			t.Fatal("Project creation/rotation/revocation performed unexpected Writer count")
 		}
 		f.assertNoDeliveryRead()
 	})

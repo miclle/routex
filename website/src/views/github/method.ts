@@ -1,8 +1,9 @@
 import * as github from '@/api/github'
 import * as google from '@/api/google'
 import * as discord from '@/api/discord'
+import * as telegram from '@/api/telegram'
 
-export type NamedIdentityMethod = 'github' | 'google' | 'discord'
+export type NamedIdentityMethod = 'github' | 'google' | 'discord' | 'telegram'
 
 // Only these reviewed fixed profiles share this view composition.
 export function namedIdentityMethod(method: NamedIdentityMethod) {
@@ -57,6 +58,23 @@ export function namedIdentityMethod(method: NamedIdentityMethod) {
         complete: discord.completeDiscord,
         abandon: discord.abandonDiscord,
         RequestError: discord.DiscordRequestError,
+      }
+    case 'telegram':
+      return {
+        getConfig: telegram.getTelegramConfig,
+        saveConfig: telegram.saveTelegramConfig,
+        setStatus: telegram.setTelegramStatus,
+        beginProof: telegram.beginTelegramProof,
+        validConfig: telegram.validTelegramConfig,
+        validProof: telegram.validTelegramProof,
+        getIdentity: telegram.getTelegramIdentity,
+        unlink: telegram.unlinkTelegram,
+        getMethod: telegram.getTelegramMethod,
+        start: telegram.startTelegram,
+        readSession: telegram.readTelegramSession,
+        complete: telegram.completeTelegram,
+        abandon: telegram.abandonTelegram,
+        RequestError: telegram.TelegramRequestError,
       }
     default:
       throw new Error('Unsupported named identity method')

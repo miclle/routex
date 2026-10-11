@@ -2,42 +2,135 @@
 
 Updated: 2026-10-12. Status: resumed by explicit user instruction; prioritize partially completed capabilities. [Implementation](IMPLEMENTATION.md) records engineering contracts and historical acceptance evidence. Earlier checkpoints below remain historical.
 
+## Coherent Model, authentication and operations qualification (2026-10-12)
+
+A clean worktree on delivered main `18d6a3e44e673d0505327a763c4849887828357f`
+combines Telegram OIDC V106, the exact-owner Key replacement-call advisory and
+optional personal-model operations advice. The 200-path source packet preserves
+the delivered role catalogue, snapshot filtering and reviewed Model references;
+the two overlapping frontend rule files retain both sets of requirements.
+
+The database layer additionally derives MySQL advisory-lock waiting from the
+remaining existing migration deadline, instead of an independent 30-second
+limit. The overall operation remains bounded to 60 seconds or the earlier caller
+deadline. Released schema steps and dedicated-connection lock release are unchanged.
+Its explicit opt-in real-driver regression checks a genuine blocked wait beyond
+30 seconds, caller cancellation, lock release and an unchanged migration ledger.
+
+Earlier standalone mandatory/complete gates pass, including 6,831 frontend cases
+for Telegram/Key and 6,933 for the operations candidate. They do not qualify this
+combined source. The failed full matrix and focused successors remain failed,
+with positive independent cleanup recorded separately. The Telegram callback
+fixture now uses valid single-valued optional decorations while preserving
+no-exchange duplicate-input negatives and all immutable-binding assertions.
+
+The first combined 2,551-path candidate passes mandatory and complete checks:
+6,961 frontend cases in 258 files, Go race/coverage, lifecycle and production
+assets; original 44770 directly joins zero. Its source floor is
+`bcc13c6b8aedb0fd46057c6d49528e443e4cc4fb8c2f190b6f7a149e99302f6f`.
+The final successor additionally incorporates configured image/PDF input cells
+in the existing administrative Model list/detail, with independent Provider-read
+authority, bounded per-protocol intersections and distinct unknown/empty facts.
+Its focused Go race, 72 frontend cases, TypeScript and ESLint pass. Layout,
+routing, runtime and admission remain unchanged.
+
+The corrected lock regression passes all four named events on each real driver,
+including the genuinely blocked 31-second wait and prompt caller cancellation.
+It separately observes exact driver-backend termination before immediate lock
+reacquisition and unchanged ledger verification. Original outer tool 66692 exits
+one at its fresh-bind cleanup guard; official worker/supervisor tests exit zero.
+A later independent reader directly exits zero and proves true fresh binding,
+all owned process/resource/helper closure and preserved source/development.
+This completes the separate cleanup proof without rewriting the original failure.
+Readback SHA-256:
+`608f80e768d4c76a1d704e868c5a32beb67936cd01e296bbb0467db0ea4a03ac`.
+The initial failed lock test and both original outer outcomes remain retained.
+Those observations retain their earlier source scope; the repaired R5 source
+has separate ordinary/build and catalog-focused evidence below. Prior-floor
+tests do not establish later full-driver or authentication acceptance;
+only the separately bound same-source receipts below do.
+
+The repaired 2,563-path R5 source has floor SHA-256
+`e811f8221f17467836e5d5cef73c235cbb1f6450ccda11c1e682793e6b3111c8`.
+Formatting, mandatory checking and the complete ordinary Task passed; original
+36651 joined zero with each owned stage/process group closed and source unchanged.
+The Task includes Go race/coverage, 7,036 frontend cases in 260 files, five website
+Node checks, thirteen script/lifecycle checks and production asset tests. Gate
+readback SHA-256:
+`17640571a2052761ec759aea99e02e4c9c7d81397a2c56465df3b3f104081ae9`.
+
+The fresh default-production build on that exact floor passed; original 15498
+joined zero with its owned group absent. Binary SHA-256:
+`ce1a90cb286e37ec980d242a059105310484a467e8e174196b45a641c6263671`;
+build readback:
+`dc75fbbeca4af347793c9fc0e43e84fd39d6ca6dff66c35de41ef2f2d4ed59f4`.
+A build result does not establish full-database or authentication acceptance.
+
+The catalog-only regression passed three named events on each real PostgreSQL
+and MySQL driver, including parents, with zero skips and no executable app births.
+Original launcher 15048 remains exit one at its outer port-closure guard; runner
+and test workers exited zero. Independent reader 64383 separately accepted the
+focused tests and physical cleanup: exact owned processes/groups, Compose resources,
+refused and freshly bindable database ports and temporary helpers, with unchanged
+source and preserved development. Its readback SHA-256 is
+`ac9b824c63a08b1784882bfaa0e81d102645a4b281e7b72418de870c46e8e895`.
+Neither this acceptance nor later cleanup rewrites the original launcher failure.
+The fixture now explicitly confirms its newly created Key before native assertions;
+all Model disable/archive positives and negatives remain. Earlier full 50838
+remains failed and incomplete; its separately accepted cleanup is not functional
+acceptance.
+
+The original complete 222-scenario/four-constraint matrix passed on this
+frozen R5 floor: 564 balanced named passes per database, no driver skips
+or failures, and 48 genuine application births. Root observed original
+52572 directly join zero; independent full readback SHA-256:
+`89be25da4febb5d9180b7742a94417d1cb9a32732acc14d134ef6ea7cd099be0`.
+Same-source authentication lifecycle passed with eight applications and
+four complete summaries; root observed original 29112 directly join zero.
+Authentication readback SHA-256: `c110c3fa5031de1e239625a8a614cc2fee725d697afc27793b8d50fc9a90a179`.
+These receipts qualify the controlled functionality in this containing
+delivery; they do not establish browser or external-provider acceptance.
+Browser and live external identity/model acceptance remain deferred.
+Saved-report policy and broader configuration rollback remain separate scope items.
+
+Delivered main `ac04a939b0c092d2207538dc42c310bc2f271816` separately passed
+[CI run 38175189987](https://github.com/miclle/routex/actions/runs/38175189987):
+Frontend Checks, Backend Checks, PostgreSQL and MySQL Integration, and Build
+Artifacts all completed successfully. This applies to delivered main only;
+earlier failed/cancelled CI and candidate qualification histories stay unchanged.
+
 ## Current execution status (2026-10-12)
 
-Role management (F05) is complete under the controlled-functionality convention.
-Commit `4cfbe9ef9c50740f83d580ac598d8dbf611e3338` fixes the finite frontend
-permission catalogue to accept the existing Secrets write/test grants. Unknown
-and reserved permissions remain rejected. All 165 focused API/component tests,
-TypeScript, formatting and mandatory checks passed; main was pushed with exact
-remote parity. This adds no new browser or external-provider acceptance.
+This containing delivery adds official Telegram OIDC login, exact-owner native
+completion advisory for replacement Keys, optional personal-model operations
+analysis, administrative configured-input display and reviewed Model lifecycle
+controls. Operations analysis uses the current user's eligible personal Chat
+model and personal quota, sending only bounded authorized aggregates with
+transient Model labels. AI results stay transient plain text. Model disable,
+re-enable and terminal archival preserve historical identities and admitted
+calls; list/detail capability facts retain independent Provider-read authority.
 
-Telegram and the Key replacement-call advisory pass repaired mandatory checks
-and the complete Task, including 6,831 frontend cases. Their first full database
-matrix failed historical fixtures; the retained focused successor also failed a
-Telegram callback fixture and MySQL migration-lock preparation. Both failed runs
-have independently verified resource cleanup. The callback fixture repair keeps
-the strict production parser and duplicate-input negatives. Operational analysis
-passes coherent mandatory and complete checks, including 6,933 frontend cases,
-using current-user models, personal quota and authorized aggregates only. Its
-first real-driver focus passed PostgreSQL but failed MySQL migration preparation.
-No database or delivery acceptance is inferred from these partial results.
-The next full qualification will bind one latest-main candidate containing both
-features and the migration-lock repair, followed by authentication lifecycle and
-a fresh default-production build on that same source. Saved-report policy remains
-open. Reviewed Model aliases and positive advisory metadata are delivered by the
-containing commit after complete checks and real-driver focused acceptance;
-actual protocols, capabilities, routes and grants are unchanged.
-Recorded routing-snapshot review is verified in this phase, with exact filters and
-optional all-recorded-process review in the existing System Status dialog. Its
-104 frontend/localization cases, focused Go race tests, mandatory check and real
-PostgreSQL/MySQL scenario passed. Telegram and operational analysis remain
-independently pending delivery; F30 remains Partial.
+The unchanged business source has passed formatting, mandatory checks, complete
+ordinary tests, default-production build, the full PostgreSQL/MySQL matrix and
+same-source authentication restart lifecycle. Exact results and receipt hashes
+are recorded above. Main adoption preserves all qualified business bytes and
+the separately delivered rolling-warning fixture. Final main checking precedes
+commit and push. Earlier failed qualification and CI outcomes remain historical;
+the green ac04 CI result is not a CI result for this containing delivery.
 
-Current totals: **16 Completed / 13 Partial / 1 Not started**. Snapshot review is
-committed and pushed as `5b2aac9d908b1f37819be52a85762a7211af94cb`, with exact
-remote parity. Its Actionlint and GolangCI-Lint passed; no successor CI result is claimed.
-Earlier CI runs cancelled by subsequent main pushes remain cancelled, not passed.
-Local accepted evidence below retains its exact phase scope.
+Current totals: **16 Completed / 14 Partial / 0 Not started**. F24 is Partial:
+scoped aggregate queries, CSV and optional AI advice are implemented; saved-report
+audience/retention, forecasts and wider evaluation remain open. F03, F12 and F29
+also remain Partial. Browser and live external-provider acceptance are deferred.
+Role management remains Completed under its separately recorded controlled scope.
+
+Next bounded work is the cold PostgreSQL/MySQL backup-and-restore drill, followed
+by the prepared Audit/offboarding and acknowledged-Vault-delete persistence-loss
+regressions. Their main adoption and coherent verification remain pending.
+Qualified RSS helper controls and reviewed performance runners are preparation,
+not measured workload acceptance; hardware and goroutine qualification remain
+unknown. Saved-report policy, workload identities, notification recipients and
+broader configuration rollback still require their separate product decisions.
 
 ## Reviewed Model reference assistance (2026-10-12)
 

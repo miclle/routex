@@ -85,6 +85,7 @@ type runtimeAuthorization struct {
 	Connections                  map[string]runtimeConnectionProof
 	Providers                    map[string]runtimeProviderProof
 	PersonalGrantStates          map[string]runtimePersonalGrantState
+	PersonalModels               map[string]map[string]bool
 	ModelEligibilityHashes       map[string]string
 	PersonalKeyStates            map[string]runtimePersonalKeyState
 	UserAdmissions               map[string]runtimeAdmissionProof
@@ -210,6 +211,12 @@ func (s *Service) StopRuntime() {
 // RefreshRuntime independently publishes current authorization and validated
 // routes. Invalid routes never replace the last valid routing snapshot.
 func (s *Service) RefreshRuntime(ctx context.Context) error {
+	return s.refreshRuntime(ctx, false)
+}
+
+// Lifecycle reconciliation must not queue behind uncancellable mutex waits.
+// Existing refresh callers retain their serialized, blocking admission.
+func (s *Service) refreshRuntime(ctx context.Context, tryAdmission bool) error {
 	runtime := s.runtime
 	if runtime == nil {
 		return nil
@@ -220,7 +227,13 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 	// earlier reads instead of publishing a snapshot that can be overwritten.
 	// Admission precedes publication.RLock: queued refreshes hold neither the
 	// publication gate nor a database connection. Current proofs use only mu.
-	runtime.refreshMu.Lock()
+	if tryAdmission {
+		if !runtime.refreshMu.TryLock() {
+			return runtimeUnavailable
+		}
+	} else {
+		runtime.refreshMu.Lock()
+	}
 	defer runtime.refreshMu.Unlock()
 	if ctx.Err() != nil {
 		return runtimeUnavailable
@@ -232,7 +245,13 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 	}
 	// Acquire publication admission before borrowing a database connection.
 	// Retirement holds the exclusive gate through commit and invalidation.
-	runtime.publication.RLock()
+	if tryAdmission {
+		if !runtime.publication.TryRLock() {
+			return runtimeUnavailable
+		}
+	} else {
+		runtime.publication.RLock()
+	}
 	defer runtime.publication.RUnlock()
 	if ctx.Err() != nil {
 		return runtimeUnavailable
@@ -247,7 +266,13 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 	data, err := s.loadRuntimeData(ctx)
 	// Current publication proofs stay observable while a new database snapshot
 	// is loading. Serialize effects only after the read has completed.
-	runtime.mu.Lock()
+	if tryAdmission {
+		if !runtime.mu.TryLock() {
+			return runtimeUnavailable
+		}
+	} else {
+		runtime.mu.Lock()
+	}
 	defer runtime.mu.Unlock()
 	if ctx.Err() != nil {
 		return runtimeUnavailable
@@ -697,6 +722,9 @@ func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAutho
 			auth.PersonalGrantSources[grant.UserID][grant.ModelID] = *grant.SourceRequestID
 		}
 	}
+	// Personal Session invocation uses the exact complete grant set, including
+	// manual grants without request provenance. It never borrows Key scopes.
+	auth.PersonalModels = grants
 	scopes := map[string][]string{}
 	for _, scope := range data.Scopes {
 		scopes[scope.KeyID] = append(scopes[scope.KeyID], scope.ModelID)

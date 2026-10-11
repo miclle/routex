@@ -71,6 +71,7 @@ func runtimePublicationPeelV105(db *gorm.DB, expected []personalKeyBehaviorMigra
 
 func legacyRuntimePublicationBeforeV104(t *testing.T, db *gorm.DB) {
 	t.Helper()
+	legacyTelegramBeforeV106(t, db)
 	if err := runtimePublicationPeelV105(db, personalKeyBehaviorLedger(t, db)); err != nil {
 		t.Fatal(err)
 	}

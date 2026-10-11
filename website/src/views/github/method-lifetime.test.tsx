@@ -48,7 +48,8 @@ beforeEach(async () => {
     } else if (
       request.url === '/auth/google' ||
       request.url === '/auth/github' ||
-      request.url === '/auth/discord'
+      request.url === '/auth/discord' ||
+      request.url === '/auth/telegram'
     )
       data = {
         available: true,
@@ -56,7 +57,9 @@ beforeEach(async () => {
           ? 'Google sign-in'
           : request.url.endsWith('discord')
             ? 'Discord sign-in'
-            : 'GitHub sign-in',
+            : request.url.endsWith('telegram')
+              ? 'Telegram sign-in'
+              : 'GitHub sign-in',
       }
     else if (request.url?.endsWith('/complete')) data = structuredClone(returnedSession)
     else if (request.url?.endsWith('/start')) {
@@ -72,6 +75,18 @@ beforeEach(async () => {
           code_challenge_method: 'S256',
         })
         data = { authorization_url: `https://accounts.google.com/o/oauth2/v2/auth?${query}` }
+      } else if (request.url === '/auth/telegram/start') {
+        const query = new URLSearchParams({
+          response_type: 'code',
+          client_id: 'client-id',
+          redirect_uri: 'https://routex.example.test/api/v1/auth/telegram/callback',
+          scope: 'openid',
+          state: 'a'.repeat(43),
+          nonce: 'b'.repeat(43),
+          code_challenge: 'c'.repeat(43),
+          code_challenge_method: 'S256',
+        })
+        data = { authorization_url: `https://oauth.telegram.org/auth?${query}` }
       } else if (request.url === '/auth/discord/start') {
         const query = new URLSearchParams({
           response_type: 'code',
@@ -283,9 +298,66 @@ describe('Discord method-keyed teardown', () => {
     expect(cache.getMutationCache().getAll()).toHaveLength(0)
   })
 })
+describe('Telegram method-keyed teardown', () => {
+  it.each(['read', 'complete'] as const)(
+    'discards a held old-method %s and requires a fresh new-method Continue',
+    async (phase) => {
+      const release = hold(phase === 'read' ? '/auth/session' : '/auth/telegram/complete')
+      await render('telegram', 'complete')
+      expect(writes()).toHaveLength(0)
+      await click('Continue')
+      await wait(() => requests.some((request) => request.url === held!.path))
+      const oldRequest = requests.find((request) => request.url === held!.path)!
+      await render('github', 'complete')
+      expect(oldRequest.signal?.aborted).toBe(true)
+      expect(host.textContent).toContain('GitHub')
+      await act(async () => release())
+      expect(cache.getQueryData(['auth', 'session'])).toBeNull()
+      expect(host.querySelector('[data-location]')?.textContent).toBe('/auth/identity/complete')
+      expect(writes().filter((request) => request.url === '/auth/telegram/complete')).toHaveLength(
+        phase === 'read' ? 0 : 1,
+      )
+      expect(writes().filter((request) => request.url === '/auth/github/complete')).toHaveLength(0)
+      held = undefined
+      await click('Continue')
+      await wait(
+        () => cache.getQueryData<Session>(['auth', 'session'])?.csrf_token === 'fresh-result',
+      )
+      expect(writes().filter((request) => request.url === '/auth/github/complete')).toHaveLength(1)
+      expect(host.querySelector('[data-location]')?.textContent).toBe('/')
+      expect(cache.getMutationCache().getAll()).toHaveLength(0)
+    },
+  )
+  it('aborts a held old-method start and permits only a fresh new-method start', async () => {
+    const release = hold('/auth/telegram/start')
+    await render('telegram', 'start')
+    await wait(() => host.textContent!.includes('Continue with Telegram sign-in'))
+    await click('Continue with Telegram sign-in')
+    await wait(() => writes().length === 1)
+    const oldRequest = writes()[0]
+    await render('github', 'start')
+    expect(oldRequest.signal?.aborted).toBe(true)
+    await wait(() => host.textContent!.includes('Continue with GitHub sign-in'))
+    await act(async () => release())
+    expect(host.querySelector('[data-location]')?.textContent).toBe('/auth/identity/complete')
+    expect(writes().map((request) => request.url)).toEqual(['/auth/telegram/start'])
+    expect(acquired).toBe(1)
+    expect(released).toBe(1)
+    held = undefined
+    await click('Continue with GitHub sign-in')
+    await wait(() => writes().length === 2 && released === 2)
+    expect(writes().map((request) => request.url)).toEqual([
+      '/auth/telegram/start',
+      '/auth/github/start',
+    ])
+    expect(acquired).toBe(2)
+    expect(cache.getQueryData(['auth', 'session'])).toBeNull()
+    expect(cache.getMutationCache().getAll()).toHaveLength(0)
+  })
+})
 
 it('fails closed for an unknown named method without selecting another provider or dispatching', () => {
-  for (const unknown of ['other', '', 'Discord']) {
+  for (const unknown of ['other', '', 'Discord', 'Telegram']) {
     expect(() => namedIdentityMethod(unknown as NamedIdentityMethod)).toThrow(
       'Unsupported named identity method',
     )

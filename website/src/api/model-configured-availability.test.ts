@@ -58,3 +58,35 @@ describe('Administrative Model configured availability wire boundary', () => {
     },
   )
 })
+
+describe('Administrative configured input contract', () => {
+  it.each([
+    null,
+    {},
+    { openai_chat: [] },
+    { openai_chat: ['image', 'pdf'], openai_responses: ['pdf'] },
+  ])('preserves known and unknown inputs %j without deriving from bindings', async (inputs) => {
+    const record = { ...model(), configured_input_capabilities: inputs }
+    value = record
+    expect((await getAdminModel('mdl_one')).configured_input_capabilities).toEqual(inputs)
+    value = { items: [record] }
+    expect((await listAdminModels())[0].configured_input_capabilities).toEqual(inputs)
+  })
+  it.each([
+    undefined,
+    [],
+    false,
+    'image',
+    { openai_chat: null },
+    { openai_chat: ['audio'] },
+    { openai_chat: ['image', 'image'] },
+    { OPENAI_CHAT: ['image'] },
+    { text: [] },
+  ])('rejects malformed configured input %j in both complete responses', async (inputs) => {
+    const invalid = { ...model(), configured_input_capabilities: inputs }
+    value = invalid
+    await expect(getAdminModel('mdl_one')).rejects.toThrow('Invalid Model configured inputs')
+    value = { items: [model(), invalid] }
+    await expect(listAdminModels()).rejects.toThrow('Invalid Model configured inputs')
+  })
+})

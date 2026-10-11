@@ -659,7 +659,7 @@ func testGoogleMigration(t *testing.T, db *gorm.DB) {
 	// Current-head reads also verify the five newly added fields remain empty.
 	historicalPrimary = func(tx *gorm.DB) *gorm.DB { return tx }
 	current := personalKeyBehaviorLedger(t, db)
-	if len(current) != 105 || current[104].Version != 105 || current[103].Version != 104 || current[102].Version != 103 || current[100].Version != 101 || current[101].Version != 102 || current[99].Version != 100 || !reflect.DeepEqual(beforeCurrent, current[:99]) {
+	if len(current) != 106 || current[105].Version != 106 || current[104].Version != 105 || current[103].Version != 104 || current[102].Version != 103 || current[100].Version != 101 || current[101].Version != 102 || current[99].Version != 100 || !reflect.DeepEqual(beforeCurrent, current[:99]) {
 		t.Fatal("current V101 startup changed historical V99 ledger/version/time")
 	}
 	var observations int64

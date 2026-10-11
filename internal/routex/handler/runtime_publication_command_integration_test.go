@@ -29,6 +29,8 @@ import (
 // The original integration owner supplies both real drivers and its disposable
 // database. Registration is a separate prospective suffix, not a second harness.
 func testRuntimePublicationCommandMigration(t *testing.T, db *gorm.DB) {
+	// Retain the exact V105-only migration controls after the newer pristine overlay.
+	legacyTelegramBeforeV106(t, db)
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	db = db.WithContext(ctx)
@@ -257,7 +259,7 @@ func testRuntimePublicationCommandMigration(t *testing.T, db *gorm.DB) {
 		migrate()
 	}
 	checkLedger()
-	if database.MigrateThrough(ctx, db, 104) == nil || database.MigrateThrough(ctx, db, 106) == nil {
+	if database.MigrateThrough(ctx, db, 104) == nil || database.MigrateThrough(ctx, db, 107) == nil {
 		t.Fatal("historical/newer migration bound admitted")
 	}
 	if db.Model(model).Count(&count).Error != nil || count != 0 {

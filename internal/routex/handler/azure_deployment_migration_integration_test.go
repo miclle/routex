@@ -152,7 +152,11 @@ func TestAzureExact152RegistryAndRetained150Prefix(t *testing.T) {
 	for _, m := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, m[1]+":"+m[2])
 	}
-	if !enterpriseRegistry218Current(names) {
+	if !insightsRegistry222Current(names) {
+		t.Fatal("exact222 Insights successor required before historical221 checks")
+	}
+	names = names[:221]
+	if !telegramRegistry221Current(names) {
 		t.Fatal("exact214 forced SSO successor required before historical210 checks")
 	}
 	names = names[:210] // Preserve the exact predecessor guard and its historical controls.
@@ -164,7 +168,7 @@ func TestAzureExact152RegistryAndRetained150Prefix(t *testing.T) {
 		t.Fatal("exact V93/181 successor changed")
 	}
 	names = names[:179]
-	if len(names) != 179 || !strings.Contains(string(raw), "versions != 105") {
+	if len(names) != 179 || !strings.Contains(string(raw), "versions != 106") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if _, ok := azureDeploymentRegistryParent(names); !ok {

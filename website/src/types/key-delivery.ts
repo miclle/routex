@@ -164,6 +164,7 @@ export interface KeyDeliveryReceipt {
   delivery_status: 'pending' | 'acknowledged' | 'unknown' | 'not_attempted'
   key_status: PersonalKey['status']
   runtime_status: 'pending' | 'confirmed' | 'unknown'
+  replacement_call_status: 'not_applicable' | 'not_recorded' | 'completed'
   failure_code: string | null
   descriptor: KeyDeliveryDescriptor | null
   review_etag: string

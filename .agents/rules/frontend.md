@@ -1654,3 +1654,82 @@ Forced SSO uses the existing Authentication methods hierarchy and an exact revie
 
 Committed security/policy receipts explicitly indicate reauthentication_required. Clear private Session/query/mutation state immediately and keep one-time recovery codes only in the bounded React receipt at /auth/reauthenticate, outside AuthGate. The App-level provider holds no history/query/storage receipt; explicit sign-in, expiry, leaving the holding route, unmount or a new authenticated actor clears it. A reload has no recoverable receipt. Password/factor operations remain direct transient requests with exact fresh Session-generation fences and no automatic replay. Pair every label and accessible message in authEnforcement English/Chinese catalogs.
 Saved Vault certificate authentication stays inside the existing 720px integration drawer and separate Writer/Reader cards. Reuse local Input/Textarea, Button, Card and Base UI Drawer/Dialog wrappers. Keep an explicit certificate mount and named role, transient certificate/private-key PEM and optional server-CA PEM. Empty CA uses system trust; certificate identities require HTTPS. Validate bounded envelopes locally and leave cryptographic key matching, certificate validity and remote authority to the server and explicit tests. Never accept host paths, expose saved PEM/expiry, cache sensitive requests or infer distinct remote principals from unequal local tuples. Preserve Token/AppRole and exact keep/remove actions, reason/If-Match/UUID/CSRF, independent permissions and original uncertain retry bodies. Clear obsolete drafts and unsent captures on auth-method/action changes; clear material on successful save, dismissal, owner teardown and unmount. Session renewal retains only the same mounted owner's original uncertain intent and rejects stale completion callbacks. Pair English/Chinese secrets translations; language switches preserve exact drafts without dispatch.
+
+Telegram uses the existing sign-in card, independent authentication-settings drawer
+and Account Security identity card with paired `telegram` translations. Keep its
+fixed official OIDC authorization-code profile, PKCE S256, exact server nonce and
+openid-only scope independent of enterprise OIDC. Configuration exposes Client ID
+and Client Secret, with RS256 setup guidance; no bot credentials, username linking,
+email linking or automatic account creation. Preserve the finite named-method
+adapter, method-keyed teardown and exact Telegram API/callback paths. Management
+requires fresh intrinsic-administrator and registration.write authority; self-link
+and unlink use independent exact Session, local password/MFA, reason and ETag gates.
+Verification and explicit enablement remain separate. Clean completion stays outside
+AuthGate and requires manual Continue after a fresh direct Session read; native
+HTTP 202 remains a transient MFA challenge. Secrets, proofs, authorization URLs and
+uncertain intents stay component-local, outside caches and browser storage. Fence
+renewed authority and late replies, preserve exact uncertain requests, and settle
+the actual Session after revoking writes. Telegram never satisfies the OIDC/LDAP-only
+enforced-SSO policy. Controlled peers do not prove live registered-client acceptance.
+
+Managed delivery receipts show only the server's required replacement_call_status:
+not_applicable, not_recorded or completed. Keep this native-call advisory separate
+from Vault delivery, runtime publication, descriptor application and current
+retirement eligibility; never infer proof from HTTP success or usage. Preserve
+descriptor coordinator/application unknown values. Hide facts during renewed or
+failed reads and actor/owner/Key/request changes, reject a receipt for another
+reviewed Key, and ignore obsolete completions. An uncertain issuance with no known
+Key ID uses its exact authorized owner/request receipt to establish the canonical
+returned Key; known-Key reviews still require equality. Same-owner Session renewal retains
+the original uncertain reconciliation intent; actor or target changes discard it.
+Use the existing receipt dialog and paired keyDeliveryOwner translations.
+
+Operations analysis uses `views/insights` at `/admin/insights` with independent
+`calls.read_all` authority and paired `insights` translations. Keep the approved
+notice, question/result split, result actions and saved-report area, using local
+shadcn/Base UI composition. The supported foundation is a deterministic recorded
+Tokens-by-Model report from the existing platform usage API for explicit absolute
+dates/timezone; show captured source, definitions, range, filters, freshness and
+known/unknown coverage. Preserve exact integer strings and historical labels;
+never fetch an unauthorized live catalogue or infer quotas, forecasts or native
+completion. Free text, unsupported shortcuts and saving remain explicitly
+unavailable. Optional AI advice uses only an explicitly selected current-user
+callable personal Chat model and personal quota, after a separate bounded-inference
+confirmation. The server reruns the authorized fixed aggregate report and sends
+only counts, capture metadata and temporary Model labels, never questions, raw
+calls, member identities, historical names or secrets. Keep the answer/capture/label
+map transient and outside query/mutation caches and storage. Render only plain-text
+advice and exact native completion states, with no executable output actions.
+Model, range, actor, Session, permission or model-list generation changes revoke
+confirmation and obsolete responses; cancellation and duplicate guards remain
+synchronous. Submitted language stays immutable while UI copy switches live. Each CSV export is a separate fresh authorized capture,
+with its own metadata and existing safe server encoding, rather than a claim to
+export the displayed snapshot. Hide prior private results during Session or
+permission renewal/error, actor/parameter changes and stale replies; abort obsolete
+work and require current authority before report/export dispatch. Do not add
+implicit model-call grants, inference credentials, persistence or new permissions.
+
+Administrative Model configured input cells use only the independently Provider-authorized
+configured_input_capabilities projection, with per-native-protocol image/PDF intersections.
+Keep the existing list/detail composition and label these as configured input, never
+infer Text or image-generation classes. Unknown/legacy absence, no eligible configured
+protocols and a known empty media intersection remain distinct. Render English/Chinese
+input labels and protocol context; hide prior facts during actor/Session/permission/target
+renewal or errors. No per-row dependency requests, implicit declarations, runtime health
+or traffic claims; read projection does not change routing, grants or admission.
+
+Model lifecycle uses the existing administrative Model action cell and detail header
+with a local Base UI dialog. Read the exact lifecycle endpoint under independent
+models.read_all authority. Active/disabled changes and disabled-only terminal archive
+require fresh models.write, Session/CSRF, a reviewed identity-and-state ETag and a
+bounded reason; archive has a separate danger confirmation. Archived Models disable
+Model-owned rename, binding, weight, grant and alias edits while retaining reads and
+history. Preserve names, grants, bindings, weights, history and already dispatched
+work; only pending Personal/Team requests are cancelled. Hide stale facts during
+actor/Session/permission/target renewal or errors and retain same-actor dispatched
+uncertainty on every failed response. Release obsolete pending ownership immediately
+on renewal. Exact original archive retries may reconcile a fresh same-birth archived
+record despite read-only can_change; fresh write authority remains mandatory.
+Current desired status/local runtime facts never prove the original operation or
+fleet application. Keep requests transient outside mutation caches, explicit conflict
+review and paired English/Chinese copy; no archived reactivation is available.

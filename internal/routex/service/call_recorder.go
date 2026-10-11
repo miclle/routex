@@ -86,7 +86,7 @@ func (s *Service) StopCallRecorder() error {
 // AdmitGatewayCall must run before the first upstream dispatch. Capacity or
 // filesystem failures reject the request before consuming provider resources.
 func (s *Service) AdmitGatewayCall(requestID string, result *GatewayResult) error {
-	if result != nil && result.TeamID != "" && s.recorder == nil {
+	if result != nil && (result.TeamID != "" || result.identity.personal != nil) && s.recorder == nil {
 		return callQueueUnavailable
 	}
 

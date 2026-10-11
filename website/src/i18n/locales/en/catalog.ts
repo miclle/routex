@@ -592,6 +592,53 @@ export default {
     saved:
       'The response confirmed current saved configuration and local runtime publication. It does not prove the original operation or route availability.',
   },
+  modelLifecycle: {
+    action: 'Review lifecycle',
+    actions: 'Actions for {{name}}',
+    title: 'Model lifecycle',
+    confirmTitle: 'Confirm Model lifecycle change',
+    description:
+      'Disable or re-enable this Model, or permanently archive a disabled Model. Disabling or archiving stops new inference; already dispatched work and retained grants, bindings and history remain.',
+    name: 'Current public name',
+    id: 'Model ID',
+    status: 'Recorded status',
+    observed: 'Observed at',
+    states: { active: 'Active', disabled: 'Disabled', archived: 'Archived' },
+    runtimeApplied: 'The serving process confirms the current Model status is applied locally.',
+    runtimeUnknown: 'Local runtime application is not confirmed.',
+    boundary:
+      'Current desired status and local application do not prove the original command or application across a fleet.',
+    responseConfirmed:
+      'The response confirms the desired current status and local runtime application.',
+    responsePending:
+      'The response confirms current status; local runtime application remains unconfirmed.',
+    conflict:
+      'The outcome is unknown and the current state conflicts with the reviewed change. Refresh and explicitly review before retrying the original request.',
+    failed: 'The change was not confirmed. Refresh and explicitly review the current state.',
+    unknown:
+      'The outcome is unknown. Retain the original status, reason and review token for an explicit identical retry.',
+    pending:
+      'Local runtime application is unconfirmed. Retry the original request with fresh authority.',
+    reasonError: 'Enter a nonblank reason of at most 1,024 UTF-8 bytes without control characters.',
+    capturedStatus: 'Original desired status: {{status}}',
+    capturedReason: 'Reviewed reason: {{reason}}',
+    confirmTarget: 'Set {{name}} to {{status}}?',
+    reason: 'Reason',
+    review: 'Refresh and review',
+    retry: 'Retry original change',
+    submitting: 'Applying…',
+    confirm: 'Confirm change',
+    cancel: 'Back',
+    disable: 'Review disabling',
+    enable: 'Review enabling',
+    archive: 'Review permanent archive',
+    archiveConfirmTitle: 'Permanently archive this Model?',
+    confirmArchive: 'Confirm permanent archive',
+    archiveWarning:
+      'Archive is irreversible. Names stay reserved and grants, bindings, weights and history remain. Pending Personal and Team requests are cancelled; this does not claim cancellation of Project requests. New inference is rejected; already dispatched work is unaffected.',
+    archived: 'Archived Models are permanently read-only.',
+    readOnly: 'Current authority permits reading only.',
+  },
   aliasRetirement: {
     names: 'Compatibility names and history',
     configuredName: 'Recorded name',
@@ -1140,6 +1187,12 @@ export default {
     namePlaceholder: 'Model name used in requests',
   },
   modelMetadata: {
+    configuredInputs: 'Configured input',
+    imageInput: 'Image input',
+    pdfInput: 'PDF input',
+    noInputRoutes: 'No configured input routes',
+    noMediaInput: 'No image/PDF input',
+    protocolInputs: '{{protocol}}: {{inputs}}',
     capabilityType: 'Capability type',
     monthlyRequests: 'Monthly requests',
     created: 'Created',

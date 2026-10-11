@@ -36,15 +36,16 @@ type APIKeyDeliveryDescriptorResponse struct {
 }
 
 type APIKeyDeliveryReceiptResponse struct {
-	RequestID      string                            `json:"request_id"`
-	KeyID          string                            `json:"key_id"`
-	Mode           string                            `json:"mode"`
-	DeliveryStatus string                            `json:"delivery_status"`
-	KeyStatus      string                            `json:"key_status"`
-	RuntimeStatus  string                            `json:"runtime_status"`
-	FailureCode    *string                           `json:"failure_code"`
-	Descriptor     *APIKeyDeliveryDescriptorResponse `json:"descriptor"`
-	ReviewETag     string                            `json:"review_etag"`
+	RequestID             string                            `json:"request_id"`
+	KeyID                 string                            `json:"key_id"`
+	Mode                  string                            `json:"mode"`
+	DeliveryStatus        string                            `json:"delivery_status"`
+	KeyStatus             string                            `json:"key_status"`
+	RuntimeStatus         string                            `json:"runtime_status"`
+	ReplacementCallStatus string                            `json:"replacement_call_status"`
+	FailureCode           *string                           `json:"failure_code"`
+	Descriptor            *APIKeyDeliveryDescriptorResponse `json:"descriptor"`
+	ReviewETag            string                            `json:"review_etag"`
 }
 
 func apiKeyDeliveryDescriptorDTO(v *service.APIKeyDeliveryDescriptorView) *APIKeyDeliveryDescriptorResponse {
@@ -60,7 +61,7 @@ func apiKeyDeliveryDescriptorDTO(v *service.APIKeyDeliveryDescriptorView) *APIKe
 }
 func apiKeyDeliveryReceiptDTO(v service.APIKeyDeliveryReceiptView) *APIKeyDeliveryReceiptResponse {
 	return &APIKeyDeliveryReceiptResponse{RequestID: v.RequestID, KeyID: v.KeyID, Mode: v.Mode, DeliveryStatus: v.DeliveryStatus,
-		KeyStatus: v.KeyStatus, RuntimeStatus: v.RuntimeStatus, FailureCode: v.FailureCode,
+		KeyStatus: v.KeyStatus, RuntimeStatus: v.RuntimeStatus, ReplacementCallStatus: v.ReplacementCallStatus, FailureCode: v.FailureCode,
 		Descriptor: apiKeyDeliveryDescriptorDTO(v.Descriptor), ReviewETag: v.ReviewETag}
 }
 

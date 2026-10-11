@@ -197,6 +197,67 @@ Adding a binding always assigns weight `0`. Weight replacement must include ever
 
 Grant replacement validates all supplied users before deleting old grants, then commits the new set and its audit event atomically. Disabled or unknown users and duplicate IDs are rejected. An empty array revokes every direct user grant. Member-facing model lists expose only explicitly granted active models, without upstream connection or credential metadata. Model visibility alone does not claim that a route is currently callable.
 
+### Reviewed Model lifecycle
+
+The existing administrative Model workspace supports reviewed `active` ↔
+`disabled` transitions and terminal `disabled` → `archived`. Disablement rejects new calls while retaining the Model
+ID and birth, every reserved name, grants, supply relations, routing weights,
+Key scopes and immutable call/history records. Re-enablement restores only those
+retained relationships; it does not grant access or guarantee healthy supply.
+Pending Personal and Team Model requests are cancelled atomically with
+`model_unavailable`; approved grants and terminal request history remain intact.
+
+A private lifecycle GET requires `models.read_all`. Its `can_change` flag also
+checks independent current `models.write`; a writer does not borrow read power.
+The PUT independently validates its live Session and write authority, requires
+a nonblank control-free UTF-8 reason of at most 1,024 bytes and the reviewed
+strong `If-Match`, and accepts `active`, `disabled` or `archived`. The complete
+JSON body is bounded at 16 KiB; query parameters and unknown/duplicate body fields fail.
+The token contains 129 opaque characters (`64hex.64hex`), or 131 with HTTP quotes.
+Its stable identity component binds the exact Model ID and birth; its mutable
+component covers current status, configuration timestamp and current name.
+
+State and cancellation writes are transactional under the governance lock and
+a three-second local budget. After a committed disable or archive, local Model admission is
+invalidated before runtime refresh. This endpoint rejects busy refresh,
+publication and effect admission with `503` instead of queuing behind a mutex.
+Refresh has its own three-second budget; the final authorized read has another
+three seconds, so these separate phases may consume up to nine seconds in total
+(subject to an earlier caller deadline). The standalone GET has a three-second
+budget. Publication failure never restores the prior local admission. A
+successful response separately reports stored status, whether this request changed it, and current local
+`runtime_applied`; absent or expired publication remains unproven. A retry with
+the exact original intent may reconcile an already-desired state only for the
+same Model birth. It never proves who performed the original change, a historical
+command receipt, route health or fleet application. A stale token cannot change
+a different current state; explicitly review conflicts before changing intent.
+
+Archival is terminal and requires a fresh review of a disabled Model:
+`disabled` → `archived` is allowed, while `active` → `archived` and restoration
+from `archived` are rejected. The archived review remains readable with
+`can_change=false`. An identical uncertain archive retry may reconcile the
+already-archived state only for the same exact Model birth; it is not a new
+mutation or historical receipt. Local runtime proof may confirm the archived
+Model's disabled authorization with its exact birth and current name.
+
+Archival retains names, grants, bindings, weights and immutable history. Model
+rename, binding insertion, complete weight saves/rollback, Model-scoped grant
+replacement, alias retirement and batch insertion reject archived targets,
+including unchanged desired sets and already-retired aliases. Independent User,
+Team and Project grant revocations remain available through their own authorized
+governance surfaces. Disable and archive cancel only pending Personal and Team
+Model requests. Pending Project request history is retained; existing active-only
+Model validation forbids approving archived Models. No deletion, historical
+restore or fleet coordinator is added. Already-dispatched calls retain their
+captured execution; both disabled and archived states deny new admission.
+Source and focused tests do not by themselves establish real-driver, restart,
+production or browser acceptance; those qualifications remain separate.
+The containing delivery's coherent source, dual-driver, authentication and
+default-production qualifications are indexed in
+[Implementation](IMPLEMENTATION.md). That evidence does not establish browser,
+external-provider or fleet acceptance. The configured-input projection below is
+advisory configuration, not live health or expanded grants.
+
 ## HTTP API
 
 All paths below are relative to `/api/v1`. Management endpoints require a session and their independent permissions: `providers.read` for the Provider catalogue, `providers.write` for Provider/Connection/Credential changes and verification, `models.read_all` for the administrative Model catalogue, and `models.write` for Model changes and grantee candidates. Mutations also require same-origin validation, `X-CSRF-Token`, and JSON input. Errors use the shared sanitized `{code,message}` contract. New create operations return `201`; an exact persisted replacement-creation retry returns `200`. Other successful operations return `200`.
@@ -220,6 +281,8 @@ All paths below are relative to `/api/v1`. Management endpoints require a sessio
 | `POST /admin/models/:model_id/bindings` | `{provider_model_id}` | Model with the new zero-weight binding |
 | `PUT /admin/models/:model_id/weights` | `{weights:[{binding_id,weight}]}` | Model |
 | `POST /admin/models/:model_id/rename` | `{name,alias_expires_at?}` | Model |
+| `GET /admin/models/:model_id/lifecycle` | No query; independent `models.read_all` | Private exact lifecycle review, `can_change`, local `runtime_applied`, strong ETag |
+| `PUT /admin/models/:model_id/lifecycle` | `{status,reason}`, reviewed quoted `If-Match`; independent `models.write` | `{model,changed,runtime_applied}`; reviewed transitions and exact current-state reconciliation only |
 | `GET /admin/models/:model_id/alias-retirement` | Single exact `name` query | Private review/state/editability/runtime application and strong ETag |
 | `POST /admin/models/:model_id/alias-retirement` | `{name,reason}` and reviewed quoted `If-Match` | `{alias,retired,changed,runtime_applied}`; current-target confirmation, no historical receipt |
 | `PUT /admin/models/:model_id/grants` | `{user_ids:[]}` | Model |
@@ -1580,3 +1643,22 @@ runtime publication, native completion or actual traffic. They add no browser
 requests and preserve existing Session, permission, actor and Model lifetimes.
 The summary does not change the separate Credential eligibility checks used to
 save routing weights.
+
+### Administrative Model configured input
+
+List/detail responses additionally emit nullable `configured_input_capabilities`.
+Independent `providers.read` is required. Null (or legacy absence) means Unknown;
+`{}` means the complete authorized projection has no eligible configured protocol;
+`{"openai_chat":[]}` records a known empty image/PDF intersection for that protocol.
+Eligible complete100-weight native protocol groups intersect explicit image/PDF
+declarations across ready, enabled, positive-weight, current-transport routes.
+Disabled or zero-weight routes cannot expand or restrict that intersection.
+
+The projection shares the existing coherent bounded dependency batches (1,000
+Models/bindings/dependencies), with no extra per-row reads. Incomplete/aliased
+or overflowing facts stay Unknown; real database failures fail the read.
+Unenriched mutation responses remain null until an authorized fresh read.
+The existing capability cells now say Configured input and show protocol-specific
+Image input/PDF input or known empty labels. Generic Text/image-generation classes
+are not inferred. Configuration does not prove live health, runtime publication,
+native completion or traffic. Weight writes, grants and admission are unchanged.

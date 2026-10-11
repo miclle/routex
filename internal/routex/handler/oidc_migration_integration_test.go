@@ -647,7 +647,7 @@ func testOIDCMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal("restore current after bounded historical fixture", err)
 	}
 	finalLedger := personalKeyBehaviorLedger(t, db)
-	if len(finalLedger) != 105 || finalLedger[104].Version != 105 || finalLedger[103].Version != 104 || finalLedger[102].Version != 103 || finalLedger[100].Version != 101 || finalLedger[101].Version != 102 || finalLedger[99].Version != 100 || finalLedger[98].Version != 99 || finalLedger[97].Version != 98 || finalLedger[96].Version != 97 || !reflect.DeepEqual(ledger[:93], finalLedger[:93]) || finalLedger[94].Version != 95 || finalLedger[95].Version != 96 {
+	if len(finalLedger) != 106 || finalLedger[105].Version != 106 || finalLedger[104].Version != 105 || finalLedger[103].Version != 104 || finalLedger[102].Version != 103 || finalLedger[100].Version != 101 || finalLedger[101].Version != 102 || finalLedger[99].Version != 100 || finalLedger[98].Version != 99 || finalLedger[97].Version != 98 || finalLedger[96].Version != 97 || !reflect.DeepEqual(ledger[:93], finalLedger[:93]) || finalLedger[94].Version != 95 || finalLedger[95].Version != 96 {
 		t.Fatal("historical closure lost current suffix or retained prefix")
 	}
 

@@ -50,8 +50,8 @@ func TestForcedSSOV103FrozenSchemaAndHistoricalBoundaries(t *testing.T) {
 		t.Fatal("ordinary emergency-purpose exclusion drift")
 	}
 	for _, pair := range []struct{ frozen, current any }{
-		{&forcedSSOSessionV103{}, &entity.Session{}},
-		{&forcedSSOMFAChallengeV103{}, &entity.MFAChallenge{}},
+		{&forcedSSOSessionV103{}, &telegramHistoricalSessionV105{}},
+		{&forcedSSOMFAChallengeV103{}, &telegramHistoricalMFAChallengeV105{}},
 		{&forcedSSOInstallationV103{}, &entity.RuntimeInstallationObservation{}},
 	} {
 		frozen, current := forcedSSOParsed(t, pair.frozen), forcedSSOParsed(t, pair.current)
@@ -107,7 +107,7 @@ func TestForcedSSOV103FrozenSchemaAndHistoricalBoundaries(t *testing.T) {
 	}
 	for _, driver := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(driver)
-		if len(steps) != 105 || reflect.ValueOf(steps[101]).Pointer() != reflect.ValueOf(apiKeyDeliveryMigration).Pointer() || reflect.ValueOf(steps[102]).Pointer() != reflect.ValueOf(forcedSSOMigration).Pointer() || reflect.ValueOf(steps[103]).Pointer() != reflect.ValueOf(vaultCertificateMigration).Pointer() || reflect.ValueOf(steps[104]).Pointer() != reflect.ValueOf(runtimePublicationCommandMigration).Pointer() {
+		if len(steps) != 106 || reflect.ValueOf(steps[101]).Pointer() != reflect.ValueOf(apiKeyDeliveryMigration).Pointer() || reflect.ValueOf(steps[102]).Pointer() != reflect.ValueOf(forcedSSOMigration).Pointer() || reflect.ValueOf(steps[103]).Pointer() != reflect.ValueOf(vaultCertificateMigration).Pointer() || reflect.ValueOf(steps[104]).Pointer() != reflect.ValueOf(runtimePublicationCommandMigration).Pointer() || reflect.ValueOf(steps[105]).Pointer() != reflect.ValueOf(telegramIdentityMigration).Pointer() {
 			t.Fatal("V103 suffix drift")
 		}
 	}

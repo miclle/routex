@@ -47,6 +47,7 @@ func (s *Service) gatewayNativeAttempts(ctx context.Context, requestID string, r
 	defer plan.releaseSources()
 	plan.userID, plan.projectID, plan.keyID = result.UserID, result.ProjectID, result.KeyID
 	plan.team = result.identity.team
+	plan.personal = result.identity.personal
 	if result.identity.key != nil && result.ProjectID == "" {
 		if auth := s.runtime.auth.Load(); auth != nil {
 			plan.personalGrantRevision = auth.PersonalGrantStates[result.UserID].Revision

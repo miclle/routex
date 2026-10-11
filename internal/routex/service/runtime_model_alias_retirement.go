@@ -38,6 +38,14 @@ func (s *Service) runtimeModelAliasApplied(subject modelAliasSubject) bool {
 // A prepared route retains the requested public name. Model access alone does
 // not keep a compatibility name callable after its published deadline changes.
 func (s *Service) reauthorizeGatewayPublicName(ctx context.Context, result *GatewayResult) error {
+	if result.identity.personal != nil {
+		if result.ModelID != result.identity.selectedModelID {
+			return gatewayError(404, "model_not_found", "The selected model is unavailable.")
+		}
+		if err := s.ReauthorizePersonalSession(ctx, result.identity.personal, result.ModelID); err != nil {
+			return err
+		}
+	}
 	if result.identity.team != nil {
 		if err := s.ReauthorizeTeamSession(ctx, result.identity.team, result.ModelID); err != nil {
 			return err

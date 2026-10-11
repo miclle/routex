@@ -99,6 +99,29 @@ export async function getAdminModel(modelID: string, signal?: AbortSignal): Prom
   return decodeAdminModel(value, modelID)
 }
 function validateModelConfiguredAvailability(value: unknown) {
+  if (value !== null && typeof value === 'object' && 'configured_input_capabilities' in value) {
+    const inputs = value.configured_input_capabilities
+    if (
+      inputs !== null &&
+      (!inputs ||
+        typeof inputs !== 'object' ||
+        Array.isArray(inputs) ||
+        Object.entries(inputs).some(
+          ([protocol, values]) =>
+            ![
+              'openai_chat',
+              'openai_responses',
+              'anthropic_messages',
+              'gemini_generate_content',
+            ].includes(protocol) ||
+            !Array.isArray(values) ||
+            values.length > 2 ||
+            values.some((item) => !['image', 'pdf'].includes(item)) ||
+            new Set(values).size !== values.length,
+        ))
+    )
+      throw new Error('Invalid Model configured inputs')
+  }
   if (
     value === null ||
     typeof value !== 'object' ||

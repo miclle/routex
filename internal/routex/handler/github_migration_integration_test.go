@@ -308,7 +308,7 @@ func testGitHubMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	assertDefault()
-	for _, bound := range []int{0, -1, 97, 106} {
+	for _, bound := range []int{0, -1, 97, 107} {
 		if database.MigrateThrough(ctx, db, bound) == nil || !reflect.DeepEqual(original, personalKeyBehaviorLedger(t, db)) {
 			t.Fatal("invalid/newer bound admitted", bound)
 		}
@@ -728,7 +728,7 @@ func testGitHubMigration(t *testing.T, db *gorm.DB) {
 	// Current-head reads also verify the five newly added fields remain empty.
 	historicalPrimary = func(tx *gorm.DB) *gorm.DB { return tx }
 	final := personalKeyBehaviorLedger(t, db)
-	if len(final) != 105 || final[104].Version != 105 || final[103].Version != 104 || final[102].Version != 103 || final[100].Version != 101 || final[101].Version != 102 || final[99].Version != 100 || final[98].Version != 99 || !reflect.DeepEqual(beforeSuccessor, final[:98]) {
+	if len(final) != 106 || final[105].Version != 106 || final[104].Version != 105 || final[103].Version != 104 || final[102].Version != 103 || final[100].Version != 101 || final[101].Version != 102 || final[99].Version != 100 || final[98].Version != 99 || !reflect.DeepEqual(beforeSuccessor, final[:98]) {
 		t.Fatal("historical V98 closure lost exact prefix or V99 suffix")
 	}
 	retained()

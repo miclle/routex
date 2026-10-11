@@ -224,6 +224,14 @@ func (s *Service) gatewayNativeIdentity(ctx context.Context, identity gatewayIde
 	if err != nil {
 		return result, err
 	}
+	if identity.personal != nil {
+		if protocol != entity.ProtocolOpenAIChat || stream {
+			return result, personalSessionInputUnsupported()
+		}
+		if err := validatePersonalSessionChat(payload); err != nil {
+			return result, err
+		}
+	}
 	if identity.team != nil {
 		if err := validateTeamNativeInput(protocol, payload); err != nil {
 			return result, err
@@ -249,6 +257,16 @@ func (s *Service) gatewayNativeIdentity(ctx context.Context, identity gatewayIde
 	}
 	if err != nil {
 		return result, gatewayError(503, "service_unavailable", "Model catalog is unavailable.")
+	}
+	if identity.personal != nil {
+		// The selected canonical ID is bound before route preparation, journal
+		// admission or any upstream work. A reused name cannot select another ID.
+		if identity.selectedModelID == "" || name.ModelID != identity.selectedModelID || name.CurrentModelID == nil || *name.CurrentModelID != name.ModelID {
+			return result, gatewayError(404, "model_not_found", "The selected model is unavailable.")
+		}
+		if err := s.ReauthorizePersonalSession(ctx, identity.personal, identity.selectedModelID); err != nil {
+			return result, err
+		}
 	}
 	result.ModelID = name.ModelID
 	if s.runtime != nil {

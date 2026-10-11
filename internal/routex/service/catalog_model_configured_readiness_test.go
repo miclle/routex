@@ -61,7 +61,15 @@ func TestAdminModelConfiguredReadinessUsesCompleteStoredSupply(t *testing.T) {
 			if models[0].ConfiguredReady == nil || *models[0].ConfiguredReady != (scenario == "ready") {
 				t.Fatal("stored configuration summary ignored a current supply gate", scenario, models[0].ConfiguredReady)
 			}
+			inputs := map[string][]string{}
+			if scenario == "ready" {
+				inputs[entity.ProtocolOpenAIChat] = []string{}
+			}
+			if !reflect.DeepEqual(models[0].ConfiguredInputCapabilities, inputs) {
+				t.Fatal("ineligible supply manufactured configured media inputs", scenario, models[0].ConfiguredInputCapabilities)
+			}
 			models[0].ConfiguredReady = nil
+			models[0].ConfiguredInputCapabilities = nil
 			if !reflect.DeepEqual(models[0], before) || !models[0].Bindings[0].Ready || !models[0].Bindings[0].credentialReady {
 				t.Fatal("read summary changed legacy binding/write eligibility or grants")
 			}
@@ -124,10 +132,11 @@ func TestAdminModelConfiguredReadinessKeepsIncompleteProjectionUnknown(t *testin
 			stale := true
 			for i := range models {
 				models[i].ConfiguredReady = &stale
+				models[i].ConfiguredInputCapabilities = map[string][]string{entity.ProtocolOpenAIChat: {"image", "pdf"}}
 			}
 			projectModelConfiguredReadiness(models, pms, connections, providers, states)
 			for _, model := range models {
-				if model.ConfiguredReady != nil {
+				if model.ConfiguredReady != nil || model.ConfiguredInputCapabilities != nil {
 					t.Fatal("incomplete, aliased or overflowing data became a known readiness fact", scenario)
 				}
 			}
@@ -212,6 +221,7 @@ func TestAdminModelConfiguredReadinessSQLIndependentAuthorityAndBatch(t *testing
 			if scenario == "restricted" {
 				stale := true
 				models[0].ConfiguredReady = &stale
+				models[0].ConfiguredInputCapabilities = map[string][]string{entity.ProtocolOpenAIChat: {"image"}}
 			}
 			actor, _, _ := connectionMetadataTestRows()
 			actor.Role = entity.RoleMember
@@ -268,7 +278,7 @@ func TestAdminModelConfiguredReadinessSQLIndependentAuthorityAndBatch(t *testing
 			}
 			wantUnknown := wantError || scenario == "restricted" || scenario == "missing_parent" || scenario == "parent_alias" || scenario == "credential_overflow" || scenario == "projection_overflow"
 			for _, model := range models {
-				if wantUnknown && model.ConfiguredReady != nil || !wantUnknown && (model.ConfiguredReady == nil || *model.ConfiguredReady) {
+				if wantUnknown && (model.ConfiguredReady != nil || model.ConfiguredInputCapabilities != nil) || !wantUnknown && (model.ConfiguredReady == nil || *model.ConfiguredReady || model.ConfiguredInputCapabilities == nil || len(model.ConfiguredInputCapabilities) != 0) {
 					t.Fatal("restricted/incomplete data manufactured readiness or empty credentials lost known false", scenario)
 				}
 			}

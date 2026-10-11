@@ -31,7 +31,11 @@ func TestForcedSSORegistry214ExactPrefixAndSuffix(t *testing.T) {
 	for i, match := range matches {
 		names[i] = match[1] + ":" + match[2]
 	}
-	if !enterpriseRegistry218Current(names) || !strings.Contains(string(raw), "versions != 105") {
+	if !insightsRegistry222Current(names) {
+		t.Fatal("exact222 Insights successor required before historical221 checks")
+	}
+	names = names[:221]
+	if !telegramRegistry221Current(names) || !strings.Contains(string(raw), "versions != 106") {
 		t.Fatal("exact V105/218 current registry required")
 	}
 	names = names[:214]
@@ -74,7 +78,7 @@ func TestForcedSSORegistry214ExactPrefixAndSuffix(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(migrations), "apiKeyDeliveryMigration, forcedSSOMigration, vaultCertificateMigration, runtimePublicationCommandMigration)") {
+	if !strings.Contains(string(migrations), "apiKeyDeliveryMigration, forcedSSOMigration, vaultCertificateMigration, runtimePublicationCommandMigration, telegramIdentityMigration)") {
 		t.Fatal("V105 migration suffix changed")
 	}
 	installation, err := os.ReadFile("../service/runtime_installation.go")
@@ -110,9 +114,14 @@ func TestEnterpriseRegistry218ExactPrefixAndSuffix(t *testing.T) {
 	for i, match := range matches {
 		names[i] = match[1] + ":" + match[2]
 	}
-	if !enterpriseRegistry218Current(names) || !strings.Contains(string(raw), "versions != 105") {
+	if !insightsRegistry222Current(names) {
+		t.Fatal("exact222 Insights successor required before historical221 checks")
+	}
+	names = names[:221]
+	if !telegramRegistry221Current(names) || !strings.Contains(string(raw), "versions != 106") {
 		t.Fatal("exact V105/218 enterprise registry required")
 	}
+	names = names[:218] // Preserve the exact historical enterprise prefix and all mutations below.
 	if !forcedSSORegistry214Current(names[:214]) || enterpriseRegistry218Current(names[:214]) || forcedSSORegistry214Current(names) {
 		t.Fatal("historical214 must remain exact without proving218")
 	}

@@ -84,7 +84,7 @@ func modelAliasReview(subject modelAliasSubject, now time.Time, canWrite bool) *
 	}
 	return &ModelAliasRetirementReview{ModelID: subject.Model.ID, CurrentName: subject.Current.Name,
 		Alias: ModelAliasRetirementName{Name: subject.Selected.Name, IsCurrent: state == "current", ExpiresAt: subject.Selected.ExpiresAt},
-		State: state, ObservedAt: now.UTC(), ETag: personalHash(subject), CanRetire: canWrite && state == "compatibility"}
+		State: state, ObservedAt: now.UTC(), ETag: personalHash(subject), CanRetire: canWrite && subject.Model.Status != entity.ResourceArchived && state == "compatibility"}
 }
 
 func loadModelAliasSubject(tx *gorm.DB, modelID, name string, locking bool) (modelAliasSubject, error) {
@@ -163,6 +163,9 @@ func (s *Service) RetireModelAlias(ctx context.Context, actorID, modelID, etag s
 		subject, err = loadModelAliasSubject(tx, modelID, input.Name, true)
 		if err != nil {
 			return err
+		}
+		if subject.Model.Status == entity.ResourceArchived {
+			return catalogConflict
 		}
 		now := time.Now().UTC()
 		review := modelAliasReview(subject, now, true)

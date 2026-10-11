@@ -132,6 +132,7 @@ func testModelSupplyStatusLifecycle(t *testing.T, db *gorm.DB) {
 		t.Helper()
 		want := baseline
 		want.ConfiguredReady = nil
+		want.ConfiguredInputCapabilities = nil
 		want.Bindings = append([]ModelBindingResponse(nil), baseline.Bindings...)
 		want.Bindings[0].Ready = ready
 		want.Bindings[0].Supply = nil
@@ -160,8 +161,21 @@ func testModelSupplyStatusLifecycle(t *testing.T, db *gorm.DB) {
 			} else if detail.ConfiguredReady != nil || listed.Items[0].ConfiguredReady != nil {
 				t.Fatal("Model-only reader received configured Provider availability")
 			}
+			if auth.supply {
+				inputs := map[string][]string{}
+				if ready {
+					inputs[entity.ProtocolOpenAIChat] = []string{}
+				}
+				if !reflect.DeepEqual(detail.ConfiguredInputCapabilities, inputs) || !reflect.DeepEqual(listed.Items[0].ConfiguredInputCapabilities, inputs) {
+					t.Fatal("authorized list/detail media inputs diverged from current supply", detail.ConfiguredInputCapabilities, listed.Items[0].ConfiguredInputCapabilities, inputs)
+				}
+			} else if detail.ConfiguredInputCapabilities != nil || listed.Items[0].ConfiguredInputCapabilities != nil {
+				t.Fatal("Model-only reader received configured Provider media inputs")
+			}
 			detail.ConfiguredReady = nil
 			listed.Items[0].ConfiguredReady = nil
+			detail.ConfiguredInputCapabilities = nil
+			listed.Items[0].ConfiguredInputCapabilities = nil
 			// Compare every common catalogue fact after separately checking the authorized detail-only projection.
 			detail.Bindings[0].Supply = nil
 			if !reflect.DeepEqual(detail, want) || len(listed.Items) != 1 || !reflect.DeepEqual(listed.Items[0], want) {

@@ -144,15 +144,16 @@ type APIKeyDeliveryDescriptorView struct {
 	ApplicationStatus  string `json:"application_status"`
 }
 type APIKeyDeliveryReceiptView struct {
-	RequestID      string                        `json:"request_id"`
-	KeyID          string                        `json:"key_id"`
-	Mode           string                        `json:"mode"`
-	DeliveryStatus string                        `json:"delivery_status"`
-	KeyStatus      string                        `json:"key_status"`
-	RuntimeStatus  string                        `json:"runtime_status"`
-	FailureCode    *string                       `json:"failure_code"`
-	Descriptor     *APIKeyDeliveryDescriptorView `json:"descriptor"`
-	ReviewETag     string                        `json:"review_etag"`
+	RequestID             string                        `json:"request_id"`
+	KeyID                 string                        `json:"key_id"`
+	Mode                  string                        `json:"mode"`
+	DeliveryStatus        string                        `json:"delivery_status"`
+	KeyStatus             string                        `json:"key_status"`
+	RuntimeStatus         string                        `json:"runtime_status"`
+	ReplacementCallStatus string                        `json:"replacement_call_status"`
+	FailureCode           *string                       `json:"failure_code"`
+	Descriptor            *APIKeyDeliveryDescriptorView `json:"descriptor"`
+	ReviewETag            string                        `json:"review_etag"`
 }
 type ManagedAPIKeyResult struct {
 	Personal   *KeyRecord                `json:"-"`

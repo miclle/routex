@@ -17,7 +17,7 @@ import (
 
 func TestAuthenticationPolicyAllowlistAndOriginalBudget(t *testing.T) {
 	for _, enforced := range []bool{false, true} {
-		for _, method := range []string{"", "local", "oidc", "ldap", "oauth", "saml", "github", "google", "discord", "emergency"} {
+		for _, method := range []string{"", "local", "oidc", "ldap", "oauth", "saml", "github", "google", "discord", "telegram", "emergency"} {
 			p := entity.GovernanceSetting{ForcedSSOEnabled: enforced}
 			want := !enforced && method != "emergency" || enforced && (method == "oidc" || method == "ldap" || method == "emergency")
 			if authenticationMethodAllowed(p, method) != want {

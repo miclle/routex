@@ -158,10 +158,15 @@ func testModelCreationBatchLifecycle(t *testing.T, db *gorm.DB) {
 			req.Header.Set("If-Match", `"`+etag+`"`)
 		}
 		res := httptest.NewRecorder()
+		started := time.Now()
 		router.ServeHTTP(res, req)
+		if res.Code >= 500 {
+			t.Logf("model_batch_http_failure method=%s path=%s elapsed_ns=%d status=%d public_error_class=%s", method, req.URL.EscapedPath(), time.Since(started).Nanoseconds(), res.Code, integrationHTTPFailureClass(res))
+		}
 		return res
 	}
 	send := func(method, path string, body any, etag string) *httptest.ResponseRecorder {
+		t.Helper()
 		return request(cookie, admin.CSRFToken, method, path, body, etag)
 	}
 	reader, readCookie, readCSRF := createSystemStatusMember(t, svc, router, admin.User.ID, "batch-reader", []string{"models.read_all", "providers.read"})

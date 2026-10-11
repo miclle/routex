@@ -63,7 +63,7 @@ func TestAPIKeyDeliveryV102KeepsReleasedTailAndRootHistory(t *testing.T) {
 	}
 	for _, driver := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(driver)
-		if len(legacyMigrationSQL(driver)) != 4 || len(steps) != 105 || len(old) != 97 {
+		if len(legacyMigrationSQL(driver)) != 4 || len(steps) != 106 || len(old) != 97 || reflect.ValueOf(steps[105]).Pointer() != reflect.ValueOf(telegramIdentityMigration).Pointer() {
 			t.Fatal("exact V101 prefix/V102 length")
 		}
 		for i, expected := range old {
@@ -96,8 +96,8 @@ func TestAPIKeyDeliveryV102KeepsReleasedTailAndRootHistory(t *testing.T) {
 		t.Fatal("historical reference width rewritten")
 	}
 	for _, pair := range [][2]any{
-		{&apiKeyDeliveryRootJobV102{}, &entity.SecretRotationJob{}},
-		{&apiKeyDeliveryRootProcessV102{}, &entity.SecretProcessVerification{}},
+		{&apiKeyDeliveryRootJobV102{}, &telegramHistoricalRootJobV105{}},
+		{&apiKeyDeliveryRootProcessV102{}, &telegramHistoricalRootProcessV105{}},
 		{&apiKeyDeliveryRootItemV102{}, &entity.SecretRotationItem{}},
 	} {
 		frozen, current := oidcV94Schema(t, pair[0]), oidcV94Schema(t, pair[1])

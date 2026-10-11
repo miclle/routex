@@ -17,6 +17,7 @@ import type {
   GitHubIdentityAuditChanges,
   GoogleIdentityAuditChanges,
   DiscordIdentityAuditChanges,
+  TelegramIdentityAuditChanges,
 } from '@/types/audit'
 import { Page, QueryState, ErrorNotice } from '@/components/app/CatalogUI'
 import { PermissionGate } from '@/components/app/PermissionGate'
@@ -47,7 +48,8 @@ function isIdentityChanges(
   | SAMLIdentityAuditChanges
   | GitHubIdentityAuditChanges
   | GoogleIdentityAuditChanges
-  | DiscordIdentityAuditChanges {
+  | DiscordIdentityAuditChanges
+  | TelegramIdentityAuditChanges {
   return (
     'kind' in changes &&
     (changes.kind === 'oidc_identity' ||
@@ -56,7 +58,8 @@ function isIdentityChanges(
       changes.kind === 'saml_identity' ||
       changes.kind === 'github_identity' ||
       changes.kind === 'google_identity' ||
-      changes.kind === 'discord_identity')
+      changes.kind === 'discord_identity' ||
+      changes.kind === 'telegram_identity')
   )
 }
 export default function AuditPage() {

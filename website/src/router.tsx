@@ -20,6 +20,10 @@ const routes: RouteObject[] = [
     lazy: async () => ({ Component: (await import('@/views/discord/complete')).default }),
   },
   {
+    path: '/auth/telegram/complete',
+    lazy: async () => ({ Component: (await import('@/views/telegram/complete')).default }),
+  },
+  {
     path: '/auth/github/complete',
     lazy: async () => ({ Component: (await import('@/views/github/complete')).default }),
   },
@@ -87,6 +91,10 @@ const routes: RouteObject[] = [
           {
             path: 'admin/overview',
             lazy: async () => ({ Component: (await import('@/views/overview')).default }),
+          },
+          {
+            path: 'admin/insights',
+            lazy: async () => ({ Component: (await import('@/views/insights')).default }),
           },
           {
             path: 'admin/egress',

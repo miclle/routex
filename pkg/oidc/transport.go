@@ -101,7 +101,7 @@ func (t *boundedTransport) RoundTrip(request *http.Request) (*http.Response, err
 	if response.StatusCode != http.StatusOK || mediaErr != nil || mediaType != "application/json" {
 		return nil, ErrProtocol
 	}
-	if t.config.google {
+	if t.config.google || t.config.telegram {
 		if _, err := googleJSONObject(body); err != nil {
 			return nil, ErrProtocol
 		}

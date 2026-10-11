@@ -10,26 +10,36 @@ import (
 	"github.com/miclle/routex/internal/routex/entity"
 )
 
-// gatewayIdentity keeps real Key and Team Session subjects separate while both
+// gatewayIdentity keeps real Key, Team and Personal Session subjects separate; all
 // use the same native parsing, route attempts, admission and forwarding.
 type gatewayIdentity struct {
 	personalGrantRevision string
 	key                   *KeyRecord
 	team                  *TeamSessionIdentity
+	personal              *PersonalSessionIdentity
+	selectedModelID       string
 }
 
 func (identity gatewayIdentity) modelIDs() []string {
+	if identity.personal != nil {
+		return identity.personal.models
+	}
 	if identity.team != nil {
 		return identity.team.ModelIDs
+	}
+	if identity.key == nil {
+		return nil
 	}
 	return identity.key.ModelIDs
 }
 
 func (identity gatewayIdentity) result(protocol, name string, stream bool) *GatewayResult {
 	result := &GatewayResult{Protocol: protocol, ModelName: name, Stream: stream, identity: identity}
-	if identity.team != nil {
+	if identity.personal != nil {
+		result.UserID = identity.personal.UserID
+	} else if identity.team != nil {
 		result.UserID, result.TeamID, result.TeamMembershipID = identity.team.UserID, identity.team.TeamID, identity.team.TeamMembershipID
-	} else {
+	} else if identity.key != nil {
 		result.UserID, result.ProjectID, result.KeyID = identity.key.Key.UserID, identity.key.ProjectID, identity.key.Key.ID
 	}
 	return result

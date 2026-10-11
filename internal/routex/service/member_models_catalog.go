@@ -54,6 +54,9 @@ func setCatalogModelGrants(tx *gorm.DB, actorID, modelID string, userIDs []strin
 	if err := personalExact(modelCreationDB(tx), "id", modelID).Clauses(clause.Locking{Strength: "UPDATE"}).Take(&model).Error; err != nil {
 		return nil, err
 	}
+	if model.Status == entity.ResourceArchived {
+		return nil, catalogConflict
+	}
 	removed := []string{}
 	changed := false
 	for _, userID := range affected {

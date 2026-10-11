@@ -23,7 +23,11 @@ func TestAdminModelConfiguredReadinessRegistry182Preserves181AndRejectsSuffixDri
 	for _, match := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, match[1]+":"+match[2])
 	}
-	if !enterpriseRegistry218Current(names) {
+	if !insightsRegistry222Current(names) {
+		t.Fatal("exact222 Insights successor required before historical221 checks")
+	}
+	names = names[:221]
+	if !telegramRegistry221Current(names) {
 		t.Fatal("exact214 forced SSO successor required before historical210 checks")
 	}
 	names = names[:210] // Preserve the exact predecessor guard and its historical controls.
@@ -31,7 +35,7 @@ func TestAdminModelConfiguredReadinessRegistry182Preserves181AndRejectsSuffixDri
 		t.Fatal("exact210 ordered delivery restart successor required")
 	}
 	names = names[:182]
-	if !adminModelConfiguredReadinessRegistry182Current(names) || !strings.Contains(string(raw), "versions != 105") {
+	if !adminModelConfiguredReadinessRegistry182Current(names) || !strings.Contains(string(raw), "versions != 106") {
 		t.Fatal("exact182 and unchanged migration93 required")
 	}
 	if adminModelConfiguredReadinessRegistry182Current(names[:181]) || !credentialAttemptStatisticsRegistry181Current(names[:181]) {

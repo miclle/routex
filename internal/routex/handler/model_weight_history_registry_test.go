@@ -200,8 +200,12 @@ func TestModelWeightHistoryExact174RegistryPrefix(t *testing.T) {
 	for _, pair := range pairs {
 		currentIdentities = append(currentIdentities, pair[1]+":"+pair[2])
 	}
-	if !enterpriseRegistry218Current(currentIdentities) {
-		t.Fatal("exact218 enterprise successor required before historical210 checks")
+	if !insightsRegistry222Current(currentIdentities) {
+		t.Fatal("exact222 Insights successor required before historical221 checks")
+	}
+	currentIdentities = currentIdentities[:221]
+	if !telegramRegistry221Current(currentIdentities) {
+		t.Fatal("exact221 Telegram successor required before historical210 checks")
 	}
 	currentIdentities = currentIdentities[:210] // Preserve the exact predecessor guard and its historical controls.
 	if !apiKeyDeliveryRegistry210Current(currentIdentities) {

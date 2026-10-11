@@ -145,12 +145,12 @@ describe('localization contract', () => {
       const sharedNamedMethod =
         /\/views\/github\/(account|config|complete|login-button)\.tsx$/.test(file) &&
         /useTranslation\((method|profile)\)/.test(source)
-      // Setup keys are present in both profiles that render the shared setup section.
+      // Setup keys are present in each named profile that renders the shared setup section.
       const namespace =
         source.match(/useTranslation\(['"]([^'"]+)['"]\)/)?.[1] ??
         (sharedNamedMethod ? 'google' : 'common')
       if (sharedNamedMethod) {
-        for (const profile of ['github', 'google', 'discord']) {
+        for (const profile of ['github', 'google', 'discord', 'telegram']) {
           for (const match of source.matchAll(/\bt\(['"]([^'"]+)['"]/g)) {
             const setupOnly = [
               'setupGuide',

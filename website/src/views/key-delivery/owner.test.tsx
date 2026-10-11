@@ -105,6 +105,7 @@ function result(config: InternalAxiosRequestConfig, runtime: 'unknown' | 'confir
     delivery_status: 'acknowledged',
     key_status: item.status,
     runtime_status: runtime,
+    replacement_call_status: predecessor ? 'not_recorded' : 'not_applicable',
     failure_code: runtime === 'unknown' ? 'runtime_publication_unknown' : null,
     descriptor,
     review_etag: review,
@@ -185,7 +186,10 @@ beforeEach(async () => {
         response.status = 503
         throw new AxiosError('private-reconcile-detail', '', config, undefined, response)
       }
+      const replacementCallStatus = issuedReceipt?.replacement_call_status
       response.data = result(config, 'confirmed')
+      if (replacementCallStatus && issuedReceipt)
+        issuedReceipt.replacement_call_status = replacementCallStatus
     } else throw new Error('Unexpected request')
     return response
   }
@@ -202,10 +206,14 @@ function Harness({
   predecessor,
   receipt = false,
   allowed = true,
+  receiptKeyId,
+  receiptRequestId,
 }: {
   predecessor?: PersonalKey
   receipt?: boolean
   allowed?: boolean
+  receiptKeyId?: string
+  receiptRequestId?: string
 }) {
   const auth = useQuery({
     queryKey: ['auth', 'session'],
@@ -233,8 +241,8 @@ function Harness({
     <DeliveryReceiptDialog
       owner={scope}
       authority={authority}
-      requestId={issuedReceipt?.request_id ?? requestId}
-      keyId={key().id}
+      requestId={receiptRequestId ?? issuedReceipt?.request_id ?? requestId}
+      keyId={receiptKeyId ?? key().id}
       onClose={closed}
       onChanged={changed}
     />
@@ -487,6 +495,62 @@ describe('owner managed Key delivery', () => {
     expect(received).toHaveBeenCalledOnce()
     expect(post('/managed')).toHaveLength(1)
   })
+  it.each([
+    ['personal', false],
+    ['personal', true],
+    ['project', false],
+    ['project', true],
+  ] as const)(
+    'recovers uncertain %s issuance (rotation=%s) through the exact request before knowing its Key',
+    async (kind, rotating) => {
+      if (kind === 'project') scope = { kind: 'project', projectId: id('prj') }
+      const predecessor = rotating
+        ? { ...key(), id: key().id.slice(0, -1) + '4', status: 'disabled' as const }
+        : undefined
+      await ready(predecessor)
+      issueFails = true
+      await submit()
+      await click(en.confirm)
+      await until(() => expect(document.body.textContent).toContain(en.uncertain))
+      const suffix = rotating ? '/managed-rotation' : '/managed'
+      const original = post(suffix)[0]
+      result(original)
+      const returnedKey = issuedReceipt!.key_id
+      const originalRequest = issuedReceipt!.request_id
+      expect(returnedKey).not.toBe(predecessor?.id)
+      await click(en.readReceipt)
+      await click(en.readReceipt)
+      await until(() => expect(document.body.textContent).toContain(en.delivery_acknowledged))
+      expect(requests.at(-1)!.url).toBe(base() + '/delivery-receipts/' + originalRequest)
+      expect(received).not.toHaveBeenCalled()
+      await fill('reconcile_reason', 'Recover the acknowledged original issuance')
+      await click(en.reviewReconcile)
+      await click(en.confirm)
+      await until(() => expect(document.body.textContent).toContain(en.runtime_confirmed))
+      expect(post('/delivery-reconcile')).toHaveLength(1)
+      const recovery = post('/delivery-reconcile')[0]
+      expect(recovery.url).toBe(base() + '/' + returnedKey + '/delivery-reconcile')
+      expect(JSON.parse(recovery.data)).toEqual({
+        request_id: originalRequest,
+        reason: 'Recover the acknowledged original issuance',
+      })
+      expect(received).not.toHaveBeenCalled()
+      await click(en.useReceipt)
+      expect(received).toHaveBeenCalledOnce()
+      expect(received.mock.calls[0][0]).toMatchObject({
+        key_id: returnedKey,
+        request_id: originalRequest,
+        runtime_status: 'confirmed',
+        replacement_call_status: rotating ? 'not_recorded' : 'not_applicable',
+      })
+      expect(post(suffix)).toHaveLength(1)
+      expect(
+        requests.some(
+          (request) => request.method === 'delete' || request.url?.endsWith('/complete-rotation'),
+        ),
+      ).toBe(false)
+    },
+  )
   it('rejects late issuance and duplicate dispatch when the Session renews during I/O', async () => {
     await ready()
     const h = hold(base() + '/managed')
@@ -647,4 +711,235 @@ describe('owner delivery receipt', () => {
     expect(document.body.textContent).toContain('9007199254740993')
     expect(caches()).not.toContain('Recover local publication')
   })
+  it.each(['personal', 'project'] as const)(
+    'shows only server replacement-call facts for %s receipts in both languages',
+    async (kind) => {
+      if (kind === 'project') scope = { kind: 'project', projectId: id('prj') }
+      result(
+        {
+          data: JSON.stringify({ request_id: requestId }),
+          url: base() + '/managed',
+        } as InternalAxiosRequestConfig,
+        'confirmed',
+      )
+      await render({ receipt: true })
+      expect(document.body.textContent).not.toContain(en.replacementCallStatus)
+      for (const status of ['not_applicable', 'not_recorded', 'completed'] as const) {
+        issuedReceipt = { ...issuedReceipt!, replacement_call_status: status }
+        await click(en.readReceipt)
+        await until(() =>
+          expect(document.body.textContent).toContain(
+            en[('replacementCall_' + status) as keyof typeof en],
+          ),
+        )
+        expect(document.body.textContent).toContain(en.replacementCallStatus)
+        expect(document.body.textContent).toContain(en.replacementCallBoundary)
+        expect(document.body.textContent).toContain(
+          'Coordinator: Not configured. Application status: Unknown.',
+        )
+        await act(async () => i18n.changeLanguage('zh'))
+        expect(document.body.textContent).toContain(zh.replacementCallStatus)
+        expect(document.body.textContent).toContain(
+          zh[('replacementCall_' + status) as keyof typeof zh],
+        )
+        expect(document.body.textContent).toContain(zh.replacementCallBoundary)
+        await act(async () => i18n.changeLanguage('en'))
+      }
+      expect(requests).toHaveLength(3)
+      expect(requests.every((request) => request.method === 'get')).toBe(true)
+      expect(changed).not.toHaveBeenCalled()
+      expect(received).not.toHaveBeenCalled()
+    },
+  )
+  it.each(['personal', 'project'] as const)(
+    'clears %s replacement-call facts during refresh, read failure and Session renewal',
+    async (kind) => {
+      if (kind === 'project') scope = { kind: 'project', projectId: id('prj') }
+      result(
+        {
+          data: JSON.stringify({ request_id: requestId }),
+          url: base() + '/managed',
+        } as InternalAxiosRequestConfig,
+        'confirmed',
+      )
+      issuedReceipt = { ...issuedReceipt!, replacement_call_status: 'completed' }
+      await render({ receipt: true })
+      await click(en.readReceipt)
+      await until(() => expect(document.body.textContent).toContain(en.replacementCall_completed))
+      const refresh = hold(base() + '/delivery-receipts/' + requestId)
+      await click(en.readReceipt)
+      expect(document.body.textContent).not.toContain(en.replacementCallStatus)
+      receiptMissing = true
+      await act(async () => refresh.release())
+      await until(() => expect(document.body.textContent).toContain(en.receiptUnavailable))
+      expect(document.body.textContent).not.toContain(en.replacementCall_completed)
+      receiptMissing = false
+      held = null
+      await click(en.readReceipt)
+      await until(() => expect(document.body.textContent).toContain(en.replacementCall_completed))
+      const obsoleteRead = capturedClick(button(en.readReceipt))
+      const renewal = hold(base() + '/delivery-receipts/' + requestId)
+      await click(en.readReceipt)
+      const request = requests.at(-1)!
+      await act(async () =>
+        cache.setQueryData(['auth', 'session'], { ...session(), csrf_token: 'e'.repeat(64) }),
+      )
+      expect(request.signal?.aborted).toBe(true)
+      expect(document.body.textContent).not.toContain(en.replacementCallStatus)
+      const count = requests.length
+      await act(async () => obsoleteRead())
+      expect(requests).toHaveLength(count)
+      await act(async () => renewal.release())
+      expect(document.body.textContent).not.toContain(en.replacementCall_completed)
+      held = null
+      await click(en.readReceipt)
+      await until(() => expect(document.body.textContent).toContain(en.replacementCall_completed))
+      await act(async () =>
+        cache
+          .getQueryCache()
+          .find({ queryKey: ['auth', 'session'], exact: true })!
+          .setState({ status: 'error', error: new Error('Session unavailable') }),
+      )
+      expect(document.body.textContent).not.toContain(en.replacementCallStatus)
+      await act(async () =>
+        cache.setQueryData(['auth', 'session'], { ...session(), csrf_token: 'f'.repeat(64) }),
+      )
+      expect(document.body.textContent).not.toContain(en.replacementCall_completed)
+      expect(changed).not.toHaveBeenCalled()
+    },
+  )
+  it.each(['personal', 'project'] as const)(
+    'discards %s receipt evidence and rejects late replies after an actor change',
+    async (kind) => {
+      if (kind === 'project') scope = { kind: 'project', projectId: id('prj') }
+      result(
+        {
+          data: JSON.stringify({ request_id: requestId }),
+          url: base() + '/managed',
+        } as InternalAxiosRequestConfig,
+        'confirmed',
+      )
+      issuedReceipt = { ...issuedReceipt!, replacement_call_status: 'completed' }
+      await render({ receipt: true })
+      await click(en.readReceipt)
+      await until(() => expect(document.body.textContent).toContain(en.replacementCall_completed))
+      const read = hold(base() + '/delivery-receipts/' + requestId)
+      await click(en.readReceipt)
+      const request = requests.at(-1)!
+      await act(async () =>
+        cache.setQueryData(['auth', 'session'], {
+          ...session(),
+          user: { ...session().user, id: 'usr_01m36yee4gkbns18pfcqqc75a4' },
+          csrf_token: 'c'.repeat(64),
+        }),
+      )
+      expect(request.signal?.aborted).toBe(true)
+      await act(async () => read.release())
+      expect(document.body.textContent).not.toContain(en.replacementCallStatus)
+      expect(document.body.textContent).not.toContain(en.replacementCall_completed)
+      expect(changed).not.toHaveBeenCalled()
+    },
+  )
+  it.each(['personal', 'project'] as const)(
+    'binds %s receipt facts to the reviewed Key and request across target changes',
+    async (kind) => {
+      if (kind === 'project') scope = { kind: 'project', projectId: id('prj') }
+      result(
+        {
+          data: JSON.stringify({ request_id: requestId }),
+          url: base() + '/managed',
+        } as InternalAxiosRequestConfig,
+        'confirmed',
+      )
+      issuedReceipt = { ...issuedReceipt!, replacement_call_status: 'completed' }
+      await render({ receipt: true })
+      await click(en.readReceipt)
+      await until(() => expect(document.body.textContent).toContain(en.replacementCall_completed))
+      const obsoleteRead = capturedClick(button(en.readReceipt))
+      const read = hold(base() + '/delivery-receipts/' + requestId)
+      await click(en.readReceipt)
+      const request = requests.at(-1)!
+      const nextKey = key().id.slice(0, -1) + '4'
+      const nextRequest = '20000000-0000-4000-8000-000000000001'
+      await render({ receipt: true, receiptKeyId: nextKey, receiptRequestId: nextRequest })
+      expect(request.signal?.aborted).toBe(true)
+      expect(document.body.textContent).not.toContain(en.replacementCallStatus)
+      const count = requests.length
+      await act(async () => obsoleteRead())
+      expect(requests).toHaveLength(count)
+      await act(async () => read.release())
+      expect(document.body.textContent).not.toContain(en.replacementCall_completed)
+      held = null
+      issuedReceipt = {
+        ...issuedReceipt!,
+        request_id: nextRequest,
+        key_id: nextKey,
+        replacement_call_status: 'not_recorded',
+        descriptor: { ...issuedReceipt!.descriptor!, key_id: nextKey },
+      }
+      await click(en.readReceipt)
+      await until(() =>
+        expect(document.body.textContent).toContain(en.replacementCall_not_recorded),
+      )
+      expect(requests.at(-1)!.url).toBe(base() + '/delivery-receipts/' + nextRequest)
+      issuedReceipt = {
+        ...issuedReceipt,
+        key_id: key().id,
+        replacement_call_status: 'completed',
+        descriptor: { ...issuedReceipt.descriptor!, key_id: key().id },
+      }
+      await click(en.readReceipt)
+      await until(() => expect(document.body.textContent).toContain(en.receiptUnavailable))
+      expect(document.body.textContent).not.toContain(en.replacementCallStatus)
+      expect(document.body.textContent).not.toContain(en.replacementCall_completed)
+      expect(document.body.textContent).not.toContain('api-keys/exact')
+      expect(changed).not.toHaveBeenCalled()
+    },
+  )
+
+  it.each(['personal', 'project'] as const)(
+    'discards %s uncertain reconciliation on target change and rejects queued old review',
+    async (kind) => {
+      if (kind === 'project') scope = { kind: 'project', projectId: id('prj') }
+      result({
+        data: JSON.stringify({ request_id: requestId }),
+        url: base() + '/managed',
+      } as InternalAxiosRequestConfig)
+      await render({ receipt: true })
+      await click(en.readReceipt)
+      await until(() => expect(document.body.textContent).toContain(en.delivery_acknowledged))
+      await fill('reconcile_reason', 'Original publication recovery')
+      const obsoleteReview = capturedClick(button(en.reviewReconcile))
+      reconcileFails = true
+      await click(en.reviewReconcile)
+      await click(en.confirm)
+      await until(() => expect(document.body.textContent).toContain(en.reconcileFailed))
+      await click(en.readReceipt)
+      await until(() => expect(document.body.textContent).toContain(en.retryOriginal))
+      const nextKey = key().id.slice(0, -1) + '4'
+      const nextRequest = '20000000-0000-4000-8000-000000000001'
+      await render({ receipt: true, receiptKeyId: nextKey, receiptRequestId: nextRequest })
+      expect(document.body.textContent).not.toContain(en.retryOriginal)
+      await act(async () => obsoleteReview())
+      expect(document.body.textContent).not.toContain(en.confirmReconcile)
+      expect(post('/delivery-reconcile')).toHaveLength(1)
+      issuedReceipt = { ...issuedReceipt!, key_id: nextKey, request_id: nextRequest }
+      await click(en.readReceipt)
+      await until(() => expect(document.body.textContent).toContain(en.reviewReconcile))
+      const reason = document.querySelector<HTMLInputElement>('input[name="reconcile_reason"]')!
+      expect(reason.value).toBe('')
+      expect(reason.disabled).toBe(false)
+      await fill('reconcile_reason', 'Review the new target separately')
+      await click(en.reviewReconcile)
+      await click(en.confirm)
+      await until(() => expect(post('/delivery-reconcile')).toHaveLength(2))
+      const latest = post('/delivery-reconcile')[1]
+      expect(latest.url).toBe(base() + '/' + nextKey + '/delivery-reconcile')
+      expect(JSON.parse(latest.data)).toEqual({
+        request_id: nextRequest,
+        reason: 'Review the new target separately',
+      })
+      expect(changed).not.toHaveBeenCalled()
+    },
+  )
 })

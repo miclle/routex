@@ -110,15 +110,15 @@ func TestDiscordNamespaceDerivationAndRootEpochDoNotAliasLegacy(t *testing.T) {
 	if value, e := store.Open(refs[2], ciphertext); e != nil || value != "private-client-secret" {
 		t.Fatal("own AAD", e)
 	}
-	if rootInventoryVersion != 9 || len(rootDomains) != 12 || rootDomains[10] != "named_identity_providers" || rootDomains[11] != "api_key_delivery_auth" {
+	if rootInventoryVersion != 10 || len(rootDomains) != 12 || rootDomains[10] != "named_identity_providers" || rootDomains[11] != "api_key_delivery_auth" {
 		t.Fatal("current coverage")
 	}
-	for version, size := range map[int]int{1: 5, 2: 7, 3: 8, 4: 9, 5: 10, 6: 11, 7: 11, 8: 11} {
+	for version, size := range map[int]int{1: 5, 2: 7, 3: 8, 4: 9, 5: 10, 6: 11, 7: 11, 8: 11, 9: 12} {
 		if !reflect.DeepEqual(rootInventoryDomains(version), rootDomains[:size]) {
 			t.Fatal("historical domains", version)
 		}
 	}
-	if rootInventoryDomains(10) != nil {
+	if rootInventoryDomains(11) != nil {
 		t.Fatal("future inventory admitted")
 	}
 	// Match persisted observation precision on every platform.
@@ -133,8 +133,8 @@ func TestDiscordNamespaceDerivationAndRootEpochDoNotAliasLegacy(t *testing.T) {
 		t.Fatal(err)
 	}
 	svc := &Service{rootNow: func() time.Time { return now }}
-	job := entity.SecretRotationJob{InventoryVersion: 9, Domain: 12, CountsJSON: string(encoded), ObservationStartedAt: &started, ObservationLastConfirmedAt: &confirmed, VerifiedProcessID: "process", VerifiedSnapshotID: "snapshot"}
-	proof := entity.SecretProcessVerification{InventoryVersion: 9, ProcessID: "process", RuntimeSnapshotID: "snapshot"}
+	job := entity.SecretRotationJob{InventoryVersion: 10, Domain: 12, CountsJSON: string(encoded), ObservationStartedAt: &started, ObservationLastConfirmedAt: &confirmed, VerifiedProcessID: "process", VerifiedSnapshotID: "snapshot"}
+	proof := entity.SecretProcessVerification{InventoryVersion: 10, ProcessID: "process", RuntimeSnapshotID: "snapshot"}
 	if !svc.rootObservationEligible(job, proof) {
 		t.Fatal("complete current coverage rejected")
 	}
@@ -149,6 +149,11 @@ func TestDiscordNamespaceDerivationAndRootEpochDoNotAliasLegacy(t *testing.T) {
 	futureConfirmation.ObservationLastConfirmedAt = &future
 	if svc.rootObservationEligible(futureConfirmation, proof) {
 		t.Fatal("future confirmation eligible")
+	}
+	oldTelegramJob, oldTelegramProof := job, proof
+	oldTelegramJob.InventoryVersion, oldTelegramProof.InventoryVersion = 9, 9
+	if svc.rootObservationEligible(oldTelegramJob, oldTelegramProof) {
+		t.Fatal("pre-Telegram observation relabeled current coverage")
 	}
 	for _, version := range []int{6, 7, 8} {
 		oldJob, oldProof := job, proof

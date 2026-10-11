@@ -33,15 +33,16 @@ type ModelBindingResponse struct {
 	Ready           bool   `json:"ready"`
 }
 type ModelResponse struct {
-	ConfiguredReady *bool                  `json:"configured_ready"`
-	CreatedAt       *time.Time             `json:"created_at"`
-	ConfigUpdatedAt *time.Time             `json:"config_updated_at"`
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Status          string                 `json:"status"`
-	Names           []ModelNameResponse    `json:"names"`
-	Bindings        []ModelBindingResponse `json:"bindings"`
-	GrantedUserIDs  []string               `json:"granted_user_ids"`
+	ConfiguredReady             *bool                  `json:"configured_ready"`
+	ConfiguredInputCapabilities map[string][]string    `json:"configured_input_capabilities"`
+	CreatedAt                   *time.Time             `json:"created_at"`
+	ConfigUpdatedAt             *time.Time             `json:"config_updated_at"`
+	ID                          string                 `json:"id"`
+	Name                        string                 `json:"name"`
+	Status                      string                 `json:"status"`
+	Names                       []ModelNameResponse    `json:"names"`
+	Bindings                    []ModelBindingResponse `json:"bindings"`
+	GrantedUserIDs              []string               `json:"granted_user_ids"`
 }
 type ModelsResponse struct {
 	Items []ModelResponse `json:"items"`
@@ -147,7 +148,7 @@ type ModelGranteesResponse struct {
 }
 
 func modelResponse(item service.ModelCatalog) *ModelResponse {
-	result := &ModelResponse{ConfiguredReady: item.ConfiguredReady, ID: item.Model.ID, Name: item.Name, Status: item.Model.Status, Names: []ModelNameResponse{}, Bindings: []ModelBindingResponse{}, GrantedUserIDs: item.GrantedUserIDs}
+	result := &ModelResponse{ConfiguredInputCapabilities: item.ConfiguredInputCapabilities, ConfiguredReady: item.ConfiguredReady, ID: item.Model.ID, Name: item.Name, Status: item.Model.Status, Names: []ModelNameResponse{}, Bindings: []ModelBindingResponse{}, GrantedUserIDs: item.GrantedUserIDs}
 	if !item.Model.CreatedAt.IsZero() {
 		value := item.Model.CreatedAt.UTC()
 		result.CreatedAt = &value

@@ -26,7 +26,11 @@ func TestOIDCRegistry185Preserves182AndRejectsIdentityDrift(t *testing.T) {
 	for _, match := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, match[1]+":"+match[2])
 	}
-	if !enterpriseRegistry218Current(names) {
+	if !insightsRegistry222Current(names) {
+		t.Fatal("exact222 Insights successor required before historical221 checks")
+	}
+	names = names[:221]
+	if !telegramRegistry221Current(names) {
 		t.Fatal("exact214 forced SSO successor required before historical210 checks")
 	}
 	names = names[:210] // Preserve the exact predecessor guard and its historical controls.

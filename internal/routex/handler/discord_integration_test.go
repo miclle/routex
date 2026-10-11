@@ -302,9 +302,42 @@ func discordApplicationRequest(ctx context.Context, router http.Handler, method,
 		}
 	}
 	res := httptest.NewRecorder()
+	started := time.Now()
 	router.ServeHTTP(res, req)
+	if res.Code >= 500 {
+		log.Printf("discord_http_failure method=%s path=%s elapsed_ns=%d status=%d public_error_class=%s", method, req.URL.EscapedPath(), time.Since(started).Nanoseconds(), res.Code, integrationHTTPFailureClass(res))
+	}
 	return res
 }
+
+// Only fixed public error classes enter diagnostics; bodies may contain proofs.
+func integrationHTTPFailureClass(r *httptest.ResponseRecorder) string {
+	if r.Code < 500 {
+		return "not_applicable"
+	}
+	var envelope struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	}
+	if json.Unmarshal(r.Body.Bytes(), &envelope) != nil || envelope.Code != r.Code {
+		return "other"
+	}
+	switch envelope.Message {
+	case "runtime configuration is temporarily unavailable":
+		return "runtime_unavailable"
+	case "two-step verification temporarily unavailable":
+		return "mfa_unavailable"
+	case "secret_write_policy_changed":
+		return "secret_policy_changed"
+	case "credential storage is not configured":
+		return "credential_storage_unavailable"
+	case "internal server error":
+		return "internal"
+	default:
+		return "other"
+	}
+}
+
 func discordApplicationStatus(t *testing.T, r *httptest.ResponseRecorder, want int) {
 	t.Helper()
 	if r.Code != want {
@@ -557,8 +590,15 @@ func discordAssertPrimary(t *testing.T, db *gorm.DB, cookie *http.Cookie, userID
 }
 func discordEnableMFA(t *testing.T, f *discordApplicationFixture, session SessionResponse, cookie *http.Cookie) (SessionResponse, *http.Cookie, []string) {
 	t.Helper()
-	enrollment := discordApplicationDecode[service.MFAEnrollment](t, f.request("POST", "/api/v1/account/mfa/enrollment", MFAPasswordRequest{CurrentPassword: discordFixturePassword}, "", session.CSRFToken, cookie), 200)
+	t.Log("discord_mfa_stage stage=enrollment event=begin")
+	started := time.Now()
+	enrollmentResponse := f.request("POST", "/api/v1/account/mfa/enrollment", MFAPasswordRequest{CurrentPassword: discordFixturePassword}, "", session.CSRFToken, cookie)
+	t.Logf("discord_mfa_stage stage=enrollment event=returned elapsed_ns=%d status=%d public_error_class=%s", time.Since(started).Nanoseconds(), enrollmentResponse.Code, integrationHTTPFailureClass(enrollmentResponse))
+	enrollment := discordApplicationDecode[service.MFAEnrollment](t, enrollmentResponse, 200)
+	t.Log("discord_mfa_stage stage=enable event=begin")
+	started = time.Now()
 	response := f.request("POST", "/api/v1/account/mfa/enable", MFAEnableRequest{CurrentPassword: discordFixturePassword, EnrollmentToken: enrollment.EnrollmentToken, Code: mfaFixtureCode(t, enrollment.Secret, 0)}, "", session.CSRFToken, cookie)
+	t.Logf("discord_mfa_stage stage=enable event=returned elapsed_ns=%d status=%d public_error_class=%s", time.Since(started).Nanoseconds(), response.Code, integrationHTTPFailureClass(response))
 	enabled := discordApplicationDecode[MFARecoveryResponse](t, response, 200)
 	if enabled.Session == nil || len(enabled.RecoveryCodes) != 10 {
 		t.Fatal("native MFA enrollment incomplete")

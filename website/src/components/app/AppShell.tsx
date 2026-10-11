@@ -13,6 +13,7 @@ import {
   ChevronsUpDown,
   LayoutDashboard,
   ChartNoAxesCombined,
+  Lightbulb,
   KeyRound,
   Bot,
   PlayCircle,
@@ -132,6 +133,17 @@ const adminNav = [
     permission: 'egress.read',
     get group() {
       return t('service_access_3fa7c')
+    },
+  },
+  {
+    to: '/admin/insights',
+    get label() {
+      return t('insights:navTitle')
+    },
+    icon: Lightbulb,
+    permission: 'calls.read_all',
+    get group() {
+      return t('operations_8e37c')
     },
   },
   {
@@ -366,6 +378,14 @@ export default function AppShell() {
   const adminItems = adminNav.filter(
     (item) =>
       allowsPermission(item.permission, access.can) &&
+      (item.to !== '/admin/insights' ||
+        (session.isSuccess &&
+          !session.isFetching &&
+          !session.error &&
+          !!session.data &&
+          access.isSuccess &&
+          !access.isFetching &&
+          !access.error)) &&
       (item.to !== '/admin/secrets' ||
         (session.isSuccess &&
           !session.isFetching &&

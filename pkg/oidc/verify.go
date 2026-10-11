@@ -77,6 +77,9 @@ func readKeys(ctx context.Context, client *http.Client, rawURL string) ([]jose.J
 }
 
 func (c *Client) verify(ctx context.Context, raw string, nonce string, keys []jose.JSONWebKey, accessToken string) (Identity, error) {
+	if c.config.telegram && telegramTokenShape(raw) != nil {
+		return Identity{}, ErrProtocol
+	}
 	issuer := c.config.Issuer
 	if c.config.google {
 		var err error

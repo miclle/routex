@@ -138,6 +138,7 @@ func TestRuntimeAuthorizationProjectionEveryLogicalDomain(t *testing.T) {
 		"PersonalGrantStates": func(a *runtimeAuthorization) {
 			a.PersonalGrantStates[projectionUser] = runtimePersonalGrantState{Revision: "next"}
 		},
+		"PersonalModels":         func(a *runtimeAuthorization) { a.PersonalModels[projectionUser][projectionModel] = false },
 		"ModelEligibilityHashes": func(a *runtimeAuthorization) { a.ModelEligibilityHashes[projectionModel] = "next" },
 		"PersonalKeyStates": func(a *runtimeAuthorization) {
 			a.PersonalKeyStates[projectionPersonal] = runtimePersonalKeyState{UserID: projectionUser, Revision: "next", Status: entity.KeyDisabled}
@@ -208,7 +209,7 @@ func TestRuntimeAuthorizationProjectionEveryLogicalDomain(t *testing.T) {
 			a.Teams[projectionTeam] = v
 		},
 	}
-	if len(changes) != 30 {
+	if len(changes) != 31 {
 		t.Fatal("logical domain control missing")
 	}
 	for name, change := range changes {
@@ -597,10 +598,10 @@ func projectionFieldParity(t *testing.T, value any, included, excluded string) {
 	}
 }
 func TestRuntimeAuthorizationProjectionClosedFieldParity(t *testing.T) {
-	// Closed original32 plus AuthenticationPolicy and one excluded cache. A new unclassified
-	// field fails here; reflection never supplies production serialization.
+	// Classify every installed field explicitly, including personal Session grants.
+	// Reflection never supplies production serialization.
 	projectionFieldParity(t, runtimeAuthorization{},
-		"AuthenticationPolicy Connections Providers PersonalGrantStates ModelEligibilityHashes PersonalKeyStates UserAdmissions UserProofs ProjectCreationStates PersonalGrantSources TeamGrantSources TeamCreationGrants SourceDigest CredentialRevisions ProviderModelRevisions Quota ConnectionRevisions LimitPolicies LimitRoots PersonalLimitOwners ProjectLimitOwners Keys KeysByID Names Models Credentials ProviderModels CredentialAccess ModelCreated TeamSessions Teams",
+		"AuthenticationPolicy Connections Providers PersonalGrantStates PersonalModels ModelEligibilityHashes PersonalKeyStates UserAdmissions UserProofs ProjectCreationStates PersonalGrantSources TeamGrantSources TeamCreationGrants SourceDigest CredentialRevisions ProviderModelRevisions Quota ConnectionRevisions LimitPolicies LimitRoots PersonalLimitOwners ProjectLimitOwners Keys KeysByID Names Models Credentials ProviderModels CredentialAccess ModelCreated TeamSessions Teams",
 		"publicationEpoch ValidUntil installationProjectionDigest")
 	projectionFieldParity(t, runtimeConnectionProof{}, "TransportGeneration ProviderID Birth Enabled", "")
 	projectionFieldParity(t, runtimeProviderProof{}, "Birth Enabled Revision", "")
@@ -666,6 +667,25 @@ func TestRuntimeAuthorizationProjectionCollectionNilnessAndBoundaries(t *testing
 	a.PersonalGrantSources[projectionUser] = map[string]string{}
 	if projectionDigest(t, a) == nestedNil {
 		t.Fatal("nested map nilness erased")
+	}
+	// Personal Session authority also preserves nested collection presence and
+	// each exact granted Model value, rather than borrowing Key or Team grants.
+	a = projectionFixture(t)
+	a.PersonalModels[projectionUser] = nil
+	personalNil := projectionDigest(t, a)
+	a.PersonalModels[projectionUser] = map[string]bool{}
+	personalEmpty := projectionDigest(t, a)
+	if personalEmpty == personalNil {
+		t.Fatal("nested personal Model nilness erased")
+	}
+	a.PersonalModels[projectionUser][projectionModel] = false
+	personalFalse := projectionDigest(t, a)
+	if personalFalse == personalEmpty {
+		t.Fatal("explicit personal Model denial became absent")
+	}
+	a.PersonalModels[projectionUser][projectionModel] = true
+	if projectionDigest(t, a) == personalFalse {
+		t.Fatal("personal Model grant value ignored")
 	}
 	for _, count := range []int{runtimeProjectionMaxBytes - 9, runtimeProjectionMaxBytes - 8} {
 		w := &runtimeProjectionWriter{ctx: t.Context(), digest: sha256.New()}

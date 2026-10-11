@@ -308,7 +308,7 @@ func testDiscordMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	githubBefore, googleBefore := readProvider("github"), readProvider("google")
-	for _, bound := range []int{0, -1, 100, 106} {
+	for _, bound := range []int{0, -1, 100, 107} {
 		if database.MigrateThrough(ctx, db, bound) == nil || !reflect.DeepEqual(original, personalKeyBehaviorLedger(t, db)) {
 			t.Fatal("invalid/newer bound admitted", bound)
 		}
@@ -766,7 +766,7 @@ func testDiscordMigration(t *testing.T, db *gorm.DB) {
 	// Current-head reads also verify the five newly added fields remain empty.
 	historicalPrimary = func(tx *gorm.DB) *gorm.DB { return tx }
 	after102 := personalKeyBehaviorLedger(t, db)
-	if len(after102) != 105 || after102[104].Version != 105 || after102[103].Version != 104 || after102[102].Version != 103 || after102[101].Version != 102 || !reflect.DeepEqual(before102, after102[:101]) {
+	if len(after102) != 106 || after102[105].Version != 106 || after102[104].Version != 105 || after102[103].Version != 104 || after102[102].Version != 103 || after102[101].Version != 102 || !reflect.DeepEqual(before102, after102[:101]) {
 		t.Fatal("V103 restoration changed historical101 receipts")
 	}
 	retained()

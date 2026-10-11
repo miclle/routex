@@ -18,7 +18,7 @@ func testCredentialSourceClosedMigration(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	ctx := context.Background()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 105 || before[104].Version != 105 || before[103].Version != 104 || before[102].Version != 103 || before[100].Version != 101 || before[101].Version != 102 || before[99].Version != 100 || before[98].Version != 99 || before[97].Version != 98 || before[96].Version != 97 || before[95].Version != 96 || before[94].Version != 95 || before[93].Version != 94 || before[92].Version != 93 || before[91].Version != 92 || before[90].Version != 91 || before[89].Version != 90 || before[88].Version != 89 {
+	if len(before) != 106 || before[105].Version != 106 || before[104].Version != 105 || before[103].Version != 104 || before[102].Version != 103 || before[100].Version != 101 || before[101].Version != 102 || before[99].Version != 100 || before[98].Version != 99 || before[97].Version != 98 || before[96].Version != 97 || before[95].Version != 96 || before[94].Version != 95 || before[93].Version != 94 || before[92].Version != 93 || before[91].Version != 92 || before[90].Version != 91 || before[89].Version != 90 || before[88].Version != 89 {
 		t.Fatal("exact V89 full ledger required")
 	}
 	var original []entity.CredentialSourceProcess
@@ -50,7 +50,7 @@ func testCredentialSourceClosedMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	after := personalKeyBehaviorLedger(t, db)
-	if len(after) != 105 || after[104].Version != 105 || after[103].Version != 104 || after[102].Version != 103 || after[100].Version != 101 || after[101].Version != 102 || after[99].Version != 100 || after[98].Version != 99 || after[97].Version != 98 || after[96].Version != 97 || after[95].Version != 96 || after[94].Version != 95 || after[93].Version != 94 || after[92].Version != 93 || after[91].Version != 92 || after[90].Version != 91 || after[89].Version != 90 || after[88].Version != 89 || !reflect.DeepEqual(before[:88], after[:88]) {
+	if len(after) != 106 || after[105].Version != 106 || after[104].Version != 105 || after[103].Version != 104 || after[102].Version != 103 || after[100].Version != 101 || after[101].Version != 102 || after[99].Version != 100 || after[98].Version != 99 || after[97].Version != 98 || after[96].Version != 97 || after[95].Version != 96 || after[94].Version != 95 || after[93].Version != 94 || after[92].Version != 93 || after[91].Version != 92 || after[90].Version != 91 || after[89].Version != 90 || after[88].Version != 89 || !reflect.DeepEqual(before[:88], after[:88]) {
 		t.Fatal("released 1..88 ledger changed")
 	}
 	var saved []entity.CredentialSourceProcess

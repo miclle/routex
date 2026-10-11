@@ -41,6 +41,7 @@ import SAMLLoginButton from '@/views/saml/login-button'
 import GitHubLoginButton from '@/views/github/login-button'
 import GoogleLoginButton from '@/views/google/login-button'
 import DiscordLoginButton from '@/views/discord/login-button'
+import TelegramLoginButton from '@/views/telegram/login-button'
 import type { LDAPLoginResult } from '@/types/ldap'
 
 export default function AuthPage({ mode }: { mode: 'login' | 'setup' | 'register' | 'emergency' }) {
@@ -558,6 +559,9 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' | 'emergency' }) 
               )}
               {!enforcement.policy?.enforced && (
                 <DiscordLoginButton disabled={pending} acquire={acquireOIDC} />
+              )}
+              {!enforcement.policy?.enforced && (
+                <TelegramLoginButton disabled={pending} acquire={acquireOIDC} />
               )}
             </>
           )}

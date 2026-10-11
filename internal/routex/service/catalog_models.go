@@ -18,12 +18,13 @@ var publicModelName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$`)
 
 type ModelCatalog struct {
 	// ConfiguredReady is optional authorized stored configuration, not runtime health.
-	ConfiguredReady *bool
-	Model           entity.Model
-	Name            string
-	Names           []entity.ModelName
-	Bindings        []BindingCatalog
-	GrantedUserIDs  []string
+	ConfiguredReady             *bool
+	ConfiguredInputCapabilities map[string][]string
+	Model                       entity.Model
+	Name                        string
+	Names                       []entity.ModelName
+	Bindings                    []BindingCatalog
+	GrantedUserIDs              []string
 }
 
 type BindingCatalog struct {
@@ -225,6 +226,9 @@ func (s *Service) AddModelBinding(ctx context.Context, actorID, modelID, provide
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&model, "id = ?", modelID).Error; err != nil {
 			return err
 		}
+		if model.Status == entity.ResourceArchived {
+			return catalogConflict
+		}
 		var pm entity.ProviderModel
 		if err := tx.First(&pm, "id = ?", providerModelID).Error; err != nil {
 			return err
@@ -263,12 +267,15 @@ func (s *Service) SetModelWeights(ctx context.Context, actorID, modelID string, 
 		if _, _, err := modelWeightAuthority(tx, actorID, false, true); err != nil {
 			return err
 		}
-		observed, err := loadModelWeightState(tx, modelID, true, false)
-		if err != nil {
-			return err
-		}
 		var model entity.Model
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&model, "id = ?", modelID).Error; err != nil {
+			return err
+		}
+		if model.Status == entity.ResourceArchived {
+			return catalogConflict
+		}
+		observed, err := loadModelWeightState(tx, modelID, true, false)
+		if err != nil {
 			return err
 		}
 		// Connection locks serialize activation against credential verification
@@ -352,6 +359,9 @@ func (s *Service) RenameModel(ctx context.Context, actorID, modelID, name string
 		var model entity.Model
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&model, "id = ?", modelID).Error; err != nil {
 			return err
+		}
+		if model.Status == entity.ResourceArchived {
+			return catalogConflict
 		}
 		var current entity.ModelName
 		if err := tx.First(&current, "current_model_id = ?", modelID).Error; err != nil {

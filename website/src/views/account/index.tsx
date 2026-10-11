@@ -8,6 +8,7 @@ import SAMLAccount from '@/views/saml/account'
 import GitHubAccount from '@/views/github/account'
 import GoogleAccount from '@/views/google/account'
 import DiscordAccount from '@/views/discord/account'
+import TelegramAccount from '@/views/telegram/account'
 import { useTranslation } from 'react-i18next'
 import { useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -202,6 +203,7 @@ export default function AccountPage({ security = false }: { security?: boolean }
           <GitHubAccount />
           <GoogleAccount />
           <DiscordAccount />
+          <TelegramAccount />
           <Card>
             <CardHeader>
               <CardTitle>{t('account.password')}</CardTitle>

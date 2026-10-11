@@ -25,7 +25,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	// Native query credentials must never be reflected by pre-middleware redirects.
 	r.RedirectTrailingSlash = false
 	r.RedirectFixedPath = false
-	r.Engine.Use(GeminiQueryCredentials, TeamNativeInputs, OIDCInputs, OAuthInputs, SAMLInputs, GitHubInputs, GoogleInputs, DiscordInputs, AuthenticationPolicyInputs)
+	r.Engine.Use(GeminiQueryCredentials, TeamNativeInputs, OIDCInputs, OAuthInputs, SAMLInputs, GitHubInputs, GoogleInputs, DiscordInputs, TelegramInputs, AuthenticationPolicyInputs)
 	// embed website assets
 	website.EmbedAssets(r)
 
@@ -60,6 +60,8 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.GET("/auth/registration", ctrl.RegistrationStatus)
 	identity.POST("/auth/register", sameOrigin, jsonAuthRequest, ctrl.Register)
 	identity.GET("/auth/permissions", ctrl.requireSession, ctrl.CurrentPermissions)
+	identity.GET("/admin/insights/models", ctrl.InsightsAIModels)
+	identity.POST("/admin/insights/analyze", sameOrigin, ctrl.AnalyzeInsightsAI)
 	identity.GET("/admin/prices/export.xlsx", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.RequirePermission("prices.read"), ctrl.ExportPriceXLSX)
 	identity.POST("/auth/login", sameOrigin, jsonAuthRequest, ctrl.Login)
 	identity.POST("/auth/mfa/verify", sameOrigin, jsonAuthRequest, ctrl.CompleteMFALogin)
@@ -125,6 +127,19 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.GET("/account/identity/discord", identityPrivate, ctrl.requireSession, ctrl.AccountDiscord)
 	identity.POST("/account/identity/discord/bind", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.StartDiscordBinding)
 	identity.POST("/account/identity/discord/unlink", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.UnlinkDiscord)
+
+	identity.GET("/auth/telegram", identityPrivate, ctrl.PublicTelegram)
+	identity.POST("/auth/telegram/start", identityPrivate, sameOrigin, jsonAuthRequest, ctrl.StartTelegramLogin)
+	identity.GET("/auth/telegram/callback", identityPrivate, ctrl.TelegramCallback)
+	identity.POST("/auth/telegram/complete", identityPrivate, sameOrigin, jsonAuthRequest, ctrl.CompleteTelegram)
+	identity.POST("/auth/telegram/abandon", identityPrivate, sameOrigin, jsonAuthRequest, ctrl.AbandonTelegram)
+	identity.GET("/admin/auth/telegram", identityPrivate, ctrl.requireSession, ctrl.GetTelegramProvider)
+	identity.PUT("/admin/auth/telegram", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SaveTelegramProvider)
+	identity.POST("/admin/auth/telegram/verify", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.StartTelegramVerification)
+	identity.PUT("/admin/auth/telegram/status", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SetTelegramEnabled)
+	identity.GET("/account/identity/telegram", identityPrivate, ctrl.requireSession, ctrl.AccountTelegram)
+	identity.POST("/account/identity/telegram/bind", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.StartTelegramBinding)
+	identity.POST("/account/identity/telegram/unlink", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.UnlinkTelegram)
 
 	identity.GET("/auth/saml", samlPrivate, ctrl.PublicSAML)
 	identity.POST("/auth/saml/start", samlPrivate, sameOrigin, jsonAuthRequest, ctrl.StartSAMLLogin)
@@ -510,6 +525,8 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.POST("/connections/:connection_id/model-creation/preview", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("models.read_all"), ctrl.RequirePermission("providers.read"), ctrl.PreviewModelCreationBatch)
 	admin.POST("/connections/:connection_id/model-creation", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("models.write"), ctrl.CreateModelBatch)
 	admin.GET("/model-creation/receipts/:request_id", ctrl.RequirePermission("models.read_all"), ctrl.RequirePermission("providers.read"), ctrl.GetModelCreationReceipt)
+	admin.GET("/models/:model_id/lifecycle", ctrl.RequirePermission("models.read_all"), ctrl.GetModelLifecycle)
+	admin.PUT("/models/:model_id/lifecycle", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("models.write"), ctrl.SetModelLifecycle)
 	admin.GET("/models/:model_id/alias-retirement", ctrl.RequirePermission("models.read_all"), ctrl.GetModelAliasRetirement)
 	admin.POST("/models/:model_id/alias-retirement", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("models.write"), ctrl.RetireModelAlias)
 	admin.PUT("/models/:model_id/grants", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("models.write"), ctrl.UpdateModelGrants)

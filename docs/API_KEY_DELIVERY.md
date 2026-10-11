@@ -134,6 +134,32 @@ Its coordinator is `not_configured` and application status is `unknown`. Copying
 descriptor proves neither browser persistence nor application configuration/login,
 successful inference, native completion or fleet acknowledgement.
 
+## Replacement-call evidence
+
+Delivery receipts include the read-only `replacement_call_status` advisory. The
+descriptor is unchanged. Controlled qualification is indexed for the containing
+delivery in [Implementation](IMPLEMENTATION.md); it does not establish coordinator
+acknowledgement, caller deployment or current retirement eligibility.
+
+| Status | Meaning |
+| --- | --- |
+| `not_applicable` | This is an initial creation command, rather than a replacement command. |
+| `not_recorded` | No qualifying completed replacement call was found in the recorded evidence. This does not mean no call occurred. |
+| `completed` | A recorded exact-owner replacement call began after Key creation, succeeded, and its final successful attempt carries native `completed` evidence. |
+
+HTTP success, known usage, handoff, incomplete output, legacy unknown evidence,
+and a superseded attempt do not establish completion. The server reuses the
+retirement evidence predicate, without exposing call or attempt identifiers.
+A database read failure remains an unavailable read; it cannot become
+`not_recorded` or a successful verification.
+
+The existing receipt dialog presents this fact separately from delivery, local
+runtime publication and descriptor application. A historical completed call does
+not establish deployment, coordinator acknowledgement, present callability or
+current retirement eligibility. It never automatically retires the predecessor.
+Fresh reads retain the existing Personal or Project authority boundary; renewal,
+actor or target changes, errors and explicit refresh clear displayed evidence.
+
 ## API and authority
 
 All paths start `/api/v1`. Administrative routes use `/admin/api-key-delivery`:

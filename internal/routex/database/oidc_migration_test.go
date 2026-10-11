@@ -37,9 +37,9 @@ func legacyUpgradeGORMTagsEqual(t *testing.T, table string, frozen, current *sch
 	var model any
 	switch table {
 	case "sessions":
-		model = &forcedSSOSessionV103{}
+		model = &telegramIdentitySessionV106{}
 	case "mfa_challenges":
-		model = &forcedSSOMFAChallengeV103{}
+		model = &telegramIdentityMFAChallengeV106{}
 	default:
 		return false
 	}

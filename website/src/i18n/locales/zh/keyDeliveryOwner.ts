@@ -58,6 +58,12 @@ export default {
   deliveryStatus: 'Vault 交付',
   keyStatus: 'Key 状态',
   runtimeStatus: '运行时发布',
+  replacementCallStatus: '替代 Key 原生调用',
+  replacementCall_not_applicable: '此回执不适用',
+  replacementCall_not_recorded: '尚未记录符合条件的原生完成调用',
+  replacementCall_completed: '已记录符合条件的原生完成调用',
+  replacementCallBoundary:
+    '仅表示已记录的替代 Key 调用证据，不能证明部署完成、Key 当前可用或原 Key 当前符合退役条件。',
   delivery_pending: '待处理；尚未记录确认',
   delivery_acknowledged: '写入已确认',
   delivery_unknown: '结果未知；不允许再次写入',

@@ -321,7 +321,7 @@ it('hides ordinary password, registration and excluded methods while enforced; r
   await until(() => expect(host.textContent).toContain('Sign in through verified OIDC or LDAP.'))
   expect(document.querySelector('input[name="password"]')).toBeNull()
   expect(document.querySelector('a[href="/register"]')).toBeNull()
-  for (const name of ['oauth', 'github', 'google', 'discord', 'saml'])
+  for (const name of ['oauth', 'github', 'google', 'discord', 'telegram', 'saml'])
     expect(requests.some((r) => r.url === '/auth/' + name)).toBe(false)
   expect(document.querySelector('a[href="/login/emergency"]')).not.toBeNull()
   policyFailure = 503

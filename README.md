@@ -2,7 +2,7 @@
 
 RouteX is an open-source AI gateway and control plane for connecting applications to multiple AI providers and models through a governed, observable, and extensible platform.
 
-> RouteX is at an early stage. Identity, sessions, authenticator/recovery verification, member/role administration, Team/Project management, personal and Project Keys, and offboarding have persistent APIs and interfaces. The member model catalogue preserves explicit Personal/Team grant sources, native capabilities, conjunctive filters and independently authorized details; Team grant visibility remains separate from Personal Key invocation; explicit Team Sessions can invoke native Chat, Responses, Messages and Gemini and retain their own Team call history. Four native inference protocols use prepared runtime snapshots and a bounded durable journal. Current token and per-occurrence image/PDF prices, exact currency conversion, immutable call assessments, atomic CSV/XLS/XLSX imports, CSV/XLSX price exports, and bilingual currency configuration are available. A versioned repository price file supports explicit local mappings, reviewed synchronization and selected-rate restoration, while protecting custom zero, disabled and same-amount prices; the shipped file is empty until reviewed rates are supplied. Personal and Project image/PDF attachments use explicit owner scopes, native protocol mapping, transient Playground lifecycles, and capacity-attested token/TPM/money admission. Current Project managers govern Project uploads while Project Keys resolve only objects owned by their immutable Project. Personal/Project aggregate and Key RPM, concurrency, source-IP, rolling-token, monthly-token, TPM, and monthly-money limits are enforced with durable admission accounting. Canonical Personal, Team, Project and platform usage reports have bilingual interfaces and scoped APIs. Each scope can export the complete authorized report as bounded UTF-8 CSV, preserving exact historical amounts, recorded currencies, unknown coverage and spreadsheet-safe text. Team reports share aggregate model/trend/currency statistics while individual Team call history remains restricted to the current actor. Authoritative process leases, nullable resource samples, real operational jobs, revision-checked offline cleanup, immutable Provider-attempt quality, revisioned quality thresholds, grouped operational alerts, recipient-isolated notification history, current-policy monthly settled-use exhaustion inboxes for Personal/Project and Team aggregate policies, and bounded operational SMTP delivery are available. Finite Team aggregate/member policies add rolling/monthly Tokens, monthly money and request-rate enforcement with independent platform permissions and stable accounting. Monthly Team member requests use owner-first review, explicit platform escalation and atomic quota updates. Team-assigned roles contribute only current Team metadata/member and model-management actions, with administrator-reviewed assignment and independent platform authority. Templates, distributed enforcement, provider-specific media pricing, external service acceptance, broader quota/enterprise alerts, and enterprise integrations remain in progress. See [the implementation and acceptance index](docs/IMPLEMENTATION.md) for scope and evidence.
+> RouteX is at an early stage. Identity, sessions, authenticator/recovery verification, member/role administration, Team/Project management, personal and Project Keys, and offboarding have persistent APIs and interfaces. The member model catalogue preserves explicit Personal/Team grant sources, native capabilities, conjunctive filters and independently authorized details; Team grant visibility remains separate from Personal Key invocation; explicit Team Sessions can invoke native Chat, Responses, Messages and Gemini and retain their own Team call history. Four native inference protocols use prepared runtime snapshots and a bounded durable journal. Current token and per-occurrence image/PDF prices, exact currency conversion, immutable call assessments, atomic CSV/XLS/XLSX imports, CSV/XLSX price exports, and bilingual currency configuration are available. A versioned repository price file supports explicit local mappings, reviewed synchronization and selected-rate restoration, while protecting custom zero, disabled and same-amount prices; the embedded file contains reviewed seed rates, which require explicit local mapping and confirmation before application. Personal and Project image/PDF attachments use explicit owner scopes, native protocol mapping, transient Playground lifecycles, and capacity-attested token/TPM/money admission. Current Project managers govern Project uploads while Project Keys resolve only objects owned by their immutable Project. Personal/Project aggregate and Key RPM, concurrency, source-IP, rolling-token, monthly-token, TPM, and monthly-money limits are enforced with durable admission accounting. Canonical Personal, Team, Project and platform usage reports have bilingual interfaces and scoped APIs. Each scope can export the complete authorized report as bounded UTF-8 CSV, preserving exact historical amounts, recorded currencies, unknown coverage and spreadsheet-safe text. Team reports share aggregate model/trend/currency statistics while individual Team call history remains restricted to the current actor. Authoritative process leases, nullable resource samples, real operational jobs, revision-checked offline cleanup, immutable Provider-attempt quality, revisioned quality thresholds, grouped operational alerts, recipient-isolated notification history, current-policy monthly settled-use exhaustion inboxes for Personal/Project and Team aggregate policies, and bounded operational SMTP delivery are available. Finite Team aggregate/member policies add rolling/monthly Tokens, monthly money and request-rate enforcement with independent platform permissions and stable accounting. Monthly Team member requests use owner-first review, explicit platform escalation and atomic quota updates. Team-assigned roles contribute only current Team metadata/member and model-management actions, with administrator-reviewed assignment and independent platform authority. Templates, distributed enforcement, provider-specific media pricing, external service acceptance, broader quota/enterprise alerts, and enterprise integrations remain in progress. See [the implementation and acceptance index](docs/IMPLEMENTATION.md) for scope and evidence.
 
 Model access shows current Personal or Team sources, native request examples,
 connection-copy controls and protocol-specific SDK configuration guidance.
@@ -142,8 +142,10 @@ member admission and local authentication. Controlled final project checks,
 complete PostgreSQL/MySQL migration and lifecycle coverage, same-source LDAP
 Session restarts and the separate authentication lifecycle pass; exact evidence
 is recorded in [the implementation index](docs/IMPLEMENTATION.md).
-Bilingual browser and real-directory interoperability remain open, as do
-enforced SSO and enterprise emergency recovery. F03 remains Partial.
+Bilingual browser and real-directory interoperability remain open. Verified
+enterprise OIDC/LDAP forced SSO and MFA-protected emergency administrator entry
+are implemented; their separately bound evidence is indexed in Implementation.
+F03 remains Partial.
 
 The [generic OAuth protocol component](docs/OAUTH.md) provides bounded explicit
 endpoint exchange and exact typed subjects. Its existing-member application adds
@@ -153,8 +155,10 @@ real-provider deployment acceptance remain open.
 
 [Existing-member OIDC](docs/OIDC.md) supports one reviewed provider with explicit
 account linking, bounded callbacks, native MFA and revocable Sessions. Controlled
-automated acceptance passes; bilingual browser and real-provider acceptance,
-additional OAuth providers, enforced SSO and enterprise recovery remain open.
+automated acceptance passes; bilingual browser, real-provider acceptance and
+additional provider interoperability remain separate. Verified enterprise
+OIDC/LDAP forced SSO and MFA-protected emergency entry have separately indexed
+controlled acceptance.
 
 The active implementation goal covers the complete capability and acceptance inventory in [the implementation index](docs/IMPLEMENTATION.md). Current catalog and personal Key contracts are documented in [CATALOG](docs/CATALOG.md) and [KEYS](docs/KEYS.md). The [price catalogue and exact text quote API](docs/PRICING.md) provide price and currency administration. [Immutable gateway text assessments](docs/METERING.md) preserve each call's price basis; [token and monetary quotas](docs/QUOTAS.md) use the [durable quota ledger](docs/QUOTA_LEDGER.md) for native gateway admission and settlement. [Native attempt planning](docs/ROUTE_ATTEMPTS.md) defines the active bounded same-protocol failover and replay-safety contract. Configure [encrypted credential storage and upstream network policy](docs/SECRET_STORAGE.md) before adding provider credentials.
 
@@ -285,5 +289,37 @@ Bilingual browser and registered external-client acceptance remain pending.
 F03 remains Partial.
 
 Managed API-Key delivery uses the existing Personal and Project Key workflows with independently verified Writer/Provisioner identities, an explicit JWT caller template, Principal control approval and a separate operator isolation attestation. It performs one claimed KV-v2 CAS-zero write and returns safe receipts and descriptors, never the managed Key bearer. Acknowledged Vault delivery, local runtime publication and successful caller use are distinct facts; uncertain outcomes retain their original command and never fall back to plaintext. See [API-Key delivery](docs/API_KEY_DELIVERY.md).
+The receipt's `replacement_call_status` reports only exact-owner recorded native
+completion for the replacement Key, or explicit not-applicable/not-recorded
+status. It is advisory: delivery, descriptor application, present callability and
+retirement eligibility remain separate, and not-recorded never proves no calls.
 
-Current recoverable-secret rotation uses inventory V9/twelve domains, including the dedicated retained delivery-authentication domain. Historical V1–V8 receipts retain their original scopes; V8 remains eleven domains. See [Secrets](docs/SECRETS.md). Delivery and acceptance evidence is recorded in [Implementation](docs/IMPLEMENTATION.md); real local Vault, browser and external caller results must be read separately from controlled application tests.
+Current recoverable-secret rotation uses inventory V10 with the same twelve
+domains, including retained delivery authentication and named-provider client
+secrets. Historical V9 retains twelve domains; V6–V8 retain eleven, and earlier
+receipts keep their original scopes. See [Secrets](docs/SECRETS.md). Delivery and
+acceptance evidence is indexed in [Implementation](docs/IMPLEMENTATION.md); real
+local Vault, browser and external caller results remain distinct from controlled
+application tests.
+
+[Telegram authentication](docs/TELEGRAM.md) uses its independent fixed official
+OIDC profile, Client ID/Client Secret, authorization code, PKCE S256, state and
+exact signed nonce. Linking requires an existing account and explicit local
+proof; native MFA202 is a challenge, not a Session. Telegram does not satisfy the
+verified enterprise OIDC/LDAP-only forced-SSO allowlist. Live registered-client
+and bilingual browser acceptance remain separate.
+
+[Operations analysis](docs/INSIGHTS.md) provides authorized recorded Tokens by
+Model and a separate fresh CSV capture. Optional AI advice requires explicit
+confirmation of the current user's callable personal Chat model and personal
+quota; only bounded aggregates and temporary Model labels reach the model.
+Answers remain transient plain text. Free-text questions, forecasts and saved
+definitions remain unavailable.
+
+[Model management](docs/CATALOG.md) exposes independently authorized configured
+image/PDF inputs and reviewed active/disabled lifecycle changes, plus terminal
+disabled-to-archived confirmation. These retain names, grants, bindings, weights
+and history; configured facts do not establish health or runtime application.
+The containing delivery's controlled evidence is indexed in
+[Implementation](docs/IMPLEMENTATION.md), with browser, external-provider and
+distributed acceptance kept separate.

@@ -59,6 +59,7 @@ const receipt = {
   delivery_status: 'acknowledged',
   key_status: 'active',
   runtime_status: 'confirmed',
+  replacement_call_status: 'not_applicable',
   failure_code: null,
   descriptor,
   review_etag: review,
@@ -135,6 +136,50 @@ describe('managed API-Key response boundaries', () => {
     expect(() => parseKeyDeliveryReceipt({ ...receipt, runtime_status: 'unknown' })).toThrow()
     expect(() => parseKeyDeliveryReceipt({ ...receipt, delivery_status: 'unknown' })).toThrow()
   })
+  it.each(['not_applicable', 'not_recorded', 'completed'] as const)(
+    'retains only the server replacement-call status %s independently of publication',
+    (replacement_call_status) => {
+      const value = parseKeyDeliveryReceipt({
+        ...receipt,
+        runtime_status: 'unknown',
+        descriptor: null,
+        replacement_call_status,
+      })
+      expect(value.replacement_call_status).toBe(replacement_call_status)
+      expect(value.runtime_status).toBe('unknown')
+      expect(value.descriptor).toBeNull()
+      expect(parseKeyDeliveryDescriptor(descriptor)).toEqual(descriptor)
+    },
+  )
+  it.each([undefined, null, '', 'verified', 'COMPLETED', true, 1])(
+    'rejects missing or unknown replacement-call proof: %s',
+    (replacement_call_status) => {
+      expect(() => parseKeyDeliveryReceipt({ ...receipt, replacement_call_status })).toThrow(
+        KeyDeliveryError,
+      )
+    },
+  )
+  it('rejects an absent replacement-call field rather than defaulting from other receipt facts', () => {
+    const { replacement_call_status: omitted, ...missing } = receipt
+    expect(omitted).toBe('not_applicable')
+    expect(() => parseKeyDeliveryReceipt(missing)).toThrow(KeyDeliveryError)
+  })
+  it.each(['personal', 'project'] as const)(
+    'requires a nonempty canonical %s Key when a request receipt establishes its identity',
+    (kind) => {
+      const scope =
+        kind === 'personal' ? ({ kind } as const) : ({ kind, projectId: identity('prj') } as const)
+      for (const key_id of [
+        '',
+        'invalid',
+        'key_bad',
+        identity(kind === 'personal' ? 'pky' : 'key'),
+      ])
+        expect(() =>
+          parseKeyDeliveryReceipt({ ...receipt, key_id, descriptor: null }, scope),
+        ).toThrow(KeyDeliveryError)
+    },
+  )
   it('rejects cross-Key receipt or descriptor attribution', () => {
     expect(() =>
       parseManagedKeyResult(

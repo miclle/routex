@@ -39,7 +39,8 @@ var (
 // the deployment's destination policy, without logging query or request secrets.
 // ClientSecret authentication is explicitly client_secret_basic; no probing occurs.
 type Config struct {
-	google bool // only NewGoogle can select the fixed Google profile
+	google   bool // only NewGoogle can select the fixed Google profile
+	telegram bool // only NewTelegram can select the fixed Telegram profile
 
 	Issuer         string
 	ClientID       string
@@ -180,8 +181,12 @@ func (c *Client) Exchange(ctx context.Context, callback Callback) (Identity, err
 		c.tokenURL: {method: http.MethodPost, bytes: maxTokenBytes},
 		c.jwksURL:  {method: http.MethodGet, bytes: maxJWKSBytes},
 	})
-	token, err := c.oauthConfig().Exchange(coreoidc.ClientContext(ctx, client), callback.Code,
-		oauth2.VerifierOption(callback.PKCEVerifier))
+	options := []oauth2.AuthCodeOption{oauth2.VerifierOption(callback.PKCEVerifier)}
+	if c.config.telegram {
+		// Telegram requires client_id in the form in addition to Basic authentication.
+		options = append(options, oauth2.SetAuthURLParam("client_id", c.config.ClientID))
+	}
+	token, err := c.oauthConfig().Exchange(coreoidc.ClientContext(ctx, client), callback.Code, options...)
 	if err != nil || ctx.Err() != nil {
 		return Identity{}, ErrProtocol
 	}
