@@ -1,0 +1,650 @@
+import { act } from 'react'
+import { createRoot, type Root } from 'react-dom/client'
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
+import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import client from '@/api/client'
+import i18n from '@/i18n'
+import en from '@/i18n/locales/en/keyDeliveryOwner'
+import zh from '@/i18n/locales/zh/keyDeliveryOwner'
+import type { Session } from '@/types/auth'
+import type { PersonalKey } from '@/types/catalog'
+import type { KeyDeliveryOwner, KeyDeliveryReceipt } from '@/types/key-delivery'
+import KeyIssueDialog from './owner'
+import DeliveryReceiptDialog from './receipt'
+import { useOwnerAuthority } from './lifetime'
+
+Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
+const suffix = '01m36yee4gkbns18pfcqqc75a3'
+const id = (prefix: string) => prefix + '_' + suffix
+const review = 'a'.repeat(64)
+const csrf = 'b'.repeat(64)
+const requestId = '10000000-0000-4000-8000-000000000001'
+const originalAdapter = client.defaults.adapter
+let root: Root, container: HTMLDivElement, cache: QueryClient
+let scope: KeyDeliveryOwner
+let requests: InternalAxiosRequestConfig[]
+let targetReady: boolean, issueFails: boolean, reconcileFails: boolean, receiptMissing: boolean
+let held: { url: string; promise: Promise<void>; release: () => void } | null
+let issuedReceipt: KeyDeliveryReceipt | null
+let policyReview: string
+let contextModes: ('manual' | 'managed_vault')[]
+const manual = vi.fn<() => Promise<void>>()
+const received = vi.fn<(value: KeyDeliveryReceipt) => void>()
+const changed = vi.fn<() => void>()
+const closed = vi.fn<() => void>()
+const session = (): Session => ({
+  user: { id: id('usr'), role: 'member', name: 'Member', email: 'member@example.test' },
+  csrf_token: csrf,
+})
+function key(predecessor: string | null = null): PersonalKey {
+  return {
+    id: id(scope.kind === 'project' ? 'pky' : 'key'),
+    name: 'Production',
+    prefix: 'rx_masked',
+    status: 'pending',
+    model_ids: [id('mdl')],
+    expires_at: null,
+    created_at: '2026-10-11T00:00:00Z',
+    replaces_key_id: predecessor,
+    delivery_expires_at: null,
+    delivery_mode: 'managed_vault',
+  }
+}
+function target() {
+  return {
+    id: id('vap'),
+    consumer_id: id('kdc'),
+    application_name: 'Application',
+    environment: 'production',
+    status: targetReady ? 'ready' : 'pending',
+    control_verified: targetReady,
+    isolation: targetReady
+      ? { status: 'operator_attested', revision: review, recorded_at: '2026-10-11T00:00:00Z' }
+      : { status: 'missing', revision: null, recorded_at: null },
+    failure_code: targetReady ? null : 'principal_control_unverified',
+    review_etag: review,
+  }
+}
+function result(config: InternalAxiosRequestConfig, runtime: 'unknown' | 'confirmed' = 'unknown') {
+  const input = JSON.parse(config.data)
+  const predecessor = config.url!.endsWith('/managed-rotation')
+    ? config.url!.split('/').at(-2)!
+    : null
+  const item = {
+    ...key(predecessor),
+    status: runtime === 'confirmed' ? ('active' as const) : ('pending' as const),
+    ...(scope.kind === 'project' ? { project_id: scope.projectId, creator_id: id('usr') } : {}),
+  }
+  const descriptor =
+    runtime === 'confirmed'
+      ? {
+          schema_version: 1 as const,
+          key_id: item.id,
+          profile_id: id('vap'),
+          principal_id: id('vpb'),
+          slot_id: id('kds'),
+          descriptor_revision: '9007199254740993',
+          endpoint: 'https://vault.example.test',
+          namespace: '',
+          mount: 'kv',
+          path: 'api-keys/exact',
+          data_field: 'value',
+          version: 1 as const,
+          method: 'jwt' as const,
+          auth_mount: 'jwt',
+          role: 'routex-api-key-' + id('vpb'),
+          coordinator: 'not_configured' as const,
+          application_status: 'unknown' as const,
+        }
+      : null
+  const delivery: KeyDeliveryReceipt = {
+    request_id: input.request_id,
+    key_id: item.id,
+    mode: 'managed_vault',
+    delivery_status: 'acknowledged',
+    key_status: item.status,
+    runtime_status: runtime,
+    failure_code: runtime === 'unknown' ? 'runtime_publication_unknown' : null,
+    descriptor,
+    review_etag: review,
+  }
+  issuedReceipt = delivery
+  return { key: item, delivery }
+}
+function base() {
+  return scope.kind === 'personal' ? '/keys' : '/projects/' + scope.projectId + '/keys'
+}
+beforeEach(async () => {
+  await i18n.changeLanguage('en')
+  i18n.addResourceBundle('en', 'keyDeliveryOwner', en, true, true)
+  i18n.addResourceBundle('zh', 'keyDeliveryOwner', zh, true, true)
+  root = createRoot((container = document.createElement('div')))
+  document.body.append(container)
+  cache = new QueryClient({
+    defaultOptions: { queries: { retry: false, staleTime: Infinity }, mutations: { retry: false } },
+  })
+  scope = { kind: 'personal' }
+  requests = []
+  targetReady = false
+  issueFails = false
+  reconcileFails = false
+  receiptMissing = false
+  held = null
+  issuedReceipt = null
+  policyReview = review
+  contextModes = ['manual', 'managed_vault']
+  manual.mockReset().mockResolvedValue(undefined)
+  received.mockReset()
+  changed.mockReset()
+  closed.mockReset()
+  client.defaults.adapter = async (config) => {
+    requests.push(config)
+    if (held && config.url === held.url) await held.promise
+    const response = {
+      config,
+      status: 200,
+      statusText: '',
+      headers: new AxiosHeaders({ etag: '"' + review + '"' }),
+      data: {} as unknown,
+    }
+    if (config.url === base() + '/delivery-context') {
+      response.data = {
+        allowed_modes: contextModes,
+        default_mode: contextModes.includes('managed_vault') ? 'managed_vault' : 'manual',
+        managed_available: true,
+        failure_code: null,
+        review_etag: policyReview,
+      }
+      response.headers.set('etag', '"' + policyReview + '"')
+    } else if (config.url === base() + '/delivery-targets/resolve') {
+      response.status = 201
+      response.data = target()
+    } else if (config.url === base() + '/delivery-targets/' + id('vap')) response.data = target()
+    else if (config.url?.endsWith('/managed') || config.url?.endsWith('/managed-rotation')) {
+      if (issueFails) {
+        response.status = 503
+        throw new AxiosError(
+          'private upstream secret must not render',
+          '',
+          config,
+          undefined,
+          response,
+        )
+      }
+      response.status = 202
+      response.data = result(config)
+    } else if (config.url?.includes('/delivery-receipts/')) {
+      if (receiptMissing) {
+        response.status = 404
+        throw new AxiosError('missing', '', config, undefined, response)
+      }
+      response.data = issuedReceipt
+    } else if (config.url?.endsWith('/delivery-reconcile')) {
+      if (reconcileFails) {
+        response.status = 503
+        throw new AxiosError('private-reconcile-detail', '', config, undefined, response)
+      }
+      response.data = result(config, 'confirmed')
+    } else throw new Error('Unexpected request')
+    return response
+  }
+})
+afterEach(async () => {
+  held?.release()
+  await act(async () => root.unmount())
+  cache.clear()
+  container.remove()
+  client.defaults.adapter = originalAdapter
+  await i18n.changeLanguage('en')
+})
+function Harness({
+  predecessor,
+  receipt = false,
+  allowed = true,
+}: {
+  predecessor?: PersonalKey
+  receipt?: boolean
+  allowed?: boolean
+}) {
+  const auth = useQuery({
+    queryKey: ['auth', 'session'],
+    queryFn: async () => session(),
+    initialData: session,
+  })
+  useQuery({
+    queryKey:
+      scope.kind === 'personal'
+        ? ['keys', auth.data.user.id]
+        : ['project-keys', scope.projectId, auth.data.user.id],
+    queryFn: async () => [],
+    initialData: [],
+  })
+  useQuery({
+    queryKey:
+      scope.kind === 'personal'
+        ? ['models', auth.data.user.id]
+        : ['permissions', auth.data.user.id],
+    queryFn: async () => [],
+    initialData: [],
+  })
+  const authority = useOwnerAuthority(scope, allowed)
+  return receipt ? (
+    <DeliveryReceiptDialog
+      owner={scope}
+      authority={authority}
+      requestId={issuedReceipt?.request_id ?? requestId}
+      keyId={key().id}
+      onClose={closed}
+      onChanged={changed}
+    />
+  ) : (
+    <KeyIssueDialog
+      owner={scope}
+      authority={authority}
+      predecessor={predecessor}
+      models={[{ id: id('mdl'), name: 'Model' }]}
+      title="Create Key"
+      description="Reviewed owner scope"
+      manualLabel="Create and reveal key"
+      onManual={manual}
+      onReceipt={received}
+      onClose={closed}
+    />
+  )
+}
+async function render(props: Parameters<typeof Harness>[0] = {}) {
+  await act(async () =>
+    root.render(
+      <QueryClientProvider client={cache}>
+        <Harness {...props} />
+      </QueryClientProvider>,
+    ),
+  )
+}
+async function until(check: () => void) {
+  for (let i = 0; i < 60; i++) {
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10))
+    })
+    try {
+      check()
+      return
+    } catch (error) {
+      if (i === 59) throw error
+    }
+  }
+}
+function button(text: string) {
+  const item = [...document.querySelectorAll('button')].find((item) => item.textContent === text)
+  expect(item, text).toBeDefined()
+  return item!
+}
+async function click(text: string) {
+  await act(async () => button(text).click())
+}
+function capturedClick(node: HTMLButtonElement) {
+  const property = Object.keys(node).find((key) => key.startsWith('__reactProps$'))!
+  const props = (node as unknown as Record<string, { onClick: () => void }>)[property]
+  expect(props.onClick).toBeTypeOf('function')
+  return props.onClick
+}
+async function fill(name: string, value: string) {
+  await act(async () => {
+    const item = document.querySelector<HTMLInputElement>('input[name="' + name + '"]')!
+    expect(item).not.toBeNull()
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(item, value)
+    item.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+}
+async function submit() {
+  await act(async () =>
+    document
+      .querySelector('[role="dialog"] form')!
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })),
+  )
+}
+async function setup(predecessor?: PersonalKey) {
+  await render({ predecessor })
+  await until(() =>
+    expect(document.querySelector('select[aria-label="Delivery method"]')).not.toBeNull(),
+  )
+  if (!predecessor) {
+    await fill('name', 'Production')
+    await act(async () =>
+      document.querySelector<HTMLInputElement>('input[name="model_ids"]')!.click(),
+    )
+  }
+  await fill('application_name', 'Application')
+  await fill('environment', 'production')
+  await fill('subject', 'exact-workload-subject')
+  await fill('reason', 'Reviewed deployment')
+  await click('Review application target')
+  await click('Confirm')
+  await until(() => expect(document.body.textContent).toContain('Application ID'))
+}
+async function ready(predecessor?: PersonalKey) {
+  await setup(predecessor)
+  targetReady = true
+  await click('Read current facts')
+  await until(() =>
+    expect(document.body.textContent).toContain('Ready according to current server checks'),
+  )
+}
+function post(suffix: string) {
+  return requests.filter((item) => item.method === 'post' && item.url?.endsWith(suffix))
+}
+function caches() {
+  return JSON.stringify({
+    queries: cache
+      .getQueryCache()
+      .getAll()
+      .map((q) => q.state),
+    mutations: cache
+      .getMutationCache()
+      .getAll()
+      .map((m) => m.state),
+  })
+}
+function hold(url: string) {
+  let release!: () => void
+  const promise = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  held = { url, promise, release }
+  return held
+}
+
+describe('owner managed Key delivery', () => {
+  it('keeps the owner delivery catalogs paired with exact interpolation names', () => {
+    expect(Object.keys(en).sort()).toEqual(Object.keys(zh).sort())
+    for (const name of Object.keys(en) as (keyof typeof en)[]) {
+      expect(en[name].match(/\{\{[^}]+\}\}/g) ?? []).toEqual(zh[name].match(/\{\{[^}]+\}\}/g) ?? [])
+    }
+  })
+  it('resolves an explicit JWT target without fabricating approval, then issues only after current server readiness and confirmation', async () => {
+    await setup()
+    expect(post('/managed')).toHaveLength(0)
+    expect(document.body.textContent).toContain('Pending verification and approvals')
+    expect(button('Review managed delivery').disabled).toBe(true)
+    const resolve = JSON.parse(post('/delivery-targets/resolve')[0].data)
+    expect(resolve.consumer_id).toBe('')
+    expect(resolve.principal).toEqual({ method: 'jwt', subject: 'exact-workload-subject' })
+    targetReady = true
+    await click('Read current facts')
+    await until(() => expect(button('Review managed delivery').disabled).toBe(false))
+    await submit()
+    expect(post('/managed')).toHaveLength(0)
+    await click('Confirm')
+    await until(() => expect(received).toHaveBeenCalledOnce())
+    const sent = JSON.parse(post('/managed')[0].data)
+    expect(sent.delivery.consumer_id).toBe(id('kdc'))
+    expect(sent.delivery.target_review).toBe(review)
+    expect(sent.model_ids).toEqual([id('mdl')])
+    expect(sent.request_id).toMatch(/^[0-9a-f-]{36}$/)
+    expect(received.mock.calls[0][0].delivery_status).toBe('acknowledged')
+    expect(received.mock.calls[0][0].runtime_status).toBe('unknown')
+    expect(caches()).not.toContain('exact-workload-subject')
+    expect(caches()).not.toContain(sent.request_id)
+    expect(manual).not.toHaveBeenCalled()
+    expect(localStorage.getItem('routex.key')).toBeNull()
+    expect(sessionStorage.length).toBe(0)
+  })
+  it('retains the exact uncertain resolve UUID and body after renewed facts and Session', async () => {
+    const h = hold(base() + '/delivery-targets/resolve')
+    await render()
+    await until(() => expect(document.querySelector('input[name="name"]')).not.toBeNull())
+    await fill('application_name', 'Application')
+    await fill('environment', 'production')
+    await fill('subject', 'exact-workload-subject')
+    await fill('reason', 'Original reason')
+    await click('Review application target')
+    await click('Confirm')
+    await until(() => expect(post('/delivery-targets/resolve')).toHaveLength(1))
+    const first = post('/delivery-targets/resolve')[0]
+    const original = first.data
+    await act(async () =>
+      cache.setQueryData(['auth', 'session'], { ...session(), csrf_token: 'c'.repeat(64) }),
+    )
+    expect(first.signal?.aborted).toBe(true)
+    h.release()
+    await until(() =>
+      expect(
+        [...document.querySelectorAll('button')].some(
+          (x) => x.textContent === 'Retry original request' && !x.disabled,
+        ),
+      ).toBe(true),
+    )
+    await click('Read current facts')
+    await click('Retry original request')
+    await click('Confirm')
+    await until(() => expect(post('/delivery-targets/resolve')).toHaveLength(2))
+    expect(post('/delivery-targets/resolve')[1].data).toBe(original)
+    expect(post('/delivery-targets/resolve')[1].headers.get('If-Match')).toBe(
+      first.headers.get('If-Match'),
+    )
+    expect(post('/delivery-targets/resolve')[1].headers.get('X-CSRF-Token')).toBe('c'.repeat(64))
+  })
+  it('keeps the original uncertain issuance body and ETag after conflict review and uses fresh CSRF for explicit retry', async () => {
+    await ready()
+    issueFails = true
+    await submit()
+    await click('Confirm')
+    await until(() => expect(document.body.textContent).toContain('The result is uncertain.'))
+    const first = post('/managed')[0]
+    expect(document.body.textContent).not.toContain('private upstream secret')
+    policyReview = 'd'.repeat(64)
+    await act(async () =>
+      cache.setQueryData(['auth', 'session'], { ...session(), csrf_token: 'c'.repeat(64) }),
+    )
+    await until(() =>
+      expect(
+        [...document.querySelectorAll('button')].some(
+          (x) => x.textContent === 'Retry original request' && !x.disabled,
+        ),
+      ).toBe(true),
+    )
+    await click('Read current facts')
+    await until(() =>
+      expect(document.body.textContent).toContain(
+        'original uncertain request and review token are unchanged',
+      ),
+    )
+    issueFails = false
+    await click('Retry original request')
+    await click('Confirm')
+    await until(() => expect(post('/managed')).toHaveLength(2))
+    expect(post('/managed')[1].data).toBe(first.data)
+    expect(post('/managed')[1].headers.get('If-Match')).toBe('"' + review + '"')
+    expect(post('/managed')[1].headers.get('X-CSRF-Token')).toBe('c'.repeat(64))
+  })
+  it.each(['cancel', 'unmount'] as const)(
+    'rejects a retained Confirm callback after %s',
+    async (mode) => {
+      await ready()
+      await submit()
+      const confirm = capturedClick(button('Confirm'))
+      if (mode === 'cancel') await click('Cancel')
+      else await act(async () => root.render(null))
+      await act(async () => confirm())
+      expect(post('/managed')).toHaveLength(0)
+    },
+  )
+  it('settles uncertainty only from the exact confirmed receipt after explicit review', async () => {
+    await ready()
+    issueFails = true
+    await submit()
+    await click('Confirm')
+    await until(() => expect(document.body.textContent).toContain('The result is uncertain.'))
+    result(post('/managed')[0], 'confirmed')
+    await click('Read current receipt')
+    await click('Read current receipt')
+    await until(() =>
+      expect(document.body.textContent).toContain('Confirmed for the local runtime'),
+    )
+    expect(received).not.toHaveBeenCalled()
+    await click('Use confirmed receipt')
+    expect(received).toHaveBeenCalledOnce()
+    expect(post('/managed')).toHaveLength(1)
+  })
+  it('rejects late issuance and duplicate dispatch when the Session renews during I/O', async () => {
+    await ready()
+    const h = hold(base() + '/managed')
+    await submit()
+    await click('Confirm')
+    await until(() => expect(post('/managed')).toHaveLength(1))
+    await act(async () =>
+      cache.setQueryData(['auth', 'session'], { ...session(), csrf_token: 'e'.repeat(64) }),
+    )
+    expect(post('/managed')[0].signal?.aborted).toBe(true)
+    h.release()
+    await until(() =>
+      expect(
+        [...document.querySelectorAll('button')].some(
+          (x) => x.textContent === 'Retry original request',
+        ),
+      ).toBe(true),
+    )
+    expect(received).not.toHaveBeenCalled()
+    expect(post('/managed')).toHaveLength(1)
+  })
+  it('discards pending drafts on actor change and never resurrects obsolete results', async () => {
+    await ready()
+    const h = hold(base() + '/managed')
+    await submit()
+    await click('Confirm')
+    await until(() => expect(post('/managed')).toHaveLength(1))
+    await act(async () =>
+      cache.setQueryData(['auth', 'session'], {
+        ...session(),
+        user: { ...session().user, id: 'usr_01m36yee4gkbns18pfcqqc75a4' },
+        csrf_token: 'c'.repeat(64),
+      }),
+    )
+    h.release()
+    await until(() =>
+      expect(document.querySelector<HTMLInputElement>('input[name="subject"]')?.value).toBe(''),
+    )
+    expect(received).not.toHaveBeenCalled()
+    expect(document.body.textContent).not.toContain('Retry original request')
+  })
+  it.each(['personal', 'project'] as const)(
+    'rotates %s managed Keys with only server-owned metadata and retains the predecessor',
+    async (kind) => {
+      if (kind === 'project') scope = { kind: 'project', projectId: id('prj') }
+      const predecessor = {
+        ...key(),
+        id: (kind === 'project' ? 'pky' : 'key') + '_01m36yee4gkbns18pfcqqc75a4',
+        status: 'disabled' as const,
+      }
+      await ready(predecessor)
+      expect(document.querySelector('input[name="name"]')).toBeNull()
+      expect(document.body.textContent).toContain('Disabled')
+      await submit()
+      await click('Confirm')
+      await until(() => expect(received).toHaveBeenCalledOnce())
+      const request = post('/managed-rotation')[0]
+      expect(request.url).toBe(base() + '/' + predecessor.id + '/managed-rotation')
+      expect(JSON.parse(request.data)).toMatchObject({ name: '', model_ids: [], expires_at: null })
+      expect(predecessor.status).toBe('disabled')
+      expect(
+        requests.some(
+          (x) =>
+            x.url?.endsWith('/complete-rotation') ||
+            x.url?.endsWith('/confirm') ||
+            x.method === 'delete',
+        ),
+      ).toBe(false)
+    },
+  )
+  it('updates existing validation and inline labels on language switch without losing input', async () => {
+    await render()
+    await until(() => expect(document.querySelector('input[name="name"]')).not.toBeNull())
+    await fill('name', 'Draft')
+    await submit()
+    expect(document.body.textContent).toContain('Select at least one model.')
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(document.body.textContent).toContain('请至少选择一个模型。')
+    expect(document.body.textContent).toContain('交付方式')
+    expect(document.querySelector<HTMLInputElement>('input[name="name"]')!.value).toBe('Draft')
+    expect(post('/managed')).toHaveLength(0)
+  })
+  it('hides private facts and refuses retained dispatch during a renewed list read', async () => {
+    await ready()
+    await submit()
+    const confirm = capturedClick(button('Confirm'))
+    await act(async () => cache.invalidateQueries({ queryKey: ['keys'], refetchType: 'none' }))
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
+    await act(async () => confirm())
+    expect(post('/managed')).toHaveLength(0)
+  })
+  it('does not infer managed eligibility from a verified dependency when policy permits manual only', async () => {
+    contextModes = ['manual']
+    await render()
+    await until(() =>
+      expect(document.querySelector('select[aria-label="Delivery method"]')).not.toBeNull(),
+    )
+    expect([...document.querySelectorAll('option')].some((x) => x.value === 'managed_vault')).toBe(
+      false,
+    )
+    await fill('name', 'Manual')
+    await act(async () =>
+      document.querySelector<HTMLInputElement>('input[name="model_ids"]')!.click(),
+    )
+    await submit()
+    expect(manual).toHaveBeenCalledOnce()
+    expect(post('/managed')).toHaveLength(0)
+  })
+})
+describe('owner delivery receipt', () => {
+  it('keeps a missing receipt uncertain and never automatically reads, retries or copies a secret', async () => {
+    receiptMissing = true
+    await render({ receipt: true })
+    expect(requests).toHaveLength(0)
+    await click('Read current receipt')
+    await until(() =>
+      expect(document.body.textContent).toContain('Absence does not prove that no write occurred'),
+    )
+    expect(requests).toHaveLength(1)
+    expect(requests[0].method).toBe('get')
+    expect(document.body.textContent).not.toContain('Write acknowledged')
+    expect(changed).not.toHaveBeenCalled()
+  })
+  it('reconciles only the original acknowledged intent with exact receipt ETag and no Writer replay', async () => {
+    const fake = {
+      data: JSON.stringify({ request_id: requestId }),
+      url: '/keys/managed',
+    } as InternalAxiosRequestConfig
+    result(fake)
+    await render({ receipt: true })
+    await click('Read current receipt')
+    await until(() => expect(document.body.textContent).toContain('Write acknowledged'))
+    await fill('reconcile_reason', 'Recover local publication')
+    reconcileFails = true
+    await click('Review local publication recovery')
+    await click('Confirm')
+    await until(() =>
+      expect(document.body.textContent).toContain('Local publication recovery is uncertain'),
+    )
+    const first = post('/delivery-reconcile')[0]
+    await act(async () =>
+      cache.setQueryData(['auth', 'session'], { ...session(), csrf_token: 'c'.repeat(64) }),
+    )
+    await click('Read current receipt')
+    await until(() => expect(document.body.textContent).toContain('Write acknowledged'))
+    reconcileFails = false
+    await click('Retry original request')
+    await click('Confirm')
+    await until(() => expect(changed).toHaveBeenCalledOnce())
+    expect(post('/delivery-reconcile')).toHaveLength(2)
+    expect(post('/delivery-reconcile')[1].data).toBe(first.data)
+    expect(post('/delivery-reconcile')[1].headers.get('If-Match')).toBe(
+      first.headers.get('If-Match'),
+    )
+    expect(post('/delivery-reconcile')[1].headers.get('X-CSRF-Token')).toBe('c'.repeat(64))
+    expect(post('/managed')).toHaveLength(0)
+    expect(document.body.textContent).toContain('Coordinator: Not configured')
+    expect(document.body.textContent).toContain('9007199254740993')
+    expect(caches()).not.toContain('Recover local publication')
+  })
+})

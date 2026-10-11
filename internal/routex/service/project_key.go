@@ -159,6 +159,13 @@ func (s *Service) GetProjectKey(ctx context.Context, actorID, projectID, keyID s
 	return result, catalogError(err)
 }
 func createPendingProjectKey(tx *gorm.DB, actorID, projectID, name string, models []string, expiresAt *time.Time, replaces *string, activate bool) (*CreatedProjectKey, error) {
+	return createPendingProjectKeyWithMode(tx, actorID, projectID, name, models, expiresAt, replaces, activate, "manual")
+}
+
+func createPendingProjectKeyWithMode(tx *gorm.DB, actorID, projectID, name string, models []string, expiresAt *time.Time, replaces *string, activate bool, mode string) (*CreatedProjectKey, error) {
+	if mode != "manual" && mode != "managed_vault" {
+		return nil, errKeyConflict
+	}
 	keyID, err := id.NewPrefixed("pky")
 	if err != nil {
 		return nil, err
@@ -169,9 +176,24 @@ func createPendingProjectKey(tx *gorm.DB, actorID, projectID, name string, model
 	}
 	bearer := "rxp_" + random
 	deadline := time.Now().UTC().Add(10 * time.Minute)
-	key := entity.ProjectKey{ID: keyID, ProjectID: projectID, CreatorID: actorID, Name: name, Prefix: bearer[:12], TokenHash: secret.SHA256Hex(bearer), Status: entity.KeyPending, DeliveryMode: "manual", ExpiresAt: expiresAt, DeliveryExpiresAt: &deadline, ReplacesKeyID: replaces, ActivateOnConfirm: activate}
+	key := entity.ProjectKey{ID: keyID, ProjectID: projectID, CreatorID: actorID, Name: name, Prefix: bearer[:12], TokenHash: secret.SHA256Hex(bearer), Status: entity.KeyPending, DeliveryMode: mode, ExpiresAt: expiresAt, DeliveryExpiresAt: &deadline, ReplacesKeyID: replaces, ActivateOnConfirm: activate}
+	if mode == "managed_vault" {
+		key.CreatedAt = time.Now().UTC().Truncate(time.Microsecond)
+	}
 	if err := tx.Create(&key).Error; err != nil {
 		return nil, err
+	}
+	if mode == "managed_vault" {
+		// The historical Project Key column may store less timestamp precision
+		// than delivery proofs. Bind only the actual persisted birth.
+		var persisted entity.ProjectKey
+		if err := tx.Where("id = ? AND project_id = ?", key.ID, projectID).Take(&persisted).Error; err != nil {
+			return nil, err
+		}
+		if persisted.ID != key.ID || persisted.ProjectID != projectID || persisted.CreatorID != actorID || persisted.DeliveryMode != mode || persisted.CreatedAt.IsZero() {
+			return nil, errKeyConflict
+		}
+		key = persisted
 	}
 	for _, modelID := range models {
 		if err := tx.Create(&entity.ProjectKeyModel{KeyID: keyID, ModelID: modelID}).Error; err != nil {
@@ -196,6 +218,9 @@ func (s *Service) CreateProjectKey(ctx context.Context, actorID, projectID, name
 		if err := validateProjectKeyModels(tx, projectID, models); err != nil {
 			return err
 		}
+		if err := apiKeyDeliveryManualAllowed(tx); err != nil {
+			return err
+		}
 		var err error
 		result, err = createPendingProjectKey(tx, actorID, projectID, name, models, expiresAt, nil, true)
 		return err
@@ -212,43 +237,50 @@ func (s *Service) ConfirmProjectKey(ctx context.Context, actorID, projectID, key
 		if err != nil {
 			return err
 		}
-		key := &record.Key
-		if key.Status != entity.KeyPending || key.DeliveryExpiresAt == nil || !key.DeliveryExpiresAt.After(time.Now()) || (key.ExpiresAt != nil && !key.ExpiresAt.After(time.Now())) {
-			return errKeyConflict
-		}
-		if err := validateProjectKeyModels(tx, projectID, record.ModelIDs); err != nil {
-			return err
-		}
-		if key.ReplacesKeyID != nil {
-			old, err := projectKeyRecord(tx, projectID, *key.ReplacesKeyID, true)
-			if err != nil {
-				return err
-			}
-			if old.Key.Status != entity.KeyActive && old.Key.Status != entity.KeyDisabled {
-				return errKeyConflict
-			}
-			if !slices.Equal(record.ModelIDs, old.ModelIDs) || !sameExpiry(key.ExpiresAt, old.Key.ExpiresAt) {
-				return errKeyConflict
-			}
-			key.ActivateOnConfirm = old.Key.Status == entity.KeyActive
-		}
-		key.Status = entity.KeyDisabled
-		if key.ActivateOnConfirm {
-			key.Status = entity.KeyActive
-		}
-		key.DeliveryExpiresAt = nil
-		if err := tx.Save(key).Error; err != nil {
-			return err
-		}
-		// Delivery confirmation does not prove deployment or a successful call.
-		if err := appendAudit(tx, actorID, "project_key.confirm", "project_api_key", key.ID); err != nil {
-			return err
-		}
-		result = record
-		return nil
+		result, err = confirmProjectKeyDeliveryRecord(tx, actorID, projectID, record, nil)
+		return err
 	})
 	return result, s.refreshAfterMutation(ctx, catalogError(err))
 }
+func confirmProjectKeyDeliveryRecord(tx *gorm.DB, actorID, projectID string, record *ProjectKeyRecord, ack *entity.APIKeyVaultDeliveryBinding) (*ProjectKeyRecord, error) {
+	key := &record.Key
+	if err := apiKeyDeliveryConfirmMode(key.DeliveryMode, key.ID, key.CreatedAt, ack); err != nil {
+		return nil, err
+	}
+	if key.Status != entity.KeyPending || key.DeliveryExpiresAt == nil || !key.DeliveryExpiresAt.After(time.Now()) || (key.ExpiresAt != nil && !key.ExpiresAt.After(time.Now())) {
+		return nil, errKeyConflict
+	}
+	if err := validateProjectKeyModels(tx, projectID, record.ModelIDs); err != nil {
+		return nil, err
+	}
+	if key.ReplacesKeyID != nil {
+		old, err := projectKeyRecord(tx, projectID, *key.ReplacesKeyID, true)
+		if err != nil {
+			return nil, err
+		}
+		if old.Key.Status != entity.KeyActive && old.Key.Status != entity.KeyDisabled {
+			return nil, errKeyConflict
+		}
+		if !slices.Equal(record.ModelIDs, old.ModelIDs) || !sameExpiry(key.ExpiresAt, old.Key.ExpiresAt) {
+			return nil, errKeyConflict
+		}
+		key.ActivateOnConfirm = old.Key.Status == entity.KeyActive
+	}
+	key.Status = entity.KeyDisabled
+	if key.ActivateOnConfirm {
+		key.Status = entity.KeyActive
+	}
+	key.DeliveryExpiresAt = nil
+	if err := tx.Save(key).Error; err != nil {
+		return nil, err
+	}
+	// Delivery confirmation does not prove deployment or a successful call.
+	if err := appendAudit(tx, actorID, "project_key.confirm", "project_api_key", key.ID); err != nil {
+		return nil, err
+	}
+	return record, nil
+}
+
 func (s *Service) UpdateProjectKey(ctx context.Context, actorID, projectID, keyID string, name *string, enabled *bool) (*ProjectKeyRecord, error) {
 	if name == nil && enabled == nil {
 		return nil, apperrors.ErrBadRequest
@@ -277,6 +309,11 @@ func (s *Service) UpdateProjectKey(ctx context.Context, actorID, projectID, keyI
 			key.Name = *name
 		}
 		if enabled != nil {
+			if *enabled {
+				if err := apiKeyDeliveryRequireAcknowledged(tx, "project", key.ID, key.CreatedAt, key.DeliveryMode); err != nil {
+					return err
+				}
+			}
 			key.Status = entity.KeyDisabled
 			if *enabled {
 				if key.ExpiresAt != nil && !key.ExpiresAt.After(time.Now()) {
@@ -317,6 +354,11 @@ func (s *Service) RevokeProjectKey(ctx context.Context, actorID, projectID, keyI
 		if err := tx.Model(&record.Key).Update("status", entity.KeyRevoked).Error; err != nil {
 			return err
 		}
+		if record.Key.DeliveryMode == "managed_vault" {
+			if err := apiKeyDeliveryRevokeCommands(tx, "project", record.Key.ID, record.Key.CreatedAt); err != nil {
+				return err
+			}
+		}
 		return appendAudit(tx, actorID, "project_key.revoke", "project_api_key", keyID)
 	})
 	if err == nil {
@@ -331,6 +373,9 @@ func (s *Service) RotateProjectKey(ctx context.Context, actorID, projectID, keyI
 	var result *CreatedProjectKey
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if _, err := lockProjectForKeys(tx, actorID, projectID, true); err != nil {
+			return err
+		}
+		if err := apiKeyDeliveryManualAllowed(tx); err != nil {
 			return err
 		}
 		old, err := projectKeyRecord(tx, projectID, keyID, true)
@@ -412,7 +457,7 @@ func (s *Service) CompleteProjectKeyRotation(ctx context.Context, actorID, proje
 // commonProjectKeyMetadata exposes only the common authentication shape. The
 // empty UserID prevents attribution or revocation through the creator account.
 func commonProjectKeyMetadata(key entity.ProjectKey) entity.APIKey {
-	return entity.APIKey{ID: key.ID, Name: key.Name, Prefix: key.Prefix, TokenHash: key.TokenHash, Status: key.Status, ExpiresAt: key.ExpiresAt, DeliveryExpiresAt: key.DeliveryExpiresAt, ReplacesKeyID: key.ReplacesKeyID, ActivateOnConfirm: key.ActivateOnConfirm, CreatedAt: key.CreatedAt, UpdatedAt: key.UpdatedAt}
+	return entity.APIKey{ID: key.ID, Name: key.Name, Prefix: key.Prefix, TokenHash: key.TokenHash, Status: key.Status, DeliveryMode: key.DeliveryMode, ExpiresAt: key.ExpiresAt, DeliveryExpiresAt: key.DeliveryExpiresAt, ReplacesKeyID: key.ReplacesKeyID, ActivateOnConfirm: key.ActivateOnConfirm, CreatedAt: key.CreatedAt, UpdatedAt: key.UpdatedAt}
 }
 func (s *Service) authenticateProjectKey(ctx context.Context, bearer string) (*KeyRecord, error) {
 	if len(bearer) != 47 || !strings.HasPrefix(bearer, "rxp_") {
@@ -426,6 +471,9 @@ func (s *Service) authenticateProjectKey(ctx context.Context, bearer string) (*K
 	}
 	if err != nil {
 		return nil, apperrors.ErrInternal
+	}
+	if err := apiKeyDeliveryRequireAcknowledged(db, "project", key.ID, key.CreatedAt, key.DeliveryMode); err != nil {
+		return nil, apperrors.ErrUnauthorized
 	}
 	var projects int64
 	if err := db.Model(&entity.Project{}).Where("id = ? AND status = ?", key.ProjectID, entity.ResourceActive).Count(&projects).Error; err != nil {

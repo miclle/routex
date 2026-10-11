@@ -110,7 +110,7 @@ func TestDiscordNamespaceDerivationAndRootEpochDoNotAliasLegacy(t *testing.T) {
 	if value, e := store.Open(refs[2], ciphertext); e != nil || value != "private-client-secret" {
 		t.Fatal("own AAD", e)
 	}
-	if rootInventoryVersion != 8 || len(rootDomains) != 11 || rootDomains[10] != "named_identity_providers" {
+	if rootInventoryVersion != 9 || len(rootDomains) != 12 || rootDomains[10] != "named_identity_providers" || rootDomains[11] != "api_key_delivery_auth" {
 		t.Fatal("current coverage")
 	}
 	for version, size := range map[int]int{1: 5, 2: 7, 3: 8, 4: 9, 5: 10, 6: 11, 7: 11, 8: 11} {
@@ -118,7 +118,7 @@ func TestDiscordNamespaceDerivationAndRootEpochDoNotAliasLegacy(t *testing.T) {
 			t.Fatal("historical domains", version)
 		}
 	}
-	if rootInventoryDomains(9) != nil {
+	if rootInventoryDomains(10) != nil {
 		t.Fatal("future inventory admitted")
 	}
 	// Match persisted observation precision on every platform.
@@ -133,8 +133,8 @@ func TestDiscordNamespaceDerivationAndRootEpochDoNotAliasLegacy(t *testing.T) {
 		t.Fatal(err)
 	}
 	svc := &Service{rootNow: func() time.Time { return now }}
-	job := entity.SecretRotationJob{InventoryVersion: 8, Domain: 11, CountsJSON: string(encoded), ObservationStartedAt: &started, ObservationLastConfirmedAt: &confirmed, VerifiedProcessID: "process", VerifiedSnapshotID: "snapshot"}
-	proof := entity.SecretProcessVerification{InventoryVersion: 8, ProcessID: "process", RuntimeSnapshotID: "snapshot"}
+	job := entity.SecretRotationJob{InventoryVersion: 9, Domain: 12, CountsJSON: string(encoded), ObservationStartedAt: &started, ObservationLastConfirmedAt: &confirmed, VerifiedProcessID: "process", VerifiedSnapshotID: "snapshot"}
+	proof := entity.SecretProcessVerification{InventoryVersion: 9, ProcessID: "process", RuntimeSnapshotID: "snapshot"}
 	if !svc.rootObservationEligible(job, proof) {
 		t.Fatal("complete current coverage rejected")
 	}
@@ -150,11 +150,27 @@ func TestDiscordNamespaceDerivationAndRootEpochDoNotAliasLegacy(t *testing.T) {
 	if svc.rootObservationEligible(futureConfirmation, proof) {
 		t.Fatal("future confirmation eligible")
 	}
-	for _, version := range []int{6, 7} {
+	for _, version := range []int{6, 7, 8} {
 		oldJob, oldProof := job, proof
 		oldJob.InventoryVersion, oldProof.InventoryVersion = version, version
 		if svc.rootObservationEligible(oldJob, oldProof) {
-			t.Fatal("legacy observation relabeled Discord-covered")
+			t.Fatal("legacy observation relabeled delivery-auth-covered")
+		}
+		// Historical V6-V8 rows carry exactly their retained eleven-domain inventory.
+		oldCounts := map[string]rootDomainCounts{}
+		for _, domain := range rootDomains[:11] {
+			oldCounts[domain] = rootDomainCounts{}
+		}
+		oldEncoded, encodeErr := json.Marshal(oldCounts)
+		if encodeErr != nil {
+			t.Fatal(encodeErr)
+		}
+		oldJob.Domain, oldJob.CountsJSON = 11, string(oldEncoded)
+		if _, err := rootCountsChecked(oldJob); err != nil {
+			t.Fatal("valid historical counts rejected", version)
+		}
+		if svc.rootObservationEligible(oldJob, oldProof) {
+			t.Fatal("valid legacy observation acquired current retirement authority", version)
 		}
 		view := rootRotationView(oldJob, false, false)
 		if view == nil || view.InventoryVersion != version || len(view.Domains) != 11 {

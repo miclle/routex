@@ -20,8 +20,8 @@ func TestRuntimeInstallationRegistry203ExactPrefixAndSuffix(t *testing.T) {
 	for i, m := range matches {
 		names[i] = m[1] + ":" + m[2]
 	}
-	if !discordRegistry206Current(names) || !strings.Contains(string(raw), "versions != 101") {
-		t.Fatal("current V101/206 registry changed")
+	if !apiKeyDeliveryRegistry210Current(names) || !strings.Contains(string(raw), "versions != 102") {
+		t.Fatal("current V102/210 registry changed")
 	}
 	names = names[:203] // Preserve every exact historical V100 registry control below.
 	for i, want := range []string{"testRuntimeInstallationMigration", "testRuntimeInstallationLifecycle", "testRuntimeInstallationProcessRestart"} {

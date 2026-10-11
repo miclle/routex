@@ -75,7 +75,7 @@ func run(ctx context.Context, configPath string) (runErr error) {
 	if err != nil {
 		return errors.New("invalid trusted proxy configuration")
 	}
-	svc, err := service.New(ctx, db, service.WithTrustedProxies(trustedProxies), service.WithCredentialStorage(store), service.WithUpstreamPolicy(cfg.AllowPrivateUpstreams), service.WithEgressPolicy(cfg.AllowPrivateEgresses), service.WithSMTPPolicy(cfg.AllowPrivateSMTP), service.WithStoragePolicy(cfg.AllowPrivateStorage))
+	svc, err := service.New(ctx, db, service.WithTrustedProxies(trustedProxies), service.WithCredentialStorage(store), service.WithUpstreamPolicy(cfg.AllowPrivateUpstreams), service.WithNativeAPIKeyDeliveryValidator(cfg.AllowPrivateUpstreams), service.WithEgressPolicy(cfg.AllowPrivateEgresses), service.WithSMTPPolicy(cfg.AllowPrivateSMTP), service.WithStoragePolicy(cfg.AllowPrivateStorage))
 	if err != nil {
 		return errors.New("initialize service failed")
 	}

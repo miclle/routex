@@ -114,7 +114,7 @@ export default {
     loading: '正在等待最新的存储权限与策略。',
     loadError: '存储策略不可用，请刷新已授权的读取。',
   },
-  currentInventory: '当前 V8 清单覆盖十一个密钥领域，包括 GitHub、Google 和 Discord 客户端密钥。',
+  currentInventory: '当前 V9 清单覆盖十二个密钥领域，包括 API Key 下发机器身份认证。',
   historicalInventory: '此历史轮换覆盖 {{count}} 个领域，不证明当前清单的覆盖情况。',
   originalIntent: '原始结果未知的意图',
   originalETag: '原始复核 ETag',
@@ -340,5 +340,6 @@ export default {
       unknown: '未知',
     },
   },
+  api_key_delivery_auth: 'API Key 下发机器身份认证',
   named_identity_providers: '命名身份提供方客户端密钥',
 }

@@ -26,8 +26,8 @@ func TestOAuthRegistry188Preserves185AndRejectsIdentityDrift(t *testing.T) {
 	for _, match := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, match[1]+":"+match[2])
 	}
-	if !discordRegistry206Current(names) {
-		t.Fatal("exact206 ordered Discord successor required")
+	if !apiKeyDeliveryRegistry210Current(names) {
+		t.Fatal("exact210 ordered delivery restart successor required")
 	}
 	names = names[:188]
 	if !oauthRegistry188Current(names) {

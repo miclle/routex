@@ -63,7 +63,10 @@ func testMemberKeyMigration(t *testing.T, db *gorm.DB) {
 	read := func() []entity.APIKey {
 		t.Helper()
 		var rows []entity.APIKey
-		if err := db.Where("user_id = ?", userID).Order("id").Find(&rows).Error; err != nil {
+		// The fixture drops/re-adds a column between reads. Select every model
+		// field in stable order so pgx never reuses SELECT * result metadata from
+		// the earlier physical column order; retain DeliveryMode and all history.
+		if err := db.Session(&gorm.Session{QueryFields: true}).Where("user_id = ?", userID).Order("id").Find(&rows).Error; err != nil {
 			t.Fatal(err)
 		}
 		return rows

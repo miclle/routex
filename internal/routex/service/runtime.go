@@ -627,6 +627,9 @@ func (s *Service) loadRuntimeDataTxWithCredentialReader(tx *gorm.DB, openReader 
 		if err != nil {
 			return err
 		}
+		if err := filterAPIKeyDeliveryRuntime(tx, data); err != nil {
+			return err
+		}
 		data.Quota, err = loadRuntimeQuota(tx, data)
 		if err != nil {
 			return err

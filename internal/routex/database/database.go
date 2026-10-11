@@ -50,7 +50,7 @@ func Open(ctx context.Context, driver, dsn string) (*gorm.DB, error) {
 		return nil, errors.New("ping database failed")
 	}
 	// Restore operational logging only after connection validation succeeded.
-	db.Logger = gormlog.New(0)
+	db.Logger = gormlog.New(0).LogMode(logger.Warn)
 	return db, nil
 }
 

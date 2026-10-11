@@ -1,3 +1,7 @@
+import enKeyDelivery from './locales/en/keyDelivery'
+import zhKeyDelivery from './locales/zh/keyDelivery'
+import enKeyDeliveryOwner from './locales/en/keyDeliveryOwner'
+import zhKeyDeliveryOwner from './locales/zh/keyDeliveryOwner'
 import enDiscord from './locales/en/discord'
 import zhDiscord from './locales/zh/discord'
 import enGoogle from './locales/en/google'
@@ -120,6 +124,8 @@ void i18n.use(initReactI18next).init({
       discord: enDiscord,
       modelCreation: enModelCreation,
       secrets: enSecrets,
+      keyDelivery: enKeyDelivery,
+      keyDeliveryOwner: enKeyDeliveryOwner,
       overview: enOverview,
       personalModelRequests: enPersonalModelRequests,
       teamModelRequests: enTeamModelRequests,
@@ -159,6 +165,8 @@ void i18n.use(initReactI18next).init({
       discord: zhDiscord,
       modelCreation: zhModelCreation,
       secrets: zhSecrets,
+      keyDelivery: zhKeyDelivery,
+      keyDeliveryOwner: zhKeyDeliveryOwner,
       overview: zhOverview,
       personalModelRequests: zhPersonalModelRequests,
       teamModelRequests: zhTeamModelRequests,

@@ -307,3 +307,20 @@ retired, missing and unknown process provenance cannot prove that another
 holder has drained. The separate durable coordinator remains outside this
 slice; no new migration, public drain receipt or root inventory domain is
 introduced by the local holder and closure changes.
+
+## API-Key delivery application
+
+The private candidate separates immutable manual and managed Vault Key delivery.
+A dedicated Control Plane service binds exact owner/Consumer/environment/Principal
+facts to separately verified Writer, Provisioner and JWT-template revisions,
+explicit Principal control approval and operator-scoped isolation. A durable
+one-shot claim precedes the restricted Writer operation; acknowledged delivery,
+local Key publication and actual caller use remain independent. The Gateway never
+reads Vault to recover a delivered Key. Provider credentials and delivery machine
+identities remain separate domains. See [API-Key delivery](API_KEY_DELIVERY.md).
+
+This is a bounded application boundary. Exact source and separate controlled
+database/application, restart/authentication, real local Vault, browser and external
+caller statuses are indexed in [Implementation](IMPLEMENTATION.md):
+Source gates, the original complete PostgreSQL/MySQL matrix, RouteX restart/authentication and production build passed on the qualified phase floor; bounded real local Vault acceptance passed, English/Chinese browser interaction was not performed because the user could not unlock the screen, and external caller interoperability remains unproven. Writer SDK evidence alone does not qualify
+the application. No coordinator, automatic rotation or fleet application is introduced.

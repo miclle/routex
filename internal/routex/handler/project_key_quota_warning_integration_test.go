@@ -1105,43 +1105,77 @@ func testProjectKeyMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	if unknownUsage == nil || unknownUsage.Month == nil || unknownUsage.Month.TokensUsed != 8 || unknownUsage.Month.TokensHeld != 2 || unknownUsage.Month.TokensUnknown != 0 || unknownUsage.Month.MoneyUsed["USD"] != "8" || len(unknownUsage.Month.MoneyHeld) != 0 || unknownUsage.Month.MoneyUnknown != 1 {
 		t.Fatal("unknown terminal usage fabricated percentage/money bound")
 	}
-	// Complete Project graph supports 10000 retained rows and explicitly rejects10001.
-	var retainedKeys []entity.ProjectKey
-	if err := db.Where("project_id = ?", projectID).Order("id").Find(&retainedKeys).Error; err != nil {
-		t.Fatal(err)
-	}
-	filler := []entity.ProjectKey{}
-	fillerIDs := []string{}
-	for i := len(retainedKeys); i < 10000; i++ {
-		id := fmt.Sprintf("pky_%026d", i)
-		fillerIDs = append(fillerIDs, id)
-		filler = append(filler, entity.ProjectKey{ID: id, ProjectID: projectID, CreatorID: member.User.ID, DeliveryMode: "manual", Name: "Retained pending", Prefix: "rx_masked", TokenHash: secret.SHA256Hex(id), Status: entity.KeyPending})
-	}
-	if err := db.CreateInBatches(filler, 500).Error; err != nil {
-		t.Fatal(err)
-	}
-	write(grandchild.Key.ID, map[string]any{"tokens_month": 10, "rpm": 100}, "exact_10000_grandchild")
-	reconcile()
-	// The exact10000-row graph adds one genuine observation; malformed fixture rows stay excluded only from this projection.
-	assertCount(rootID, 7)
-	extra := entity.ProjectKey{ID: "pky_jkw_overflow", ProjectID: projectID, CreatorID: member.User.ID, DeliveryMode: "manual", Name: "Overflow", Prefix: "rx_masked", TokenHash: secret.SHA256Hex("jkw-overflow"), Status: entity.KeyPending}
-	if err := db.Create(&extra).Error; err != nil {
-		t.Fatal(err)
-	}
-	if err := reconcileRaw(); err == nil {
-		t.Fatal("10001-row graph silently truncated")
-	}
-	assertCount(rootID, 7)
-	if err := db.Delete(&extra).Error; err != nil {
-		t.Fatal(err)
-	}
-	for offset := 0; offset < len(fillerIDs); offset += 500 {
-		end := min(offset+500, len(fillerIDs))
-		if err := db.Where("id IN ?", fillerIDs[offset:end]).Delete(&entity.ProjectKey{}).Error; err != nil {
+	// This boundary checks reconciliation cardinality, independently of periodic publication overlap.
+	func() {
+		// Complete Project graph supports 10000 retained rows and explicitly rejects10001.
+		var retainedKeys []entity.ProjectKey
+		if err := db.Where("project_id = ?", projectID).Order("id").Find(&retainedKeys).Error; err != nil {
 			t.Fatal(err)
 		}
-	}
-	refresh()
+		filler := []entity.ProjectKey{}
+		fillerIDs := []string{}
+		for i := len(retainedKeys); i < 10000; i++ {
+			id := fmt.Sprintf("pky_%026d", i)
+			fillerIDs = append(fillerIDs, id)
+			filler = append(filler, entity.ProjectKey{ID: id, ProjectID: projectID, CreatorID: member.User.ID, DeliveryMode: "manual", Name: "Retained pending", Prefix: "rx_masked", TokenHash: secret.SHA256Hex(id), Status: entity.KeyPending})
+		}
+		extra := entity.ProjectKey{ID: "pky_jkw_overflow", ProjectID: projectID, CreatorID: member.User.ID, DeliveryMode: "manual", Name: "Overflow", Prefix: "rx_masked", TokenHash: secret.SHA256Hex("jkw-overflow"), Status: entity.KeyPending}
+		if publicationBarrier.armed.Load() {
+			t.Fatal("nested cardinality publication interval")
+		}
+		fillerAttempted, extraAttempted := false, false
+		// Register before admission/insertion; partial batches and Fatal paths retain exact cleanup.
+		defer func() {
+			defer func() {
+				publicationBarrier.baselined.Store(false)
+				publicationBarrier.armed.Store(false)
+			}()
+			var cleanupErr error
+			if extraAttempted {
+				cleanupErr = db.Delete(&extra).Error
+			}
+			if fillerAttempted {
+				for offset := 0; offset < len(fillerIDs); offset += 500 {
+					end := min(offset+500, len(fillerIDs))
+					cleanupErr = errors.Join(cleanupErr, db.Where("id IN ?", fillerIDs[offset:end]).Delete(&entity.ProjectKey{}).Error)
+				}
+			}
+			if cleanupErr != nil {
+				t.Fatal("cardinality fixture cleanup failed", cleanupErr)
+			}
+			if publicationBarrier.baselined.Load() {
+				// Release only after exact row cleanup, with the original post-cleanup refresh.
+				if err := publicationBarrier.release(func() error { return nil }, func() error { return svc.RefreshRuntime(ctx) }); err != nil {
+					t.Fatal(err)
+				}
+			}
+		}()
+		if err := publicationBarrier.arm(func() error { return svc.RefreshRuntime(ctx) }); err != nil {
+			t.Fatal(err)
+		}
+		fillerAttempted = true
+		if err := db.CreateInBatches(filler, 500).Error; err != nil {
+			t.Fatal(err)
+		}
+		write(grandchild.Key.ID, map[string]any{"tokens_month": 10, "rpm": 100}, "exact_10000_grandchild")
+		// Keep both unmarked refreshes around the real observer without nesting its fence.
+		refresh()
+		reconcileErr := reconcileRaw()
+		refresh()
+		if reconcileErr != nil {
+			t.Fatal(reconcileErr)
+		}
+		// The exact10000-row graph adds one genuine observation; malformed fixture rows stay excluded only from this projection.
+		assertCount(rootID, 7)
+		extraAttempted = true
+		if err := db.Create(&extra).Error; err != nil {
+			t.Fatal(err)
+		}
+		if err := reconcileRaw(); err == nil {
+			t.Fatal("10001-row graph silently truncated")
+		}
+		assertCount(rootID, 7)
+	}()
 	// The original journal registration is read together with settled/calendar facts.
 	if err := svc.StopCallRecorder(); err != nil {
 		t.Fatal(err)

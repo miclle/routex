@@ -4,6 +4,50 @@ Updated: 2026-10-11. This document records engineering contracts, work packages 
 
 ## Current execution status (2026-10-11)
 
+## API-Key delivery application: bounded phase — 2026-10-11
+
+The bounded application contract introduces immutable Personal/Project manual and managed Vault delivery,
+normal owner and administrator workflows, exact target/control/isolation review,
+one-shot claimed CAS-zero writes, safe receipts/descriptors and local-only
+acknowledged publication recovery. The Gateway never reads Vault to recover a Key.
+Managed acknowledgement does not prove caller login, application configuration or
+native completion, and does not automatically retire a predecessor.
+
+Frozen V102 adds ten delivery tables and historical Personal manual defaults.
+Root inventory V9 has twelve domains, adding retained independent delivery
+Writer/Provisioner authentication while preserving V1–V8 history. No trusted
+identity, caller template, READY proof, acknowledgement or isolation is seeded.
+
+Verified phase evidence and remaining acceptance:
+
+- Final formatting, mandatory check and complete Task: Passed R18 formatting, mandatory check and complete Task; frontend 6,635 tests in 247 files passed (gate receipt SHA-256 beddac773dc537c2ff0d2f60630062b00526b9e724babac03824819c7d9b0f39); the same-floor production build R2 passed without the development tag (build receipt SHA-256 7d10dfc88e4d2b1591f5d9241af844982f4409a52dddfbb01e6f2253dd60f5f1).
+- Controlled application/migration focus on real PostgreSQL and MySQL:
+  Covered by the same accepted original full R4 PostgreSQL/MySQL matrix, with no separate focused-run claim (receipt SHA-256 b230505fca07df2728033c6da2d68fbe7a478ad622583d2532034e6edb0739c3).
+- Original complete dual-driver matrix: Passed original full R4 matrix: PostgreSQL 527/527 and MySQL 527/527 named events; nonmatrix Go results were 9,634 passed, 3 expected skips and 0 failed (receipt SHA-256 b230505fca07df2728033c6da2d68fbe7a478ad622583d2532034e6edb0739c3).
+- Genuine same-source RouteX process and authentication lifecycle:
+  Passed auth lifecycle R2 on both drivers, covering eight genuine RouteX application births, process restart, persisted Session and revocation checks (receipt SHA-256 4ba4cd3fdfc02c3baa8d44a87344516e2b572316085635a63401759dd60fbdaf); the full R4 matrix separately covers the controlled delivery restart fixture.
+- Independent source/mode and owned-resource closure:
+  R18 source gates, full R4 matrix, auth lifecycle R2 and production build R2 bind the same 2,450-path phase floor; their recorded owned-process/group and resource closures passed, and build source restoration passed; real local Vault resource and process closure passed.
+- Separate real local Vault CAS-zero/JWT-system-trust/application acceptance:
+  Passed bounded real local Vault R4: 88 native audit operation pairs, 45 SDK operations across 15 stages, six native-completed calls, Personal/Project rotation and isolation, fresh issuance denial after revocation, one physical lost reply without write replay, and two genuine starts of the same production binary. Independent process/resource closure and the final strict retained reader passed (root acceptance receipt SHA-256 acf6c882120564c176026d3b066ca4ac620c97ba4cdcd408495ba469cb5674c7). Earlier failed qualification attempts remain recorded; browser, external caller/coordinator and fleet acceptance remain pending.
+- English/Chinese real-window browser acceptance:
+  Not performed: the user could not unlock the screen; no English/Chinese browser acceptance is claimed.
+- External Vault/caller interoperability:
+  Not proven: external Vault/caller interoperability, an external coordinator and fleet application remain outside the accepted local evidence.
+
+Controlled HTTP peers are not a real Vault server. Real RouteX process restart is
+not a Vault-process test; reconstructing a Service is not process restart.
+Direct system-JWKS trust and independently issued caller JWTs do not prove global
+least privilege or automatic application deployment. Read each acceptance scope
+from its own receipt. F29 remains Partial. The overall capability totals remain
+15 Completed / 14 Partial / 1 Not started. Preserve prior F03/F30 delivery and
+failed-run evidence; enforced SSO/emergency recovery remains a separate phase.
+
+Phase source provenance: Source basis f75bf4fac1ae3e3864ace249a5c4f1b45aa6c40c; qualified phase source floor SHA-256 54c3ffd3eb318c617c476f1cd4bfaf672ef72a1426c4fe3295c7c4ffd4908da8. See Git history for containing phase commit.
+
+
+## Historical clock-precision maintenance checkpoint (2026-10-11)
+
 A test-only follow-up makes the Discord root-observation fixture deterministic at
 persisted microsecond precision. Its existing exact-duration positive remains,
 with added denials one microsecond before the boundary and for a future confirmation.
@@ -4041,7 +4085,7 @@ The binary capability count is 15 completed, 14 partially completed, and 1 not s
 | F26 | Instances, heartbeats, resources, jobs, and offline cleanup | Completed | Distinct process generations, server-owned leases, nullable resource facts, bounded real system jobs, executor-loss reconciliation, revision-checked cleanup, audit evidence, and the bilingual administrative workspace are implemented. |
 | F27 | S3, owned attachments, SMTP, and notifications | Partially completed | S3-compatible configuration and administration UI, explicit user/Project attachment APIs, cleanup recovery, Key-scoped inference reads, single/comparison attachment interfaces, SMTP administration/test delivery, and durable operational email intents exist. External storage/mail acceptance, bounce handling, and inbox tracking remain open. |
 | F28 | Internal encryption, root-key rotation, and Vault switching | Partially completed | Internal Provider, egress, SMTP, retained Storage and MFA encryption is implemented. Guarded root rotation passed source, complete dual-driver regression and controlled production/browser/restart acceptance, including final mandatory checks. Vault Token settings, retained revisions, diagnostic probes and seven-domain root inventory are delivered in c2368ddb; the bounded credential KV-v2 SDK is delivered in 78c76d2. Bounded Vault-backed Provider storage switching, stable retained references, durable write compensation and root retirement pass source, dual-driver and controlled API/native/restart acceptance in this phase. Saved independent writer/reader AppRole activation is delivered as 77ece177 after source gates, Focus16, complete Full150 and real Vault API/native/root-key/original-Session restart acceptance. Administrator-previewed, explicitly confirmed cleanup of never-committed Provider objects is delivered as 5fda0737 after source, Full154 and real Vault API/restart acceptance; automatic scheduled deletion is excluded. Published-object drain and graceful closure are delivered in V88/V89. Genuine bilingual Vault/storage browser acceptance, certificate and workload identities, and external compatibility remain open. |
-| F29 | API Key Vault delivery and application identities | Partially completed | A dedicated restricted write-only KV-v2 SDK implements one-shot CAS-zero API-Key writes with guarded transport and explicit acknowledged/unknown outcomes. Application caller authentication, saved identities/Profiles, persisted integration descriptors, Provisioner ownership, coordinator/rotation state, durable no-read recovery and Key activation remain unimplemented. Component qualification is separate from application, real-Vault, database and browser acceptance. |
+| F29 | API Key Vault delivery and application identities | Partially completed | The application contract separates immutable manual/managed modes, exact-owner Consumer/Profile/Principal targets, independent Writer/Provisioner and JWT-template verification, explicit control approval and separate isolation attestation. Durable pre-I/O claims prevent Writer replay and plaintext fallback; acknowledgements, local runtime publication, descriptors and actual caller use remain distinct. Native-completed retirement remains mandatory. Controlled application, real local Vault, browser and external caller evidence are recorded separately below; coordinator and automatic rotation remain outside this bounded phase. |
 | F30 | Configuration publication, acknowledgement, rollback, revocation, and audit | Partially completed | Immutable runtime publication, durable events, current revocation, and audit foundations exist; node acknowledgement, complete rollback, and distributed emergency-revocation acceptance remain open. |
 
 ### Acceptance-case status

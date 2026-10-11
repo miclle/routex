@@ -1,7 +1,7 @@
 import ResourceLimits from '@/views/resource-limits'
 import { t, locale } from '@/i18n'
 import { useTranslation } from 'react-i18next'
-import { useState, type FormEvent } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { createKey, listKeys, listModels, rotateKey, writeCatalog } from '@/api/catalog'
@@ -13,6 +13,15 @@ import { Button } from '@/components/ui/button'
 import { Table } from '@/components/ui/table'
 import { Drawer } from '@/components/ui/drawer'
 import { Badge } from '@/components/ui/badge'
+import KeyIssueDialog from '@/views/key-delivery/owner'
+import DeliveryReceiptDialog from '@/views/key-delivery/receipt'
+import {
+  useOwnerAuthority,
+  ObsoleteOwnerOperation,
+  type OwnerTicket,
+} from '@/views/key-delivery/lifetime'
+import { getKeyDeliveryContext } from '@/api/key-delivery'
+import type { KeyDeliveryOwner } from '@/types/key-delivery'
 import type { KeyDelivery, PersonalKey } from '@/types/catalog'
 
 const statuses = {
@@ -30,13 +39,36 @@ const statuses = {
   },
 }
 export default function KeysPage() {
-  useTranslation()
+  useTranslation('common')
+  const { t: deliveryText } = useTranslation('keyDeliveryOwner')
 
   const { data: session } = useSession()
   const cache = useQueryClient()
-  const keys = useQuery({ queryKey: ['keys'], queryFn: listKeys })
-  const models = useQuery({ queryKey: ['models'], queryFn: listModels })
+  const owner = useMemo<KeyDeliveryOwner>(() => ({ kind: 'personal' }), [])
+  const keys = useQuery({
+    queryKey: ['keys', session?.user.id],
+    queryFn: async ({ signal }) => {
+      const value = await listKeys()
+      if (signal.aborted) throw new ObsoleteOwnerOperation()
+      return value
+    },
+    enabled: !!session,
+  })
+  const models = useQuery({
+    queryKey: ['models', session?.user.id],
+    queryFn: async ({ signal }) => {
+      const value = await listModels()
+      if (signal.aborted) throw new ObsoleteOwnerOperation()
+      return value
+    },
+    enabled: !!session,
+  })
+  const authority = useOwnerAuthority(owner, !!session)
   const [creating, setCreating] = useState(false)
+  const [rotating, setRotating] = useState<PersonalKey | null>(null)
+  const [receipt, setReceipt] = useState<{ keyId: string; requestId?: string } | null>(null)
+  const [deliverySession, setDeliverySession] = useState('')
+  const actorLifetime = useRef({ actor: authority.actor })
   const [statusFilter, setStatusFilter] = useState('all')
   const [viewing, setViewing] = useState<PersonalKey | null>(null)
   const [delivery, setDelivery] = useState<KeyDelivery | null>(null)
@@ -45,18 +77,65 @@ export default function KeysPage() {
   const [notice, setNotice] = useState('')
   const [action, setAction] = useState<{ kind: 'rename' | 'revoke'; key: PersonalKey } | null>(null)
   const refresh = () => cache.invalidateQueries({ queryKey: ['keys'] })
+  useLayoutEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Session or resource renewal must destroy one-time secrets and private action state
+    setDelivery(null)
+    setSaved(false)
+    setViewing(null)
+    setAction(null)
+    setRetiring(null)
+    if (actorLifetime.current.actor !== authority.actor) {
+      actorLifetime.current.actor = authority.actor
+      setCreating(false)
+      setRotating(null)
+      setReceipt(null)
+      setNotice('')
+    }
+  }, [authority.sessionVersion, authority.actor, actorLifetime])
+  function admit() {
+    try {
+      const ticket = authority.capture()
+      authority.finish(ticket)
+      return true
+    } catch {
+      return false
+    }
+  }
+  async function authorized<T>(run: (ticket: OwnerTicket) => Promise<T>): Promise<T> {
+    const ticket = authority.capture()
+    try {
+      const value = await run(ticket)
+      if (!authority.current(ticket)) throw new ObsoleteOwnerOperation()
+      return value
+    } finally {
+      authority.finish(ticket)
+    }
+  }
+
   const create = useMutation({
     mutationFn: async (
       input: { name: string; model_ids: string[]; expires_at: string | null } | PersonalKey,
     ) => {
-      // Only component state holds the one-time secret; never put it in the query/mutation cache.
-      const result =
-        'id' in input
-          ? await rotateKey(input.id, session!.csrf_token)
-          : await createKey(input, session!.csrf_token)
-      setDelivery(result)
-      setSaved(false)
-      setCreating(false)
+      await authorized(async (ticket) => {
+        if ('id' in input) {
+          const policy = await getKeyDeliveryContext(owner, ticket.controller.signal)
+          if (
+            !authority.current(ticket) ||
+            !policy.allowed_modes.includes('manual') ||
+            input.delivery_mode === 'managed_vault'
+          )
+            throw new ObsoleteOwnerOperation()
+        }
+        const result =
+          'id' in input
+            ? await rotateKey(input.id, ticket.csrf)
+            : await createKey(input, ticket.csrf)
+        if (!authority.current(ticket)) throw new ObsoleteOwnerOperation()
+        setDeliverySession(authority.sessionVersion)
+        setDelivery(result)
+        setSaved(false)
+        setCreating(false)
+      })
     },
     onSuccess: refresh,
   })
@@ -69,7 +148,7 @@ export default function KeysPage() {
       id: string
       method: 'patch' | 'delete' | 'post'
       data?: unknown
-    }) => writeCatalog(method, `/keys/${id}`, data, session!.csrf_token),
+    }) => authorized((ticket) => writeCatalog(method, `/keys/${id}`, data, ticket.csrf)),
     onSuccess: () => {
       setAction(null)
       void refresh()
@@ -77,11 +156,13 @@ export default function KeysPage() {
   })
   const retirement = useMutation({
     mutationFn: (replacementID: string) =>
-      writeCatalog(
-        'post',
-        `/keys/${retiring!.id}/complete-rotation`,
-        { replacement_key_id: replacementID },
-        session!.csrf_token,
+      authorized((ticket) =>
+        writeCatalog(
+          'post',
+          `/keys/${retiring!.id}/complete-rotation`,
+          { replacement_key_id: replacementID },
+          ticket.csrf,
+        ),
       ),
     onSuccess: () => {
       setRetiring(null)
@@ -91,11 +172,13 @@ export default function KeysPage() {
   })
   const finish = useMutation({
     mutationFn: (confirm: boolean) =>
-      writeCatalog(
-        confirm ? 'post' : 'delete',
-        `/keys/${delivery!.key.id}${confirm ? '/confirm' : ''}`,
-        confirm ? {} : undefined,
-        session!.csrf_token,
+      authorized((ticket) =>
+        writeCatalog(
+          confirm ? 'post' : 'delete',
+          `/keys/${delivery!.key.id}${confirm ? '/confirm' : ''}`,
+          confirm ? {} : undefined,
+          ticket.csrf,
+        ),
       ),
     onSuccess: (_, confirmed) => {
       if (confirmed && delivery?.key.replaces_key_id)
@@ -105,17 +188,6 @@ export default function KeysPage() {
       void refresh()
     },
   })
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (create.isPending) return
-    const form = new FormData(event.currentTarget)
-    const expiration = String(form.get('expires_at') || '')
-    create.mutate({
-      name: String(form.get('name')).trim(),
-      model_ids: form.getAll('models').map(String),
-      expires_at: expiration ? new Date(expiration).toISOString() : null,
-    })
-  }
   return (
     <Page
       title={t('my_api_keys_9df22')}
@@ -131,9 +203,12 @@ export default function KeysPage() {
       )}
       <ErrorNotice error={!creating && !delivery ? create.error || update.error : null} />
       <QueryState
-        pending={keys.isPending}
-        error={keys.error}
-        retry={() => void keys.refetch()}
+        pending={(!authority.fresh && !keys.error && !models.error) || keys.isPending}
+        error={keys.error || models.error}
+        retry={() => {
+          void keys.refetch()
+          void models.refetch()
+        }}
         empty={keys.data?.length === 0}
       />
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -155,8 +230,11 @@ export default function KeysPage() {
           ))}
         </div>
         <Button
+          disabled={!authority.fresh}
           onClick={() => {
+            if (!admit()) return
             create.reset()
+            setRotating(null)
             setCreating(true)
           }}
         >
@@ -177,7 +255,7 @@ export default function KeysPage() {
           </tr>
         </thead>
         <tbody>
-          {keys.data
+          {(authority.fresh ? keys.data : [])
             ?.filter((key) => statusFilter === 'all' || key.status === statusFilter)
             .map((key) => (
               <tr key={key.id}>
@@ -198,10 +276,18 @@ export default function KeysPage() {
                 </td>
                 <td className="font-mono">{key.prefix}…</td>
                 <td>
-                  <Badge variant="outline">{t('one_time_browser_display_077d0')}</Badge>
+                  <Badge variant="outline">
+                    {deliveryText(key.delivery_mode ?? 'unknownMode')}
+                  </Badge>
                 </td>
                 <td>
-                  <Button variant="ghost" size="sm" onClick={() => setViewing(key)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      if (admit()) setViewing(key)
+                    }}
+                  >
                     {t('modelCount', { count: key.model_ids.length })}
                   </Button>
                 </td>
@@ -215,7 +301,24 @@ export default function KeysPage() {
                 </td>
                 <td>
                   <div className="flex gap-1">
-                    <Button size="sm" variant="ghost" onClick={() => setViewing(key)}>
+                    {key.delivery_mode === 'managed_vault' && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          if (admit()) setReceipt({ keyId: key.id })
+                        }}
+                      >
+                        {deliveryText('receiptTitle')}
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        if (admit()) setViewing(key)
+                      }}
+                    >
                       {t('limits:title')}
                     </Button>
                     {(key.status === 'active' || key.status === 'disabled') && (
@@ -225,6 +328,7 @@ export default function KeysPage() {
                           variant="ghost"
                           disabled={update.isPending}
                           onClick={() => {
+                            if (!admit()) return
                             update.reset()
                             setAction({ kind: 'rename', key })
                           }}
@@ -235,13 +339,14 @@ export default function KeysPage() {
                           size="sm"
                           variant="ghost"
                           disabled={update.isPending}
-                          onClick={() =>
+                          onClick={() => {
+                            if (!admit()) return
                             update.mutate({
                               id: key.id,
                               method: 'patch',
                               data: { enabled: key.status !== 'active' },
                             })
-                          }
+                          }}
                         >
                           {key.status === 'active' ? t('disable_d989e') : t('enable_d4e9c')}
                         </Button>
@@ -250,9 +355,13 @@ export default function KeysPage() {
                           variant="ghost"
                           disabled={create.isPending}
                           onClick={() => {
+                            if (!admit()) return
                             create.reset()
                             finish.reset()
-                            create.mutate(key)
+                            if (key.delivery_mode === 'managed_vault') {
+                              setRotating(key)
+                              setCreating(true)
+                            } else create.mutate(key)
                           }}
                         >
                           {t('rotate_d822d')}
@@ -265,6 +374,7 @@ export default function KeysPage() {
                             size="sm"
                             variant="ghost"
                             onClick={() => {
+                              if (!admit()) return
                               retirement.reset()
                               setRetiring(key)
                             }}
@@ -279,6 +389,7 @@ export default function KeysPage() {
                         size="sm"
                         variant="ghost"
                         onClick={() => {
+                          if (!admit()) return
                           update.reset()
                           setAction({ kind: 'revoke', key })
                         }}
@@ -293,7 +404,7 @@ export default function KeysPage() {
         </tbody>
       </Table>
       <Drawer
-        open={!!viewing}
+        open={authority.fresh && !!viewing}
         onOpenChange={(open) => {
           if (!open) setViewing(null)
         }}
@@ -332,51 +443,47 @@ export default function KeysPage() {
           </div>
         )}
       </Drawer>
-      <Dialog
-        width={800}
-        open={creating}
-        onOpenChange={setCreating}
-        busy={create.isPending}
-        title={t('create_personal_key_80e1b')}
-        description={t('choose_the_allowed_models_confirm_delivery_within_10_1b1ae')}
-      >
-        <form onSubmit={submit} className="space-y-5">
-          <fieldset disabled={create.isPending} className="space-y-5">
-            <FormField label={t('name_1be7a')}>
-              <Input name="name" required maxLength={100} />
-            </FormField>
-            <fieldset className="space-y-2">
-              <legend className="mb-2 text-sm font-medium">{t('allowed_models_115d5')}</legend>
-              <QueryState
-                pending={models.isPending}
-                error={models.error}
-                retry={() => void models.refetch()}
-                empty={models.data?.length === 0}
-              />
-              {models.data
-                ?.filter((m) => m.status === 'active')
-                .map((m) => (
-                  <label key={m.id} className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" name="models" value={m.id} />
-                    {m.name}
-                  </label>
-                ))}
-            </fieldset>
-            <FormField label={t('expiration_optional_0848a')}>
-              <Input name="expires_at" type="datetime-local" />
-            </FormField>
-          </fieldset>
-          <ErrorNotice error={create.error} />
-          <SaveButton pending={create.isPending} disabled={!models.data?.length}>
-            {t('create_and_reveal_key_5bf84')}
-          </SaveButton>
-        </form>
-      </Dialog>
+      {creating && (
+        <KeyIssueDialog
+          key={authority.actor + (rotating?.id ?? 'new')}
+          owner={owner}
+          authority={authority}
+          models={(models.data ?? []).filter((m) => m.status === 'active')}
+          predecessor={rotating ?? undefined}
+          title={rotating ? deliveryText('rotate') : t('create_personal_key_80e1b')}
+          description={t('choose_the_allowed_models_confirm_delivery_within_10_1b1ae')}
+          manualLabel={t('create_and_reveal_key_5bf84')}
+          onManual={(input) => create.mutateAsync(rotating ?? input)}
+          onReceipt={(value) => {
+            setCreating(false)
+            setRotating(null)
+            setReceipt({ keyId: value.key_id, requestId: value.request_id })
+            void refresh()
+          }}
+          onClose={() => {
+            setCreating(false)
+            setRotating(null)
+          }}
+        />
+      )}
+      {receipt && (
+        <DeliveryReceiptDialog
+          key={authority.actor + receipt.keyId}
+          owner={owner}
+          authority={authority}
+          keyId={receipt.keyId}
+          requestId={receipt.requestId}
+          onClose={() => setReceipt(null)}
+          onChanged={() => {
+            void refresh()
+          }}
+        />
+      )}
       <Dialog
         width={560}
-        open={!!delivery}
+        open={authority.fresh && deliverySession === authority.sessionVersion && !!delivery}
         onOpenChange={(open) => {
-          if (!open && !finish.isPending) finish.mutate(false)
+          if (!open && !finish.isPending && admit()) finish.mutate(false)
         }}
         busy={finish.isPending}
         title={t('save_your_key_77b9f')}
@@ -404,7 +511,12 @@ export default function KeysPage() {
             )}
             <ErrorNotice error={finish.error} />
             <div className="flex gap-2">
-              <Button disabled={!saved || finish.isPending} onClick={() => finish.mutate(true)}>
+              <Button
+                disabled={!saved || finish.isPending}
+                onClick={() => {
+                  if (admit()) finish.mutate(true)
+                }}
+              >
                 {delivery.key.replaces_key_id
                   ? t('confirm_delivery_615f4')
                   : t('confirm_and_enable_d4f31')}
@@ -412,7 +524,9 @@ export default function KeysPage() {
               <Button
                 variant="outline"
                 disabled={finish.isPending}
-                onClick={() => finish.mutate(false)}
+                onClick={() => {
+                  if (admit()) finish.mutate(false)
+                }}
               >
                 {t('cancel_and_revoke_176bb')}
               </Button>
@@ -421,7 +535,7 @@ export default function KeysPage() {
         )}
       </Dialog>
       <Dialog
-        open={!!retiring}
+        open={authority.fresh && !!retiring}
         onOpenChange={(open) => {
           if (!open) setRetiring(null)
         }}
@@ -434,6 +548,7 @@ export default function KeysPage() {
           aria-label={t('complete_key_rotation_e8920')}
           onSubmit={(event) => {
             event.preventDefault()
+            if (!admit()) return
             if (!retiring || retirement.isPending) return
             retirement.mutate(String(new FormData(event.currentTarget).get('replacement')))
           }}
@@ -466,7 +581,7 @@ export default function KeysPage() {
         </form>
       </Dialog>
       <Dialog
-        open={!!action}
+        open={authority.fresh && !!action}
         onOpenChange={(open) => {
           if (!open) setAction(null)
         }}
@@ -482,6 +597,7 @@ export default function KeysPage() {
           className="space-y-5"
           onSubmit={(e) => {
             e.preventDefault()
+            if (!admit()) return
             if (!action || update.isPending) return
             update.mutate({
               id: action.key.id,

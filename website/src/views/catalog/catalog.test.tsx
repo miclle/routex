@@ -38,6 +38,7 @@ const makeKey = (status: PersonalKey['status'] = 'pending'): PersonalKey => ({
   created_at: '2026-09-23T00:00:00Z',
   replaces_key_id: null,
   delivery_expires_at: '2026-09-23T00:10:00Z',
+  delivery_mode: 'manual',
 })
 
 beforeEach(() => {
@@ -131,6 +132,18 @@ beforeEach(() => {
             : []),
       }
     if (route === 'get /keys') response.data = { items: structuredClone(keys) }
+    if (route === 'get /keys/delivery-context') {
+      response.data = {
+        allowed_modes: ['manual'],
+        default_mode: 'manual',
+        managed_available: false,
+        failure_code: 'not_configured',
+        review_etag: 'a'.repeat(64),
+      }
+      response.headers.set('etag', `"${'a'.repeat(64)}"`)
+      response.headers.set('Cache-Control', 'private, no-store')
+      response.headers.set('X-Content-Type-Options', 'nosniff')
+    }
     if (route === 'get /models')
       response.data = {
         items: structuredClone(callableModels),
@@ -280,6 +293,7 @@ async function createDelivery() {
   await until(() => expect(document.body.textContent).toContain('No data available'))
   await click('Create key')
   await until(() => expect(document.querySelector('[role="dialog"]')).not.toBeNull())
+  await until(() => expect(document.querySelector('input[name="name"]')).not.toBeNull())
   await fill('name', 'Test Key')
   await act(async () => {
     document.querySelector<HTMLInputElement>('input[value="mdl_1"]')!.click()

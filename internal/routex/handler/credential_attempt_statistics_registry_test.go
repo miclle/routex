@@ -25,11 +25,11 @@ func TestCredentialAttemptStatisticsRegistry181Preserves179AndRejectsSuffixDrift
 	for _, match := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, match[1]+":"+match[2])
 	}
-	if !discordRegistry206Current(names) {
-		t.Fatal("exact206 ordered Discord successor required")
+	if !apiKeyDeliveryRegistry210Current(names) {
+		t.Fatal("exact210 ordered delivery restart successor required")
 	}
 	names = names[:181]
-	if !credentialAttemptStatisticsRegistry181Current(names) || !strings.Contains(string(raw), "versions != 101") {
+	if !credentialAttemptStatisticsRegistry181Current(names) || !strings.Contains(string(raw), "versions != 102") {
 		t.Fatal("exact181/V93 required")
 	}
 	if !connectionTransportRegistry179Current(names[:179]) || credentialAttemptStatisticsRegistry181Current(names[:179]) {

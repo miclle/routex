@@ -189,7 +189,7 @@ func TestVaultTypedAuditProjectsOnlySafeConfigurationFacts(t *testing.T) {
 }
 
 func TestVaultRootUnknownInventoryNeverGrantsActionsOrHistory(t *testing.T) {
-	for _, version := range []int{0, -1, 9} {
+	for _, version := range []int{0, -1, 10} {
 		job := entity.SecretRotationJob{InventoryVersion: version, CountsJSON: "{}", Status: "blocked"}
 		if _, err := rootCountsChecked(job); err == nil {
 			t.Fatal("unknown inventory accepted", version)
@@ -218,10 +218,34 @@ func TestVaultRootUnknownInventoryNeverGrantsActionsOrHistory(t *testing.T) {
 			t.Fatal("LDAP domain coverage escaped its inventory version", inventory.version)
 		}
 	}
+	// Later retained epochs remain readable without gaining delivery-auth coverage.
+	for _, inventory := range []struct{ version, domains int }{{6, 11}, {7, 11}, {8, 11}, {9, 12}} {
+		for _, status := range []string{"completed", "rolled_back"} {
+			view := rootRotationView(entity.SecretRotationJob{InventoryVersion: inventory.version, CountsJSON: "{}", Status: status, Domain: inventory.domains}, true, true)
+			if view == nil || view.InventoryVersion != inventory.version || len(view.Domains) != inventory.domains || len(view.AllowedActions) != 0 {
+				t.Fatal("later versioned terminal history changed", inventory.version)
+			}
+		}
+		for _, domain := range []string{"oidc_providers", "oauth_providers", "ldap_providers", "named_identity_providers"} {
+			if _, err := rootCountsChecked(entity.SecretRotationJob{InventoryVersion: inventory.version, CountsJSON: `{"` + domain + `":{}}`}); err != nil {
+				t.Fatal("retained domain rejected", inventory.version, domain)
+			}
+		}
+		_, err := rootCountsChecked(entity.SecretRotationJob{InventoryVersion: inventory.version, CountsJSON: `{"api_key_delivery_auth":{}}`})
+		if (err == nil) != (inventory.version == 9) {
+			t.Fatal("delivery auth escaped its exact inventory epoch", inventory.version)
+		}
+	}
 }
 func TestVaultRootWorkerRejectsUnknownInventoryWithoutRewrap(t *testing.T) {
-	for _, version := range []int{0, 9} {
+	for _, version := range []int{0, 10} {
 		svc, f := rootPublicationService(t)
+		if f.job.InventoryVersion != 9 || len(rootInventoryDomains(9)) != 12 {
+			t.Fatal("current worker fixture is not V9")
+		}
+		if _, err := rootCountsChecked(f.job); err != nil {
+			t.Fatal("current worker inventory rejected", err)
+		}
 		f.job.InventoryVersion = version
 		before := f.egress.AuthCiphertext
 		if err := svc.RunSecretRotationOnce(context.Background()); err == nil {

@@ -10,6 +10,7 @@ import (
 )
 
 type KeyResponse struct {
+	DeliveryMode      string     `json:"delivery_mode"`
 	ID                string     `json:"id"`
 	Name              string     `json:"name"`
 	Prefix            string     `json:"prefix"`
@@ -48,7 +49,7 @@ type CreatedKeyResponse struct {
 
 func keyResponse(record service.KeyRecord) KeyResponse {
 	key := record.Key
-	return KeyResponse{ID: key.ID, Name: key.Name, Prefix: key.Prefix, Status: key.Status, ModelIDs: record.ModelIDs, ExpiresAt: key.ExpiresAt, CreatedAt: key.CreatedAt, ReplacesKeyID: key.ReplacesKeyID, DeliveryExpiresAt: key.DeliveryExpiresAt}
+	return KeyResponse{DeliveryMode: key.DeliveryMode, ID: key.ID, Name: key.Name, Prefix: key.Prefix, Status: key.Status, ModelIDs: record.ModelIDs, ExpiresAt: key.ExpiresAt, CreatedAt: key.CreatedAt, ReplacesKeyID: key.ReplacesKeyID, DeliveryExpiresAt: key.DeliveryExpiresAt}
 }
 
 func (ctrl *Ctrl) ListPersonalKeys(c *fox.Context) (*KeyListResponse, error) {

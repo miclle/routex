@@ -259,6 +259,9 @@ func applyOffboarding(tx *gorm.DB, actorID string, inventory *OffboardingInvento
 	if err := invalidateMFAChallenges(tx, inventory.UserID); err != nil {
 		return nil, err
 	}
+	if err := apiKeyDeliveryOffboarding(tx, inventory.UserID); err != nil {
+		return nil, err
+	}
 	if err := tx.Model(&entity.User{}).Where("id = ?", inventory.UserID).Updates(map[string]any{"disabled": true, "offboarded_at": time.Now().UTC(), "role": entity.RoleMember}).Error; err != nil {
 		return nil, err
 	}

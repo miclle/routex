@@ -128,7 +128,7 @@ export default {
     loadError: 'Storage policy unavailable. Refresh its authorized read.',
   },
   currentInventory:
-    'Current inventory V8 covers eleven secret domains, including GitHub, Google and Discord client secrets.',
+    'Current inventory V9 covers twelve secret domains, including API-Key delivery machine authentication.',
   historicalInventory:
     'This historical rotation covers {{count}} domains and does not prove current inventory coverage.',
   originalIntent: 'Original uncertain intent',
@@ -372,5 +372,6 @@ export default {
       unknown: 'Unknown',
     },
   },
+  api_key_delivery_auth: 'API-Key delivery machine authentication',
   named_identity_providers: 'Named identity provider client secrets',
 }

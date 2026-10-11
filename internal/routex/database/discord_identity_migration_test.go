@@ -20,8 +20,8 @@ func TestDiscordV101FrozenCurrentParityAndAdditiveTail(t *testing.T) {
 		{&discordIdentityMFAChallengeV101{}, &entity.MFAChallenge{}},
 		{&discordIdentitySessionProofV101{}, &entity.Session{}},
 		{&discordIdentityMFAChallengeProofV101{}, &entity.MFAChallenge{}},
-		{&discordIdentityRootJobV101{}, &entity.SecretRotationJob{}},
-		{&discordIdentityRootProcessV101{}, &entity.SecretProcessVerification{}},
+		{&discordIdentityRootJobV101{}, &deliveryHistoricalRootJobV101{}},
+		{&discordIdentityRootProcessV101{}, &deliveryHistoricalRootProcessV101{}},
 	} {
 		frozen, current := oidcV94Schema(t, pair[0]), oidcV94Schema(t, pair[1])
 		if frozen.Table != current.Table || len(frozen.Relationships.Relations) != 0 {
@@ -36,7 +36,7 @@ func TestDiscordV101FrozenCurrentParityAndAdditiveTail(t *testing.T) {
 	}
 	for _, driver := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(driver)
-		if len(steps) != 101 || reflect.ValueOf(steps[97]).Pointer() != reflect.ValueOf(namedIdentityMigration).Pointer() || reflect.ValueOf(steps[98]).Pointer() != reflect.ValueOf(googleIdentityMigration).Pointer() || reflect.ValueOf(steps[99]).Pointer() != reflect.ValueOf(runtimeInstallationMigration).Pointer() || reflect.ValueOf(steps[100]).Pointer() != reflect.ValueOf(discordIdentityMigration).Pointer() {
+		if len(steps) != 102 || reflect.ValueOf(steps[97]).Pointer() != reflect.ValueOf(namedIdentityMigration).Pointer() || reflect.ValueOf(steps[98]).Pointer() != reflect.ValueOf(googleIdentityMigration).Pointer() || reflect.ValueOf(steps[99]).Pointer() != reflect.ValueOf(runtimeInstallationMigration).Pointer() || reflect.ValueOf(steps[100]).Pointer() != reflect.ValueOf(discordIdentityMigration).Pointer() || reflect.ValueOf(steps[101]).Pointer() != reflect.ValueOf(apiKeyDeliveryMigration).Pointer() {
 			t.Fatal("released tail or new101 registration")
 		}
 	}

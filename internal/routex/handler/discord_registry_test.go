@@ -20,9 +20,10 @@ func TestDiscordRegistry206ExactPrefixAndSuffix(t *testing.T) {
 	for i, m := range matches {
 		names[i] = m[1] + ":" + m[2]
 	}
-	if !discordRegistry206Current(names) || !strings.Contains(string(raw), "versions != 101") {
-		t.Fatal("exact V101/206 registry")
+	if !apiKeyDeliveryRegistry210Current(names) || !strings.Contains(string(raw), "versions != 102") {
+		t.Fatal("current V102/210 registry")
 	}
+	names = names[:206] // Preserve every exact historical V101 registry control below.
 	if !installationRegistry203Current(names[:203]) || discordRegistry206Current(names[:203]) {
 		t.Fatal("historical203 boundary")
 	}

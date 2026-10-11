@@ -11,6 +11,7 @@ const (
 
 // APIKey holds verification metadata; its bearer value is never persisted.
 type APIKey struct {
+	DeliveryMode      string `gorm:"column:delivery_mode;size:20;not null;default:manual;check:ck_api_keys_delivery_mode,(OCTET_LENGTH(delivery_mode) = 6 AND ASCII(SUBSTRING(delivery_mode,1,1)) = 109 AND ASCII(SUBSTRING(delivery_mode,2,1)) = 97 AND ASCII(SUBSTRING(delivery_mode,3,1)) = 110 AND ASCII(SUBSTRING(delivery_mode,4,1)) = 117 AND ASCII(SUBSTRING(delivery_mode,5,1)) = 97 AND ASCII(SUBSTRING(delivery_mode,6,1)) = 108) OR (OCTET_LENGTH(delivery_mode) = 13 AND ASCII(SUBSTRING(delivery_mode,1,1)) = 109 AND ASCII(SUBSTRING(delivery_mode,2,1)) = 97 AND ASCII(SUBSTRING(delivery_mode,3,1)) = 110 AND ASCII(SUBSTRING(delivery_mode,4,1)) = 97 AND ASCII(SUBSTRING(delivery_mode,5,1)) = 103 AND ASCII(SUBSTRING(delivery_mode,6,1)) = 101 AND ASCII(SUBSTRING(delivery_mode,7,1)) = 100 AND ASCII(SUBSTRING(delivery_mode,8,1)) = 95 AND ASCII(SUBSTRING(delivery_mode,9,1)) = 118 AND ASCII(SUBSTRING(delivery_mode,10,1)) = 97 AND ASCII(SUBSTRING(delivery_mode,11,1)) = 117 AND ASCII(SUBSTRING(delivery_mode,12,1)) = 108 AND ASCII(SUBSTRING(delivery_mode,13,1)) = 116)"`
 	LifecycleRevision string `gorm:"size:30;not null;default:''"`
 	ID                string `gorm:"primaryKey;size:30"`
 	UserID            string `gorm:"size:30;not null"`

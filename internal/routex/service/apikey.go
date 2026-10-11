@@ -107,10 +107,16 @@ func (s *Service) CreatePersonalKey(ctx context.Context, userID, name string, mo
 	}
 	var result *CreatedKey
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockGovernance(tx); err != nil {
+			return err
+		}
 		if err := lockActiveKeyOwner(tx, userID); err != nil {
 			return err
 		}
 		if err := validateKeyModels(tx, userID, modelIDs); err != nil {
+			return err
+		}
+		if err := apiKeyDeliveryManualAllowed(tx); err != nil {
 			return err
 		}
 		var err error
@@ -122,6 +128,13 @@ func (s *Service) CreatePersonalKey(ctx context.Context, userID, name string, mo
 }
 
 func createPendingKey(tx *gorm.DB, userID, name string, modelIDs []string, expiresAt *time.Time, replaces *string, activate bool) (*CreatedKey, error) {
+	return createPendingKeyWithMode(tx, userID, name, modelIDs, expiresAt, replaces, activate, "manual")
+}
+
+func createPendingKeyWithMode(tx *gorm.DB, userID, name string, modelIDs []string, expiresAt *time.Time, replaces *string, activate bool, mode string) (*CreatedKey, error) {
+	if mode != "manual" && mode != "managed_vault" {
+		return nil, errKeyConflict
+	}
 	keyID, err := id.NewPrefixed("key")
 	if err != nil {
 		return nil, err
@@ -132,12 +145,27 @@ func createPendingKey(tx *gorm.DB, userID, name string, modelIDs []string, expir
 	}
 	bearer := "rx_" + random
 	deadline := time.Now().UTC().Add(10 * time.Minute)
-	key := entity.APIKey{ID: keyID, UserID: userID, Name: name, Prefix: bearer[:11], TokenHash: secret.SHA256Hex(bearer), Status: entity.KeyPending, ExpiresAt: expiresAt, DeliveryExpiresAt: &deadline, ReplacesKeyID: replaces, ActivateOnConfirm: activate}
+	key := entity.APIKey{ID: keyID, UserID: userID, Name: name, Prefix: bearer[:11], TokenHash: secret.SHA256Hex(bearer), Status: entity.KeyPending, DeliveryMode: mode, ExpiresAt: expiresAt, DeliveryExpiresAt: &deadline, ReplacesKeyID: replaces, ActivateOnConfirm: activate}
 	if err := advancePersonalKeyRevision(&key); err != nil {
 		return nil, err
 	}
+	if mode == "managed_vault" {
+		key.CreatedAt = time.Now().UTC().Truncate(time.Microsecond)
+	}
 	if err := tx.Create(&key).Error; err != nil {
 		return nil, err
+	}
+	if mode == "managed_vault" {
+		// Delivery provenance commits the durable birth, including database
+		// timestamp precision, rather than the authored in-memory instant.
+		var persisted entity.APIKey
+		if err := tx.Where("id = ? AND user_id = ?", key.ID, userID).Take(&persisted).Error; err != nil {
+			return nil, err
+		}
+		if persisted.ID != key.ID || persisted.UserID != userID || persisted.DeliveryMode != mode || persisted.CreatedAt.IsZero() {
+			return nil, errKeyConflict
+		}
+		key = persisted
 	}
 	for _, modelID := range modelIDs {
 		if err := tx.Create(&entity.APIKeyModel{KeyID: keyID, ModelID: modelID}).Error; err != nil {
@@ -191,58 +219,65 @@ func (s *Service) ConfirmKeyDelivery(ctx context.Context, userID, keyID string) 
 		if err != nil {
 			return err
 		}
-		if key.Status != entity.KeyPending || key.DeliveryExpiresAt == nil || !key.DeliveryExpiresAt.After(time.Now()) || (key.ExpiresAt != nil && !key.ExpiresAt.After(time.Now())) {
-			return errKeyConflict
-		}
-		models, err := keyModelIDs(tx, keyID)
-		if err != nil {
-			return err
-		}
-		if err := validateKeyModels(tx, userID, models); err != nil {
-			return err
-		}
-		if key.ReplacesKeyID != nil {
-			old, err := lockOwnedKey(tx, userID, *key.ReplacesKeyID)
-			if err != nil {
-				return err
-			}
-			if old.Status != entity.KeyActive && old.Status != entity.KeyDisabled {
-				return errKeyConflict
-			}
-			// Recheck current scope and activation at confirmation, not just at
-			// rotation creation, so edits cannot broaden the replacement.
-			oldModels, err := keyModelIDs(tx, old.ID)
-			if err != nil {
-				return err
-			}
-			slices.Sort(models)
-			slices.Sort(oldModels)
-			if !slices.Equal(models, oldModels) || !sameExpiry(old.ExpiresAt, key.ExpiresAt) {
-				return errKeyConflict
-			}
-			key.ActivateOnConfirm = old.Status == entity.KeyActive
-			// Delivery is not application verification. Planned retirement is a
-			// separate operation backed by a successful replacement call fact.
-		}
-		key.Status = entity.KeyDisabled
-		if key.ActivateOnConfirm {
-			key.Status = entity.KeyActive
-		}
-		key.DeliveryExpiresAt = nil
-		if err := advancePersonalKeyRevision(key); err != nil {
-			return err
-		}
-		if err := tx.Save(key).Error; err != nil {
-			return err
-		}
-		if err := appendAudit(tx, userID, "key.confirm", "api_key", key.ID); err != nil {
-			return err
-		}
-		result = &KeyRecord{Key: *key, ModelIDs: models}
-		return nil
+		result, err = confirmAPIKeyDeliveryRecord(tx, userID, key, nil)
+		return err
 	})
 	releasePublication()
 	return result, s.refreshAfterMutation(ctx, keyServiceError(err))
+}
+
+func confirmAPIKeyDeliveryRecord(tx *gorm.DB, userID string, key *entity.APIKey, ack *entity.APIKeyVaultDeliveryBinding) (*KeyRecord, error) {
+	if err := apiKeyDeliveryConfirmMode(key.DeliveryMode, key.ID, key.CreatedAt, ack); err != nil {
+		return nil, err
+	}
+	if key.Status != entity.KeyPending || key.DeliveryExpiresAt == nil || !key.DeliveryExpiresAt.After(time.Now()) || (key.ExpiresAt != nil && !key.ExpiresAt.After(time.Now())) {
+		return nil, errKeyConflict
+	}
+	models, err := keyModelIDs(tx, key.ID)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateKeyModels(tx, userID, models); err != nil {
+		return nil, err
+	}
+	if key.ReplacesKeyID != nil {
+		old, err := lockOwnedKey(tx, userID, *key.ReplacesKeyID)
+		if err != nil {
+			return nil, err
+		}
+		if old.Status != entity.KeyActive && old.Status != entity.KeyDisabled {
+			return nil, errKeyConflict
+		}
+		// Recheck current scope and activation at confirmation, not just at
+		// rotation creation, so edits cannot broaden the replacement.
+		oldModels, err := keyModelIDs(tx, old.ID)
+		if err != nil {
+			return nil, err
+		}
+		slices.Sort(models)
+		slices.Sort(oldModels)
+		if !slices.Equal(models, oldModels) || !sameExpiry(old.ExpiresAt, key.ExpiresAt) {
+			return nil, errKeyConflict
+		}
+		key.ActivateOnConfirm = old.Status == entity.KeyActive
+		// Delivery is not application verification. Planned retirement is a
+		// separate operation backed by a successful replacement call fact.
+	}
+	key.Status = entity.KeyDisabled
+	if key.ActivateOnConfirm {
+		key.Status = entity.KeyActive
+	}
+	key.DeliveryExpiresAt = nil
+	if err := advancePersonalKeyRevision(key); err != nil {
+		return nil, err
+	}
+	if err := tx.Save(key).Error; err != nil {
+		return nil, err
+	}
+	if err := appendAudit(tx, userID, "key.confirm", "api_key", key.ID); err != nil {
+		return nil, err
+	}
+	return &KeyRecord{Key: *key, ModelIDs: models}, nil
 }
 
 func sameExpiry(a, b *time.Time) bool {
@@ -285,6 +320,11 @@ func (s *Service) UpdatePersonalKey(ctx context.Context, userID, keyID string, n
 			key.Name = *name
 		}
 		if enabled != nil {
+			if *enabled {
+				if err := apiKeyDeliveryRequireAcknowledged(tx, "personal", key.ID, key.CreatedAt, key.DeliveryMode); err != nil {
+					return err
+				}
+			}
 			key.Status = entity.KeyDisabled
 			if *enabled {
 				if key.ExpiresAt != nil && !key.ExpiresAt.After(time.Now()) {
@@ -332,6 +372,11 @@ func (s *Service) RevokePersonalKey(ctx context.Context, userID, keyID string) e
 		if err := changePersonalKeyStatus(tx, key, entity.KeyRevoked); err != nil {
 			return err
 		}
+		if key.DeliveryMode == "managed_vault" {
+			if err := apiKeyDeliveryRevokeCommands(tx, "personal", key.ID, key.CreatedAt); err != nil {
+				return err
+			}
+		}
 		return appendAudit(tx, userID, "key.revoke", "api_key", key.ID)
 	})
 	if err == nil {
@@ -346,7 +391,13 @@ func (s *Service) RotatePersonalKey(ctx context.Context, userID, keyID string) (
 	defer releasePublication()
 	var result *CreatedKey
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockGovernance(tx); err != nil {
+			return err
+		}
 		if err := lockActiveKeyOwner(tx, userID); err != nil {
+			return err
+		}
+		if err := apiKeyDeliveryManualAllowed(tx); err != nil {
 			return err
 		}
 		key, err := lockOwnedKey(tx, userID, keyID)
@@ -393,6 +444,9 @@ func (s *Service) AuthenticateAPIKey(ctx context.Context, bearer string) (*KeyRe
 	}
 	if err != nil {
 		return nil, apperrors.ErrInternal
+	}
+	if err := apiKeyDeliveryRequireAcknowledged(db, "personal", key.ID, key.CreatedAt, key.DeliveryMode); err != nil {
+		return nil, apperrors.ErrUnauthorized
 	}
 	if _, err := registrationAdmittedUser(db, key.UserID, false); err != nil {
 		return nil, keyServiceError(err)

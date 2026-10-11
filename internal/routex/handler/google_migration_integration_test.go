@@ -651,7 +651,7 @@ func testGoogleMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal("restore current V101 after historical V99", err)
 	}
 	current := personalKeyBehaviorLedger(t, db)
-	if len(current) != 101 || current[100].Version != 101 || current[99].Version != 100 || !reflect.DeepEqual(beforeCurrent, current[:99]) {
+	if len(current) != 102 || current[100].Version != 101 || current[101].Version != 102 || current[99].Version != 100 || !reflect.DeepEqual(beforeCurrent, current[:99]) {
 		t.Fatal("current V101 startup changed historical V99 ledger/version/time")
 	}
 	var observations int64

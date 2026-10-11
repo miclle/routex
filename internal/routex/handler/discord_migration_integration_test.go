@@ -7,6 +7,7 @@ import (
 	"github.com/miclle/routex/internal/routex/database"
 	"github.com/miclle/routex/internal/routex/entity"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"reflect"
 	"strings"
 	"sync"
@@ -180,6 +181,7 @@ func discordNoRetainedV101Authority(db *gorm.DB) error {
 
 func legacyDiscordBeforeV100(t *testing.T, db *gorm.DB) {
 	t.Helper()
+	legacyDeliveryBeforeV101(t, db)
 	rows := personalKeyBehaviorLedger(t, db)
 	if len(rows) == 100 {
 		for i, r := range rows {
@@ -230,6 +232,42 @@ func testDiscordMigration(t *testing.T, db *gorm.DB) {
 	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 	defer cancel()
 	db = db.WithContext(ctx)
+	current102 := personalKeyBehaviorLedger(t, db)
+	if len(current102) != 102 || deliveryPristineV102(db) != nil {
+		t.Fatal("pristine exact current102 prerequisite")
+	}
+	rollback := errors.New("delivery compatibility rollback")
+	for _, kind := range []string{"policy", "auth", "root_job", "root_proof"} {
+		if err := db.Transaction(func(tx *gorm.DB) error {
+			stamp := time.Now().UTC().Truncate(time.Microsecond)
+			var changed *gorm.DB
+			switch kind {
+			case "policy":
+				changed = tx.Model(&entity.APIKeyDeliveryPolicy{}).Where("id = ?", 1).UpdateColumn("review_revision", strings.Repeat("a", 64))
+			case "auth":
+				changed = tx.Create(&entity.APIKeyDeliveryAuth{ID: "dau_overlay_dirty", Purpose: "writer", IntegrationID: "vlt_overlay", IntegrationBirth: stamp, IntegrationRevision: strings.Repeat("a", 64), VaultRevisionID: "vlr_overlay", VaultRevisionBirth: stamp, Method: "token", SecretGeneration: "gen_overlay", AuthCiphertext: "schema-fixture-envelope-not-proof", CreatedAt: stamp, UpdatedAt: stamp})
+			case "root_job":
+				changed = tx.Create(&entity.SecretRotationJob{ID: "srj_overlay_dirty", SourceKeyID: "source", TargetKeyID: "target", CutoverEpoch: 1, ETag: strings.Repeat("a", 64), Status: "migrating", Phase: "migration", InventoryVersion: 9, Domain: 12, ScanGeneration: 1, CountsJSON: "{}"})
+			case "root_proof":
+				changed = tx.Create(&entity.SecretProcessVerification{ProcessID: "spv_overlay_dirty", InventoryVersion: 9, PolicyEpoch: 1, KeyManifestDigest: strings.Repeat("a", 64), CryptoVersion: 2, RuntimeSourceDigest: strings.Repeat("b", 64), VerifiedAt: stamp})
+			default:
+				return errors.New("unknown dirty control")
+			}
+			if changed.Error != nil || changed.RowsAffected != 1 {
+				return errors.New("dirty delivery setup failed")
+			}
+			if deliveryPristineV102(tx) == nil {
+				return errors.New("retained delivery authority admitted")
+			}
+			return rollback
+		}); !errors.Is(err, rollback) {
+			t.Fatal("delivery pristine denial", kind, err)
+		}
+		if !reflect.DeepEqual(current102, personalKeyBehaviorLedger(t, db)) || deliveryPristineV102(db) != nil {
+			t.Fatal("dirty control altered pristine102", kind)
+		}
+	}
+	legacyDeliveryBeforeV101(t, db)
 	original := personalKeyBehaviorLedger(t, db)
 	if len(original) != 101 {
 		t.Fatal("exact current101 ledger")
@@ -264,7 +302,7 @@ func testDiscordMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	githubBefore, googleBefore := readProvider("github"), readProvider("google")
-	for _, bound := range []int{0, -1, 100, 102} {
+	for _, bound := range []int{0, -1, 100, 103} {
 		if database.MigrateThrough(ctx, db, bound) == nil || !reflect.DeepEqual(original, personalKeyBehaviorLedger(t, db)) {
 			t.Fatal("invalid/newer bound admitted", bound)
 		}
@@ -477,7 +515,7 @@ func testDiscordMigration(t *testing.T, db *gorm.DB) {
 	}
 	migrate := func() {
 		t.Helper()
-		if e := database.Migrate(ctx, db); e != nil {
+		if e := database.MigrateThrough(ctx, db, 101); e != nil {
 			t.Fatal("V101 startup", e)
 		}
 		ledger(true)
@@ -489,7 +527,7 @@ func testDiscordMigration(t *testing.T, db *gorm.DB) {
 	var wg sync.WaitGroup
 	results := make(chan error, 2)
 	for range 2 {
-		wg.Go(func() { results <- database.Migrate(ctx, db) })
+		wg.Go(func() { results <- database.MigrateThrough(ctx, db, 101) })
 	}
 	wg.Wait()
 	close(results)
@@ -711,6 +749,18 @@ func testDiscordMigration(t *testing.T, db *gorm.DB) {
 	if !reflect.DeepEqual(discordBefore, readProvider("discord")) {
 		t.Fatal("constraint controls changed configured seed")
 	}
+	before102 := personalKeyBehaviorLedger(t, db)
+	if len(before102) != 101 {
+		t.Fatal("exact immediate pre102 prefix")
+	}
+	if err := database.Migrate(ctx, db); err != nil {
+		t.Fatal("restore full V102", err)
+	}
+	after102 := personalKeyBehaviorLedger(t, db)
+	if len(after102) != 102 || after102[101].Version != 102 || !reflect.DeepEqual(before102, after102[:101]) {
+		t.Fatal("V102 restoration changed historical101 receipts")
+	}
+	retained()
 }
 
 // V8 admits Discord in the existing eleven-domain envelope; old receipts keep their versions.
@@ -779,5 +829,138 @@ func discordAssertRootInventoryV101(t *testing.T, db *gorm.DB) {
 		if err := db.Model(row.model).Where(row.column+" = ?", row.value).Count(&count).Error; err != nil || count != 0 {
 			t.Fatal("root constraint fixture leaked rows", err)
 		}
+	}
+}
+
+// The integration-only overlay never discards configured delivery, managed Keys,
+// retained auth, or V9 observation authority. Historical schemas stay literal.
+var deliveryCompatibilityTablesV102 = []string{
+	"api_key_delivery_commands", "api_key_vault_delivery_bindings", "api_key_delivery_slots",
+	"vault_principal_isolation_attestations", "vault_principal_bindings", "vault_access_profiles",
+	"api_key_delivery_consumers", "api_key_caller_templates", "api_key_delivery_auth", "api_key_delivery_policies",
+}
+
+type deliveryCompatibilityPersonalV102 struct {
+	DeliveryMode string `gorm:"column:delivery_mode;size:20;not null;default:manual"`
+}
+
+func (deliveryCompatibilityPersonalV102) TableName() string { return "api_keys" }
+
+type deliveryHistoricalProjectModeV101 struct {
+	DeliveryMode string `gorm:"size:20;not null;check:ck_project_keys_delivery,delivery_mode = 'manual'"`
+}
+
+func (deliveryHistoricalProjectModeV101) TableName() string { return "project_api_keys" }
+func deliveryCompatibilityLedger(db *gorm.DB) ([]personalKeyBehaviorMigrationEntry, error) {
+	var rows []personalKeyBehaviorMigrationEntry
+	err := db.Table("schema_migrations").Order("version").Find(&rows).Error
+	return rows, err
+}
+func deliveryPristineV102(db *gorm.DB) error {
+	rows, err := deliveryCompatibilityLedger(db)
+	if err != nil || len(rows) != 100 && len(rows) != 101 && len(rows) != 102 {
+		return errors.New("delivery overlay unexpected ledger")
+	}
+	for i, row := range rows {
+		if row.Version != i+1 {
+			return errors.New("delivery overlay noncontiguous ledger")
+		}
+	}
+	if len(rows) < 102 {
+		for _, table := range deliveryCompatibilityTablesV102 {
+			if db.Migrator().HasTable(table) {
+				return errors.New("delivery overlay retained future table")
+			}
+		}
+		if db.Migrator().HasColumn(&deliveryCompatibilityPersonalV102{}, "DeliveryMode") {
+			return errors.New("delivery overlay retained future Key column")
+		}
+		return nil
+	}
+	for _, table := range deliveryCompatibilityTablesV102 {
+		if !db.Migrator().HasTable(table) {
+			return errors.New("delivery overlay incomplete current schema")
+		}
+		var count int64
+		if db.Table(table).Count(&count).Error != nil {
+			return errors.New("delivery overlay table unreadable")
+		}
+		expected := int64(0)
+		if table == "api_key_delivery_policies" {
+			expected = 1
+		}
+		if count != expected {
+			return errors.New("delivery overlay retained delivery data")
+		}
+	}
+	var policy entity.APIKeyDeliveryPolicy
+	if db.Session(&gorm.Session{QueryFields: true}).Take(&policy, "id = ?", 1).Error != nil || policy.CreatedAt.IsZero() || policy.UpdatedAt.IsZero() {
+		return errors.New("delivery overlay policy unavailable")
+	}
+	pristine := entity.APIKeyDeliveryPolicy{ID: 1, ReviewRevision: strings.Repeat("0", 64), SecurityRevision: strings.Repeat("0", 64), AllowManual: true, DefaultMode: "manual", CreatedAt: policy.CreatedAt, UpdatedAt: policy.UpdatedAt}
+	if !reflect.DeepEqual(policy, pristine) {
+		return errors.New("delivery overlay configured policy")
+	}
+	if !db.Migrator().HasColumn(&deliveryCompatibilityPersonalV102{}, "DeliveryMode") {
+		return errors.New("delivery overlay missing current Key column")
+	}
+	for _, table := range []string{"api_keys", "project_api_keys"} {
+		var count int64
+		if db.Table(table).Where(clause.Not(database.ExactText(db, clause.Column{Name: "delivery_mode"}, "manual"))).Count(&count).Error != nil || count != 0 {
+			return errors.New("delivery overlay retained managed or unknown Key")
+		}
+	}
+	for _, table := range []string{"secret_rotation_jobs", "secret_process_verifications"} {
+		var count int64
+		if db.Table(table).Where("inventory_version >= ?", 9).Count(&count).Error != nil || count != 0 {
+			return errors.New("delivery overlay retained V9 authority")
+		}
+	}
+	var count int64
+	if db.Table("secret_rotation_items").Where("domain = ?", "api_key_delivery_auth").Count(&count).Error != nil || count != 0 {
+		return errors.New("delivery overlay retained auth item")
+	}
+	return nil
+}
+func legacyDeliveryBeforeV101(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	rows := personalKeyBehaviorLedger(t, db)
+	if err := deliveryPristineV102(db); err != nil {
+		t.Fatal("pristine V102 rewind", err)
+	}
+	if len(rows) < 102 {
+		return
+	}
+	if database.MigrateThrough(db.Statement.Context, db, 101) == nil || !reflect.DeepEqual(rows, personalKeyBehaviorLedger(t, db)) {
+		t.Fatal("bounded101 must reject current102 before DDL")
+	}
+	for _, v := range []struct {
+		model any
+		name  string
+	}{
+		{&discordFixtureRootJobV101{}, "ck_secret_inventory_version"},
+		{&discordFixtureRootJobV101{}, "ck_secret_rotation_domain"},
+		{&discordFixtureRootProcessV101{}, "ck_secret_process_inventory_version"},
+		{&githubFixtureRootItemV98{}, "ck_secret_item_domain"},
+		{&deliveryHistoricalProjectModeV101{}, "ck_project_keys_delivery"},
+	} {
+		if db.Migrator().DropConstraint(v.model, v.name) != nil || db.Migrator().CreateConstraint(v.model, v.name) != nil {
+			t.Fatal("restore frozen pre102 CHECK", v.name)
+		}
+	}
+	if db.Migrator().DropConstraint(&deliveryCompatibilityPersonalV102{}, "ck_api_keys_delivery_mode") != nil || db.Migrator().DropColumn(&deliveryCompatibilityPersonalV102{}, "DeliveryMode") != nil {
+		t.Fatal("remove only V102 Personal mode")
+	}
+	for _, table := range deliveryCompatibilityTablesV102 {
+		if db.Migrator().DropTable(table) != nil {
+			t.Fatal("remove only pristine V102 table", table)
+		}
+	}
+	removed := db.Table("schema_migrations").Where("version = ?", 102).Delete(&struct{}{})
+	if removed.Error != nil || removed.RowsAffected != 1 || !reflect.DeepEqual(rows[:101], personalKeyBehaviorLedger(t, db)) {
+		t.Fatal("remove only102 preserving every101 receipt")
+	}
+	if err := deliveryPristineV102(db); err != nil {
+		t.Fatal("rewound101 retained V102 facts", err)
 	}
 }

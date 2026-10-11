@@ -8,6 +8,14 @@ Use GORM model tags, query builders, transactions, and Migrator APIs for ordinar
 
 Driver imports, dialect switches, vendor-specific locking, collation compatibility, and any missing error adapters belong in `internal/routex/database/`. Handlers, services, and entities must not inspect SQLSTATE or driver error numbers. Portable, parameterized query expressions are permitted within GORM queries; this policy does not prohibit ordinary joins or predicates.
 
+## Database diagnostics
+
+Connection setup keeps GORM logging silent until configuration has been validated.
+A successfully opened database uses the local Warn threshold: ordinary SQL traces
+are suppressed, while slow-query warnings and query errors retain the existing
+adapter behavior. This does not change the process-wide application log level or
+increase test-controller output limits.
+
 ## Versioned schema changes
 
 A migration version is an immutable function over a ready GORM database handle. Its private schema structs represent that version permanently and declare explicit table names, sizes, precision, indexes, and relationships. Never alias a frozen schema to a current business entity: changing the entity would silently change historical upgrades.
@@ -1685,3 +1693,56 @@ concurrency, genuine restart and authentication-lifecycle qualification in the
 separately delivered V100 phase. [Implementation](IMPLEMENTATION.md) records its
 source-bound evidence; browser and wider release acceptance remain separate.
 See [Gateway installation observations](RUNTIME_INSTALLATIONS.md).
+
+## Prepared API-Key delivery and root inventory V9 (V102)
+
+The private candidate's frozen GORM V102 follows V101 without modifying released
+steps. Its ten new tables separate configuration, exact resource identity,
+reviewed isolation, destination binding and durable one-shot dispatch:
+
+| Table | Purpose |
+| --- | --- |
+| `api_key_delivery_policies` | Singleton allowed/default modes and exact dependency/security review. |
+| `api_key_delivery_auth` | Independent retained encrypted Writer/Provisioner authentication. |
+| `api_key_caller_templates` | Explicit JWT trust/audience/subject and bounded caller-token TTL. |
+| `api_key_delivery_consumers` | Stable exact-owner application identity. |
+| `vault_access_profiles` | Owner/Consumer/environment target and revision-bound readiness. |
+| `vault_principal_bindings` | Exact Principal identity and scoped control approval. |
+| `vault_principal_isolation_attestations` | Immutable current-tuple operator attestation or revocation history. |
+| `api_key_delivery_slots` | Exact destination/descriptor revision identity. |
+| `api_key_vault_delivery_bindings` | Immutable Key/destination/security facts and delivery acknowledgement. |
+| `api_key_delivery_commands` | Canonical intent, pre-I/O claim and safe terminal outcome. |
+
+The Personal Key mode is non-null with historical `manual` backfill. Existing
+Project modes are validated without rewriting their stored meaning; the same-name
+Project mode CHECK is deliberately replaced to admit exact `managed_vault`.
+Byte-length/ASCII constraints avoid MySQL padding/collation aliases. Mode changes
+are replacement operations, not mutations of an existing Key. No bearer or caller
+JWT/Token is persisted. The manual-only policy singleton seeds no trusted auth,
+JWT template, target, approval, isolation, READY proof or acknowledged delivery.
+
+Frozen columns, microsecond births, exact indexes, unique owner/resource/intent
+relationships and retained-row CHECK validity are verified before the version
+ledger is published. Nonempty incompatible partial tables reject; bounded compatible
+partial MySQL DDL resumes through GORM Migrator operations, without assuming DDL
+rollback. Existing ledger prefixes and independent historical projections retain
+their meanings. The initial caller-token constraint is positive TTL no greater than
+its configured max-TTL, with max-TTL at most 3600 seconds. Changing this frozen cap
+requires a new migration; it is not a restriction on RouteX Key lifetime.
+
+Root inventory V9 appends `api_key_delivery_auth` as domain twelve, including all
+retained nonempty Writer/Provisioner envelopes. A purpose-bound typed-tuple digest
+keeps the existing reference width while binding auth ID/birth/generation,
+integration ID/birth/security revision and exact retained VaultRevision ID/birth.
+It is private encryption context, not Principal-control/isolation authority.
+Historical V1/V2/V3/V4/V5 retain five/seven/eight/nine/ten domains; V6/V7/V8 retain
+their distinct eleven-domain named-identity coverage. Earlier completed jobs,
+observations and verification receipts never acquire V9 coverage retrospectively.
+
+V102/V9 acceptance is recorded by its exact source and real PostgreSQL/MySQL
+empty, retained upgrade, repeat, concurrent startup, partial-DDL and constraint/index
+receipts: Passed in the original full R4 matrix: PostgreSQL 527/527 and MySQL 527/527 named events; the same accepted matrix covers the delivery application/migration focus (receipt SHA-256 b230505fca07df2728033c6da2d68fbe7a478ad622583d2532034e6edb0739c3). Existing SDK evidence
+is independent. The existing prepared-section anchor remains for stable links;
+its heading is not an acceptance receipt.
+See [API-Key delivery](API_KEY_DELIVERY.md) for authority, uncertainty, local-only
+publication recovery and pending browser/external caller boundaries.

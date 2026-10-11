@@ -4,11 +4,11 @@ Personal Keys authenticate native gateway requests independently of browser sess
 
 ## Delivery and lifecycle
 
-Creation returns an `rx_` bearer value once. The database stores only its SHA-256 digest and a short display prefix. List, edit, audit, and error responses never return the bearer or digest. The UI keeps delivery values outside React Query caches and persistent browser storage.
+Manual creation returns an `rx_` bearer value once. The database stores only its SHA-256 digest and a short display prefix. List, edit, audit, and error responses never return the bearer or digest. The UI keeps delivery values outside React Query caches and persistent browser storage.
 
-A new Key is `pending` and cannot authenticate. The owner must confirm delivery within ten minutes. Closing or canceling the delivery dialog revokes the pending Key. An expired pending delivery remains unusable and cannot be confirmed. Active Keys can be renamed, disabled, re-enabled, or permanently revoked. An expired Key cannot be re-enabled. Revocation is terminal.
+A new manually delivered Key is `pending` and cannot authenticate. The owner must confirm delivery within ten minutes. Closing or canceling the delivery dialog revokes the pending Key. An expired pending delivery remains unusable and cannot be confirmed. Active Keys can be renamed, disabled, re-enabled, or permanently revoked. An expired Key cannot be re-enabled. Revocation is terminal.
 
-Rotation creates a pending replacement with the original model scope, expiration, and activation state. Confirmation locks both records, rechecks scope and source state, and activates the replacement without revoking the original. Multiple confirmed replacements can coexist during rollout; none silently retires the source. Canceling a replacement does not revoke the original. Rotating a disabled Key preserves its disabled state.
+Manual rotation creates a pending replacement with the original model scope, expiration, and activation state. Confirmation locks both records, rechecks scope and source state, and activates the replacement without revoking the original. Multiple confirmed replacements can coexist during rollout; none silently retires the source. Canceling a replacement does not revoke the original. Rotating a disabled Key preserves its disabled state.
 
 Planned retirement is a separate operation. The replacement must be active and unexpired, retain the same scope and expiry, and have a persisted successful gateway call made after its creation by the exact personal owner and replacement Key, whose last attempt is successful and carries exact native `completed` evidence. HTTP acceptance, known usage, empty or unknown native results, tool handoffs, blocked or truncated responses, canceled or failed attempts, absent attempts, and an earlier completion followed by another attempt do not qualify. Neither do Project-attributed calls, another user's calls, the original Key's calls, or delivery confirmation. Once the application has switched and that evidence is available, the owner completes rotation explicitly to revoke the original. Durable call recording can delay eligibility until the completed fact reaches the database. A bounded GORM projection rechecks immutable owner, Key, request, status, native marker, ordinal and creation boundary exactly in Go; database collation cannot promote mismatched evidence. A corrupt latest candidate conservatively requires a fresh qualifying call.
 
@@ -30,13 +30,42 @@ All routes use the `/api/v1` prefix and require a browser session. Writes requir
 | POST | `/keys/:key_id/rotate` | Return 201 `{key, secret}` for a pending replacement |
 | POST | `/keys/:key_id/complete-rotation` | Accept `{replacement_key_id}`; return 204 after verified retirement, or 409 until eligible |
 
-Key fields are `id`, `name`, `prefix`, `status`, `model_ids`, `expires_at`, `created_at`, `replaces_key_id`, and `delivery_expires_at`. Expiration timestamps may be null. Mutations and their secret-free audit records commit in the same database transaction.
+Key fields are `id`, `name`, `prefix`, `status`, `model_ids`, `expires_at`, `created_at`, `replaces_key_id`, `delivery_expires_at`, and immutable `delivery_mode` (`manual` or `managed_vault`). Expiration timestamps may be null. Mutations and their secret-free audit records commit in the same database transaction.
 
 ## Verification and remaining scope
 
 `handler/apikey_integration_test.go` and `handler/apikey_rotation_integration_test.go` run in the shared disposable-database harness on PostgreSQL and MySQL. They cover pending rejection, digest-only storage, disclosure boundaries, CSRF, explicit model grants, immediate grant revocation, cancellation, concurrent confirmation and retirement, disabled rotation, expired delivery, ownership, terminal revocation, restart behavior, and audit persistence. Rotation acceptance uses a real native-completed HTTP upstream call. Actual HTTP 200 empty, refused, tool-handoff and output-limit fixtures remain ineligible. Adversarial immutable facts cover wrong-user, wrong-Key, Project-attributed, pre-creation, missing, canceled, failed, nonterminal and raw case-folded evidence. Independent database pools race completion and prove durable, single-audit retirement and historical retry semantics. Frontend tests cover confirmation, cancel/revoke failures, bilingual completion guidance and secret cache isolation.
 
-[Project Keys](PROJECT_KEYS.md) have independent ownership and authorization. Token and money limits, RPM/TPM/concurrency and IP restrictions are implemented through the separate [resource-limits API](RESOURCE_LIMITS.md). External delivery and delivery Profiles remain later work packages. Production gateway authorization uses the immutable runtime snapshot and its bounded lease, with synchronous refresh and denial markers after reductions. Database-backed authentication remains available for service use when runtime snapshots are not started. Key lists retain revoked history; pagination, richer history presentation, and delivery policy configuration remain separate follow-up slices.
+[Project Keys](PROJECT_KEYS.md) have independent ownership and authorization. Token and money limits, RPM/TPM/concurrency and IP restrictions are implemented through the separate [resource-limits API](RESOURCE_LIMITS.md). Managed delivery and application Profiles have the separate bounded [API-Key delivery](API_KEY_DELIVERY.md) contract. Production gateway authorization uses the immutable runtime snapshot and its bounded lease, with synchronous refresh and denial markers after reductions. Database-backed authentication remains available for service use when runtime snapshots are not started. Key lists retain revoked history; pagination and richer history presentation remain separate follow-up slices.
+
+## Managed Vault delivery
+
+Personal Keys have an immutable `delivery_mode`: `manual` or `managed_vault`.
+Historical Keys remain manual. The existing create, confirm and rotate routes
+above describe manual delivery; manual issuance is allowed only by the current
+delivery policy. A managed Key cannot be confirmed through the manual
+endpoint, enabled or admitted without its exact acknowledged delivery binding.
+
+Managed issuance uses the separate `/keys/managed` endpoint after explicit target
+resolution and fresh review of a READY target. Resolution alone issues no Key and
+approves no Principal. Acknowledgement and runtime publication are reported
+separately; pending or unknown receipts are not usable bearer delivery. No managed
+response, descriptor or subsequent read returns the Key secret.
+
+Managed rotation uses `/:key_id/managed-rotation`, retains the immutable source
+mode, target and owner, and derives replacement metadata on the server. A disabled
+source remains disabled; acknowledgement without confirmed local publication
+provides no usable descriptor. The predecessor is not automatically revoked.
+The persisted exact-owner native-completed retirement gate above still applies:
+Vault acknowledgement, copying a descriptor and successful JWT login are not
+replacement inference evidence.
+
+Owner receipts and publication reconciliation use the original UUID and reviewed
+ETag. A headerless or otherwise unknown write cannot be replayed or settled by
+reading Vault. Eligible acknowledged publication recovery is local only; it does
+not repeat the Writer operation or recover the bearer. Current Session, owner and
+resource facts are required again. See [API-Key delivery](API_KEY_DELIVERY.md) for
+the exact endpoints, current authorization and uncertainty contract.
 
 ## Administrative Member Keys
 

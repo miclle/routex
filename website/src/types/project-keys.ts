@@ -10,7 +10,7 @@ export interface ProjectKey {
   created_at: string
   replaces_key_id: string | null
   delivery_expires_at: string | null
-  delivery_mode: 'manual'
+  delivery_mode?: 'manual' | 'managed_vault'
 }
 export interface ProjectKeyPage {
   items: ProjectKey[]

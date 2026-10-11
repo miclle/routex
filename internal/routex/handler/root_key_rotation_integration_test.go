@@ -977,7 +977,11 @@ func testRootKeyRotationLifecycle(t *testing.T, db *gorm.DB) {
 	if observing.Rotation == nil || observing.Rotation.Status != "observing" || observing.Rotation.ObservationStartedAt == nil || observing.Rotation.ObservationEligibleAt == nil || observing.Rotation.ObservationEligibleAt.Sub(*observing.Rotation.ObservationStartedAt) != 300*time.Second || slices.Contains(observing.Rotation.AllowedActions, "retire") {
 		t.Fatalf("migration progress bypassed server observation: %+v", observing.Rotation)
 	}
-	expectedDomains := map[string]uint64{"provider_credentials": 2, "egresses": 1, "smtp_settings": 1, "storage_revisions": 25, "user_mfa": 4, "vault_writer_auth": 2, "vault_reader_auth": 2, "oidc_providers": 1, "oauth_providers": 1, "ldap_providers": 1, "named_identity_providers": 2}
+	var deliveryAuthCount int64
+	if err := db.Model(&entity.APIKeyDeliveryAuth{}).Count(&deliveryAuthCount).Error; err != nil || deliveryAuthCount != 0 {
+		t.Fatal("controlled global rotation unexpectedly retained delivery authentication", deliveryAuthCount, err)
+	}
+	expectedDomains := map[string]uint64{"provider_credentials": 2, "egresses": 1, "smtp_settings": 1, "storage_revisions": 25, "user_mfa": 4, "vault_writer_auth": 2, "vault_reader_auth": 2, "oidc_providers": 1, "oauth_providers": 1, "ldap_providers": 1, "named_identity_providers": 2, "api_key_delivery_auth": 0}
 	if len(observing.Rotation.Domains) != len(expectedDomains) {
 		t.Fatal("global observation omitted a retained encryption domain")
 	}
@@ -992,6 +996,9 @@ func testRootKeyRotationLifecycle(t *testing.T, db *gorm.DB) {
 			number, err := strconv.ParseUint(text, 10, 64)
 			if err != nil || strconv.FormatUint(number, 10) != text {
 				t.Fatal("domain work count lost exact decimal-string encoding", domain.Code, text)
+			}
+			if domain.Code == "api_key_delivery_auth" && number != 0 {
+				t.Fatal("empty delivery authentication inventory reported unexpected work", text)
 			}
 		}
 		rewrapped, _ := strconv.ParseUint(domain.Rewrapped, 10, 64)

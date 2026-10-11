@@ -8,6 +8,8 @@ import client from '@/api/client'
 import i18n from '@/i18n'
 import en from '@/i18n/locales/en/projectKeys'
 import zh from '@/i18n/locales/zh/projectKeys'
+import ownerEn from '@/i18n/locales/en/keyDeliveryOwner'
+import ownerZh from '@/i18n/locales/zh/keyDeliveryOwner'
 import type { ResourceRecord } from '@/types/resources'
 import type { ProjectKey } from '@/types/project-keys'
 import ProjectKeysPanel from './index'
@@ -24,10 +26,10 @@ let permissions: string[]
 let paginated: boolean
 const originalAdapter = client.defaults.adapter
 const bearer = 'rxp_once_fixture_secret'
-const base = '/projects/prj_one/keys'
+const base = '/projects/prj_01m36yee4gkbns18pfcqqc75a3/keys'
 const fixtureKey = (id = 'pky_old', status: ProjectKey['status'] = 'active'): ProjectKey => ({
   id,
-  project_id: 'prj_one',
+  project_id: 'prj_01m36yee4gkbns18pfcqqc75a3',
   creator_id: 'usr_departed',
   name: id === 'pky_old' ? 'Production' : 'Replacement',
   prefix: 'rxp_masked',
@@ -41,9 +43,11 @@ const fixtureKey = (id = 'pky_old', status: ProjectKey['status'] = 'active'): Pr
 })
 beforeEach(() => {
   i18n.addResourceBundle('en', 'projectKeys', en, true, true)
+  i18n.addResourceBundle('en', 'keyDeliveryOwner', ownerEn, true, true)
+  i18n.addResourceBundle('zh', 'keyDeliveryOwner', ownerZh, true, true)
   i18n.addResourceBundle('zh', 'projectKeys', zh, true, true)
   project = {
-    id: 'prj_one',
+    id: 'prj_01m36yee4gkbns18pfcqqc75a3',
     name: 'Project',
     description: '',
     status: 'active',
@@ -81,6 +85,16 @@ beforeEach(() => {
         csrf_token: 'csrf',
       }
     if (route === 'get /auth/permissions') response.data = { permissions }
+    if (route === `get ${base}/delivery-context`) {
+      response.data = {
+        allowed_modes: ['manual'],
+        default_mode: 'manual',
+        managed_available: false,
+        failure_code: 'not_configured',
+        review_etag: 'a'.repeat(64),
+      }
+      response.headers.set('etag', '"' + 'a'.repeat(64) + '"')
+    }
     if (route === `get ${base}`) {
       const filtered = keys.filter(
         (key) => !config.params?.status || key.status === config.params.status,
@@ -191,6 +205,7 @@ async function createDelivery() {
   await render()
   await until(() => expect(button('Create project key').disabled).toBe(false))
   await click('Create project key')
+  await until(() => expect(document.querySelector('input[name="name"]')).not.toBeNull())
   await fill('name', 'Application')
   await act(async () =>
     document.querySelector<HTMLInputElement>('input[name="model_ids"]')!.click(),
@@ -383,6 +398,7 @@ describe('Project key lifecycle', () => {
     await render()
     await until(() => expect(button('Create project key').disabled).toBe(false))
     await click('Create project key')
+    await until(() => expect(document.querySelector('input[name="name"]')).not.toBeNull())
     await fill('name', 'Draft')
     await submit()
     expect(document.querySelector('[role="dialog"] [role="alert"]')?.textContent).toBe(
@@ -432,15 +448,28 @@ describe('Project key lifecycle', () => {
     await createDelivery()
     project = { ...project, status: 'archived' }
     await render()
-    expect(button('Confirm delivery').disabled).toBe(true)
-    await act(async () =>
-      document
-        .querySelector<HTMLButtonElement>('[role="dialog"] button[aria-label="Close"]')!
-        .click(),
-    )
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
     await until(() => expect(document.body.textContent).not.toContain(bearer))
     expect(
       requests.some((request) => request.method === 'delete' || request.url?.endsWith('/confirm')),
     ).toBe(false)
+  })
+  it('hides rows and dialogs during Session renewal and clears the one-time secret without confirming', async () => {
+    await createDelivery()
+    await act(async () =>
+      cache.setQueryData(['auth', 'session'], (value: any) => ({
+        ...value,
+        csrf_token: 'renewed-csrf',
+      })),
+    )
+    expect(document.body.textContent).not.toContain(bearer)
+    expect(
+      requests.some((request) => request.url?.endsWith('/confirm') || request.method === 'delete'),
+    ).toBe(false)
+    await act(async () =>
+      cache.invalidateQueries({ queryKey: ['project-keys', project.id], refetchType: 'none' }),
+    )
+    expect(container.querySelectorAll('tbody tr')).toHaveLength(0)
+    expect(button('Create project key').disabled).toBe(true)
   })
 })

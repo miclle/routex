@@ -1,5 +1,5 @@
 import ResourceLimits from '@/views/resource-limits'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Copy, Plus } from 'lucide-react'
@@ -13,6 +13,15 @@ import { Dialog } from '@/components/ui/dialog'
 import { Drawer } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
 import { Table } from '@/components/ui/table'
+import KeyIssueDialog from '@/views/key-delivery/owner'
+import DeliveryReceiptDialog from '@/views/key-delivery/receipt'
+import {
+  useOwnerAuthority,
+  ObsoleteOwnerOperation,
+  type OwnerTicket,
+} from '@/views/key-delivery/lifetime'
+import { getKeyDeliveryContext } from '@/api/key-delivery'
+import type { KeyDeliveryOwner } from '@/types/key-delivery'
 import type { ResourceRecord } from '@/types/resources'
 import type { CreateProjectKey, ProjectKey, ProjectKeyDelivery } from '@/types/project-keys'
 
@@ -21,6 +30,11 @@ export default function ProjectKeysPanel({ project }: { project: ResourceRecord 
 }
 function ProjectKeys({ project }: { project: ResourceRecord }) {
   const { t, i18n } = useTranslation('projectKeys')
+  const { t: deliveryText } = useTranslation('keyDeliveryOwner')
+  const owner = useMemo<KeyDeliveryOwner>(
+    () => ({ kind: 'project', projectId: project.id }),
+    [project.id],
+  )
   const session = useSession()
   const access = usePermissions()
   const cache = useQueryClient()
@@ -37,6 +51,9 @@ function ProjectKeys({ project }: { project: ResourceRecord }) {
   }, [allowed])
   const [filter, setFilter] = useState('')
   const [creating, setCreating] = useState(false)
+  const [rotating, setRotating] = useState<ProjectKey | null>(null)
+  const [receipt, setReceipt] = useState<{ keyId: string; requestId?: string } | null>(null)
+  const [deliverySession, setDeliverySession] = useState('')
   const [delivery, setDelivery] = useState<ProjectKeyDelivery | null>(null)
   const [saved, setSaved] = useState(false)
   const [viewing, setViewing] = useState<ProjectKey | null>(null)
@@ -45,21 +62,62 @@ function ProjectKeys({ project }: { project: ResourceRecord }) {
     key: ProjectKey
   } | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const [validation, setValidation] = useState<string | null>(null)
   const keys = useInfiniteQuery({
-    queryKey: ['project-keys', project.id, filter],
+    queryKey: ['project-keys', project.id, filter, session.data?.user.id],
     queryFn: ({ pageParam, signal }) => listProjectKeys(project.id, filter, pageParam, signal),
     initialPageParam: null as string | null,
     getNextPageParam: (page) => page.next_cursor ?? undefined,
     enabled: allowed,
   })
   const candidates = useInfiniteQuery({
-    queryKey: ['project-key-replacements', project.id],
+    queryKey: ['project-key-replacements', project.id, session.data?.user.id],
     queryFn: ({ pageParam, signal }) => listProjectKeys(project.id, 'active', pageParam, signal),
     initialPageParam: null as string | null,
     getNextPageParam: (page) => page.next_cursor ?? undefined,
     enabled: allowed && action?.kind === 'complete',
   })
+  const resourceGeneration = JSON.stringify([
+    project.id,
+    project.created_at,
+    project.status,
+    project.model_ids,
+    project.managers,
+  ])
+  const authority = useOwnerAuthority(owner, allowed, resourceGeneration)
+  const actorLifetime = useRef({ actor: authority.actor })
+  useLayoutEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Session or resource renewal must destroy one-time secrets and private action state
+    setDelivery(null)
+    setSaved(false)
+    setViewing(null)
+    setAction(null)
+    if (actorLifetime.current.actor !== authority.actor) {
+      actorLifetime.current.actor = authority.actor
+      setCreating(false)
+      setRotating(null)
+      setReceipt(null)
+      setNotice(null)
+    }
+  }, [authority.sessionVersion, authority.actor, actorLifetime, resourceGeneration])
+  function admit() {
+    try {
+      const ticket = authority.capture()
+      authority.finish(ticket)
+      return true
+    } catch {
+      return false
+    }
+  }
+  async function authorized<T>(run: (ticket: OwnerTicket) => Promise<T>): Promise<T> {
+    const ticket = authority.capture()
+    try {
+      const value = await run(ticket)
+      if (!authority.current(ticket)) throw new ObsoleteOwnerOperation()
+      return value
+    } finally {
+      authority.finish(ticket)
+    }
+  }
   const refresh = async () => {
     await Promise.all([
       cache.invalidateQueries({ queryKey: ['project-keys', project.id] }),
@@ -68,12 +126,20 @@ function ProjectKeys({ project }: { project: ResourceRecord }) {
   }
   const issue = useMutation({
     mutationFn: async (input: CreateProjectKey | { key_id: string }) => {
-      // Never return the one-time secret into a React Query mutation cache.
-      const result = await issueProjectKey(project.id, input, session.data!.csrf_token)
-      setDelivery(result)
-      setSaved(false)
-      setCreating(false)
-      setNotice(null)
+      await authorized(async (ticket) => {
+        if ('key_id' in input) {
+          const policy = await getKeyDeliveryContext(owner, ticket.controller.signal)
+          if (!authority.current(ticket) || !policy.allowed_modes.includes('manual'))
+            throw new ObsoleteOwnerOperation()
+        }
+        const result = await issueProjectKey(project.id, input, ticket.csrf)
+        if (!authority.current(ticket)) throw new ObsoleteOwnerOperation()
+        setDeliverySession(authority.sessionVersion)
+        setDelivery(result)
+        setSaved(false)
+        setCreating(false)
+        setNotice(null)
+      })
     },
     gcTime: 0,
     onSuccess: refresh,
@@ -89,7 +155,10 @@ function ProjectKeys({ project }: { project: ResourceRecord }) {
       method: 'patch' | 'delete' | 'post'
       data?: unknown
       suffix?: string
-    }) => changeProjectKey(project.id, key.id, method, session.data!.csrf_token, data, suffix),
+    }) =>
+      authorized((ticket) =>
+        changeProjectKey(project.id, key.id, method, ticket.csrf, data, suffix),
+      ),
     onSuccess: (_, input) => {
       if (input.suffix === '/complete-rotation') setNotice('completed')
       setAction(null)
@@ -98,13 +167,15 @@ function ProjectKeys({ project }: { project: ResourceRecord }) {
   })
   const finish = useMutation({
     mutationFn: (confirm: boolean) =>
-      changeProjectKey(
-        project.id,
-        delivery!.key.id,
-        confirm ? 'post' : 'delete',
-        session.data!.csrf_token,
-        confirm ? {} : undefined,
-        confirm ? '/confirm' : '',
+      authorized((ticket) =>
+        changeProjectKey(
+          project.id,
+          delivery!.key.id,
+          confirm ? 'post' : 'delete',
+          ticket.csrf,
+          confirm ? {} : undefined,
+          confirm ? '/confirm' : '',
+        ),
       ),
     onSuccess: (_, confirmed) => {
       setNotice(confirmed ? (delivery?.key.replaces_key_id ? 'rotationNotice' : 'confirmed') : null)
@@ -123,41 +194,23 @@ function ProjectKeys({ project }: { project: ResourceRecord }) {
     value
       ? new Date(value).toLocaleString(i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US')
       : t('never')
-  const rows = keys.data?.pages.flatMap((page) => page.items) ?? []
+  const rows = authority.fresh ? (keys.data?.pages.flatMap((page) => page.items) ?? []) : []
   const replacements =
     candidates.data?.pages
       .flatMap((page) => page.items)
       .filter((key) => key.replaces_key_id === action?.key.id && !expired(key)) ?? []
   function openAction(kind: 'rename' | 'revoke' | 'complete', key: ProjectKey) {
+    if (!admit()) return
     update.reset()
     setAction({ kind, key })
   }
-  function create(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (busy || !active || !writable) return
-    const form = new FormData(event.currentTarget)
-    const model_ids = form.getAll('model_ids').map(String)
-    const expiry = String(form.get('expires_at') || '')
-    if (!model_ids.length) {
-      setValidation('scopeRequired')
-      return
-    }
-    if (expiry && (!Number.isFinite(Date.parse(expiry)) || Date.parse(expiry) <= Date.now())) {
-      setValidation('expiryInvalid')
-      return
-    }
-    setValidation(null)
-    issue.mutate({
-      name: String(form.get('name')).trim(),
-      model_ids,
-      expires_at: expiry ? new Date(expiry).toISOString() : null,
-      delivery_mode: 'manual',
-    })
-  }
   async function copy() {
     try {
-      await navigator.clipboard.writeText(delivery!.secret)
-      setNotice('copied')
+      if (!authority.fresh || deliverySession !== authority.sessionVersion || !delivery) return
+      await authorized(async (ticket) => {
+        await navigator.clipboard.writeText(delivery.secret)
+        if (authority.current(ticket)) setNotice('copied')
+      })
     } catch {
       setNotice('copyFailed')
     }
@@ -176,11 +229,12 @@ function ProjectKeys({ project }: { project: ResourceRecord }) {
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">{t('description')}</p>
         </div>
         <Button
-          disabled={!active || !writable || busy || !project.model_ids.length}
+          disabled={!authority.fresh || !active || !writable || busy || !project.model_ids.length}
           onClick={() => {
             issue.reset()
             finish.reset()
-            setValidation(null)
+            if (!admit()) return
+            setRotating(null)
             setCreating(true)
           }}
         >
@@ -219,7 +273,7 @@ function ProjectKeys({ project }: { project: ResourceRecord }) {
       </div>
       <ErrorNotice error={!creating && !delivery && !action ? issue.error || update.error : null} />
       <QueryState
-        pending={keys.isPending}
+        pending={(!authority.fresh && !keys.error) || keys.isPending}
         error={keys.error}
         retry={() => void keys.refetch()}
         empty={keys.isSuccess && rows.length === 0}
@@ -249,14 +303,16 @@ function ProjectKeys({ project }: { project: ResourceRecord }) {
               </td>
               <td className="font-mono">{key.prefix}…</td>
               <td>
-                <Badge variant="outline">{t('manual')}</Badge>
+                <Badge variant="outline">{deliveryText(key.delivery_mode ?? 'unknownMode')}</Badge>
               </td>
               <td>
                 <Button
                   size="sm"
                   variant="ghost"
                   aria-label={`${t('view')} · ${key.name}`}
-                  onClick={() => setViewing(key)}
+                  onClick={() => {
+                    if (admit()) setViewing(key)
+                  }}
                 >
                   {t('count', { count: key.model_ids.length })}
                 </Button>
@@ -270,7 +326,24 @@ function ProjectKeys({ project }: { project: ResourceRecord }) {
               <td className="whitespace-nowrap">{date(key.expires_at)}</td>
               <td>
                 <div className="flex flex-wrap gap-1">
-                  <Button size="sm" variant="ghost" onClick={() => setViewing(key)}>
+                  {key.delivery_mode === 'managed_vault' && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        if (admit()) setReceipt({ keyId: key.id })
+                      }}
+                    >
+                      {deliveryText('receiptTitle')}
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      if (admit()) setViewing(key)
+                    }}
+                  >
                     {t('limits:title')}
                   </Button>
                   {(key.status === 'active' || key.status === 'disabled') && (
@@ -291,13 +364,14 @@ function ProjectKeys({ project }: { project: ResourceRecord }) {
                           busy ||
                           (key.status === 'disabled' && (!active || expired(key)))
                         }
-                        onClick={() =>
+                        onClick={() => {
+                          if (!admit()) return
                           update.mutate({
                             key,
                             method: 'patch',
                             data: { enabled: key.status !== 'active' },
                           })
-                        }
+                        }}
                       >
                         {t(key.status === 'active' ? 'disable' : 'enable')}
                       </Button>
@@ -306,9 +380,13 @@ function ProjectKeys({ project }: { project: ResourceRecord }) {
                         variant="ghost"
                         disabled={!writable || !active || busy || expired(key)}
                         onClick={() => {
+                          if (!admit()) return
                           issue.reset()
                           finish.reset()
-                          issue.mutate({ key_id: key.id })
+                          if (key.delivery_mode === 'managed_vault') {
+                            setRotating(key)
+                            setCreating(true)
+                          } else issue.mutate({ key_id: key.id })
                         }}
                       >
                         {t('rotate')}
@@ -348,48 +426,50 @@ function ProjectKeys({ project }: { project: ResourceRecord }) {
           {t('more')}
         </Button>
       )}
+      {creating && (
+        <KeyIssueDialog
+          key={authority.actor + (rotating?.id ?? 'new')}
+          owner={owner}
+          authority={authority}
+          models={project.model_ids.map((id) => ({ id, name: id }))}
+          predecessor={rotating ?? undefined}
+          title={rotating ? t('rotate') : t('create')}
+          description={t('createDescription')}
+          manualLabel={t('create')}
+          onManual={(input) =>
+            issue.mutateAsync(
+              rotating ? { key_id: rotating.id } : { ...input, delivery_mode: 'manual' },
+            )
+          }
+          onReceipt={(value) => {
+            setCreating(false)
+            setRotating(null)
+            setReceipt({ keyId: value.key_id, requestId: value.request_id })
+            void refresh()
+          }}
+          onClose={() => {
+            setCreating(false)
+            setRotating(null)
+          }}
+        />
+      )}
+      {receipt && (
+        <DeliveryReceiptDialog
+          key={authority.actor + receipt.keyId}
+          owner={owner}
+          authority={authority}
+          keyId={receipt.keyId}
+          requestId={receipt.requestId}
+          onClose={() => setReceipt(null)}
+          onChanged={() => {
+            void refresh()
+          }}
+        />
+      )}
       <Dialog
-        open={creating}
-        onOpenChange={setCreating}
-        title={t('create')}
-        description={t('createDescription')}
-        busy={busy}
-      >
-        <form onSubmit={create} className="space-y-5">
-          <fieldset disabled={busy || !active || !writable} className="space-y-5">
-            <FormField label={t('name')}>
-              <Input name="name" required maxLength={100} />
-            </FormField>
-            <FormField label={t('expiryOptional')}>
-              <Input name="expires_at" type="datetime-local" />
-            </FormField>
-            <fieldset className="space-y-2">
-              <legend className="mb-2 text-sm font-medium">{t('scope')}</legend>
-              {!project.model_ids.length && <p>{t('noModels')}</p>}
-              {project.model_ids.map((id) => (
-                <label key={id} className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" name="model_ids" value={id} />
-                  <span className="break-all font-mono text-xs">{id}</span>
-                </label>
-              ))}
-            </fieldset>
-            <p className="text-sm text-muted-foreground">{t('manual')}</p>
-          </fieldset>
-          {validation && (
-            <p role="alert" className="text-sm text-destructive">
-              {t(validation)}
-            </p>
-          )}
-          <ErrorNotice error={issue.error} />
-          <SaveButton pending={issue.isPending} disabled={!active || !writable}>
-            {t('create')}
-          </SaveButton>
-        </form>
-      </Dialog>
-      <Dialog
-        open={!!delivery}
+        open={authority.fresh && deliverySession === authority.sessionVersion && !!delivery}
         onOpenChange={(open) => {
-          if (!open && !busy) {
+          if (!open && !busy && admit()) {
             if (writable) finish.mutate(false)
             else setDelivery(null)
           }
@@ -435,7 +515,9 @@ function ProjectKeys({ project }: { project: ResourceRecord }) {
             <Button
               variant="outline"
               disabled={busy || !writable}
-              onClick={() => finish.mutate(false)}
+              onClick={() => {
+                if (admit()) finish.mutate(false)
+              }}
             >
               {t('discard')}
             </Button>
@@ -450,7 +532,9 @@ function ProjectKeys({ project }: { project: ResourceRecord }) {
                 (!!delivery.key.delivery_expires_at &&
                   Date.parse(delivery.key.delivery_expires_at) <= now)
               }
-              onClick={() => finish.mutate(true)}
+              onClick={() => {
+                if (admit()) finish.mutate(true)
+              }}
             >
               {t('confirm')}
             </Button>
@@ -458,7 +542,7 @@ function ProjectKeys({ project }: { project: ResourceRecord }) {
         </div>
       </Dialog>
       <Dialog
-        open={!!action}
+        open={authority.fresh && !!action}
         onOpenChange={(open) => {
           if (!open) setAction(null)
         }}
@@ -481,6 +565,7 @@ function ProjectKeys({ project }: { project: ResourceRecord }) {
         <form
           onSubmit={(event) => {
             event.preventDefault()
+            if (!admit()) return
             if (!action || busy || !writable) return
             const form = new FormData(event.currentTarget)
             update.mutate({
@@ -556,7 +641,7 @@ function ProjectKeys({ project }: { project: ResourceRecord }) {
         </form>
       </Dialog>
       <Drawer
-        open={!!viewing}
+        open={authority.fresh && !!viewing}
         onOpenChange={(open) => {
           if (!open) setViewing(null)
         }}

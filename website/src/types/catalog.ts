@@ -70,6 +70,7 @@ export interface CallableModel {
   input_capabilities?: Record<string, ('image' | 'pdf')[]>
 }
 export interface PersonalKey {
+  delivery_mode?: 'manual' | 'managed_vault'
   id: string
   name: string
   prefix: string

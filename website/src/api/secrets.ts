@@ -7,6 +7,7 @@ import {
   v3SecretDomains,
   v4SecretDomains,
   v5SecretDomains,
+  v6SecretDomains,
   type SecretIntent,
   type SecretResult,
   type SecretRotation,
@@ -99,7 +100,8 @@ function rotation(value: unknown): SecretRotation {
     row.inventory_version !== 5 &&
     row.inventory_version !== 6 &&
     row.inventory_version !== 7 &&
-    row.inventory_version !== 8
+    row.inventory_version !== 8 &&
+    row.inventory_version !== 9
   )
     return fail()
   const codes =
@@ -113,7 +115,9 @@ function rotation(value: unknown): SecretRotation {
             ? v4SecretDomains
             : row.inventory_version === 5
               ? v5SecretDomains
-              : secretDomains
+              : row.inventory_version === 9
+                ? secretDomains
+                : v6SecretDomains
   const domains = array(
     row.domains,
     (value, index) => {
@@ -215,9 +219,9 @@ export function parseSecretStore(value: unknown): SecretStore {
       policy.write_key_id === null)
   )
     return fail()
-  if (row.inventory_version !== 8 || row.mode !== 'internal' || row.can_read !== true) return fail()
+  if (row.inventory_version !== 9 || row.mode !== 'internal' || row.can_read !== true) return fail()
   return {
-    inventory_version: 8,
+    inventory_version: 9,
     mode: 'internal',
     observed_at: date(row.observed_at),
     review_etag: string(row.review_etag, etag),

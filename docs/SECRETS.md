@@ -104,6 +104,8 @@ failed refreshes. A committed receipt and current publication are distinct.
 | OIDC client authentication | Every retained nonempty provider client-secret envelope, including disabled configuration, under its exact generation |
 | Custom OAuth client authentication | Every retained nonempty independent OAuth client-secret envelope, including disabled configuration, under its exact generation |
 | LDAP service authentication | Every retained nonempty directory service-password envelope, including disabled configuration, under its exact generation |
+| Named-provider client authentication | Every retained nonempty fixed-profile client-secret envelope under its exact provider/profile/generation reference, including disabled configurations |
+| API-Key delivery authentication | Every retained nonempty independent delivery Writer/Provisioner envelope under its exact purpose, identity/birth, generation and immutable integration/revision reference |
 
 Inventory version1 retains its historical five-domain meaning; version2 retains
 seven domains; version3 retains its eight-domain OIDC scope; version4 retains its
@@ -265,11 +267,11 @@ records. Disabled retained configurations remain covered. V1–V5 prefixes and t
 historical jobs, process verification and retirement meanings remain unchanged.
 Controlled PostgreSQL/MySQL root-inventory and runtime qualification now covers
 the retained GitHub encrypted fixture and profile/domain/generation AAD negatives
-in the combined GitHub and Google phase, whose current inventory is V7. Earlier
+in the combined GitHub and Google phase, whose inventory was V7. Earlier
 V5 acceptance alone does not establish V6 or V7 retirement readiness.
 
 
-## Current Google coverage in inventory V7
+## Historical Google coverage in inventory V7
 
 Google reuses the named-provider credential domain with exact Google provider/profile/generation-bound references and AAD. Root inventory V7 has eleven domains, including both fixed named profiles; V6 retains its historical eleven-domain GitHub coverage. No twelfth domain is added. Old jobs and verified observations do not acquire Google coverage, and nonterminal old-version jobs cannot proceed under the expanded inventory. Disabled retained Google configurations remain covered; access tokens and ID tokens are transient rather than root inventory records. Controlled PostgreSQL/MySQL database, restart and root-rotation qualification passes in the combined GitHub and Google phase. Browser and external-provider acceptance remain open.
 
@@ -288,3 +290,29 @@ is introduced. Controlled Discord rotation, runtime, complete dual-driver and
 production-process restart qualification pass under the separately recorded
 Discord phase evidence; browser and external-provider acceptance remain pending.
 The earlier Google V7 acceptance retains its original scope. See [Discord](DISCORD.md).
+
+## Current delivery-authentication coverage in inventory V9
+
+Inventory V9 has twelve recoverable-secret domains: the eleven retained domains
+from V8 plus `api_key_delivery_auth`. The new domain includes every retained
+nonempty delivery Writer and Provisioner authentication envelope, including
+superseded or disabled records. It does not widen Provider credential storage or
+reuse Provider Vault Reader/Writer authority for API-Key delivery.
+
+Encryption references bind a compact purpose-separated typed-tuple commitment to
+exact authentication ID/birth/generation, integration ID/birth/security revision,
+and retained VaultRevision ID/birth. Rewrap retains this identity; it does not
+substitute a current integration or establish Principal control or isolation.
+Caller JWTs, caller login Tokens, transient API-Key bearers and irreversible Key
+verification digests are not retained recoverable-secret inventory records.
+
+V1/V2/V3/V4/V5 retain five/seven/eight/nine/ten domains. V6/V7/V8 each retain eleven
+domains with their distinct named-provider coverage. Historical jobs, process
+observations and verification receipts remain at their recorded version and
+cannot attest V9 retirement readiness. Unknown coverage stays unknown. Exact
+current-version scan, process verification and retirement requirements remain
+mandatory; adding a domain never upgrades an old receipt retrospectively.
+
+See [API-Key delivery](API_KEY_DELIVERY.md) for application authority and remote
+uncertainty. Root rewrap does not establish actual Vault JWT login, effective caller
+grants, successful inference, browser delivery or external interoperability.

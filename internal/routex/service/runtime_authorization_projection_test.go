@@ -548,6 +548,8 @@ func TestRuntimeAuthorizationProjectionPrimaryProofAndMetadata(t *testing.T) {
 	key := a.Keys[strings.Repeat("a", 64)]
 	key.Key.Name = "display"
 	key.Key.Prefix = "prefix"
+	// Stored delivery mode is checked before installed Key membership is built.
+	key.Key.DeliveryMode = "deferred"
 	key.Key.UpdatedAt = time.Now()
 	key.Key.DeliveryExpiresAt = new(time.Time)
 	key.Key.ActivateOnConfirm = true
@@ -607,7 +609,7 @@ func TestRuntimeAuthorizationProjectionClosedFieldParity(t *testing.T) {
 	projectionFieldParity(t, runtimeQuotaData{}, "Setting Bounds Created Revisions Currency", "")
 	projectionFieldParity(t, runtimeTeamSession{}, "ID UserID TokenHash ExpiresAt OIDCPolicyRevision OIDCBindingKey OAuthPolicyRevision OAuthBindingKey LDAPPolicyRevision LDAPBindingKey SAMLPolicyRevision SAMLBindingKey NamedIdentityPolicyKey NamedIdentityBindingKey", "")
 	projectionFieldParity(t, runtimeTeam{}, "CreatedAt Members Models", "")
-	projectionFieldParity(t, entity.APIKey{}, "ID UserID TokenHash LifecycleRevision Status ExpiresAt CreatedAt ReplacesKeyID", "Name Prefix DeliveryExpiresAt ActivateOnConfirm UpdatedAt")
+	projectionFieldParity(t, entity.APIKey{}, "ID UserID TokenHash LifecycleRevision Status ExpiresAt CreatedAt ReplacesKeyID", "Name Prefix DeliveryMode DeliveryExpiresAt ActivateOnConfirm UpdatedAt")
 	// APIKey.ReplacesKeyID is represented by already-built LimitRoots, not by
 	// delivery metadata. Root.ReplacesKeyID is independently consumed and MUST
 	// remain in the included group; nonnil controls above forbid omission.

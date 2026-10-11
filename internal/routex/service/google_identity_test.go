@@ -77,7 +77,7 @@ func TestGoogleFixedNamespaceDerivationAndRootCoverage(t *testing.T) {
 	if rootReference("named_identity_providers", "github", gen) != "named-identity:github.com.oauth-app.v1:github:"+gen || rootReference("named_identity_providers", "google", gen) != "named-identity:google.oidc.v1:google:"+gen || rootReference("named_identity_providers", "Google", gen) != "" {
 		t.Fatal("fixed AAD")
 	}
-	if rootInventoryVersion != 8 || len(rootDomains) != 11 || !reflect.DeepEqual(rootInventoryDomains(6), rootDomains) || !reflect.DeepEqual(rootInventoryDomains(7), rootDomains) || !reflect.DeepEqual(rootInventoryDomains(8), rootDomains) {
+	if rootInventoryVersion != 9 || len(rootDomains) != 12 || !reflect.DeepEqual(rootInventoryDomains(6), rootDomains[:11]) || !reflect.DeepEqual(rootInventoryDomains(7), rootDomains[:11]) || !reflect.DeepEqual(rootInventoryDomains(8), rootDomains[:11]) {
 		t.Fatal("V6/V7 history and V8 coverage")
 	}
 	now := time.Now().UTC()

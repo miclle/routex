@@ -4,11 +4,11 @@ A Project Key belongs to one Project for its entire lifetime. Its creator is an 
 
 ## Delivery and Lifecycle
 
-Creation explicitly selects `delivery_mode: "manual"`. This phase supports browser one-time delivery only. It rejects unsupported modes instead of silently falling back to plaintext. Enterprise Vault delivery, application identities, managed connection descriptors, and delivery coordination remain separate future capabilities.
+The manual creation endpoint explicitly selects `delivery_mode: "manual"` and returns a one-time browser secret. Managed Vault issuance uses separate endpoints below; unsupported modes never fall back to plaintext. Delivery coordination and automatic deployment remain outside this bounded application contract.
 
-Key IDs use `pky_` prefixed ULIDs. Bearer values use `rxp_` plus 32 cryptographically random bytes encoded as URL-safe base64. The database stores only the SHA-256 verification digest, a masked prefix, immutable ownership/scope/expiry/delivery metadata, state, and audit facts. Complete bearer values appear only in the successful creation or rotation response and cannot be recovered by subsequent reads.
+Key IDs use `pky_` prefixed ULIDs. Bearer values use `rxp_` plus 32 cryptographically random bytes encoded as URL-safe base64. The database stores only the SHA-256 verification digest, a masked prefix, immutable ownership/scope/expiry/delivery metadata, state, and audit facts. For manual delivery, complete bearer values appear only in the successful creation or rotation response and cannot be recovered by subsequent reads. Managed responses never contain the bearer.
 
-A new credential is `pending`, with a ten-minute delivery confirmation deadline, and cannot authenticate. Confirmation activates it, or preserves a disabled source Key's disabled state during rotation. Closing an unconfirmed delivery can revoke the pending Key immediately through the normal revoke endpoint. An unconfirmed Key remains unusable after its deadline even if no cleanup job has removed its row. Confirmation after the deadline or credential expiry returns `409`.
+A new manually delivered credential is `pending`, with a ten-minute delivery confirmation deadline, and cannot authenticate. Confirmation activates it, or preserves a disabled source Key's disabled state during rotation. Closing an unconfirmed delivery can revoke the pending Key immediately through the normal revoke endpoint. An unconfirmed Key remains unusable after its deadline even if no cleanup job has removed its row. Confirmation after the deadline or credential expiry returns `409`.
 
 Confirmed Keys are `active` or `disabled`; revocation is terminal. Name and enabled state can be edited. Project ownership, creator, model scope, expiry, delivery mode, and replacement relation are immutable. Revocation is idempotent and removes runtime authority before a successful management response. No mutation returns the old bearer value.
 
@@ -31,7 +31,7 @@ Resource and Key mutations use the same governance lock before Project and Key l
 
 ## Rotation and Verified Retirement
 
-Rotation generates a new Key ID and bearer, retaining the same Project, model scope, name, expiry, and manual delivery mode. It never reads or discloses the old credential. The replacement records `replaces_key_id` and starts pending.
+Manual rotation generates a new Key ID and bearer, retaining the same Project, model scope, name, expiry, and manual delivery mode. It never reads or discloses the old credential. The replacement records `replaces_key_id` and starts pending.
 
 Confirming delivery of the replacement does **not** retire the old Key. A user copying a secret does not prove that the application has deployed it or completed a real call. The old Key remains available until explicit retirement or emergency revocation.
 
@@ -60,6 +60,29 @@ A safe Key contains `{id,project_id,creator_id,name,prefix,status,model_ids,expi
 
 No endpoint accepts a new personal owner or Project owner for an existing Key. Migrating from a personal credential requires separately creating a Project Key, changing the caller configuration, and revoking the former personal Key.
 
+## Managed Vault delivery
+
+Project Key mode is immutable and may be `manual` or `managed_vault`; the manual
+create/confirm/rotate contract above remains separate from managed issuance.
+Current delivery policy controls new issuance. Managed operations use the
+Project-scoped delivery-context, target-resolution, `/managed`,
+`/:key_id/managed-rotation`, receipt, local reconciliation and descriptor routes
+under `/projects/:project_id/keys`.
+
+Every read and write reauthorizes the current Project and manager or independent
+platform management permission. Creator attribution never grants continuing
+management rights. Target resolution does not create a Key or approve Principal
+control, and Project lifecycle changes cannot be bypassed through delivery routes.
+
+Managed responses contain safe Key facts and a receipt, never a bearer. Only an
+exact acknowledged binding with confirmed local publication can provide a usable
+descriptor. Unknown remote outcomes do not permit another write or a Vault read
+compensation. Eligible acknowledged publication recovery uses the original command
+and current receipt review locally. Rotation keeps the source mode and destination,
+derives metadata on the server and preserves a disabled source's state. Delivery
+acknowledgement does not retire the predecessor or replace the exact Project-owned,
+persisted native-completed call proof. See [API-Key delivery](API_KEY_DELIVERY.md).
+
 ## Project-owned attachments
 
 Project Keys advertise a non-secret Project attachment scope in `GET /v1/models`.
@@ -86,7 +109,7 @@ Schema version 9 creates `project_api_keys` and `project_api_key_models` through
 
 `testProjectKeyLifecycle` exercises the real router, HTTP upstream fixture, durable call recorder, and runtime snapshot against PostgreSQL and MySQL. Coverage includes one-time secret safety, pending/expired/revoked rejection, authorization intersections, Project disable/reactivation, independent creator departure, accurate call ownership, native-completed replacement retirement, actual HTTP 200 non-completion exclusions, adversarial ownership/timing/terminal/case proof, historical completion replay, and manager-removal, Project-disable, and revoke races. Retirement proof belongs to the immutable Project rather than the creator or acting manager; current authority, lifecycle, expiry and effective model scope are still checked before a new completion. The shared isolated harness owns database reset and migration; run `go tool task test-integration` after registering the helper.
 
-Project/Key token and money limits, RPM/TPM/concurrency, and IP restrictions are implemented separately from Key lifecycle. Approval workflows, Vault integration, and managed delivery coordination remain outside this slice. The implemented model/lifecycle and attachment checks do not stand in for those later controls.
+Project/Key token and money limits, RPM/TPM/concurrency, and IP restrictions are implemented separately from Key lifecycle. Managed delivery approval and Vault identities have the separate [API-Key delivery](API_KEY_DELIVERY.md) contract. Model/lifecycle and attachment checks do not stand in for those controls; automatic delivery coordination remains outside this slice.
 
 ## Independent monthly threshold behavior
 

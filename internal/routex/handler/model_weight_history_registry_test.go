@@ -200,6 +200,10 @@ func TestModelWeightHistoryExact174RegistryPrefix(t *testing.T) {
 	for _, pair := range pairs {
 		currentIdentities = append(currentIdentities, pair[1]+":"+pair[2])
 	}
+	if !apiKeyDeliveryRegistry210Current(currentIdentities) {
+		t.Fatal("exact210 delivery restart successor changed")
+	}
+	currentIdentities = currentIdentities[:206]
 	if !discordRegistry206Current(currentIdentities) {
 		t.Fatal("exact206 Discord successor changed")
 	}

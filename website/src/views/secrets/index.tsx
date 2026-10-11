@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Table } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { VaultWorkspace } from './vault'
+import { KeyDeliveryWorkspace } from './key-delivery'
 import ProviderStoragePolicyEditor from './provider-storage'
 
 const knownBlockers = new Set([
@@ -40,7 +41,10 @@ export default function SecretStorePage() {
   const { rotationId } = useParams()
   const [params, setParams] = useSearchParams()
   const { t } = useTranslation('secrets')
-  const tab = !rotationId && params.get('tab') === 'vault' ? 'vault' : 'storage'
+  const tab =
+    !rotationId && ['vault', 'api-key'].includes(params.get('tab') ?? '')
+      ? params.get('tab')!
+      : 'storage'
   const actor = session.data?.user.id ?? ''
   const fresh =
     session.isSuccess &&
@@ -48,7 +52,15 @@ export default function SecretStorePage() {
     !session.error &&
     /^[a-f0-9]{64}$/.test(session.data?.csrf_token ?? '')
   const workspace =
-    tab === 'vault' ? (
+    tab === 'api-key' ? (
+      <KeyDeliveryWorkspace
+        key={actor}
+        actor={actor}
+        admin={session.data?.user.role === 'admin'}
+        fresh={fresh}
+        generation={generation}
+      />
+    ) : tab === 'vault' ? (
       <VaultWorkspace
         key={actor}
         actor={actor}
@@ -80,9 +92,7 @@ export default function SecretStorePage() {
           <TabsList>
             <TabsTrigger value="storage">{t('tabs.storage')}</TabsTrigger>
             <TabsTrigger value="vault">{t('tabs.vault')}</TabsTrigger>
-            <TabsTrigger value="api-key" disabled>
-              {t('tabs.apiKey')}
-            </TabsTrigger>
+            <TabsTrigger value="api-key">{t('tabs.apiKey')}</TabsTrigger>
           </TabsList>
         </Tabs>
       )}

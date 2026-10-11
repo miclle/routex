@@ -20,8 +20,8 @@ func TestGoogleRegistry200ExactPrefixAndSuffix(t *testing.T) {
 	for _, m := range matches {
 		names = append(names, m[1]+":"+m[2])
 	}
-	if !discordRegistry206Current(names) || !strings.Contains(string(raw), "versions != 101") {
-		t.Fatal("exact V101/206 current registry")
+	if !apiKeyDeliveryRegistry210Current(names) || !strings.Contains(string(raw), "versions != 102") {
+		t.Fatal("exact V102/210 current registry")
 	}
 	names = names[:200] // Exercise every unchanged historical V99 control below.
 	if !githubRegistry197Current(names[:197]) || googleRegistry200Current(names[:197]) {
