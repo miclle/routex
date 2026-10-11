@@ -101,6 +101,15 @@ export default {
   installationRecordsEmpty:
     'No installation observation recorded. Missing history does not prove that no configuration was installed.',
   installationRecordsTable: 'Recorded Gateway installations',
+  installationSnapshotLabel: 'Exact routing snapshot ID',
+  installationSnapshotPlaceholder: 'Leave empty for all recorded snapshots',
+  installationSnapshotInvalid: 'Enter a canonical cfg_ snapshot ID or leave this field empty.',
+  installationAllInstances: 'Review all recorded processes',
+  installationScopeBoundary:
+    'Recorded history is not a complete fleet census. Equal routing snapshot IDs do not prove equal Gateway admission or fleet application; current matching refers only to the serving process.',
+  installationReviewFilters: 'Review records',
+  installationReviewRequired: 'Review the changed filters to load records.',
+  installationProcess: 'Recorded process',
   installationObserved: 'First recorded observation',
   installationMatch: 'Current installed source matches',
   installationDifferent: 'Different installed source',

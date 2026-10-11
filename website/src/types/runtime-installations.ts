@@ -19,6 +19,7 @@ export interface RuntimeInstallationsPage {
 
 export interface RuntimeInstallationsFilter {
   instance_id?: string
+  snapshot_id?: string
   cursor?: string
   limit?: number
 }

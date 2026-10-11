@@ -405,6 +405,60 @@ func testRuntimeInstallationLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	expectStatus(t, req("GET", path+"?instance_id="+first.Items[0].InstanceID+"&cursor="+url.QueryEscape(*firstPage.NextCursor), nil), 400)
 	expectStatus(t, identityRequest(router, "GET", path+"?cursor="+url.QueryEscape(*firstPage.NextCursor), "", readerCookie, ""), 400)
+	// Exact snapshot review spans recorded processes, without fabricating local
+	// matching or claiming a complete fleet census.
+	otherObservation := original[0]
+	otherObservation.ID = fresh("rin")
+	otherObservation.InstanceID = fresh("ins")
+	if err := db.Create(&otherObservation).Error; err != nil {
+		t.Fatal(err)
+	}
+	filteredPath := path + "?snapshot_id=" + first.Items[0].SnapshotID
+	filtered := decodeCatalogResponse[service.RuntimeInstallationPage](t, req("GET", filteredPath, nil), 200)
+	if len(filtered.Items) != 3 {
+		t.Fatal("exact snapshot did not include all recorded processes")
+	}
+	foundOther := false
+	for _, row := range filtered.Items {
+		if row.SnapshotID != first.Items[0].SnapshotID {
+			t.Fatal("snapshot filter leaked another generation")
+		}
+		if row.ID == otherObservation.ID {
+			foundOther = row.InstanceID == otherObservation.InstanceID && row.InstanceStatus == "unknown" && row.CurrentServingInstallationMatches == nil
+		}
+	}
+	if !foundOther {
+		t.Fatal("missing process borrowed serving authority")
+	}
+	conjunctive := decodeCatalogResponse[service.RuntimeInstallationPage](t, req("GET", filteredPath+"&instance_id="+first.Items[0].InstanceID, nil), 200)
+	if len(conjunctive.Items) != 2 {
+		t.Fatal("snapshot/instance filters were not conjunctive")
+	}
+	empty := decodeCatalogResponse[service.RuntimeInstallationPage](t, req("GET", path+"?snapshot_id="+fresh("cfg"), nil), 200)
+	if len(empty.Items) != 0 {
+		t.Fatal("unrecorded snapshot borrowed history")
+	}
+	expectStatus(t, req("GET", path+"?snapshot_id="+strings.ToUpper(first.Items[0].SnapshotID), nil), 400)
+	expectStatus(t, req("GET", filteredPath+"&cursor="+url.QueryEscape(*firstPage.NextCursor), nil), 400)
+	filteredPage := decodeCatalogResponse[service.RuntimeInstallationPage](t, req("GET", filteredPath+"&limit=1", nil), 200)
+	if filteredPage.NextCursor == nil {
+		t.Fatal("filtered cursor absent")
+	}
+	filteredTail := decodeCatalogResponse[service.RuntimeInstallationPage](t, req("GET", filteredPath+"&limit=100&cursor="+url.QueryEscape(*filteredPage.NextCursor), nil), 200)
+	if len(filteredTail.Items) != 2 || filteredTail.NextCursor != nil {
+		t.Fatal("filtered continuation lost recorded history")
+	}
+	for _, row := range filteredTail.Items {
+		if row.SnapshotID != first.Items[0].SnapshotID || row.ID == filteredPage.Items[0].ID {
+			t.Fatal("filtered continuation escaped or repeated scope")
+		}
+	}
+	expectStatus(t, req("GET", path+"?snapshot_id="+fresh("cfg")+"&cursor="+url.QueryEscape(*filteredPage.NextCursor), nil), 400)
+	expectStatus(t, req("GET", path+"?cursor="+url.QueryEscape(*filteredPage.NextCursor), nil), 400)
+	expectStatus(t, identityRequest(router, "GET", filteredPath, "", writerCookie, ""), 403)
+	if result := db.Delete(&entity.RuntimeInstallationObservation{}, "id = ?", otherObservation.ID); result.Error != nil || result.RowsAffected != 1 {
+		t.Fatal("owned observation cleanup failed", result.Error)
+	}
 	var oldRow entity.RuntimeInstallationObservation
 	if db.Session(&gorm.Session{QueryFields: true}).Take(&oldRow, "id = ?", original[0].ID).Error != nil || !reflect.DeepEqual(oldRow, original[0]) {
 		t.Fatal("new authority rewrote old observation")

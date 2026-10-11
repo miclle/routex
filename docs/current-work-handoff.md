@@ -4,11 +4,68 @@ Updated: 2026-10-12. Status: resumed by explicit user instruction; prioritize pa
 
 ## Current execution status (2026-10-12)
 
+Role management (F05) is complete under the controlled-functionality convention.
+Commit `4cfbe9ef9c50740f83d580ac598d8dbf611e3338` fixes the finite frontend
+permission catalogue to accept the existing Secrets write/test grants. Unknown
+and reserved permissions remain rejected. All 165 focused API/component tests,
+TypeScript, formatting and mandatory checks passed; main was pushed with exact
+remote parity. This adds no new browser or external-provider acceptance.
+
+Telegram and the Key replacement-call advisory are independently source-complete.
+Their repaired candidate passes mandatory checks and the complete Task, including
+6,831 frontend tests in 252 files, Go race/coverage, development lifecycle and
+production assets. Its full PostgreSQL/MySQL matrix remains in progress; auth
+lifecycle and fresh default-production qualification are pending. Operational
+analysis is being reconciled in its separate worktree using current-user models,
+personal quota and authorized aggregates only. Saved-report policy remains open.
+Recorded routing-snapshot review is verified in this phase, with exact filters and
+optional all-recorded-process review in the existing System Status dialog. Its
+104 frontend/localization cases, focused Go race tests, mandatory check and real
+PostgreSQL/MySQL scenario passed. Telegram and operational analysis remain
+independently pending delivery; F30 remains Partial.
+
+Current totals: **16 Completed / 13 Partial / 1 Not started**. The previous
+enterprise CI was cancelled by the subsequent main push under the configured
+concurrency policy; the newest main CI remains pending. Local accepted evidence
+below retains its exact phase scope.
+
+## Recorded Gateway installation review (2026-10-12)
+
+The existing System Status installation dialog now supports an exact canonical
+snapshot filter and explicit review of all recorded processes. Each row identifies
+its process and birth. Editing filters cancels pending reads and hides prior facts;
+actor, Session and independent `system.read` authority remain required. Cursors
+bind actor, instance scope and snapshot. Reads retain the three-second budget,
+128 KiB response bound and 20-default/100-maximum page size. No schema, write
+operation or historical authentication restoration is introduced.
+
+All 104 frontend/localization cases, focused Go race tests, TypeScript and scoped
+ESLint passed. Formatting and mandatory `go tool task check` passed on the frozen
+source. The first check exited on a shared GolangCI-Lint lock; the serial successor
+passed without weakening any flags. The existing `runtime_installation` scenario
+passed on real PostgreSQL and MySQL, with three balanced named events per driver
+including the parent tests. It covers exact/conjunctive filters, scope-bound cursor
+replay, continuation, read/write authority separation and unknown process matching.
+All eight worker groups and the original supervisor joined; the owned Compose
+project and helper executables were removed, both database ports closed and the
+original development service was preserved. The 2,495 source hashes/modes stayed
+unchanged. Independent focused readback SHA-256:
+`85513f690ad11d36f97ce25f82e3c4951fb9c1360cd11225c190dfe2cc8ff612`.
+
+These are retained observations, not a fleet census or acknowledgement. Equal
+routing snapshots do not establish equal installed authorization. Missing process
+facts and unavailable local comparisons remain Unknown. Complete configuration
+rollback and distributed revocation acceptance remain separate F30 work; no
+additional historical Vault restore workflow is implied. Browser acceptance is
+deferred, and the independent Telegram full matrix remains in progress.
+
+## Enterprise access delivery (2026-10-12)
+
 The pre-phase baseline is `3976e5a59f5397218c36249be79de4ae2dec23f8`.
 This phase implements enforced OIDC/LDAP with MFA-protected emergency entry
 (V103), saved independent Vault certificate identities (V104), HTTPS proxy
 process coverage, and actor-owned durable manual publication receipts (V105).
-This verified phase is ready for delivery; Git history records its containing commit.
+This verified phase is delivered as `b97b6152de28cf8b7b2a528521d64cbb718cf547`.
 Earlier accepted API-Key delivery evidence below retains its original scope.
 
 Verification binds the repaired phase separately from earlier source floors:
@@ -38,7 +95,7 @@ runs and physical closure never establish functional acceptance; see
 Browser acceptance is deferred. Separate Telegram and bounded API-Key receipt
 advisory implementations are source-complete but outside this qualification;
 F24 and controlled performance tooling remain separate drafts. Capability totals
-remain 15 Completed / 14 Partial / 1 Not started.
+at that delivery were 15 Completed / 14 Partial / 1 Not started.
 
 ## Enterprise qualification history
 

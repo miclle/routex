@@ -36,9 +36,13 @@ export async function getRuntimeInstallations(
   filter: RuntimeInstallationsFilter = {},
   signal?: AbortSignal,
 ): Promise<RuntimeInstallationsPage> {
+  filter = { ...filter }
   if (
-    Object.keys(filter).some((key) => !['instance_id', 'cursor', 'limit'].includes(key)) ||
+    Object.keys(filter).some(
+      (key) => !['instance_id', 'snapshot_id', 'cursor', 'limit'].includes(key),
+    ) ||
     (filter.instance_id !== undefined && !canonicalRuntimeID(filter.instance_id, 'ins')) ||
+    (filter.snapshot_id !== undefined && !canonicalRuntimeID(filter.snapshot_id, 'cfg')) ||
     (filter.cursor !== undefined && !cursor(filter.cursor)) ||
     (filter.limit !== undefined &&
       (!Number.isSafeInteger(filter.limit) || filter.limit < 1 || filter.limit > 100))
@@ -81,6 +85,7 @@ export async function getRuntimeInstallations(
       !canonicalRuntimeID(row.instance_id, 'ins') ||
       !canonicalRuntimeID(row.snapshot_id, 'cfg') ||
       (filter.instance_id !== undefined && row.instance_id !== filter.instance_id) ||
+      (filter.snapshot_id !== undefined && row.snapshot_id !== filter.snapshot_id) ||
       !utc(row.instance_started_at, 6) ||
       !utc(row.routes_published_at, 6) ||
       !utc(row.first_observed_at, 6) ||

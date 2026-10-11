@@ -27,6 +27,7 @@ type runtimeInstallationSQLState struct {
 	application                                        *runtimeApplicationSQLState
 	rows                                               []entity.RuntimeInstallationObservation
 	failInsert, failCommit, priorAlias, duplicatePrior bool
+	snapshotOverride                                   string
 	afterPrior, afterInsert, afterCommit               func()
 	deadlines                                          []time.Time
 	queries, inserted                                  int
@@ -113,6 +114,8 @@ func (c *runtimeInstallationConnection) QueryContext(ctx context.Context, q stri
 			switch {
 			case strings.HasPrefix(value, "ins_"):
 				match = match && row.InstanceID == value
+			case strings.HasPrefix(value, "cfg_"):
+				match = match && row.SnapshotID == value
 			case strings.HasPrefix(value, "rin_"):
 				match = match && row.ID < value
 			case len(value) == 64:
@@ -122,6 +125,9 @@ func (c *runtimeInstallationConnection) QueryContext(ctx context.Context, q stri
 		if match {
 			if c.state.priorAlias {
 				row.InstanceID = strings.ToUpper(row.InstanceID)
+			}
+			if c.state.snapshotOverride != "" {
+				row.SnapshotID = c.state.snapshotOverride
 			}
 			result = append(result, row)
 		}
@@ -432,7 +438,7 @@ func TestRuntimeInstallationReadAuthorityCursorAndUnknowns(t *testing.T) {
 	for _, test := range []struct {
 		actor  string
 		filter RuntimeInstallationFilter
-	}{{"usr_other", RuntimeInstallationFilter{Cursor: *page.NextCursor}}, {"usr_admin", RuntimeInstallationFilter{InstanceID: state.application.instance.ID, Cursor: *page.NextCursor}}, {"usr_admin", RuntimeInstallationFilter{Cursor: runtimeApplicationCursor("usr_admin", RuntimeApplicationFilter{}, "rap_01m36yee4gkbns18pfcqqc75a3")}}} {
+	}{{"usr_other", RuntimeInstallationFilter{Cursor: *page.NextCursor}}, {"usr_admin", RuntimeInstallationFilter{InstanceID: state.application.instance.ID, Cursor: *page.NextCursor}}, {"usr_admin", RuntimeInstallationFilter{SnapshotID: first.SnapshotID, Cursor: *page.NextCursor}}, {"usr_admin", RuntimeInstallationFilter{Cursor: runtimeApplicationCursor("usr_admin", RuntimeApplicationFilter{}, "rap_01m36yee4gkbns18pfcqqc75a3")}}} {
 		if _, err := s.ListRuntimeInstallations(context.Background(), test.actor, test.filter); !errors.Is(err, apperrors.ErrBadRequest) {
 			t.Fatal("borrowed cursor accepted", err)
 		}
@@ -507,7 +513,7 @@ func TestRuntimeInstallationStrictRowsFiltersAndPrivateSource(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for _, f := range []RuntimeInstallationFilter{{Limit: -1}, {Limit: 101}, {InstanceID: "INS_ALIAS"}, {Cursor: "invalid"}, {Cursor: strings.Repeat("x", 201)}} {
+	for _, f := range []RuntimeInstallationFilter{{Limit: -1}, {Limit: 101}, {InstanceID: "INS_ALIAS"}, {SnapshotID: "CFG_ALIAS"}, {SnapshotID: "cfg_01m36yee4gkbns18pfcqqc75a3\n"}, {Cursor: "invalid"}, {Cursor: strings.Repeat("x", 201)}} {
 		if _, _, err := validateRuntimeInstallationFilter("usr_admin", f); err == nil {
 			t.Fatal("invalid filter accepted")
 		}
@@ -660,5 +666,53 @@ func TestRuntimeInstallationV1HistoryNeverMatchesV2(t *testing.T) {
 	// Even an artificial same-digest collision cannot satisfy a v2 prior proof.
 	if runtimeInstallationRecordForTest(s) == nil || !reflect.DeepEqual(state.rows[0], prior) {
 		t.Fatal("cross-version prior accepted or rewritten")
+	}
+}
+
+func TestRuntimeInstallationExactSnapshotAcrossRecordedProcesses(t *testing.T) {
+	s, f, state := runtimeInstallationSQLService(t)
+	if err := runtimeInstallationRecordForTest(s); err != nil {
+		t.Fatal(err)
+	}
+	first := state.rows[0]
+	first.ID = "rin_01m36yee4gkbns18pfcqqc75a3"
+	other := first
+	other.ID = "rin_01m36yee4gkbns18pfcqqc75a4"
+	other.InstanceID = "ins_01m36yee4gkbns18pfcqqc75a4"
+	different := first
+	different.ID = "rin_01m36yee4gkbns18pfcqqc75a5"
+	different.SnapshotID = "cfg_01m36yee4gkbns18pfcqqc75a4"
+	state.rows = []entity.RuntimeInstallationObservation{first, other, different}
+	filter := RuntimeInstallationFilter{SnapshotID: first.SnapshotID, Limit: 1}
+	page, err := s.ListRuntimeInstallations(t.Context(), "usr_admin", filter)
+	if err != nil || len(page.Items) != 1 || page.Items[0].ID != other.ID || page.Items[0].InstanceStatus != "unknown" || page.Items[0].CurrentServingInstallationMatches != nil || page.NextCursor == nil {
+		t.Fatal("exact cross-process page missing", err)
+	}
+	filter.Cursor = *page.NextCursor
+	tail, err := s.ListRuntimeInstallations(t.Context(), "usr_admin", filter)
+	if err != nil || len(tail.Items) != 1 || tail.Items[0].ID != first.ID || tail.NextCursor != nil {
+		t.Fatal("filtered continuation lost", err)
+	}
+	for _, changed := range []RuntimeInstallationFilter{{Cursor: filter.Cursor}, {SnapshotID: different.SnapshotID, Cursor: filter.Cursor}, {SnapshotID: first.SnapshotID, InstanceID: first.InstanceID, Cursor: filter.Cursor}} {
+		if _, err := s.ListRuntimeInstallations(t.Context(), "usr_admin", changed); !errors.Is(err, apperrors.ErrBadRequest) {
+			t.Fatal("cursor escaped reviewed scope", err)
+		}
+	}
+	filter.Cursor = ""
+	filter.InstanceID = first.InstanceID
+	page, err = s.ListRuntimeInstallations(t.Context(), "usr_admin", filter)
+	if err != nil || len(page.Items) != 1 || page.Items[0].ID != first.ID {
+		t.Fatal("conjunctive exact filters missing", err)
+	}
+	for _, snapshot := range []string{strings.ToUpper(first.SnapshotID), different.SnapshotID} {
+		state.snapshotOverride = snapshot
+		if page, err := s.ListRuntimeInstallations(t.Context(), "usr_admin", filter); err == nil || page != nil {
+			t.Fatal("snapshot alias or unrelated exact row accepted")
+		}
+	}
+	state.snapshotOverride = ""
+	f.deny["system.read"] = true
+	if _, err := s.ListRuntimeInstallations(t.Context(), "usr_admin", filter); !errors.Is(err, apperrors.ErrForbidden) {
+		t.Fatal("filtered read bypassed permission", err)
 	}
 }

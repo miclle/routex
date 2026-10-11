@@ -177,8 +177,8 @@ func validRuntimeInstallation(row entity.RuntimeInstallationObservation) bool {
 }
 
 type RuntimeInstallationFilter struct {
-	InstanceID, Cursor string
-	Limit              int
+	InstanceID, SnapshotID, Cursor string
+	Limit                          int
 }
 type RuntimeInstallationRecord struct {
 	ID                                string    `json:"id"`
@@ -199,7 +199,7 @@ type RuntimeInstallationPage struct {
 }
 
 func runtimeInstallationCursor(actorID string, f RuntimeInstallationFilter, last string) string {
-	scope := personalHash([]string{"gateway-installation.v1", actorID, f.InstanceID})
+	scope := personalHash([]string{"gateway-installation.v2", actorID, f.InstanceID, f.SnapshotID})
 	return base64.RawURLEncoding.EncodeToString([]byte(last + "|" + scope))
 }
 
@@ -207,7 +207,7 @@ func validateRuntimeInstallationFilter(actorID string, f RuntimeInstallationFilt
 	if f.Limit == 0 {
 		f.Limit = 20
 	}
-	if f.Limit < 1 || f.Limit > 100 || f.InstanceID != "" && !systemInstanceIDPattern.MatchString(f.InstanceID) || len(f.Cursor) > 200 {
+	if f.Limit < 1 || f.Limit > 100 || f.InstanceID != "" && !systemInstanceIDPattern.MatchString(f.InstanceID) || f.SnapshotID != "" && !runtimeSnapshotID.MatchString(f.SnapshotID) || len(f.Cursor) > 200 {
 		return f, "", apperrors.ErrBadRequest
 	}
 	last := ""
@@ -252,6 +252,9 @@ func (s *Service) ListRuntimeInstallations(ctx context.Context, actorID string, 
 		if f.InstanceID != "" {
 			q = q.Where(database.ExactText(tx, clause.Column{Name: "instance_id"}, f.InstanceID))
 		}
+		if f.SnapshotID != "" {
+			q = q.Where(database.ExactText(tx, clause.Column{Name: "snapshot_id"}, f.SnapshotID))
+		}
 		if last != "" {
 			q = q.Where("id < ?", last)
 		}
@@ -264,7 +267,7 @@ func (s *Service) ListRuntimeInstallations(ctx context.Context, actorID string, 
 		ids := []string{}
 		previous := last
 		for _, row := range rows {
-			if !validRuntimeInstallation(row) || f.InstanceID != "" && row.InstanceID != f.InstanceID || previous != "" && row.ID >= previous {
+			if !validRuntimeInstallation(row) || f.InstanceID != "" && row.InstanceID != f.InstanceID || f.SnapshotID != "" && row.SnapshotID != f.SnapshotID || previous != "" && row.ID >= previous {
 				return runtimeUnavailable
 			}
 			previous = row.ID

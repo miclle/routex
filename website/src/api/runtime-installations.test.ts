@@ -170,6 +170,9 @@ describe('single-process Gateway installation read boundary', () => {
     )
   })
   it.each([
+    { snapshot_id: '' },
+    { snapshot_id: item.snapshot_id.toUpperCase() },
+    { snapshot_id: `${item.snapshot_id}\n` },
     { instance_id: 'ins_online' },
     { instance_id: `${instance}\n` },
     { cursor: '' },
@@ -217,3 +220,52 @@ it.each([true, false])(
     )
   },
 )
+
+it('sends conjunctive exact snapshot filters and rejects a different returned snapshot', async () => {
+  client.defaults.adapter = async (config) => {
+    expect(config.params).toEqual({ instance_id: instance, snapshot_id: item.snapshot_id })
+    return { data: body, status: 200, statusText: 'OK', headers: new AxiosHeaders(), config }
+  }
+  expect(
+    (await getRuntimeInstallations({ instance_id: instance, snapshot_id: item.snapshot_id }))
+      .items[0],
+  ).toEqual(item)
+  ;(body as { items: RuntimeInstallationRecord[] }).items[0] = {
+    ...item,
+    snapshot_id: 'cfg_00000000000000000000000002',
+  }
+  await expect(
+    getRuntimeInstallations({ instance_id: instance, snapshot_id: item.snapshot_id }),
+  ).rejects.toThrow('Invalid Gateway installation observations')
+})
+it('allows different recorded processes without borrowing local matching', async () => {
+  ;(body as { items: RuntimeInstallationRecord[] }).items[0] = {
+    ...item,
+    instance_id: 'ins_00000000000000000000000002',
+    instance_status: 'unknown',
+  }
+  expect(
+    (await getRuntimeInstallations({ snapshot_id: item.snapshot_id })).items[0]
+      .current_serving_installation_matches,
+  ).toBeNull()
+})
+
+it('retains the submitted snapshot boundary when the caller mutates its filter during HTTP', async () => {
+  const filter: { snapshot_id?: string } = { snapshot_id: item.snapshot_id }
+  client.defaults.adapter = async (config) => {
+    delete filter.snapshot_id
+    return {
+      data: {
+        ...(body as object),
+        items: [{ ...item, snapshot_id: 'cfg_00000000000000000000000002' }],
+      },
+      status: 200,
+      statusText: 'OK',
+      headers: new AxiosHeaders(),
+      config,
+    }
+  }
+  await expect(getRuntimeInstallations(filter)).rejects.toThrow(
+    'Invalid Gateway installation observations',
+  )
+})

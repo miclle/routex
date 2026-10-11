@@ -35,6 +35,8 @@ func parseRuntimeInstallationQuery(raw string) (service.RuntimeInstallationFilte
 		switch key {
 		case "instance_id":
 			f.InstanceID = values[0]
+		case "snapshot_id":
+			f.SnapshotID = values[0]
 		case "cursor":
 			f.Cursor = values[0]
 		case "limit":

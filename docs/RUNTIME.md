@@ -298,3 +298,28 @@ force, including required Vault safety records. The private transient DTO contai
 no secret, raw upstream body or serialized configuration. It changes no catalogue,
 configuration, verification, discovery, enablement, routing, audit or persisted
 diagnostic result.
+
+### Reviewing recorded Gateway installations
+
+The System Status task Details dialog offers Gateway installation records for
+its executor. An optional exact canonical `cfg_` snapshot ID narrows those records;
+“Review all recorded processes” removes only the executor filter. Review the
+changed filters explicitly to load a fresh page. Each row retains its process ID,
+process birth and first observation. Filter changes cancel pending reads and hide
+obsolete results, alongside the existing Session and independent `system.read`
+authority fences.
+
+`GET /api/v1/admin/runtime/installations` accepts optional `instance_id`,
+`snapshot_id`, `cursor` and `limit` (default 20, maximum 100). IDs are exact and
+case-sensitive on both supported databases. Cursors are bound to the current
+actor, instance scope and snapshot filter; changing any of these requires starting
+at the newest page. Reads retain the three-second budget and 128 KiB response
+bound. No write permission or mutation is introduced.
+
+All-process review is retained observation history, not a complete fleet census.
+Equal routing snapshot IDs do not establish equal Gateway admission: different
+installed authorization sources can share one routing snapshot. Nullable current
+matching remains a separate comparison against this serving process; another
+process or unavailable comparison stays Unknown. These records prove neither
+current database state, management Session revocation, publication-command
+completion nor fleet application, and introduce no rollback operation.

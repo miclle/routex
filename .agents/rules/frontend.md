@@ -1623,6 +1623,12 @@ The independent system.read gate, strict bounded wire validation, renewal/error/
 actor/target/unmount cancellation and late-response fences apply to both modes.
 Use paired systemStatus copy and the existing local Base UI Dialog/Table/Button
 composition; introduce no observation write or standalone configuration dashboard.
+Within the installation dialog, use local Input/Switch controls and explicit review
+for an exact canonical snapshot filter and optional all-recorded-process scope.
+Bind read keys/cursors to actor, authority, instance scope and snapshot; changing
+filters cancels reads and hides prior facts until reviewed. Show each recorded
+process ID and birth. Equal routing snapshot IDs do not prove equal admission,
+a complete fleet census or fleet application; preserve nullable local matching.
 
 Discord sign-in uses only the fixed reviewed named-method adapter and existing
 login card, authentication-settings drawer and account-security identity card.

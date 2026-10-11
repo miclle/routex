@@ -365,6 +365,85 @@ describe.each(['routing', 'installation'] as const)(
       },
     )
 
+    if (installation) {
+      async function editSnapshot(value: string) {
+        const input = dialog()!.querySelector('input')!
+        await act(async () => {
+          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(
+            input,
+            value,
+          )
+          input.dispatchEvent(new Event('input', { bubbles: true }))
+        })
+      }
+      it('reviews exact snapshot and all recorded processes without changing routing meaning', async () => {
+        await open()
+        await until(() => expect(dialog()?.querySelector('tbody')).not.toBeNull())
+        await editSnapshot(snapshot)
+        expect(dialog()?.querySelector('tbody')).toBeNull()
+        expect(reads()).toHaveLength(1)
+        await act(async () =>
+          dialog()!.querySelector<HTMLButtonElement>('[role="switch"]')!.click(),
+        )
+        ;(page as RuntimeInstallationsPage).items[0].instance_id = 'ins_00000000000000000000000002'
+        ;(page as RuntimeInstallationsPage).items[0].instance_status = 'unknown'
+        await click(en.installationReviewFilters)
+        await until(() => expect(dialog()?.querySelector('tbody')).not.toBeNull())
+        expect(reads()).toHaveLength(2)
+        expect(reads()[1].params).toEqual({ snapshot_id: snapshot })
+        expect(dialog()?.textContent).toContain('ins_00000000000000000000000002')
+        expect(dialog()?.textContent).toContain(en.installationScopeBoundary)
+        expect(dialog()?.textContent).toContain(en.unknown)
+        await act(async () => i18n.changeLanguage('zh'))
+        expect(dialog()?.textContent).toContain(zh.installationAllInstances)
+        expect(dialog()?.textContent).toContain(zh.installationScopeBoundary)
+        expect(dialog()!.querySelector('input')!.value).toBe(snapshot)
+        expect(reads()).toHaveLength(2)
+      })
+      it('rejects a retained pagination callback from a different reviewed snapshot scope', async () => {
+        page.next_cursor = 'older'
+        await open()
+        await until(() => expect(button(en.routingOlder)).toBeDefined())
+        const older = button(en.routingOlder)
+        const propKey = Object.keys(older).find((key) => key.startsWith('__reactProps$'))!
+        const retained = (older as unknown as Record<string, { onClick: () => void }>)[propKey]
+          .onClick
+        await editSnapshot(snapshot)
+        page.next_cursor = null
+        await click(en.installationReviewFilters)
+        await until(() => expect(reads()).toHaveLength(2))
+        await until(() => expect(dialog()?.querySelector('tbody')).not.toBeNull())
+        await act(async () => retained())
+        expect(reads()).toHaveLength(2)
+        expect(dialog()?.querySelector('tbody')).not.toBeNull()
+      })
+      it('rejects a malformed filter locally and retains no obsolete records', async () => {
+        await open()
+        await until(() => expect(dialog()?.querySelector('tbody')).not.toBeNull())
+        await editSnapshot(snapshot.toUpperCase())
+        expect(dialog()?.querySelector('tbody')).toBeNull()
+        expect(button(en.installationReviewFilters).disabled).toBe(true)
+        expect(dialog()?.textContent).toContain(en.installationSnapshotInvalid)
+        await act(async () => button(en.installationReviewFilters).click())
+        expect(reads()).toHaveLength(1)
+      })
+      it('cancels a held read on filter edits and requires explicit review before reloading', async () => {
+        hold = true
+        await open()
+        await until(() => expect(release).toBeDefined())
+        const signal = reads()[0].signal
+        await editSnapshot(snapshot)
+        expect(signal?.aborted).toBe(true)
+        hold = false
+        await act(async () => release?.())
+        expect(dialog()?.querySelector('tbody')).toBeNull()
+        expect(reads()).toHaveLength(1)
+        await click(en.installationReviewFilters)
+        await until(() => expect(dialog()?.querySelector('tbody')).not.toBeNull())
+        expect(reads()[1].params).toEqual({ instance_id: instance, snapshot_id: snapshot })
+      })
+    }
+
     it('does not read records with only system.write authority', async () => {
       permissions = ['system.write']
       await act(async () =>

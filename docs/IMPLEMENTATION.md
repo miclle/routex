@@ -4,11 +4,68 @@ Updated: 2026-10-12. This document records engineering contracts, work packages 
 
 ## Current execution status (2026-10-12)
 
+Role management (F05) is complete under the controlled-functionality convention.
+Commit `4cfbe9ef9c50740f83d580ac598d8dbf611e3338` fixes the finite frontend
+permission catalogue to accept the existing Secrets write/test grants. Unknown
+and reserved permissions remain rejected. All 165 focused API/component tests,
+TypeScript, formatting and mandatory checks passed; main was pushed with exact
+remote parity. This adds no new browser or external-provider acceptance.
+
+Telegram and the Key replacement-call advisory are independently source-complete.
+Their repaired candidate passes mandatory checks and the complete Task, including
+6,831 frontend tests in 252 files, Go race/coverage, development lifecycle and
+production assets. Its full PostgreSQL/MySQL matrix remains in progress; auth
+lifecycle and fresh default-production qualification are pending. Operational
+analysis is being reconciled in its separate worktree using current-user models,
+personal quota and authorized aggregates only. Saved-report policy remains open.
+Recorded routing-snapshot review is verified in this phase, with exact filters and
+optional all-recorded-process review in the existing System Status dialog. Its
+104 frontend/localization cases, focused Go race tests, mandatory check and real
+PostgreSQL/MySQL scenario passed. Telegram and operational analysis remain
+independently pending delivery; F30 remains Partial.
+
+Current totals: **16 Completed / 13 Partial / 1 Not started**. The previous
+enterprise CI was cancelled by the subsequent main push under the configured
+concurrency policy; the newest main CI remains pending. Local accepted evidence
+below retains its exact phase scope.
+
+## Recorded Gateway installation review (2026-10-12)
+
+The existing System Status installation dialog now supports an exact canonical
+snapshot filter and explicit review of all recorded processes. Each row identifies
+its process and birth. Editing filters cancels pending reads and hides prior facts;
+actor, Session and independent `system.read` authority remain required. Cursors
+bind actor, instance scope and snapshot. Reads retain the three-second budget,
+128 KiB response bound and 20-default/100-maximum page size. No schema, write
+operation or historical authentication restoration is introduced.
+
+All 104 frontend/localization cases, focused Go race tests, TypeScript and scoped
+ESLint passed. Formatting and mandatory `go tool task check` passed on the frozen
+source. The first check exited on a shared GolangCI-Lint lock; the serial successor
+passed without weakening any flags. The existing `runtime_installation` scenario
+passed on real PostgreSQL and MySQL, with three balanced named events per driver
+including the parent tests. It covers exact/conjunctive filters, scope-bound cursor
+replay, continuation, read/write authority separation and unknown process matching.
+All eight worker groups and the original supervisor joined; the owned Compose
+project and helper executables were removed, both database ports closed and the
+original development service was preserved. The 2,495 source hashes/modes stayed
+unchanged. Independent focused readback SHA-256:
+`85513f690ad11d36f97ce25f82e3c4951fb9c1360cd11225c190dfe2cc8ff612`.
+
+These are retained observations, not a fleet census or acknowledgement. Equal
+routing snapshots do not establish equal installed authorization. Missing process
+facts and unavailable local comparisons remain Unknown. Complete configuration
+rollback and distributed revocation acceptance remain separate F30 work; no
+additional historical Vault restore workflow is implied. Browser acceptance is
+deferred, and the independent Telegram full matrix remains in progress.
+
+## Enterprise access delivery (2026-10-12)
+
 The pre-phase baseline is `3976e5a59f5397218c36249be79de4ae2dec23f8`.
 This phase implements enforced OIDC/LDAP with MFA-protected emergency entry
 (V103), saved independent Vault certificate identities (V104), HTTPS proxy
 process coverage, and actor-owned durable manual publication receipts (V105).
-This verified phase is ready for delivery; Git history records its containing commit.
+This verified phase is delivered as `b97b6152de28cf8b7b2a528521d64cbb718cf547`.
 Earlier accepted API-Key delivery evidence below retains its original scope.
 
 Verification binds the repaired phase separately from earlier source floors:
@@ -38,7 +95,7 @@ runs and physical closure never establish functional acceptance; see
 Browser acceptance is deferred. Separate Telegram and bounded API-Key receipt
 advisory implementations are source-complete but outside this qualification;
 F24 and controlled performance tooling remain separate drafts. Capability totals
-remain 15 Completed / 14 Partial / 1 Not started.
+at that delivery were 15 Completed / 14 Partial / 1 Not started.
 
 ## API-Key delivery application: bounded phase — 2026-10-11
 
@@ -4106,15 +4163,15 @@ Status terms in this section are deliberately strict:
 - **Partially completed** means material implementation exists, but one or more required behaviors or acceptance gates remain open. It does not mean that work has not started.
 - **Not started** means no material implementation of the capability exists. A prerequisite or design note may still be present.
 
-The binary capability count is 15 completed, 14 partially completed, and 1 not started. F22 is reconciled as Completed from existing scoped implementation and controlled evidence. F15 now has complete controlled acceptance, including genuine browser downloads and original-Session restart. F06 initial Model access selection has passed its scoped acceptance. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. The user resumed implementation on 2026-10-02 and prioritized partially completed capabilities. Status changes require current implementation and acceptance evidence; a package delivery alone does not complete an entire capability.
+The binary capability count is 16 completed, 13 partially completed, and 1 not started. F05 is reconciled as Completed from its current implementation, controlled role/restart evidence and the delivered permission-catalogue repair. F22 is reconciled as Completed from existing scoped implementation and controlled evidence. F15 now has complete controlled acceptance, including genuine browser downloads and original-Session restart. F06 initial Model access selection has passed its scoped acceptance. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. The user resumed implementation on 2026-10-02 and prioritized partially completed capabilities. Status changes require current implementation and acceptance evidence; a package delivery alone does not complete an entire capability.
 
 | ID | Capability | Status | Delivered and remaining scope |
 |---|---|---|---|
 | F01 | Initialization, local identity, registration, and logout | Completed | Concurrent one-time setup, administrator creation, local login, registration control, durable sessions, and logout are implemented and tested. |
 | F02 | Profile, password, MFA, recovery codes, and session revocation | Completed | Profile and password changes, authenticator enrollment, single-use recovery codes, and individual-session revocation are implemented. |
-| F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Partially completed | Existing-member OIDC, custom OAuth, LDAP and SAML have controlled automated, complete dual-driver and process acceptance under their separately bound evidence. GitHub, Google and Discord successor phases have separately recorded controlled complete dual-driver and production-process qualification; exact phase evidence above defines each accepted source boundary. Earlier focused/full migration failures remain retained. Bilingual browser and real-provider/directory acceptance, enforced OIDC/LDAP SSO and emergency recovery remain open. WeChat is explicitly deferred because no service or wire contract exists. |
+| F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Partially completed | Existing-member OIDC, custom OAuth, LDAP and SAML have controlled automated, complete dual-driver and process acceptance under their separately bound evidence. GitHub, Google and Discord successor phases have separately recorded controlled complete dual-driver and production-process qualification; exact phase evidence above defines each accepted source boundary. Earlier focused/full migration failures remain retained. Enforced verified OIDC/LDAP SSO and MFA-protected emergency administrator entry (V103) are delivered with coherent R7 gates, original full R6 dual-driver and auth lifecycle R4 acceptance; their exact source and receipt scope is recorded above. Bilingual browser and real-provider/directory acceptance remain open. Telegram official OIDC is a separate follow-up whose qualification remains pending. WeChat is explicitly deferred because no service or wire contract exists. |
 | F04 | Member administration, direct grants, roles, and resource policies | Completed | Authorized list/filter/detail, State, direct Model grants, current Roles, resource policies, Keys/Teams tabs and local creation/approval/offboarding interactions have controlled acceptance. Bilingual creation, validation, sensitive-draft cleanup and read-only denial are verified. The final modal focus repair passes main formatting/check/complete Task (5,630 frontend cases), six authority-lifetime regressions and real English/Chinese Escape/Close verification. Unchanged backend acceptance includes V91 full PostgreSQL/MySQL and exact-head CI. Enterprise identity remains F03; global enterprise continuity and later permission domains stay independent. |
-| F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management, reviewed definitions/descriptions, and immutable Procurement/Finance/Operations templates with explicit assignment are implemented and accepted. Later enterprise and operations domains still require permission integration and negative acceptance. |
+| F05 | Built-in and custom roles with composed permissions | Completed | Role lists, immutable built-in definitions, custom creation/editing, descriptions, grouped resource/action grants and server-side union of assigned roles are implemented. Current enterprise and operations endpoints retain their effective permissions and intrinsic-administrator restrictions. The finite role-definition catalogue repair is delivered as 4cfbe9e with 165 API/component regressions, TypeScript, formatting and mandatory check passed. Existing controlled dual-driver tests cover exact composed grants, revocation, protected-power rejection and scope isolation; prior bilingual role/restart acceptance remains separately recorded in GOVERNANCE.md. Wider release acceptance is independent. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Membership, ownership, model relationships, finite aggregate/member policies, monthly requests and durable Team-assigned roles have dual-driver and controlled acceptance. Initial limits V63 is delivered as8f17d12. Initial Model access V66 passed complete121, main3,759 frontend cases, both auth/gateway lifecycles and controlled bilingual/original-Session restart with four native probes. Separate read-only review confirms exact grants, receipts and completed attempts; the original helper denial-oracle failure remains retained. Empty selection grants no Models. |
 | F07 | Project lifecycle, managers, models, Keys, and requests | Completed | Exact current management, lifecycle/continuity, multi-manager creation, initial direct resources and combined requests, scoped Overview, Project Keys, resource limits and model/quota/rate approvals are implemented with controlled dual-database/browser/native/restart evidence. Both lists now show authorized total retained Key counts; administrative stored-policy summaries, literal name/ID search and authorized legacy tab replacement have full main acceptance. |
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
@@ -4137,9 +4194,9 @@ The binary capability count is 15 completed, 14 partially completed, and 1 not s
 | F25 | Site presentation, language, and announcements | Completed | Durable site name, URL, logo, footer, default language, bilingual UI behavior, and announcement lifecycle are implemented. |
 | F26 | Instances, heartbeats, resources, jobs, and offline cleanup | Completed | Distinct process generations, server-owned leases, nullable resource facts, bounded real system jobs, executor-loss reconciliation, revision-checked cleanup, audit evidence, and the bilingual administrative workspace are implemented. |
 | F27 | S3, owned attachments, SMTP, and notifications | Partially completed | S3-compatible configuration and administration UI, explicit user/Project attachment APIs, cleanup recovery, Key-scoped inference reads, single/comparison attachment interfaces, SMTP administration/test delivery, and durable operational email intents exist. External storage/mail acceptance, bounce handling, and inbox tracking remain open. |
-| F28 | Internal encryption, root-key rotation, and Vault switching | Partially completed | Internal Provider, egress, SMTP, retained Storage and MFA encryption is implemented. Guarded root rotation passed source, complete dual-driver regression and controlled production/browser/restart acceptance, including final mandatory checks. Vault Token settings, retained revisions, diagnostic probes and seven-domain root inventory are delivered in c2368ddb; the bounded credential KV-v2 SDK is delivered in 78c76d2. Bounded Vault-backed Provider storage switching, stable retained references, durable write compensation and root retirement pass source, dual-driver and controlled API/native/restart acceptance in this phase. Saved independent writer/reader AppRole activation is delivered as 77ece177 after source gates, Focus16, complete Full150 and real Vault API/native/root-key/original-Session restart acceptance. Administrator-previewed, explicitly confirmed cleanup of never-committed Provider objects is delivered as 5fda0737 after source, Full154 and real Vault API/restart acceptance; automatic scheduled deletion is excluded. Published-object drain and graceful closure are delivered in V88/V89. Genuine bilingual Vault/storage browser acceptance, certificate and workload identities, and external compatibility remain open. |
+| F28 | Internal encryption, root-key rotation, and Vault switching | Partially completed | Internal Provider, egress, SMTP, retained Storage and MFA encryption is implemented. Guarded root rotation passed source, complete dual-driver regression and controlled production/browser/restart acceptance, including final mandatory checks. Vault Token settings, retained revisions, diagnostic probes and seven-domain root inventory are delivered in c2368ddb; the bounded credential KV-v2 SDK is delivered in 78c76d2. Bounded Vault-backed Provider storage switching, stable retained references, durable write compensation and root retirement pass source, dual-driver and controlled API/native/restart acceptance in this phase. Saved independent writer/reader AppRole activation is delivered as 77ece177 after source gates, Focus16, complete Full150 and real Vault API/native/root-key/original-Session restart acceptance. Administrator-previewed, explicitly confirmed cleanup of never-committed Provider objects is delivered as 5fda0737 after source, Full154 and real Vault API/restart acceptance; automatic scheduled deletion is excluded. Published-object drain and graceful closure are delivered in V88/V89. Saved independent writer/reader certificate identities (V104) are delivered with coherent R7 gates, original full R6 dual-driver, auth lifecycle R4 and default-production build R7 acceptance. Controlled real Vault R8 passes all 12 saved-certificate cases on both databases, including encrypted persistence, same-binary restart, exact native audit attribution and scoped Provider cleanup. Four normal generations close durably; two intended mandatory-mTLS CA-only operator failures retain unknown cleanup intent and unproven durable closure despite positive OS joins, with no remote destruction. Genuine bilingual Vault/storage browser acceptance, workload identities, external Vault/PKI compatibility and wider release acceptance remain open. |
 | F29 | API Key Vault delivery and application identities | Partially completed | The application contract separates immutable manual/managed modes, exact-owner Consumer/Profile/Principal targets, independent Writer/Provisioner and JWT-template verification, explicit control approval and separate isolation attestation. Durable pre-I/O claims prevent Writer replay and plaintext fallback; acknowledgements, local runtime publication, descriptors and actual caller use remain distinct. Native-completed retirement remains mandatory. Controlled application, real local Vault, browser and external caller evidence are recorded separately below; coordinator and automatic rotation remain outside this bounded phase. |
-| F30 | Configuration publication, acknowledgement, rollback, revocation, and audit | Partially completed | Immutable runtime publication, durable events, current revocation, and audit foundations exist. Actor-owned idempotent manual publication receipts are prepared in private source only; all compilation, database, process and runtime qualification remains pending. Node acknowledgement, complete rollback, and distributed emergency-revocation acceptance remain open. |
+| F30 | Configuration publication, acknowledgement, rollback, revocation, and audit | Partially completed | Immutable runtime publication, durable events, current revocation, and audit foundations exist. Actor-owned idempotent manual publication receipts (V105) are delivered with coherent R7 gates, original full R6 dual-driver, auth lifecycle R4 and default-production build R7 acceptance. The strict UUIDv4/reason wire contract, current actor/Session authority, identical retry without redispatch and immutable terminal receipts are accepted. The original three-second budget is unchanged; unknown claims are never resumed after restart, and the two-process HTTP witness preserves terminal receipts and command/audit rows without claiming interrupted in-flight process acceptance. A receipt proves neither application/fleet acknowledgement nor absence of effects. Exact snapshot filtering and all-recorded-process review have focused real PostgreSQL/MySQL and API/UI acceptance; observations are not fleet acknowledgements. Node acknowledgement, complete rollback, and distributed emergency-revocation acceptance remain open. |
 
 ### Acceptance-case status
 
