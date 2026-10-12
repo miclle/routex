@@ -43,7 +43,8 @@ export interface SystemInstancesPage {
   cleanup_after_seconds: number
 }
 
-export type SystemJobCode = 'runtime_publication' | 'call_record_delivery' | 'storage_cleanup'
+export type SystemJobCode =
+  'runtime_publication' | 'call_record_delivery' | 'storage_cleanup' | 'secret_root_rotation'
 export type SystemJobStatus = 'running' | 'completed' | 'failed'
 
 export type SystemJobDetailCode =
@@ -63,6 +64,8 @@ export type SystemJobDetailCode =
   | 'claim_failed'
   | 'delete_failed'
   | 'state_update_failed'
+  | 'processed'
+  | 'rotation_blocked'
   | 'executor_lost'
 
 export interface SystemJob {

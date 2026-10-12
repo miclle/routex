@@ -111,6 +111,7 @@ export default {
     runtime_publication: '运行时发布',
     call_record_delivery: '调用记录投递',
     storage_cleanup: '存储清理',
+    secret_root_rotation: '根密钥轮换',
   },
   jobDetails: {
     running: '任务正在执行。',
@@ -129,6 +130,8 @@ export default {
     claim_failed: '无法认领待处理的存储清理任务。',
     delete_failed: '无法删除对象。',
     state_update_failed: '无法更新存储清理状态。',
+    processed: '轮换批次已处理 {{completed}} / {{total}} 项。',
+    rotation_blocked: '轮换批次在处理 {{completed}} / {{total}} 项后停止。',
     executor_lost: '执行实例已不可用，任务已中断。',
   },
 }

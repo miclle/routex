@@ -117,6 +117,7 @@ export default {
     runtime_publication: 'Runtime publication',
     call_record_delivery: 'Call record delivery',
     storage_cleanup: 'Storage cleanup',
+    secret_root_rotation: 'Secret root key rotation',
   },
   jobDetails: {
     running: 'Work is in progress.',
@@ -135,6 +136,9 @@ export default {
     claim_failed: 'Pending storage cleanup could not be claimed.',
     delete_failed: 'An object could not be deleted.',
     state_update_failed: 'The storage cleanup state could not be updated.',
+    processed: 'The rotation batch processed {{completed}} of {{total}} items.',
+    rotation_blocked:
+      'The rotation batch stopped after processing {{completed}} of {{total}} items.',
     executor_lost: 'The run was interrupted because its executor is no longer available.',
   },
 }

@@ -10,7 +10,12 @@ import en from '@/i18n/locales/en/systemStatus'
 import zh from '@/i18n/locales/zh/systemStatus'
 import { sessionKey } from '@/hooks/use-auth'
 import AppShell from '@/components/app/AppShell'
-import type { SystemInstance, SystemInstancesPage, SystemJobsPage } from '@/types/system-status'
+import type {
+  SystemInstance,
+  SystemInstancesPage,
+  SystemJob,
+  SystemJobsPage,
+} from '@/types/system-status'
 import SystemStatusPage from './index'
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
@@ -347,6 +352,92 @@ describe('system status workspace', () => {
       navigation.indexOf('System information'),
     )
     expect(host.querySelector('a[href="/admin/system-status"]')).toBeTruthy()
+  })
+
+  it('localizes recorded root key rotation batches and counts live without claiming global completion', async () => {
+    jobs.items = [
+      {
+        ...jobsSeed.items[0],
+        id: 'job_rotation_running',
+        code: 'secret_root_rotation',
+        progress: 25,
+        items_total: 12,
+        items_completed: 3,
+      },
+      {
+        ...jobsSeed.items[0],
+        id: 'job_rotation_processed',
+        code: 'secret_root_rotation',
+        status: 'completed',
+        progress: 100,
+        items_total: 12,
+        items_completed: 12,
+        detail_code: 'processed',
+        completed_at: jobsSeed.observed_at,
+      },
+      {
+        ...jobsSeed.items[0],
+        id: 'job_rotation_blocked',
+        code: 'secret_root_rotation',
+        status: 'failed',
+        progress: 25,
+        items_total: 12,
+        items_completed: 3,
+        detail_code: 'rotation_blocked',
+        completed_at: jobsSeed.observed_at,
+      },
+    ]
+    await mount()
+    expect(host.textContent).toContain('Secret root key rotation')
+    expect(host.textContent).toContain('Work is in progress.')
+    expect(host.textContent).toContain('The rotation batch processed 12 of 12 items.')
+    expect(host.textContent).toContain('The rotation batch stopped after processing 3 of 12 items.')
+    expect(host.querySelector('[aria-label="Progress 25%"]')).toBeTruthy()
+    expect(
+      [...host.querySelectorAll('table[aria-label="System jobs"] tbody code')].map(
+        (item) => item.textContent,
+      ),
+    ).toEqual(['secret_root_rotation', 'secret_root_rotation', 'secret_root_rotation'])
+
+    const readsBeforeSwitch = requests.filter(
+      (request) => request.url === '/admin/system/jobs',
+    ).length
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(host.textContent).toContain('根密钥轮换')
+    expect(host.textContent).toContain('任务正在执行。')
+    expect(host.textContent).toContain('轮换批次已处理 12 / 12 项。')
+    expect(host.textContent).toContain('轮换批次在处理 3 / 12 项后停止。')
+    expect(host.textContent).not.toContain('Secret root key rotation')
+    expect(host.textContent).not.toContain('The rotation batch')
+    expect(requests.filter((request) => request.url === '/admin/system/jobs')).toHaveLength(
+      readsBeforeSwitch,
+    )
+  })
+
+  it('preserves unknown wire codes verbatim without looking up inherited object properties', async () => {
+    jobs.items = [
+      {
+        ...jobsSeed.items[0],
+        code: 'future_system_job',
+        detail_code: 'future_job_outcome',
+      } as unknown as SystemJob,
+      {
+        ...jobsSeed.items[0],
+        id: 'job_inherited_code',
+        code: 'toString',
+        detail_code: 'constructor',
+      } as unknown as SystemJob,
+    ]
+    await mount()
+    expect(host.textContent).toContain('future_system_job')
+    expect(host.textContent).toContain('future_job_outcome')
+    expect(host.textContent).toContain('toString')
+    expect(host.textContent).toContain('constructor')
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(host.textContent).toContain('future_system_job')
+    expect(host.textContent).toContain('future_job_outcome')
+    expect(host.textContent).toContain('toString')
+    expect(host.textContent).toContain('constructor')
   })
 
   it('keeps the two reads independent and never queries without system.read', async () => {

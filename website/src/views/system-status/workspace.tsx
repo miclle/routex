@@ -37,6 +37,7 @@ const jobTypeKeys: Record<SystemJobCode, string> = {
   runtime_publication: 'jobTypes.runtime_publication',
   call_record_delivery: 'jobTypes.call_record_delivery',
   storage_cleanup: 'jobTypes.storage_cleanup',
+  secret_root_rotation: 'jobTypes.secret_root_rotation',
 }
 
 const jobDetailKeys: Partial<Record<SystemJobDetailCode, string>> = {
@@ -55,6 +56,8 @@ const jobDetailKeys: Partial<Record<SystemJobDetailCode, string>> = {
   claim_failed: 'jobDetails.claim_failed',
   delete_failed: 'jobDetails.delete_failed',
   state_update_failed: 'jobDetails.state_update_failed',
+  processed: 'jobDetails.processed',
+  rotation_blocked: 'jobDetails.rotation_blocked',
   executor_lost: 'jobDetails.executor_lost',
 }
 
@@ -594,14 +597,13 @@ function JobsTable({
 }) {
   const { t } = useTranslation('systemStatus')
   function jobType(code: string) {
-    return code in jobTypeKeys ? t(jobTypeKeys[code as SystemJobCode]) : code
+    return Object.hasOwn(jobTypeKeys, code) ? t(jobTypeKeys[code as SystemJobCode]) : code
   }
   function detail(job: SystemJob) {
     if (!job.detail_code) return job.status === 'running' ? t('jobDetails.running') : t('unknown')
-    const key =
-      job.detail_code in jobDetailKeys
-        ? jobDetailKeys[job.detail_code as SystemJobDetailCode]
-        : undefined
+    const key = Object.hasOwn(jobDetailKeys, job.detail_code)
+      ? jobDetailKeys[job.detail_code as SystemJobDetailCode]
+      : undefined
     return key
       ? t(key, { completed: job.items_completed, total: job.items_total })
       : job.detail_code

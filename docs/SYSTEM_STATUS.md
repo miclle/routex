@@ -72,11 +72,18 @@ must then refetch authoritative state before reporting success.
 ## System jobs
 
 System jobs describe only real RouteX work: runtime publication, durable call
-delivery, and storage cleanup. Static demonstration jobs are not part of the
-product contract. Each bounded row has a stable `job_` run ID, stable type and
+delivery, storage cleanup, and secret root key rotation batches. Static
+demonstration jobs are not part of the product contract. Each bounded row has a
+stable `job_` run ID, stable type and
 detail codes, status, nullable progress, executor process-generation ID, and
 start/update/finish timestamps. The server returns codes and interpolation data;
 the selected UI language supplies all human-readable labels.
+
+Secret root key rotation rows describe individual bounded batches. Their
+`processed` and `rotation_blocked` details report the recorded processed and total
+item counts. A completed batch does not establish completion of the entire root
+key rotation or retirement of the previous root key. Known job labels and details
+switch with the selected language; unknown future codes remain visible verbatim.
 
 Statuses are `running`, `completed`, and `failed`. Progress is present only when
 the worker has an authoritative finite denominator. A worker crash or expired
