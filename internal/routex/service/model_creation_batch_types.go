@@ -69,11 +69,13 @@ type ModelCreationTargetPage struct {
 	NextCursor *string               `json:"next_cursor"`
 }
 type ModelCreationItem struct {
-	ProviderModelID string `json:"provider_model_id,omitempty"`
-	UpstreamName    string `json:"upstream_name,omitempty"`
-	Target          string `json:"target"`
-	Name            string `json:"name,omitempty"`
-	ModelID         string `json:"model_id,omitempty"`
+	SupportsImageInput *bool  `json:"supports_image_input,omitempty"`
+	SupportsPDFInput   *bool  `json:"supports_pdf_input,omitempty"`
+	ProviderModelID    string `json:"provider_model_id,omitempty"`
+	UpstreamName       string `json:"upstream_name,omitempty"`
+	Target             string `json:"target"`
+	Name               string `json:"name,omitempty"`
+	ModelID            string `json:"model_id,omitempty"`
 }
 type ModelCreationPreviewInput struct {
 	Items []ModelCreationItem `json:"items"`
@@ -84,15 +86,17 @@ type ModelCreationBatchInput struct {
 	Items     []ModelCreationItem `json:"items"`
 }
 type ModelCreationReviewedItem struct {
-	WarningCodes    []string `json:"warning_codes,omitempty"`
-	ProviderModelID string   `json:"provider_model_id"`
-	UpstreamName    string   `json:"upstream_name"`
-	Target          string   `json:"target"`
-	ModelID         *string  `json:"model_id"`
-	Name            string   `json:"name"`
-	Protocol        string   `json:"protocol"`
-	InitialWeight   int      `json:"initial_weight"`
-	BlockerCodes    []string `json:"blocker_codes"`
+	SupportsImageInput *bool    `json:"supports_image_input,omitempty"`
+	SupportsPDFInput   *bool    `json:"supports_pdf_input,omitempty"`
+	WarningCodes       []string `json:"warning_codes,omitempty"`
+	ProviderModelID    string   `json:"provider_model_id"`
+	UpstreamName       string   `json:"upstream_name"`
+	Target             string   `json:"target"`
+	ModelID            *string  `json:"model_id"`
+	Name               string   `json:"name"`
+	Protocol           string   `json:"protocol"`
+	InitialWeight      int      `json:"initial_weight"`
+	BlockerCodes       []string `json:"blocker_codes"`
 }
 type ModelCreationPreview struct {
 	Connection ModelCreationConnection     `json:"connection"`
@@ -102,6 +106,8 @@ type ModelCreationPreview struct {
 	CanCommit  bool                        `json:"can_commit"`
 }
 type ModelCreationReceiptItem struct {
+	SupportsImageInput *bool  `json:"supports_image_input,omitempty"`
+	SupportsPDFInput   *bool  `json:"supports_pdf_input,omitempty"`
 	ManualUpstreamName string `json:"manual_upstream_name,omitempty"`
 	ProviderModelID    string `json:"provider_model_id"`
 	ModelID            string `json:"model_id"`
@@ -164,14 +170,18 @@ func modelCreationObject(raw []byte, allowed ...string) (map[string]json.RawMess
 	return fields, nil
 }
 func (item *ModelCreationItem) UnmarshalJSON(raw []byte) error {
-	fields, err := modelCreationObject(raw, "provider_model_id", "upstream_name", "target", "name", "model_id")
+	fields, err := modelCreationObject(raw, "provider_model_id", "upstream_name", "target", "name", "model_id", "supports_image_input", "supports_pdf_input")
 	if err != nil {
 		return err
 	}
 	var next ModelCreationItem
 	for key, value := range fields {
-		var dst *string
+		var dst any
 		switch key {
+		case "supports_image_input":
+			dst = &next.SupportsImageInput
+		case "supports_pdf_input":
+			dst = &next.SupportsPDFInput
 		case "provider_model_id":
 			dst = &next.ProviderModelID
 		case "upstream_name":
@@ -189,7 +199,7 @@ func (item *ModelCreationItem) UnmarshalJSON(raw []byte) error {
 	}
 	_, stored := fields["provider_model_id"]
 	_, manual := fields["upstream_name"]
-	if stored == manual || stored && !modelCreationID(next.ProviderModelID, "pmd") || manual && !validUpstreamName(next.UpstreamName) {
+	if !validModelCreationDeclaration(next.UpstreamName, next.SupportsImageInput, next.SupportsPDFInput) || stored == manual || stored && !modelCreationID(next.ProviderModelID, "pmd") || manual && !validUpstreamName(next.UpstreamName) {
 		return apperrors.ErrBadRequest
 	}
 	switch next.Target {
@@ -245,12 +255,16 @@ func normalizeModelCreationItems(items []ModelCreationItem) ([]ModelCreationItem
 	}
 	result := slices.Clone(items)
 	pms, names, models := map[string]bool{}, map[string]bool{}, map[string]bool{}
-	for _, item := range result {
+	for index, item := range result {
 		key := modelCreationItemKey(item)
 		if !validModelCreationSelector(item) || pms[key] {
 			return nil, apperrors.ErrBadRequest
 		}
 		pms[key] = true
+		if item.SupportsImageInput != nil {
+			image, pdf := *item.SupportsImageInput, *item.SupportsPDFInput
+			result[index].SupportsImageInput, result[index].SupportsPDFInput = &image, &pdf
+		}
 		switch item.Target {
 		case "new":
 			if item.ModelID != "" || !publicModelName.MatchString(item.Name) || names[item.Name] {
@@ -320,7 +334,15 @@ func modelCreationUnicode(raw []byte) bool {
 	return true
 }
 
+// Declarations are complete, explicit pairs on manual items only. Omission keeps
+// the legacy intent/receipt representation; false is a recorded declaration.
+func validModelCreationDeclaration(manual string, image, pdf *bool) bool {
+	return (image == nil && pdf == nil) || (manual != "" && image != nil && pdf != nil)
+}
 func validModelCreationSelector(item ModelCreationItem) bool {
+	if !validModelCreationDeclaration(item.UpstreamName, item.SupportsImageInput, item.SupportsPDFInput) {
+		return false
+	}
 	return item.ProviderModelID != "" && item.UpstreamName == "" && modelCreationID(item.ProviderModelID, "pmd") || item.ProviderModelID == "" && validUpstreamName(item.UpstreamName)
 }
 func modelCreationItemKey(item ModelCreationItem) string {

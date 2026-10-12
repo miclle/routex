@@ -49,7 +49,7 @@ func readModelCreationSnapshot(receipt entity.ModelCreationBatchReceipt) (*model
 		return nil, apperrors.ErrInternal
 	}
 	for _, item := range snapshot.Items {
-		if item.ManualUpstreamName != "" && !validUpstreamName(item.ManualUpstreamName) || !modelCreationID(item.ProviderModelID, "pmd") || !validAdminModelTarget(item.ModelID) || !modelCreationID(item.BindingID, "bnd") || !publicModelName.MatchString(item.Name) || !entity.SupportedNativeProtocol(item.Protocol) || item.Weight != 0 && item.Weight != 100 {
+		if !validModelCreationDeclaration(item.ManualUpstreamName, item.SupportsImageInput, item.SupportsPDFInput) || item.ManualUpstreamName != "" && !validUpstreamName(item.ManualUpstreamName) || !modelCreationID(item.ProviderModelID, "pmd") || !validAdminModelTarget(item.ModelID) || !modelCreationID(item.BindingID, "bnd") || !publicModelName.MatchString(item.Name) || !entity.SupportedNativeProtocol(item.Protocol) || item.Weight != 0 && item.Weight != 100 {
 			return nil, apperrors.ErrInternal
 		}
 	}
@@ -119,6 +119,10 @@ func (s *Service) currentModelCreationState(tx *gorm.DB, snapshot *modelCreation
 		row := item
 		row.Name = model.Name.Name
 		row.Weight = binding.Weight
+		if item.SupportsImageInput != nil {
+			image, pdf := pm.SupportsImageInput, pm.SupportsPDFInput
+			row.SupportsImageInput, row.SupportsPDFInput = &image, &pdf
+		}
 		current = append(current, row)
 	}
 	state.TransportProof = modelCreationTransportProof(state)
@@ -232,6 +236,9 @@ func (s *Service) CreateModelBatch(ctx context.Context, actor, connectionID, eta
 					return err
 				}
 				pm := entity.ProviderModel{CapabilityTransportGeneration: initial.Connection.TransportGeneration, ID: providerModelID, ConnectionID: connectionID, UpstreamName: item.UpstreamName}
+				if item.SupportsImageInput != nil {
+					pm.SupportsImageInput, pm.SupportsPDFInput = *item.SupportsImageInput, *item.SupportsPDFInput
+				}
 				if err := modelCreationDB(tx).Create(&pm).Error; err != nil {
 					return err
 				}
@@ -263,7 +270,7 @@ func (s *Service) CreateModelBatch(ctx context.Context, actor, connectionID, eta
 					return err
 				}
 			}
-			items = append(items, ModelCreationReceiptItem{ManualUpstreamName: item.UpstreamName, ProviderModelID: providerModelID, ModelID: modelID, BindingID: bindingID, CreatedModel: item.Target == "new", Name: preview.Items[index].Name, Protocol: preview.Items[index].Protocol, Weight: weight})
+			items = append(items, ModelCreationReceiptItem{SupportsImageInput: item.SupportsImageInput, SupportsPDFInput: item.SupportsPDFInput, ManualUpstreamName: item.UpstreamName, ProviderModelID: providerModelID, ModelID: modelID, BindingID: bindingID, CreatedModel: item.Target == "new", Name: preview.Items[index].Name, Protocol: preview.Items[index].Protocol, Weight: weight})
 		}
 		snapshot := &modelCreationSnapshot{Items: items, ConnectionID: connectionID}
 		current, _, err := s.currentModelCreationState(tx, snapshot)
@@ -325,7 +332,7 @@ func modelCreationBatchAuditProjection(row entity.AuditEvent) (any, bool) {
 		return nil, false
 	}
 	for _, item := range detail.Items {
-		if item.ManualUpstreamName != "" && !validUpstreamName(item.ManualUpstreamName) || !modelCreationID(item.ProviderModelID, "pmd") || !validAdminModelTarget(item.ModelID) || !modelCreationID(item.BindingID, "bnd") || !publicModelName.MatchString(item.Name) || !entity.SupportedNativeProtocol(item.Protocol) || item.Weight != 0 && item.Weight != 100 {
+		if !validModelCreationDeclaration(item.ManualUpstreamName, item.SupportsImageInput, item.SupportsPDFInput) || item.ManualUpstreamName != "" && !validUpstreamName(item.ManualUpstreamName) || !modelCreationID(item.ProviderModelID, "pmd") || !validAdminModelTarget(item.ModelID) || !modelCreationID(item.BindingID, "bnd") || !publicModelName.MatchString(item.Name) || !entity.SupportedNativeProtocol(item.Protocol) || item.Weight != 0 && item.Weight != 100 {
 			return nil, false
 		}
 	}

@@ -32,6 +32,7 @@ import type { Session } from '@/types/auth'
 import type {
   ModelCreationInput,
   ModelCreationItem,
+  ModelCreationSource,
   ModelCreationPreview,
   ModelCreationProviderModel,
   ModelCreationResult,
@@ -39,6 +40,7 @@ import type {
 import { Page } from '@/components/app/CatalogUI'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import { Table } from '@/components/ui/table'
 import { Dialog } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
@@ -396,7 +398,8 @@ function BatchForm({
     [draft, setDraft] = useState<Draft[]>([]),
     [reason, setReason] = useState(''),
     [manualOpen, setManualOpen] = useState(false),
-    [manualName, setManualName] = useState('')
+    [manualName, setManualName] = useState(''),
+    [manualInputs, setManualInputs] = useState<{ image: boolean; pdf: boolean } | null>(null)
   const models = useInfiniteQuery({
     queryKey: [...prefix, 'provider-models', q],
     initialPageParam: undefined as string | undefined,
@@ -801,7 +804,8 @@ function BatchForm({
                     )}
                   </td>
                   <td>
-                    {selected?.item.upstream_name !== undefined
+                    {selected?.item.upstream_name !== undefined &&
+                    selected.item.supports_image_input === undefined
                       ? t('unknownCapabilities')
                       : row.input_capabilities.length
                         ? row.input_capabilities
@@ -1063,7 +1067,10 @@ function BatchForm({
         open={manualOpen && visible && manualWritable}
         onOpenChange={(value) => {
           setManualOpen(value)
-          if (!value) setManualName('')
+          if (!value) {
+            setManualName('')
+            setManualInputs(null)
+          }
         }}
         title={t('manualTitle')}
         description={t('manualDescription')}
@@ -1072,6 +1079,41 @@ function BatchForm({
           {t('manualIdentifier')}
           <Input value={manualName} onChange={(e) => setManualName(e.target.value)} />
         </label>
+        <label className="mt-3 flex items-center gap-2 text-sm">
+          <Switch
+            aria-label={t('manualDeclareInputs')}
+            checked={manualInputs !== null}
+            onCheckedChange={(checked) =>
+              setManualInputs(checked ? { image: false, pdf: false } : null)
+            }
+          />
+          {t('manualDeclareInputs')}
+        </label>
+        {manualInputs !== null && (
+          <div className="mt-3 flex gap-4">
+            <label className="flex items-center gap-2 text-sm">
+              <Switch
+                aria-label={t('imageInput')}
+                checked={manualInputs.image}
+                onCheckedChange={(checked) =>
+                  setManualInputs((old) => old && { ...old, image: checked })
+                }
+              />
+              {t('imageInput')}
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Switch
+                aria-label={t('pdfInput')}
+                checked={manualInputs.pdf}
+                onCheckedChange={(checked) =>
+                  setManualInputs((old) => old && { ...old, pdf: checked })
+                }
+              />
+              {t('pdfInput')}
+            </label>
+          </div>
+        )}
+        <p className="mt-3 text-sm text-muted-foreground">{t('manualInputDeclarationHelp')}</p>
         <p className="mt-3 text-sm text-muted-foreground">{t('manualCoverage')}</p>
         <Button
           className="mt-4"
@@ -1097,10 +1139,18 @@ function BatchForm({
             const exact = allTargets.find(
               (target) => target.name === manualName && target.selectable,
             )
+            const source: ModelCreationSource =
+              manualInputs === null
+                ? { upstream_name: manualName }
+                : {
+                    upstream_name: manualName,
+                    supports_image_input: manualInputs.image,
+                    supports_pdf_input: manualInputs.pdf,
+                  }
             const item: ModelCreationItem = exact
-              ? { upstream_name: manualName, target: 'existing', model_id: exact.id }
+              ? { ...source, target: 'existing', model_id: exact.id }
               : {
-                  upstream_name: manualName,
+                  ...source,
                   target: 'new',
                   name: validModelCreationName(manualName) ? manualName : '',
                 }
@@ -1108,7 +1158,13 @@ function BatchForm({
               id: modelCreationItemKey(item),
               upstream_name: manualName,
               disabled: false,
-              input_capabilities: [],
+              input_capabilities:
+                manualInputs === null
+                  ? []
+                  : [
+                      ...(manualInputs.image ? ['image'] : []),
+                      ...(manualInputs.pdf ? ['pdf'] : []),
+                    ],
               credential_ready: false,
               selectable: true,
               blocker_codes: [],
@@ -1125,6 +1181,7 @@ function BatchForm({
             setReview(null)
             setManualOpen(false)
             setManualName('')
+            setManualInputs(null)
           }}
         >
           {t('manualToList')}
@@ -1173,7 +1230,19 @@ function BatchForm({
                     <td>
                       {row.upstream_name}
                       {row.warning_codes?.includes('credential_coverage_unproven') && (
-                        <p className="text-xs text-muted-foreground">{t('manualCoverage')}</p>
+                        <>
+                          <p className="text-xs text-muted-foreground">
+                            {row.supports_image_input === undefined
+                              ? t('unknownCapabilities')
+                              : [
+                                  row.supports_image_input && t('imageInput'),
+                                  row.supports_pdf_input && t('pdfInput'),
+                                ]
+                                  .filter(Boolean)
+                                  .join(', ') || t('noMediaInputDeclared')}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{t('manualCoverage')}</p>
+                        </>
                       )}
                     </td>
                     <td>

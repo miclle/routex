@@ -195,3 +195,82 @@ func TestModelCreationBatchFiftyRowReceiptFitsPortableText(t *testing.T) {
 		t.Fatal("malformed original protocol topology accepted")
 	}
 }
+
+func TestModelCreationBatchManualDeclarations(t *testing.T) {
+	legacy := `{"upstream_name":"native/exact","target":"new","name":"Public"}`
+	var item ModelCreationItem
+	if err := json.Unmarshal([]byte(legacy), &item); err != nil {
+		t.Fatal(err)
+	}
+	encoded, _ := json.Marshal(item)
+	if string(encoded) != legacy {
+		t.Fatalf("legacy intent changed: %s", encoded)
+	}
+	before := modelCreationIntentHash("usr_actor", "con_one", strings.Repeat("a", 64), ModelCreationBatchInput{Items: []ModelCreationItem{item}})
+	for _, pair := range []string{`"supports_image_input":false,"supports_pdf_input":false`, `"supports_image_input":true,"supports_pdf_input":false`, `"supports_image_input":false,"supports_pdf_input":true`, `"supports_image_input":true,"supports_pdf_input":true`} {
+		raw := strings.TrimSuffix(legacy, "}") + "," + pair + "}"
+		if err := json.Unmarshal([]byte(raw), &item); err != nil || item.SupportsImageInput == nil || item.SupportsPDFInput == nil {
+			t.Fatal("complete declaration rejected", err)
+		}
+		if _, err := normalizeModelCreationItems([]ModelCreationItem{item}); err != nil {
+			t.Fatal(err)
+		}
+		after := modelCreationIntentHash("usr_actor", "con_one", strings.Repeat("a", 64), ModelCreationBatchInput{Items: []ModelCreationItem{item}})
+		if after == before {
+			t.Fatal("declaration omitted from exact intent")
+		}
+	}
+	for _, pair := range []string{`"supports_image_input":false`, `"supports_pdf_input":true`, `"supports_image_input":null,"supports_pdf_input":null`, `"supports_image_input":"false","supports_pdf_input":false`, `"supports_image_input":0,"supports_pdf_input":false`, `"supports_image_input":false,"supports_image_input":true,"supports_pdf_input":false`} {
+		if json.Unmarshal([]byte(strings.TrimSuffix(legacy, "}")+","+pair+"}"), &item) == nil {
+			t.Fatal("malformed declaration accepted", pair)
+		}
+	}
+	stored := `{"provider_model_id":"pmd_one","target":"new","name":"Public","supports_image_input":false,"supports_pdf_input":false}`
+	if json.Unmarshal([]byte(stored), &item) == nil {
+		t.Fatal("stored source declaration override accepted")
+	}
+	declared := false
+	captured, err := normalizeModelCreationItems([]ModelCreationItem{{UpstreamName: "native", Target: "new", Name: "Public", SupportsImageInput: &declared, SupportsPDFInput: &declared}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	declared = true
+	if *captured[0].SupportsImageInput || *captured[0].SupportsPDFInput {
+		t.Fatal("caller mutation replaced captured declaration")
+	}
+	for _, item := range []ModelCreationItem{
+		{UpstreamName: "native", Target: "new", Name: "Public", SupportsImageInput: &declared},
+		{ProviderModelID: "pmd_one", Target: "new", Name: "Public", SupportsImageInput: &declared, SupportsPDFInput: &declared},
+	} {
+		if _, err := normalizeModelCreationItems([]ModelCreationItem{item}); err == nil {
+			t.Fatal("direct caller bypassed complete manual-only declaration")
+		}
+	}
+}
+
+func TestModelCreationBatchDeclarationReceiptIntegrity(t *testing.T) {
+	_, state := modelCreationPublicationFixture()
+	topology := state.Models[0].Topology[0]
+	image, pdf := true, false
+	row := ModelCreationReceiptItem{ManualUpstreamName: "native", SupportsImageInput: &image, SupportsPDFInput: &pdf, ProviderModelID: topology.ProviderModel.ID, ModelID: state.Models[0].Model.ID, BindingID: topology.Binding.ID, CreatedModel: true, Name: state.Models[0].Name.Name, Protocol: topology.Connection.Protocol, Weight: 100}
+	raw, err := encodeModelCreationSnapshot(state.Connection.ID, []ModelCreationReceiptItem{row}, state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	receipt := entity.ModelCreationBatchReceipt{ConnectionID: state.Connection.ID, SnapshotJSON: raw}
+	got, err := readModelCreationSnapshot(receipt)
+	if err != nil || got.Items[0].SupportsImageInput == nil || !*got.Items[0].SupportsImageInput || got.Items[0].SupportsPDFInput == nil || *got.Items[0].SupportsPDFInput {
+		t.Fatal("receipt lost exact pair", err)
+	}
+	for _, change := range []func(*ModelCreationReceiptItem){func(x *ModelCreationReceiptItem) { x.SupportsPDFInput = nil }, func(x *ModelCreationReceiptItem) { x.ManualUpstreamName = "" }} {
+		bad := row
+		change(&bad)
+		snapshot := *got
+		snapshot.Items = []ModelCreationReceiptItem{bad}
+		encoded, _ := json.Marshal(snapshot)
+		receipt.SnapshotJSON = string(encoded)
+		if _, err := readModelCreationSnapshot(receipt); err == nil {
+			t.Fatal("malformed declaration receipt accepted")
+		}
+	}
+}

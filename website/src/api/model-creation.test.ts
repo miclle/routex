@@ -355,6 +355,77 @@ describe('manual upstream-name atomic selector', () => {
     value = { ...reviewed(), items: [{ ...reviewed().items[0], warning_codes }] }
     await expect(previewModelCreation('con_one', [manual], 'csrf')).rejects.toThrow()
   })
+  it.each([
+    [true, false],
+    [false, true],
+    [false, false],
+    [true, true],
+  ])(
+    'binds the complete manual declaration %j/%j to preview and immutable receipt',
+    async (image, pdf) => {
+      const declaration = { supports_image_input: image, supports_pdf_input: pdf }
+      const declared = { ...manual, ...declaration }
+      value = { ...reviewed(), items: [{ ...reviewed().items[0], ...declaration }] }
+      await expect(previewModelCreation('con_one', [declared], 'csrf')).resolves.toBeTruthy()
+      for (const wrong of [
+        {},
+        { supports_image_input: !image, supports_pdf_input: pdf },
+        { supports_image_input: image },
+        { supports_image_input: null, supports_pdf_input: pdf },
+      ]) {
+        value = { ...reviewed(), items: [{ ...reviewed().items[0], ...wrong }] }
+        await expect(previewModelCreation('con_one', [declared], 'csrf')).rejects.toThrow()
+      }
+      const declaredInput = { ...input, items: [declared] }
+      const r = result()
+      const manualRow = {
+        ...row,
+        name: 'Public',
+        manual_upstream_name: manual.upstream_name,
+        ...declaration,
+      }
+      r.receipt.items = [manualRow]
+      r.current_items = [manualRow]
+      value = r
+      status = 201
+      await expect(
+        createModelBatch('con_one', declaredInput, 'a'.repeat(64), 'csrf'),
+      ).resolves.toBeTruthy()
+      value = {
+        ...r,
+        receipt: { ...r.receipt, items: [{ ...manualRow, supports_image_input: !image }] },
+      }
+      await expect(
+        createModelBatch('con_one', declaredInput, 'a'.repeat(64), 'csrf'),
+      ).rejects.toThrow()
+      value = { ...r, current_items: [{ ...manualRow, supports_image_input: !image }] }
+      await expect(
+        createModelBatch('con_one', declaredInput, 'a'.repeat(64), 'csrf'),
+      ).rejects.toThrow()
+    },
+  )
+  it.each([
+    { ...manual, supports_image_input: true },
+    { ...manual, supports_pdf_input: false },
+    { ...manual, supports_image_input: null, supports_pdf_input: false },
+    { ...manual, supports_image_input: 'true', supports_pdf_input: false },
+    { ...manual, supports_image_input: undefined, supports_pdf_input: undefined },
+    {
+      provider_model_id: 'pmd_one',
+      target: 'new',
+      name: 'Public',
+      supports_image_input: false,
+      supports_pdf_input: false,
+    },
+  ])(
+    'rejects incomplete, nonboolean and stored-source declaration overrides %j before HTTP',
+    async (item) => {
+      await expect(
+        previewModelCreation('con_one', [item] as ModelCreationInput['items'], 'csrf'),
+      ).rejects.toThrow()
+      expect(requests).toHaveLength(0)
+    },
+  )
   it('binds newly assigned IDs to the exact original name through uncertain retry', async () => {
     const r = result()
     const manualRow = { ...row, name: 'Public', manual_upstream_name: manual.upstream_name }

@@ -7,6 +7,8 @@ import type {
   ModelCreationFilter,
   ModelCreationInput,
   ModelCreationItem,
+  ModelCreationSource,
+  ModelCreationMediaDeclaration,
   ModelCreationPage,
   ModelCreationPreview,
   ModelCreationProviderModel,
@@ -42,10 +44,43 @@ export const validModelCreationName = (v: string) =>
   /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$(?![\s\S])/.test(v)
 export const modelCreationItemKey = (item: ModelCreationItem) =>
   item.upstream_name !== undefined ? `manual:${item.upstream_name}` : item.provider_model_id
-export const modelCreationSource = (item: ModelCreationItem) =>
+export const modelCreationSource = (item: ModelCreationItem): ModelCreationSource =>
   item.upstream_name !== undefined
-    ? { upstream_name: item.upstream_name }
+    ? { upstream_name: item.upstream_name, ...modelCreationDeclaration(item) }
     : { provider_model_id: item.provider_model_id }
+function modelCreationDeclaration(item: {
+  supports_image_input?: boolean
+  supports_pdf_input?: boolean
+}): ModelCreationMediaDeclaration {
+  return item.supports_image_input === undefined
+    ? {}
+    : {
+        supports_image_input: item.supports_image_input,
+        supports_pdf_input: item.supports_pdf_input!,
+      }
+}
+function validDeclaration(item: Record<string, unknown>, manual: boolean) {
+  const image = Object.hasOwn(item, 'supports_image_input')
+  const pdf = Object.hasOwn(item, 'supports_pdf_input')
+  return (
+    (!image && !pdf) ||
+    (manual && image && pdf && bool(item.supports_image_input) && bool(item.supports_pdf_input))
+  )
+}
+function declarationKeys(item: { supports_image_input?: unknown }) {
+  return item.supports_image_input === undefined
+    ? []
+    : ['supports_image_input', 'supports_pdf_input']
+}
+function sameDeclaration(
+  a: { supports_image_input?: unknown; supports_pdf_input?: unknown },
+  b: { supports_image_input?: unknown; supports_pdf_input?: unknown },
+) {
+  return (
+    a.supports_image_input === b.supports_image_input &&
+    a.supports_pdf_input === b.supports_pdf_input
+  )
+}
 export function validManualModelName(value: string, connection?: ModelCreationConnection) {
   if (
     !value ||
@@ -201,24 +236,26 @@ export function validateModelCreationItems(items: ModelCreationItem[]) {
   const names = new Set<string>(),
     models = new Set<string>()
   for (const x of items) {
+    const expectedKeys = [
+      ...(x.target === 'new' ? ['name', 'target'] : ['model_id', 'target']),
+      x.upstream_name !== undefined ? 'upstream_name' : 'provider_model_id',
+      ...declarationKeys(x),
+    ]
+      .sort()
+      .join(',')
     if (
+      !validDeclaration(x, x.upstream_name !== undefined) ||
       (x.upstream_name !== undefined
         ? !validManualModelName(x.upstream_name) || x.provider_model_id !== undefined
         : !resource(x.provider_model_id, 'pmd')) ||
       (x.target === 'new'
         ? !validModelCreationName(x.name) ||
           names.has(x.name) ||
-          Object.keys(x).sort().join(',') !==
-            (x.upstream_name !== undefined
-              ? 'name,target,upstream_name'
-              : 'name,provider_model_id,target')
+          Object.keys(x).sort().join(',') !== expectedKeys
         : x.target !== 'existing' ||
           !resource(x.model_id, 'mdl') ||
           models.has(x.model_id) ||
-          Object.keys(x).sort().join(',') !==
-            (x.upstream_name !== undefined
-              ? 'model_id,target,upstream_name'
-              : 'model_id,provider_model_id,target'))
+          Object.keys(x).sort().join(',') !== expectedKeys)
     )
       throw new Error('Invalid model creation selection')
     if (x.target === 'new') names.add(x.name)
@@ -271,9 +308,26 @@ export async function previewModelCreation(
     )
     if (
       !original ||
+      !validDeclaration(row, original.upstream_name !== undefined) ||
+      !sameDeclaration(row, original) ||
       (original.upstream_name !== undefined
         ? Object.keys(row).sort().join(',') !==
-            'blocker_codes,initial_weight,model_id,name,protocol,provider_model_id,target,upstream_name,warning_codes' ||
+            [
+              ...[
+                'blocker_codes',
+                'initial_weight',
+                'model_id',
+                'name',
+                'protocol',
+                'provider_model_id',
+                'target',
+                'upstream_name',
+                'warning_codes',
+              ],
+              ...declarationKeys(original),
+            ]
+              .sort()
+              .join(',') ||
           !validManualModelName(original.upstream_name, c) ||
           !Array.isArray(row.warning_codes) ||
           row.warning_codes.length !== 1 ||
@@ -293,9 +347,24 @@ export async function previewModelCreation(
 function receiptItem(v: unknown, current = false): ModelCreationReceiptItem {
   if (
     !object(v) ||
+    !validDeclaration(v, v.manual_upstream_name !== undefined) ||
     (v.manual_upstream_name !== undefined &&
       (Object.keys(v).sort().join(',') !==
-        'binding_id,created_model,manual_upstream_name,model_id,name,protocol,provider_model_id,weight' ||
+        [
+          ...[
+            'binding_id',
+            'created_model',
+            'manual_upstream_name',
+            'model_id',
+            'name',
+            'protocol',
+            'provider_model_id',
+            'weight',
+          ],
+          ...declarationKeys(v),
+        ]
+          .sort()
+          .join(',') ||
         !text(v.manual_upstream_name) ||
         !validManualModelName(v.manual_upstream_name))) ||
     !resource(v.provider_model_id, 'pmd') ||
@@ -366,6 +435,7 @@ function result(
         )
         return (
           !original ||
+          !sameDeclaration(row, original) ||
           (original.target === 'new'
             ? !row.created_model || row.name !== original.name
             : row.created_model || row.model_id !== original.model_id)
@@ -386,6 +456,8 @@ function result(
               old.binding_id === row.binding_id &&
               old.created_model === row.created_model &&
               old.manual_upstream_name === row.manual_upstream_name &&
+              (old.supports_image_input === undefined) ===
+                (row.supports_image_input === undefined) &&
               old.protocol === row.protocol,
           ),
       )
@@ -394,7 +466,10 @@ function result(
     if (
       new Set(current.map((x) => x.binding_id)).size !== rows.length ||
       (v.application_status === 'applied' &&
-        current.some((x, i) => x.name !== rows[i].name || x.weight !== rows[i].weight))
+        current.some(
+          (x, i) =>
+            x.name !== rows[i].name || x.weight !== rows[i].weight || !sameDeclaration(x, rows[i]),
+        ))
     )
       invalid()
   }

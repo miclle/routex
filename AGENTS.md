@@ -1765,3 +1765,11 @@ record despite read-only can_change; fresh write authority remains mandatory.
 Current desired status/local runtime facts never prove the original operation or
 fleet application. Keep requests transient outside mutation caches, explicit conflict
 review and paired English/Chinese copy; no archived reactivation is available.
+
+Manual rows in Model creation may optionally declare the complete image/PDF boolean
+pair for the reviewed Connection transport. Keep omission visibly Unknown in the
+draft and explicit false/false visibly empty; never infer declarations from names
+or protocols. Preserve the pair through target/name edits, preview, confirmation,
+and identical uncertain retries. Only manual rows accept these fields, with fresh
+independent Provider write authority. Declarations do not verify Credentials,
+create coverage, activate routes, grant access, or establish generic capabilities.

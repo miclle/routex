@@ -39,12 +39,22 @@ export interface ModelCreationPage<T> {
   items: T[]
   next_cursor: string | null
 }
+export type ModelCreationMediaDeclaration =
+  | { supports_image_input: boolean; supports_pdf_input: boolean }
+  | { supports_image_input?: never; supports_pdf_input?: never }
 export type ModelCreationSource =
-  | { provider_model_id: string; upstream_name?: never }
-  | { upstream_name: string; provider_model_id?: never }
+  | {
+      provider_model_id: string
+      upstream_name?: never
+      supports_image_input?: never
+      supports_pdf_input?: never
+    }
+  | ({ upstream_name: string; provider_model_id?: never } & ModelCreationMediaDeclaration)
 export type ModelCreationItem = ModelCreationSource &
   ({ target: 'new'; name: string } | { target: 'existing'; model_id: string })
 export interface ModelCreationReviewedItem {
+  supports_image_input?: boolean
+  supports_pdf_input?: boolean
   warning_codes?: ['credential_coverage_unproven']
   provider_model_id: string
   upstream_name: string
@@ -68,6 +78,8 @@ export interface ModelCreationInput {
   items: ModelCreationItem[]
 }
 export interface ModelCreationReceiptItem {
+  supports_image_input?: boolean
+  supports_pdf_input?: boolean
   manual_upstream_name?: string
   provider_model_id: string
   model_id: string

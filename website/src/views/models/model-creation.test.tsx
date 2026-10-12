@@ -151,6 +151,12 @@ beforeEach(async () => {
         observed_at: '2026-10-04T00:00:00Z',
         can_commit: !previewBlocked,
         items: body.items.map((x: ModelCreationInput['items'][number]) => ({
+          ...(x.supports_image_input === undefined
+            ? {}
+            : {
+                supports_image_input: x.supports_image_input,
+                supports_pdf_input: x.supports_pdf_input,
+              }),
           provider_model_id: x.provider_model_id ?? '',
           upstream_name: x.upstream_name ?? `Upstream ${x.provider_model_id}`,
           ...(x.upstream_name !== undefined
@@ -169,6 +175,12 @@ beforeEach(async () => {
       const body = JSON.parse(config.data) as ModelCreationInput
       if (!saved) {
         const items = body.items.map((x) => ({
+          ...(x.supports_image_input === undefined
+            ? {}
+            : {
+                supports_image_input: x.supports_image_input,
+                supports_pdf_input: x.supports_pdf_input,
+              }),
           provider_model_id: x.provider_model_id ?? 'pmd_manual',
           ...(x.upstream_name !== undefined ? { manual_upstream_name: x.upstream_name } : {}),
           model_id: x.target === 'new' ? `mdl_${x.provider_model_id ?? 'manual'}` : x.model_id,
@@ -1150,10 +1162,16 @@ it.each(['context', 'permissions', 'session', 'connections'])(
   },
 )
 
-async function addManual(name = 'not/discovered') {
+async function addManual(name = 'not/discovered', declaration?: { image: boolean; pdf: boolean }) {
   await click(en.manualAdd)
   const dialog = document.querySelector('[role="dialog"]')!
   await change(dialog.querySelector('input')!, name)
+  if (declaration) {
+    await act(async () => dialog.querySelector<HTMLButtonElement>('[role="switch"]')!.click())
+    const checks = dialog.querySelectorAll<HTMLButtonElement>('[role="switch"]')
+    if (declaration.image) await act(async () => checks[1].click())
+    if (declaration.pdf) await act(async () => checks[2].click())
+  }
   await click(en.manualToList)
   await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
   await change(
@@ -1185,6 +1203,54 @@ describe('manual Provider Model drafts', () => {
     expect(requests).toHaveLength(reads)
     expect(requests.some((request) => request.method === 'post')).toBe(false)
   })
+
+  it.each([
+    { image: true, pdf: false },
+    { image: false, pdf: true },
+    { image: false, pdf: false },
+  ])(
+    'reviews explicit manual declarations and retains them through uncertain retry %j',
+    async (declaration) => {
+      permissions.push('providers.write')
+      await mount()
+      await addManual('not/discovered', declaration)
+      const cell = () =>
+        document
+          .querySelector(
+            'input[aria-label="' +
+              i18n.t('modelCreation:selection', { name: 'not/discovered' }) +
+              '"]',
+          )
+          ?.closest('tr')
+          ?.querySelectorAll('td')[2]
+      expect(cell()?.textContent).toBe(
+        declaration.image ? en.imageInput : declaration.pdf ? en.pdfInput : en.noMediaInputDeclared,
+      )
+      await act(async () => i18n.changeLanguage('zh'))
+      expect(cell()?.textContent).toBe(
+        declaration.image ? zh.imageInput : declaration.pdf ? zh.pdfInput : zh.noMediaInputDeclared,
+      )
+      await act(async () => i18n.changeLanguage('en'))
+      await review()
+      const previewBody = JSON.parse(requests.find((r) => r.url?.endsWith('/preview'))!.data)
+      expect(previewBody.items[0]).toMatchObject({
+        supports_image_input: declaration.image,
+        supports_pdf_input: declaration.pdf,
+      })
+      fail[path] = 503
+      await click('Confirm addition')
+      await until(() => expect(host.textContent).toContain('The outcome is unknown'))
+      const original = commits()[0].data
+      delete fail[path]
+      await click(en.retryOriginal)
+      await until(() => expect(host.textContent).toContain('The receipt confirms'))
+      expect(commits()[1].data).toBe(original)
+      expect(JSON.parse(original).items[0]).toMatchObject({
+        supports_image_input: declaration.image,
+        supports_pdf_input: declaration.pdf,
+      })
+    },
+  )
 
   it('requires providers.write independently and cancels without any write or preview', async () => {
     await mount()

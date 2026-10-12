@@ -1218,7 +1218,7 @@ The server validates native name grammar and exact Connection-scoped collisions.
 It never substitutes a discovered row that appears after review. A manual preview
 has an empty `provider_model_id` and the sole advisory warning
 `credential_coverage_unproven`; it does not assign a persistent identifier or infer
-coverage. The UI displays input capabilities as unknown. Configuration may be
+coverage. The UI displays input capabilities as unknown when no declaration is supplied. Configuration may be
 reviewed despite absent coverage, but no Credential access, verification, enablement,
 price, grant or native request is created. A first100 route remains unavailable
 until separately authorized coverage exists; a backup remains0 with unchanged
@@ -1236,6 +1236,33 @@ the 50-item bound does not guarantee that every combination of maximum field
 lengths fits those byte limits. Source tests and the existing registered lifecycle
 now cover this branch. Real
 dual-driver, native and browser acceptance of this extension remain separate.
+
+### Explicit media declarations on manual creation
+
+The manual Add dialog optionally captures the complete `supports_image_input` and
+`supports_pdf_input` boolean pair. Leaving the declaration Switch off keeps the
+component-local draft Unknown; switching it on with both media options off explicitly
+declares no media input. Stored Provider-model selections cannot override their
+recorded declarations through this batch.
+
+The existing actor-bound batch preview and If-Match bind the complete declaration
+to the exact Connection transport revision. Confirmation stores both booleans and
+the current capability transport generation in the same transaction as the new
+Provider-model, Model/name and binding. Omitted fields preserve the legacy request
+and receipt shape and creation behavior; they do not introduce a persisted third
+capability state. The immutable receipt retains an explicitly supplied pair, while
+current-state reconciliation reports its current stored values separately.
+Changes to the declaration invalidate preview and count as a different UUID intent.
+The client preserves the exact pair through target/name edits and uncertain retries.
+
+These declarations neither infer support from a name/protocol nor prove Credential
+coverage, verification, route readiness or runtime health. Existing independent
+read/write permissions, topology, atomic weights, collision checks and publication
+confirmation remain required. Focused source tests and extended existing real-driver
+assertions cover the contract. Controlled model-creation qualification passed all
+three named tests on both PostgreSQL and MySQL, with independent cleanup and
+source verification. Browser and external-provider acceptance remain open. No
+migration or integration registry scenario is added.
 
 ### Initial guided targets
 

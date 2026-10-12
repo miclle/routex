@@ -2,6 +2,29 @@
 
 Updated: 2026-10-12. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery and is resumed by the user's explicit instruction, prioritizing partially completed capabilities.
 
+## Manual Model input declarations: controlled acceptance (2026-10-12)
+
+Manual Model creation now accepts an optional complete image/PDF declaration.
+Omission remains Unknown; explicit false/false records known-empty support. The
+reviewed atomic batch preserves the pair through previews, immutable intents,
+receipts and identical uncertain retries. Local Base UI switches do not infer
+capabilities from Model names, activate routes or create grants. Existing stored
+Provider-model selections retain their separate declaration workflow.
+
+The frozen candidate passed 75 named Go race tests, 123 focused frontend and
+localization cases, TypeScript and scoped ESLint. Complete ordinary Task original
+84222 passed 7,049 frontend cases across 260 files plus Go race/coverage and Node
+checks; mandatory check original 71221 also passed. Both owned groups closed,
+and all 2,563 source paths/modes remained unchanged. Real PostgreSQL/MySQL
+model_creation_batch run 92963 directly joined zero, with three named passes per
+driver and no skips. Independent readback `fad891c5448719d00d6050e34364071bf55ef86891e0f6a4bab0ae8a29b4a1d6` confirms all
+owned processes/groups, Compose resources, helpers and ports closed, unchanged
+source and preserved development. This is bounded controlled acceptance; final
+main formatting and mandatory checking are required before this phase is committed.
+F12 stays Partial and totals remain
+**16 Completed / 14 Partial / 0 Not started**. Browser, external-provider and
+broader capability acceptance remain open.
+
 ## Controlled cold backup and restore qualification (2026-10-12)
 
 The dedicated stopped single-node drill passed on PostgreSQL and MySQL using

@@ -7,6 +7,9 @@ export default {
   manualToList: 'Add to the list',
   manualCoverage:
     'Credential coverage is unproven. Confirmation saves configuration only; this row is unavailable until separately authorized coverage is recorded. Verification and enablement are not performed.',
+  manualDeclareInputs: 'Declare image/PDF input support',
+  manualInputDeclarationHelp:
+    'Optional explicit declarations apply to the reviewed Connection transport. Leaving this off keeps the draft Unknown. Declarations do not prove Credential coverage, verification or route readiness.',
   unknownCapabilities: 'Unknown',
 
   access: {

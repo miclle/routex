@@ -898,9 +898,10 @@ func testModelCreationBatchLifecycle(t *testing.T, db *gorm.DB) {
 	create(&entity.Provider{ID: "prv_batch_manual", Name: "Manual supplier"})
 	seedConnection("con_batch_manual", "prv_batch_manual", protocols[0])
 	manualPath := "/api/v1/admin/connections/con_batch_manual/model-creation"
+	imageDeclared, noMedia := true, false
 	manualRows := []service.ModelCreationItem{
-		{UpstreamName: "not-discovered/new", Target: "new", Name: "batch-manual"},
-		{UpstreamName: "not-discovered/backup", Target: "existing", ModelID: "mdl_batch_existing"},
+		{UpstreamName: "not-discovered/new", SupportsImageInput: &imageDeclared, SupportsPDFInput: &noMedia, Target: "new", Name: "batch-manual"},
+		{UpstreamName: "not-discovered/backup", SupportsImageInput: &noMedia, SupportsPDFInput: &noMedia, Target: "existing", ModelID: "mdl_batch_existing"},
 	}
 	manualCounts := func() []int64 {
 		t.Helper()
@@ -920,6 +921,9 @@ func testModelCreationBatchLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("manual configuration blocked", manualPreview)
 	}
 	for _, item := range manualPreview.Items {
+		if item.SupportsImageInput == nil || item.SupportsPDFInput == nil || *item.SupportsImageInput != (item.UpstreamName == "not-discovered/new") || *item.SupportsPDFInput {
+			t.Fatal("manual preview lost exact declaration", item)
+		}
 		if item.ProviderModelID != "" || !slices.Equal(item.WarningCodes, []string{"credential_coverage_unproven"}) || len(item.BlockerCodes) != 0 {
 			t.Fatal("manual preview invented coverage", item)
 		}
@@ -930,6 +934,13 @@ func testModelCreationBatchLifecycle(t *testing.T, db *gorm.DB) {
 	manualBody := service.ModelCreationBatchInput{RequestID: "60000000-6666-4666-8666-666666666666", Reason: "Reviewed unproven manual configurations", Items: manualRows}
 	foreignPreview := decodeCatalogResponse[service.ModelCreationPreview](t, request(foreignCookie, foreignCSRF, "POST", manualPath+"/preview", service.ModelCreationPreviewInput{Items: manualRows}, ""), 200)
 	expectStatus(t, request(foreignCookie, foreignCSRF, "POST", manualPath, manualBody, foreignPreview.ReviewETag), 403)
+	changedDeclaration := manualBody
+	changedDeclaration.Items = slices.Clone(manualRows)
+	changedDeclaration.Items[0].SupportsPDFInput = &imageDeclared
+	expectStatus(t, send("POST", manualPath, changedDeclaration, manualPreview.ReviewETag), 409)
+	if !slices.Equal(manualCounts(), manualBefore) {
+		t.Fatal("changed declaration bypassed reviewed batch")
+	}
 	auditFailure.Store(true)
 	expectStatus(t, send("POST", manualPath, manualBody, manualPreview.ReviewETag), 500)
 	auditFailure.Store(false)
@@ -944,8 +955,12 @@ func testModelCreationBatchLifecycle(t *testing.T, db *gorm.DB) {
 	var manualModel string
 	for _, item := range manual.Receipt.Items {
 		var pm entity.ProviderModel
-		if err := db.Where("id = ?", item.ProviderModelID).Take(&pm).Error; err != nil || pm.ConnectionID != "con_batch_manual" || pm.UpstreamName != item.ManualUpstreamName || pm.Disabled || pm.SupportsImageInput || pm.SupportsPDFInput {
+		if err := db.Where("id = ?", item.ProviderModelID).Take(&pm).Error; err != nil || pm.ConnectionID != "con_batch_manual" || pm.UpstreamName != item.ManualUpstreamName || pm.Disabled || pm.SupportsImageInput != (item.ManualUpstreamName == "not-discovered/new") || pm.SupportsPDFInput || item.SupportsImageInput == nil || item.SupportsPDFInput == nil || *item.SupportsImageInput != pm.SupportsImageInput || *item.SupportsPDFInput != pm.SupportsPDFInput {
 			t.Fatal("manual source/capabilities incorrect", err)
+		}
+		var manualConnection entity.ProviderConnection
+		if err := db.Where("id = ?", pm.ConnectionID).Take(&manualConnection).Error; err != nil || pm.CapabilityTransportGeneration != manualConnection.TransportGeneration {
+			t.Fatal("manual declaration not bound to current transport", err)
 		}
 		var covered int64
 		if err := db.Model(&entity.CredentialModelAccess{}).Where("provider_model_id = ?", pm.ID).Count(&covered).Error; err != nil || covered != 0 {
@@ -976,6 +991,9 @@ func testModelCreationBatchLifecycle(t *testing.T, db *gorm.DB) {
 	different.Items = slices.Clone(manualRows)
 	different.Items[0].UpstreamName = "another-native-name"
 	expectStatus(t, send("POST", manualPath, different, manualPreview.ReviewETag), 409)
+	different.Items = slices.Clone(manualRows)
+	different.Items[0].SupportsImageInput = &noMedia
+	expectStatus(t, send("POST", manualPath, different, manualPreview.ReviewETag), 409)
 	expectStatus(t, request(foreignCookie, foreignCSRF, "GET", "/api/v1/admin/model-creation/receipts/"+manualBody.RequestID, nil, ""), 404)
 	collisionRows := []service.ModelCreationItem{{UpstreamName: "late-discovery", Target: "new", Name: "batch-manual-collision"}}
 	collisionReview := decodeCatalogResponse[service.ModelCreationPreview](t, send("POST", manualPath+"/preview", service.ModelCreationPreviewInput{Items: collisionRows}, ""), 200)
@@ -992,14 +1010,14 @@ func testModelCreationBatchLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("manual spelling normalized")
 	}
 
-	unknownRows := []service.ModelCreationItem{{UpstreamName: "manual-response-unknown", Target: "new", Name: "batch-manual-uncertain"}}
+	unknownRows := []service.ModelCreationItem{{UpstreamName: "manual-response-unknown", SupportsImageInput: &imageDeclared, SupportsPDFInput: &imageDeclared, Target: "new", Name: "batch-manual-uncertain"}}
 	unknownReview := decodeCatalogResponse[service.ModelCreationPreview](t, send("POST", manualPath+"/preview", service.ModelCreationPreviewInput{Items: unknownRows}, ""), 200)
 	unknownBody := service.ModelCreationBatchInput{RequestID: "80000000-8888-4888-8888-888888888888", Reason: "Retain manual publication uncertainty", Items: unknownRows}
 	armPublication.Store(true)
 	expectStatus(t, send("POST", manualPath, unknownBody, unknownReview.ReviewETag), 503)
 	armPublication.Store(false)
 	unknownSaved := decodeCatalogResponse[service.ModelCreationBatchResult](t, send("GET", "/api/v1/admin/model-creation/receipts/"+unknownBody.RequestID, nil, ""), 200)
-	if !unknownSaved.Committed || unknownSaved.RuntimeApplied || unknownSaved.ApplicationStatus != "pending" || unknownSaved.Receipt.Items[0].ManualUpstreamName != unknownRows[0].UpstreamName {
+	if !unknownSaved.Committed || unknownSaved.RuntimeApplied || unknownSaved.ApplicationStatus != "pending" || unknownSaved.Receipt.Items[0].ManualUpstreamName != unknownRows[0].UpstreamName || unknownSaved.Receipt.Items[0].SupportsImageInput == nil || unknownSaved.Receipt.Items[0].SupportsPDFInput == nil || !*unknownSaved.Receipt.Items[0].SupportsImageInput || !*unknownSaved.Receipt.Items[0].SupportsPDFInput {
 		t.Fatal("manual unknown lost source", unknownSaved)
 	}
 	unknownCounts := manualCounts()

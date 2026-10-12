@@ -6,6 +6,9 @@ export default {
   manualToList: '添加到列表',
   manualCoverage:
     '凭证覆盖范围尚未核验。确认只保存配置；在单独授权并记录覆盖范围之前，该行不可用。不会自动核验或启用凭证。',
+  manualDeclareInputs: '声明图片/PDF 输入支持',
+  manualInputDeclarationHelp:
+    '可选的明确声明适用于已审阅的接入传输配置。关闭此选项时，草稿保持“未知”。声明不代表凭据覆盖、验证成功或路由就绪。',
   unknownCapabilities: '未知',
 
   access: {

@@ -269,6 +269,10 @@ func (s *Service) captureModelCreation(tx *gorm.DB, connectionID string, items [
 		} else if err := personalExact(personalExact(modelCreationDB(tx), "id", item.ProviderModelID), "connection_id", c.ID).Take(&pm).Error; err != nil {
 			return nil, nil, err
 		}
+		if item.SupportsImageInput != nil {
+			pm.SupportsImageInput, pm.SupportsPDFInput = *item.SupportsImageInput, *item.SupportsPDFInput
+			pm.CapabilityTransportGeneration = c.TransportGeneration
+		}
 		state.ProviderModels = append(state.ProviderModels, pm)
 		var associated int64
 		if pm.ID != "" {
@@ -277,7 +281,7 @@ func (s *Service) captureModelCreation(tx *gorm.DB, connectionID string, items [
 			}
 		}
 		state.Associated = append(state.Associated, associated > 0)
-		row := ModelCreationReviewedItem{ProviderModelID: pm.ID, UpstreamName: pm.UpstreamName, Target: item.Target, Name: item.Name, Protocol: c.Protocol, InitialWeight: 100, BlockerCodes: []string{}}
+		row := ModelCreationReviewedItem{SupportsImageInput: item.SupportsImageInput, SupportsPDFInput: item.SupportsPDFInput, ProviderModelID: pm.ID, UpstreamName: pm.UpstreamName, Target: item.Target, Name: item.Name, Protocol: c.Protocol, InitialWeight: 100, BlockerCodes: []string{}}
 		if pm.Disabled || pm.ID != "" && !capabilityTransportCurrent(pm, c) {
 			row.BlockerCodes = append(row.BlockerCodes, "provider_model_disabled")
 		}
