@@ -221,6 +221,31 @@ func testLocalRegistrationApproval(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	defer func() { _ = db.Callback().Query().Remove(nativeQueryHook) }()
+	// Preserve only bounded schema metadata and portable error classes when a
+	// runtime refresh fails; never log SQL, parameters or upstream material.
+	type failedApprovalQuery struct{ table, class string }
+	var failedQuery atomic.Pointer[failedApprovalQuery]
+	const queryFailureHook = "approval_fixture_query_failure"
+	if err := db.Callback().Query().After("gorm:query").Register(queryFailureHook, func(tx *gorm.DB) {
+		if tx.Error == nil || errors.Is(tx.Error, gorm.ErrRecordNotFound) {
+			return
+		}
+		table := "other"
+		switch tx.Statement.Table {
+		case "users", "registration_approval_applications", "provider_credentials", "provider_connections", "provider_models", "credential_model_accesses", "models", "model_provider_bindings", "system_instances":
+			table = tx.Statement.Table
+		}
+		class := "other"
+		if errors.Is(tx.Error, context.DeadlineExceeded) || errors.Is(tx.Statement.Context.Err(), context.DeadlineExceeded) {
+			class = "deadline_exceeded"
+		} else if errors.Is(tx.Error, context.Canceled) || errors.Is(tx.Statement.Context.Err(), context.Canceled) {
+			class = "canceled"
+		}
+		failedQuery.CompareAndSwap(nil, &failedApprovalQuery{table, class})
+	}); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = db.Callback().Query().Remove(queryFailureHook) }()
 	var failAudit atomic.Bool
 	const auditHook = "approval_fixture_audit_failure"
 	if err := db.Callback().Create().Before("gorm:create").Register(auditHook, func(tx *gorm.DB) {
@@ -667,9 +692,16 @@ func testLocalRegistrationApproval(t *testing.T, db *gorm.DB) {
 		if verification == nil || !verification.Verified || verification.DiscoveredModels != 1 {
 			t.Fatal("controlled native discovery did not verify exactly one model", protocol)
 		}
+		failedQuery.Store(nil)
+		enableStarted := time.Now()
 		enabled, err := svc.SetCredentialEnabled(ctx, admin.User.ID, credential, true)
 		if err != nil {
-			t.Fatal(err)
+			status := svc.RuntimeStatus()
+			queryTable, queryClass := "none", "none"
+			if failure := failedQuery.Load(); failure != nil {
+				queryTable, queryClass = failure.table, failure.class
+			}
+			t.Fatalf("credential enable failed: protocol=%s elapsed=%s caller_canceled=%t runtime_error=%s last_refresh=%v query_table=%s query_error=%s: %v", protocol, time.Since(enableStarted), ctx.Err() != nil, status.ErrorCode, status.LastRefreshAt, queryTable, queryClass, err)
 		}
 		if enabled == nil || enabled.ID != credential || enabled.ConnectionID != connection.Connection.ID || !enabled.Enabled || enabled.VerificationStatus != "verified" || enabled.VerifiedAt == nil || enabled.VerifiedAt.IsZero() {
 			t.Fatal("controlled credential enablement lost exact verification ownership", protocol)

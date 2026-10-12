@@ -1,6 +1,93 @@
 # Current implementation handoff
 
+## Delivery checkpoint: Provider quality reports (2026-10-12)
+
+This phase adds selected-range Provider quality reports to the existing operations
+analysis layout, alongside Tokens by Model. The report and fresh CSV export
+independently require `calls.read_all` and `providers.read`. Quality facts use
+immutable Attempt attribution, explicit unknown coverage, excluded cancellations,
+separate Credential rejection and recorded full-attempt duration. Recorded names
+remain historical labels; Provider facts do not enter optional AI advice.
+
+This phase does not deliver the later notification/audit increment, system-status
+localization, saved report definitions or quota analysis. Those remain subsequent
+phases. F24 is not complete merely because Provider quality is available.
+
+Final qualification for the composed delivery candidate passed on the unchanged
+2,633-path source `038d6b7397684830800338dcbfccf1a92ebf3f5d1be9b898cd55127ecc90c80e`:
+
+- Formatting original 42916 and mandatory check original 14300 returned success.
+- Complete ordinary tests original 78574 passed Go race tests, 7,233 frontend
+  cases in 269 files, scripts, development lifecycle and production assets.
+- Unfiltered PostgreSQL/MySQL original 11814 returned success. Each driver passed
+  all 572 named tests without failures or skips; 48 real application births and
+  all owned resources were independently verified. Receipt:
+  `89bc0ae8bad95ee73fa7d819f90533e090681f4fbdeb72c57bf1a035695d75ad`.
+- Authentication lifecycle original 62536 returned success with eight observed
+  applications and four official summaries. Owned processes, Compose resources,
+  application ports and fixtures closed; individual database ports were not
+  captured and have no separate bind claim. Receipt:
+  `5786e81834c3cbea6e659a2cd7fd7b19cfbeff7e91e661ec109857fef065435c`.
+
+These checks qualify the composed code, including subsequent increments where
+applicable. Delivery documentation is refreshed afterward. Each main phase is
+submitted only after its own formatting and mandatory check pass. Browser and
+real external-service acceptance retain their separate scope.
+
+Earlier successful focused checks do not qualify the final candidate. Failed and
+cancelled originals remain historical failures. Browser and real external-service
+acceptance retain their independently documented scope; no new acceptance is
+claimed here. Overall progress remains **16 Completed / 14 Partial / 0 Not
+started**; F24 remains Partial.
+
+The user requested a pause after the currently active tasks are delivered.
+Complete this finite delivery and its required verification, then pause before
+starting another work package.
+
+## Historical checkpoints
+
+The remaining sections preserve earlier evidence and planning in their original
+chronological context. They do not override the delivery scope or
+qualification above. References to another candidate or worktree describe that
+historical checkpoint, not an additional feature delivered in this phase.
+
 Updated: 2026-10-12. Status: resumed by explicit user instruction; prioritize partially completed capabilities. [Implementation](IMPLEMENTATION.md) records engineering contracts and historical acceptance evidence. Earlier checkpoints below remain historical.
+
+## Selected-range Provider quality reports (2026-10-12)
+
+Operations analysis now offers Provider quality alongside Tokens by Model in the
+existing report layout. Independent `calls.read_all` and `providers.read`
+permissions protect the report and CSV export. A complete bounded snapshot uses
+immutable attempt attribution, explicit unknown coverage, excluded cancellations,
+separate Credential rejection and known full-attempt P95 durations. Historical
+names remain recorded labels. Provider facts are never sent to optional AI advice.
+
+Frozen source passed complete ordinary tests (7,048 frontend cases) and mandatory
+checking. Focused PostgreSQL/MySQL original 35924 directly joined zero, with three
+named passes per driver and no skips. Independent readback
+`113ac4b502588477b2e084634b63a687f2f833c16cfac66823c156957db7a7de`
+confirms all owned identities, resources, ports and helpers closed, unchanged
+2,576-path source and preserved development. Current main composition requires
+complete ordinary, mandatory and unfiltered dual-database qualification before
+commit. F24 remains Partial; saved reports, forecasts, browser and external
+acceptance remain open. Totals remain **16 Completed / 14 Partial / 0 Not started**.
+
+Current-main ordinary tests passed 7,061 frontend cases and mandatory checking.
+Full dual-database original 78112 then failed: PostgreSQL passed all 564 named
+events; MySQL passed 561 and failed `local_registration_approval` plus its two
+ancestors. Credential enablement returned runtime-unavailable during route
+preparation. Its cause is not established. Independent physical-only readback
+`0d74df047d1620d318eb28c52d3de1cfbd0b6e41644950eb95315632d9db49e6`
+confirms owned process, resource, helper and port closure, unchanged source and
+preserved development. This failed run does not authorize delivery.
+
+Diagnostic-only successor 90639 passed all six named events on each database with
+no failures or skips. Independent focused readback
+`24c10f6de1ca2cab36ce6039c6002165a1e0c2c13d5112d0c4b5ee3da014803d`
+confirms all owned processes, resources, helpers and ports closed, unchanged
+source and preserved development. The failure did not reproduce in isolation;
+its cause remains unknown. This focused result does not replace full coherent
+qualification. The diagnostic preserves assertions, deadlines and retry behavior.
 
 ## Manual Model input declarations: controlled acceptance (2026-10-12)
 
@@ -19,8 +106,8 @@ and all 2,563 source paths/modes remained unchanged. Real PostgreSQL/MySQL
 model_creation_batch run 92963 directly joined zero, with three named passes per
 driver and no skips. Independent readback `fad891c5448719d00d6050e34364071bf55ef86891e0f6a4bab0ae8a29b4a1d6` confirms all
 owned processes/groups, Compose resources, helpers and ports closed, unchanged
-source and preserved development. This is bounded controlled acceptance; final
-main formatting and mandatory checking are required before this phase is committed.
+source and preserved development. This bounded phase was delivered in `078fe1b` after final main formatting
+and mandatory checking passed.
 F12 stays Partial and totals remain
 **16 Completed / 14 Partial / 0 Not started**. Browser, external-provider and
 broader capability acceptance remain open.

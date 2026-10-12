@@ -1,4 +1,29 @@
 export default {
+  qualityEmpty:
+    'No attributed Provider attempts in this range. Unknown attribution remains separate.',
+  qualityMilliseconds: '{{value}} ms',
+  qualityProvider: 'Recorded Provider',
+  qualityDurationCounts: '{{known}} known / {{unknown}} unknown',
+  qualityDurationCoverage: 'Eligible duration coverage',
+  qualityP95: 'P95 full-attempt duration',
+  quality5xx: 'Server-error attempts',
+  quality429: 'Rate-limited attempts',
+  qualitySuccessRate: 'Eligible success rate',
+  qualityRejected: 'Credential rejections',
+  qualityExcluded: 'Excluded attempts',
+  qualityEligible: 'Eligible attempts',
+  qualityAttempts: 'Recorded attempts',
+  qualityUnknown: 'Unknown / unavailable',
+  qualityLatest: 'Latest selected attempt end',
+  qualityUnknownAttribution: 'Unknown Provider attribution',
+  qualityUnknownHelp:
+    'Attempts without a recorded Provider ID remain unknown, outside every Provider and the aggregate rate. Neither final logical-call attribution nor the current catalog fills this gap.',
+  qualityDefinition:
+    'Counts are upstream attempts, not logical calls. Canceled and not-sent attempts are excluded; Credential rejections are separate. Success rate uses eligible attempts and does not prove native completion. P95 measures full-attempt duration, not first-token latency. Names are historical recorded labels.',
+  qualitySource: 'Source: persisted immutable upstream attempts',
+  providerReadDenied:
+    'Provider quality requires current platform call-read and Provider-read permissions independently.',
+  providerReportTitle: 'Recorded Provider quality',
   navTitle: 'Operations analysis',
   title: 'Operations analysis',
   description:
@@ -6,10 +31,10 @@ export default {
   readOnly: 'Read-only report',
   scopeTitle: 'Report scope and authority',
   scopeNotice:
-    'Requires platform call-read permission. Reports use recorded call facts only; they do not change configuration or grant inference access.',
+    'Requires platform call-read permission. Reports use recorded call and upstream-attempt facts only; they do not change configuration or grant inference access.',
   assistantTitle: 'Operations analysis guide',
   introduction:
-    'Select Tokens by model, review an explicit date range, then run the recorded-usage report. Optional AI advice requires a separate personal-model review and confirmation. Saving reports is not available.',
+    'Select Tokens by model or Provider quality, review explicit dates, then run the recorded report. Optional AI advice remains available only for Tokens by model with separate personal-model confirmation. Saving reports is unavailable.',
   shortcutTokens: 'Tokens by model',
   shortcutTeam: 'Analyze team usage',
   shortcutKey: 'Forecast Key allowance',
@@ -17,10 +42,9 @@ export default {
   questionLabel: 'Analysis question',
   questionPlaceholder: 'Select Tokens by model to use the supported report.',
   questionHelp:
-    'Only the fixed Tokens by model report is supported. Free-text analysis and the other shortcuts are unavailable.',
+    'Only fixed Tokens by model and Provider quality reports are supported. Free text and the other shortcuts remain unavailable.',
   send: 'Send',
-  unsupported:
-    'This question is not supported. Select Tokens by model to run a recorded-usage report.',
+  unsupported: 'Select Tokens by model or Provider quality to run a supported recorded report.',
   from: 'From (inclusive)',
   to: 'To (exclusive)',
   timezone: 'Time zone',

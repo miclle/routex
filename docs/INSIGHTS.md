@@ -1,7 +1,7 @@
 # Operations analysis
 
-Operations analysis at `/admin/insights` provides a deterministic, read-only
-recorded-Tokens-by-Model report. The page retains the question/result composition,
+Operations analysis at `/admin/insights` provides deterministic, read-only
+Tokens-by-Model and selected-range Provider quality reports. The page retains the question/result composition,
 report actions and saved-report area. It requires current `calls.read_all`
 authority; administrator status and unrelated catalogue permissions do not replace
 that permission or grant inference access.
@@ -9,8 +9,8 @@ that permission or grant inference access.
 Select **Tokens by model**, enter absolute start and end timestamps with explicit
 UTC offsets, review the time zone, and run the report. The range includes the start
 and excludes the end. UTC is the initial grouping time zone; no calendar week is
-silently selected. Free-text analysis and the other suggested questions are
-explicitly unsupported. Forecasts and saved report definitions remain unavailable. The deterministic
+silently selected. Free-text analysis, Team usage and Key forecasts are explicitly unsupported.
+The separate **Provider quality** shortcut is described below. Forecasts and saved report definitions remain unavailable. The deterministic
 report makes no inference call. Optional AI advice requires a separate explicit
 confirmation and stores no report or conversation.
 
@@ -37,6 +37,44 @@ Its metadata may differ from the displayed report. Preparing a download does not
 prove the browser saved a file. Exported data and report inputs are not stored in
 browser storage. **Save report** and the saved-report table explain that persistence
 is unavailable.
+
+## Selected-range Provider quality
+
+**Explain Provider quality** uses the same reviewed dates and result area. It requires
+both current `calls.read_all` and `providers.read`; neither permission implies the other.
+`GET /api/v1/admin/insights/provider-quality` accepts only `from`, `to` and `timezone`.
+The server selects immutable upstream attempts whose recorded end is in the exact
+inclusive-start/exclusive-end range. Returned bounds represent the actual query
+instants in UTC, including nanoseconds, with separate IANA time-zone metadata.
+Stored attempt timestamps use the historical microsecond grid. Fractional review
+bounds use portable strict/inclusive comparisons at that grid so driver truncation
+cannot incorrectly include or exclude a boundary record. At most 366 elapsed
+days, 100,000 attempts and 500 exact Provider groups are accepted within a five-second
+capture/aggregation deadline. Overflow fails the complete query rather than truncating.
+
+Counts are attempts, not logical calls: failover may contribute to multiple Providers.
+Canceled and not-sent attempts are excluded; Credential rejection is separate. Eligible
+success rates use attributed attempts only and do not prove native completion.
+Duration coverage is explicit; P95 uses known full-attempt durations, not first-token
+latency. A Provider name is the latest selected immutable recorded label (attempt ID
+breaks an equal-time tie); it does not come from the current catalog. Attempts with
+no Provider ID remain a separate global unknown count, outside every group and rate.
+The final logical Call's Provider never fills missing attempt attribution. Persisted
+records may lag; a successful response does not prove the live recorder is drained.
+
+Export uses `GET /api/v1/admin/insights/provider-quality/export.csv` for a separate
+fresh server capture under both permissions, with the existing formula-safe CSV
+encoder, private/no-store headers and 8 MiB transport limit. It does not serialize
+cached browser facts. Summary and Provider rows identify their scope; unknown
+attribution remains explicit in capture metadata. Report, export and late replies
+share the existing actor/Session/permission and parameter lifetime fences. Provider
+facts are never sent to the optional AI endpoint, which remains Tokens-by-Model only.
+No saved definition, forecast, alert threshold or routing policy is added.
+
+Focused source tests cover attribution, exclusions, range precision, complete bounds,
+CSV safety, strict wire parsing, authority loss and bilingual rendering. Real-driver
+qualification of the extended existing Provider-quality scenario and browser acceptance
+must be recorded separately; implementation alone does not establish them.
 
 ## Optional personal-model AI advice
 

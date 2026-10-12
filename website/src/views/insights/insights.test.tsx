@@ -1,3 +1,4 @@
+import { qualityFixture } from './provider-quality-fixture'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -11,6 +12,7 @@ import InsightsPage from './index'
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root, host: HTMLDivElement, cache: QueryClient
+let providerPermitted = false
 let actor: string, permitted: boolean, reportError: number, csvError: number, empty: boolean
 let requests: InternalAxiosRequestConfig[], downloads: string[]
 let reportGate: ReturnType<typeof deferred> | undefined,
@@ -43,6 +45,7 @@ function failure(config: InternalAxiosRequestConfig, status: number) {
 beforeEach(async () => {
   await i18n.changeLanguage('en')
   actor = 'usr_one'
+  providerPermitted = false
   permitted = true
   reportError = csvError = 0
   empty = false
@@ -68,10 +71,32 @@ beforeEach(async () => {
       data = structuredClone(session())
       if (sessionGate) await sessionGate.promise
     } else if (config.url === '/auth/permissions') {
-      data = { permissions: permitted ? ['calls.read_all'] : [] }
+      data = {
+        permissions: [
+          ...(permitted ? ['calls.read_all'] : []),
+          ...(providerPermitted ? ['providers.read'] : []),
+        ],
+      }
       if (permissionGate) await permissionGate.promise
     } else if (config.url === '/admin/insights/models') {
       data = { items: [] }
+    } else if (config.url === '/admin/insights/provider-quality') {
+      const capturedActor = actor
+      if (reportGate) await reportGate.promise
+      if (reportError) throw failure(config, reportError)
+      data = {
+        ...qualityFixture(),
+        ...config.params,
+        providers: qualityFixture().providers.map((row) => ({
+          ...row,
+          name: 'Historical Provider ' + capturedActor,
+        })),
+      }
+    } else if (config.url === '/admin/insights/provider-quality/export.csv') {
+      if (csvGate) await csvGate.promise
+      if (csvError) throw failure(config, csvError)
+      data = new Blob(['source,attempts\npersisted_call_attempts,5\n'])
+      mime = 'text/csv; charset=utf-8'
     } else if (config.url === '/admin/usage') {
       const capturedActor = actor
       if (reportGate) await reportGate.promise
@@ -222,7 +247,7 @@ it('preserves layout slots and localizes an existing result without replay or cl
 })
 it('rejects unsupported forecasts and hostile questions without dispatching any report or model request', async () => {
   await mount()
-  for (const key of ['shortcutTeam', 'shortcutKey', 'shortcutProvider']) {
+  for (const key of ['shortcutTeam', 'shortcutKey']) {
     await click(text(key))
     expect(host.textContent).toContain(text('unsupported'))
   }
@@ -440,3 +465,103 @@ it('keeps empty complete coverage distinct from unknown tokens without simulated
   expect(host.textContent).not.toContain('Historical model')
   expect(host.textContent).not.toContain(i18n.t('insights:unknownCoverage', { count: 1 }))
 })
+
+it('requires Provider read independently and keeps Tokens by Model available', async () => {
+  await mount()
+  await click(text('shortcutProvider'))
+  expect(host.textContent).toContain(text('providerReadDenied'))
+  expect(button(text('reviewRun')).disabled).toBe(true)
+  expect(requests.filter((item) => item.url === '/admin/insights/provider-quality')).toHaveLength(0)
+  await click(text('shortcutTokens'))
+  await run()
+  await ready()
+})
+it('captures selected-range attempts, localizes without replay, and keeps Provider facts out of AI', async () => {
+  providerPermitted = true
+  await mount()
+  await click(text('shortcutProvider'))
+  await run()
+  await until(() => expect(host.textContent).toContain('Historical Provider usr_one'))
+  const captures = requests.filter((item) => item.url === '/admin/insights/provider-quality')
+  expect(captures).toHaveLength(1)
+  expect(captures[0].params).toEqual({
+    from: '2026-09-01T00:00:00Z',
+    to: '2026-09-02T00:00:00Z',
+    timezone: 'UTC',
+  })
+  expect(host.textContent).toContain('50%')
+  expect(host.textContent).toContain(text('qualityUnknownHelp'))
+  expect(requests.some((item) => item.url === '/admin/insights/analyze')).toBe(false)
+  expect(host.querySelector('[name="model_id"]')).toBeNull()
+  await act(async () => {
+    await i18n.changeLanguage('zh')
+  })
+  expect(host.textContent).toContain(text('providerReportTitle'))
+  expect(host.textContent).toContain(
+    i18n.t('insights:qualityDurationCounts', { known: '1', unknown: '1' }),
+  )
+  expect(requests.filter((item) => item.url === '/admin/insights/provider-quality')).toHaveLength(1)
+  await click(text('exportCSV'))
+  await until(() => expect(downloads).toEqual(['routex-provider-quality.csv']))
+  expect(
+    requests.find((item) => item.url === '/admin/insights/provider-quality/export.csv')?.params,
+  ).toEqual(captures[0].params)
+})
+it('hides Provider facts and aborts a late export on independent permission revocation', async () => {
+  providerPermitted = true
+  await mount()
+  await click(text('shortcutProvider'))
+  await run()
+  await until(() => expect(host.textContent).toContain('Historical Provider usr_one'))
+  csvGate = deferred()
+  await click(text('exportCSV'))
+  await until(() =>
+    expect(
+      requests.some((item) => item.url === '/admin/insights/provider-quality/export.csv'),
+    ).toBe(true),
+  )
+  providerPermitted = false
+  await act(async () => {
+    await cache.invalidateQueries({ queryKey: ['permissions'] })
+  })
+  expect(host.textContent).not.toContain('Historical Provider usr_one')
+  csvGate.release()
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 15)))
+  expect(downloads).toEqual([])
+})
+it('rejects an obsolete Provider response after actor renewal', async () => {
+  providerPermitted = true
+  await mount()
+  await click(text('shortcutProvider'))
+  reportGate = deferred()
+  await run()
+  await until(() =>
+    expect(requests.some((item) => item.url === '/admin/insights/provider-quality')).toBe(true),
+  )
+  actor = 'usr_two'
+  await act(async () => {
+    await cache.invalidateQueries({ queryKey: sessionKey })
+  })
+  reportGate.release()
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 15)))
+  expect(host.textContent).not.toContain('Historical Provider usr_one')
+  expect(button(text('exportCSV')).disabled).toBe(true)
+})
+
+it.each([400, 403, 422, 503])(
+  'sanitizes Provider report failure %i and hides prior facts',
+  async (status) => {
+    providerPermitted = true
+    await mount()
+    await click(text('shortcutProvider'))
+    await run()
+    await until(() => expect(host.textContent).toContain('Historical Provider usr_one'))
+    reportError = status
+    await click(text('reviewRun'))
+    await until(() => expect(host.querySelector('[role="alert"]')).not.toBeNull())
+    expect(host.textContent).not.toContain('Historical Provider usr_one')
+    expect(host.textContent).not.toContain('private-upstream-secret')
+    expect(button(text('exportCSV')).disabled).toBe(true)
+    if (status === 403) expect(host.textContent).toContain(text('providerReadDenied'))
+  },
+)

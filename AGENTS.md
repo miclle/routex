@@ -1773,3 +1773,14 @@ or protocols. Preserve the pair through target/name edits, preview, confirmation
 and identical uncertain retries. Only manual rows accept these fields, with fresh
 independent Provider write authority. Declarations do not verify Credentials,
 create coverage, activate routes, grant access, or establish generic capabilities.
+
+Selected-range Provider quality lives in the existing Operations analysis question/result layout.
+Require current calls.read_all and providers.read independently before query/export dispatch and
+result publication; renewed/error Session or permission reads invalidate prior private results
+and late responses. Use only immutable attempt Provider attribution and historical labels;
+missing Provider IDs stay explicitly unknown outside every Provider and success rate. Keep
+canceled/not-sent exclusions, Credential rejections, eligible success rate, and known/unknown
+full-attempt duration distinct. P95 is not first-token latency or native completion. Provider
+reports use deterministic server aggregates and a separate fresh bounded CSV capture; optional
+personal-model AI remains Tokens-by-Model only. Do not forward Provider data, raw attempts,
+member identities or free-text questions to a model, and do not add persistence or policy writes.

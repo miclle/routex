@@ -40,22 +40,32 @@ export async function exportUsage(
   ]
   if (Object.keys(filters).some((key) => !allowed.includes(key)))
     throw new Error('Invalid usage export filters')
+  return exportReportCSV(
+    `${scope.teamId ? `/teams/${encodeURIComponent(scope.teamId)}` : scope.projectId ? `/projects/${encodeURIComponent(scope.projectId)}` : scope.admin ? '/admin' : ''}/usage/export.csv`,
+    { ...filters },
+    signal,
+  )
+}
+
+// Shared bounded server-capture transport; callers own their finite query contract.
+export async function exportReportCSV(
+  path: string,
+  filters: Record<string, unknown>,
+  signal: AbortSignal,
+): Promise<Blob> {
   const controller = new AbortController()
   const abort = () => controller.abort()
   signal.addEventListener('abort', abort, { once: true })
   if (signal.aborted) abort()
   try {
-    const response = await client.get<Blob>(
-      `${scope.teamId ? `/teams/${encodeURIComponent(scope.teamId)}` : scope.projectId ? `/projects/${encodeURIComponent(scope.projectId)}` : scope.admin ? '/admin' : ''}/usage/export.csv`,
-      {
-        params: { ...filters },
-        responseType: 'blob',
-        signal: controller.signal,
-        onDownloadProgress: ({ loaded, total }) => {
-          if (loaded > maximumBytes || (total !== undefined && total > maximumBytes)) abort()
-        },
+    const response = await client.get<Blob>(path, {
+      params: { ...filters },
+      responseType: 'blob',
+      signal: controller.signal,
+      onDownloadProgress: ({ loaded, total }) => {
+        if (loaded > maximumBytes || (total !== undefined && total > maximumBytes)) abort()
       },
-    )
+    })
     if (signal.aborted || controller.signal.aborted) throw new DOMException('Aborted', 'AbortError')
     const contentType = String(response.headers['content-type'] ?? '')
     const length = response.headers['content-length']
@@ -75,11 +85,14 @@ export async function exportUsage(
 }
 
 export function downloadUsageCSV(blob: Blob, scope: UsageScope) {
+  downloadReportCSV(blob, usageExportFilename(scope))
+}
+export function downloadReportCSV(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
   try {
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = usageExportFilename(scope)
+    anchor.download = filename
     document.body.append(anchor)
     try {
       anchor.click()

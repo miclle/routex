@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -71,6 +72,64 @@ func testProviderQualityHTTPLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatalf("quality summary = %+v", quality)
 	}
 
+	// Selected-range analysis requires both authorities independently. These are
+	// the same immutable attempts, including a missing Provider ID despite the
+	// logical Call's populated final Provider attribution above.
+	_, callsCookie, callsCSRF := createSystemStatusMember(t, svc, router, admin.User.ID, "quality-calls-reader", []string{"calls.read_all"})
+	bothMember, bothCookie, bothCSRF := createSystemStatusMember(t, svc, router, admin.User.ID, "quality-report-reader", []string{"calls.read_all", "providers.read"})
+	callsRequest := systemStatusRequest(t, router, callsCookie, callsCSRF)
+	bothRequest := systemStatusRequest(t, router, bothCookie, bothCSRF)
+	reportQuery := url.Values{"from": {now.Add(-30 * time.Minute).Format(time.RFC3339Nano)}, "to": {now.Add(time.Microsecond).Format(time.RFC3339Nano)}, "timezone": {"UTC"}}.Encode()
+	reportPath := "/api/v1/admin/insights/provider-quality?" + reportQuery
+	expectStatus(t, providerRequest(http.MethodGet, reportPath, nil), http.StatusForbidden)
+	expectStatus(t, callsRequest(http.MethodGet, reportPath, nil), http.StatusForbidden)
+	report := decodeCatalogResponse[service.InsightsProviderQualityReport](t, bothRequest(http.MethodGet, reportPath, nil), http.StatusOK)
+	if report.TotalAttempts != 9 || report.UnknownAttribution != 1 || report.Summary.Attempts != 8 || report.Summary.SuccessRateBPS == nil || *report.Summary.SuccessRateBPS != 6000 || len(report.Providers) != 1 || report.Providers[0].ProviderID != provider.ID || report.Source != "persisted_call_attempts" {
+		t.Fatalf("selected-range report = %+v", report)
+	}
+	exportPath := "/api/v1/admin/insights/provider-quality/export.csv?" + reportQuery
+	expectStatus(t, callsRequest(http.MethodGet, exportPath, nil), http.StatusForbidden)
+	expectStatus(t, providerRequest(http.MethodGet, exportPath, nil), http.StatusForbidden)
+	exported := bothRequest(http.MethodGet, exportPath, nil)
+	expectStatus(t, exported, http.StatusOK)
+	if exported.Header().Get("Cache-Control") != "private, no-store" || exported.Header().Get("Content-Type") != "text/csv; charset=utf-8" || exported.Header().Get("Content-Disposition") != `attachment; filename="routex-provider-quality.csv"` {
+		t.Fatal("CSV private capture headers", exported.Header())
+	}
+	expectStatus(t, bothRequest(http.MethodGet, reportPath+"&provider_id="+provider.ID, nil), http.StatusBadRequest)
+	narrowQuery := url.Values{"from": {now.Add(-30 * time.Minute).Format(time.RFC3339Nano)}, "to": {now.Add(-7 * time.Minute).Format(time.RFC3339Nano)}, "timezone": {"UTC"}}.Encode()
+	narrow := decodeCatalogResponse[service.InsightsProviderQualityReport](t, bothRequest(http.MethodGet, "/api/v1/admin/insights/provider-quality?"+narrowQuery, nil), http.StatusOK)
+	if narrow.TotalAttempts != 1 || narrow.UnknownAttribution != 0 || narrow.Summary.Successes != 1 {
+		t.Fatalf("end must be excluded: %+v", narrow)
+	}
+
+	storedEnd := attempts[0].CompletedAt
+	for _, bounds := range []struct {
+		from, to time.Duration
+		count    int64
+	}{
+		{-time.Nanosecond, 0, 0}, {-time.Nanosecond, time.Nanosecond, 1}, {0, time.Nanosecond, 1}, {time.Nanosecond, 2 * time.Nanosecond, 0},
+	} {
+		exactQuery := url.Values{"from": {storedEnd.Add(bounds.from).Format(time.RFC3339Nano)}, "to": {storedEnd.Add(bounds.to).Format(time.RFC3339Nano)}, "timezone": {"UTC"}}.Encode()
+		exact := decodeCatalogResponse[service.InsightsProviderQualityReport](t, bothRequest(http.MethodGet, "/api/v1/admin/insights/provider-quality?"+exactQuery, nil), http.StatusOK)
+		if exact.TotalAttempts != bounds.count {
+			t.Fatalf("sub-microsecond half-open boundary %+v count=%d", bounds, exact.TotalAttempts)
+		}
+	}
+	futureQuery := url.Values{"from": {"2090-01-01T08:00:00.123456789+08:00"}, "to": {"2090-01-01T00:00:00.123456790Z"}, "timezone": {"Asia/Shanghai"}}.Encode()
+	future := decodeCatalogResponse[service.InsightsProviderQualityReport](t, bothRequest(http.MethodGet, "/api/v1/admin/insights/provider-quality?"+futureQuery, nil), http.StatusOK)
+	if future.From != "2090-01-01T00:00:00.123456789Z" || future.To != "2090-01-01T00:00:00.12345679Z" || future.TotalAttempts != 0 || future.LatestCompletedAt != nil {
+		t.Fatalf("query bounds clamped or rounded: %+v", future)
+	}
+	var reportRole entity.UserRole
+	if err := db.First(&reportRole, "user_id = ?", bothMember.User.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	revoked := db.Where("role_id = ? AND permission = ?", reportRole.RoleID, "providers.read").Delete(&entity.RolePermission{})
+	if revoked.Error != nil || revoked.RowsAffected != 1 {
+		t.Fatal("fixture Provider permission revocation", revoked.Error)
+	}
+	expectStatus(t, bothRequest(http.MethodGet, reportPath, nil), http.StatusForbidden)
+	expectStatus(t, bothRequest(http.MethodGet, exportPath, nil), http.StatusForbidden)
 	policyPath := "/api/v1/admin/providers/" + provider.ID + "/quality-policy"
 	expectStatus(t, providerRequest(http.MethodGet, policyPath, nil), http.StatusForbidden)
 	defaults := decodeCatalogResponse[service.ProviderQualityPolicy](t, readerRequest(http.MethodGet, policyPath, nil), http.StatusOK)

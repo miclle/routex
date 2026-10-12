@@ -474,6 +474,8 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.POST("/announcements", ctrl.RequirePermission("announcements.write"), sameOrigin, requireCSRF, jsonManagementRequest, ctrl.PublishAnnouncement)
 	admin.PATCH("/announcements/:announcement_id", ctrl.RequirePermission("announcements.write"), sameOrigin, requireCSRF, jsonManagementRequest, ctrl.UpdateAnnouncement)
 	admin.POST("/announcements/:announcement_id/close", ctrl.RequirePermission("announcements.write"), sameOrigin, requireCSRF, jsonManagementRequest, ctrl.CloseAnnouncement)
+	admin.GET("/insights/provider-quality", ctrl.RequirePermission("calls.read_all"), ctrl.RequirePermission("providers.read"), ctrl.InsightsProviderQuality)
+	admin.GET("/insights/provider-quality/export.csv", ctrl.RequirePermission("calls.read_all"), ctrl.RequirePermission("providers.read"), ctrl.ExportInsightsProviderQuality)
 	admin.GET("/usage", ctrl.RequirePermission("calls.read_all"), ctrl.AdminUsage)
 	admin.GET("/usage/export.csv", ctrl.RequirePermission("calls.read_all"), ctrl.ExportAdminUsage)
 	admin.GET("/provider-models/:provider_model_id/price", ctrl.RequirePermission("prices.read"), ctrl.GetPrice)

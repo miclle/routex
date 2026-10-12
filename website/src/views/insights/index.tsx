@@ -12,7 +12,10 @@ import { ArrowRight, Bot, Download, Send } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getPermissions } from '@/api/governance'
 import { getUsage } from '@/api/usage'
-import { downloadUsageCSV, exportUsage } from '@/api/usage-export'
+import { downloadReportCSV, downloadUsageCSV, exportUsage } from '@/api/usage-export'
+import { getProviderQualityReport, exportProviderQuality } from '@/api/insights-provider-quality'
+import ProviderQualityResult from './provider-quality'
+import type { ProviderQualityRange } from '@/types/insights'
 import { sessionKey, useSession } from '@/hooks/use-auth'
 import { useSessionGeneration } from '@/hooks/use-session-generation'
 import { Page, FormField } from '@/components/app/CatalogUI'
@@ -41,6 +44,7 @@ function authorityState(cache: QueryClient, actor: string, key: PermissionKey) {
       permissions.fetchStatus === 'idle' &&
       !permissions.isInvalidated &&
       permissions.data?.includes('calls.read_all') === true,
+    providerReady: permissions?.data?.includes('providers.read') === true,
     stamp: JSON.stringify([
       session?.status,
       session?.fetchStatus,
@@ -52,6 +56,7 @@ function authorityState(cache: QueryClient, actor: string, key: PermissionKey) {
       permissions?.isInvalidated,
       permissions?.dataUpdateCount,
       permissions?.data?.includes('calls.read_all'),
+      permissions?.data?.includes('providers.read'),
     ]),
   }
 }
@@ -123,6 +128,7 @@ function InsightsContent({
   const [question, setQuestion] = useState<{ key: string } | { text: string }>({
     key: 'shortcutTokens',
   })
+  const [providerReport, setProviderReport] = useState(false)
   const [supported, setSupported] = useState(true)
   const [message, setMessage] = useState('awaitingReview')
   const [request, setRequest] = useState<{ id: number; filters: UsageFilters } | null>(null)
@@ -138,6 +144,8 @@ function InsightsContent({
     const state = authorityState(cache, actor, permissionKey)
     return alive.current && state.ready && state.stamp === authorityStamp
   }, [cache, actor, permissionKey, authorityStamp])
+  const providerAuthorized = () =>
+    authorized() && authorityState(cache, actor, permissionKey).providerReady
   const reportKey = useMemo(
     () => ['insights-report', actor, authorityStamp, request],
     [actor, authorityStamp, request],
@@ -150,7 +158,21 @@ function InsightsContent({
       try {
         if (!authorized() || signal.aborted || sequence.current !== request.id)
           throw new DOMException('Aborted', 'AbortError')
-        return await getUsage({ admin: true }, request.filters, signal)
+        if (providerReport) {
+          if (!providerAuthorized()) throw new DOMException('Aborted', 'AbortError')
+          const filters = request.filters
+          return {
+            kind: 'provider' as const,
+            value: await getProviderQualityReport(
+              { from: filters.from!, to: filters.to!, timezone: filters.timezone! },
+              signal,
+            ),
+          }
+        }
+        return {
+          kind: 'tokens' as const,
+          value: await getUsage({ admin: true }, request.filters, signal),
+        }
       } finally {
         if (sequence.current === request.id) requestLock.current = false
       }
@@ -191,7 +213,13 @@ function InsightsContent({
     !denied
       ? report.data
       : undefined
-  const ai = useInsightsAI({ actor, authorityStamp, authorized, range: draft, supported })
+  const ai = useInsightsAI({
+    actor,
+    authorityStamp,
+    authorized,
+    range: draft,
+    supported: supported && !providerReport,
+  })
   useLayoutEffect(() => {
     alive.current = true
     const stop = cache.getQueryCache().subscribe((event) => {
@@ -226,8 +254,16 @@ function InsightsContent({
     if (!authorized() || requestLock.current || exportLock.current) return
     clearReport()
     setQuestion({ key })
-    setSupported(key === 'shortcutTokens')
-    setMessage(key === 'shortcutTokens' ? 'awaitingReview' : 'unsupported')
+    setProviderReport(key === 'shortcutProvider')
+    const permitted = key !== 'shortcutProvider' || providerAuthorized()
+    setSupported((key === 'shortcutTokens' || key === 'shortcutProvider') && permitted)
+    setMessage(
+      !permitted
+        ? 'providerReadDenied'
+        : key === 'shortcutTokens' || key === 'shortcutProvider'
+          ? 'awaitingReview'
+          : 'unsupported',
+    )
   }
   function run() {
     if (
@@ -235,7 +271,8 @@ function InsightsContent({
       requestLock.current ||
       exportLock.current ||
       (request && report.isFetching) ||
-      !supported
+      !supported ||
+      (providerReport && !providerAuthorized())
     )
       return
     const filters = readInsightsRange(draft)
@@ -252,6 +289,7 @@ function InsightsContent({
     const state = cache.getQueryState(reportKey)
     return (
       authorized() &&
+      (!providerReport || providerAuthorized()) &&
       !!request &&
       sequence.current === request.id &&
       !denied &&
@@ -270,9 +308,17 @@ function InsightsContent({
     setExporting(true)
     setExportMessage('')
     try {
-      const blob = await exportUsage({ admin: true }, { ...request.filters }, controller.signal)
+      const range: ProviderQualityRange = {
+        from: request.filters.from!,
+        to: request.filters.to!,
+        timezone: request.filters.timezone!,
+      }
+      const blob = providerReport
+        ? await exportProviderQuality(range, controller.signal)
+        : await exportUsage({ admin: true }, { ...request.filters }, controller.signal)
       if (controller.signal.aborted || !currentExportAuthority()) return
-      downloadUsageCSV(blob, { admin: true })
+      if (providerReport) downloadReportCSV(blob, 'routex-provider-quality.csv')
+      else downloadUsageCSV(blob, { admin: true })
       setExportMessage('exportReady')
     } catch (error) {
       if (controller.signal.aborted || !authorized()) return
@@ -280,7 +326,9 @@ function InsightsContent({
       if ([401, 403, 404].includes(status ?? 0)) setDenied(true)
       setExportMessage(
         [401, 403, 404].includes(status ?? 0)
-          ? 'exportDenied'
+          ? providerReport
+            ? 'providerReadDenied'
+            : 'exportDenied'
           : status === 422
             ? 'exportOverflow'
             : 'exportFailed',
@@ -294,7 +342,9 @@ function InsightsContent({
   const busy = !!request && report.isFetching
   const status = isAxiosError(report.error) ? report.error.response?.status : undefined
   const errorKey = [401, 403, 404].includes(status ?? 0)
-    ? 'denied'
+    ? providerReport
+      ? 'providerReadDenied'
+      : 'denied'
     : status === 422
       ? 'overflow'
       : status === 400
@@ -405,7 +455,7 @@ function InsightsContent({
                   </Button>
                 )}
               </form>
-              {ai.controls}
+              {!providerReport && ai.controls}
               <form
                 aria-label={t('questionLabel')}
                 className="space-y-3"
@@ -445,7 +495,7 @@ function InsightsContent({
             <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">{t('resultLabel')}</p>
-                <CardTitle>{t('reportTitle')}</CardTitle>
+                <CardTitle>{t(providerReport ? 'providerReportTitle' : 'reportTitle')}</CardTitle>
               </div>
               <div className="flex gap-2">
                 <Button
@@ -486,8 +536,11 @@ function InsightsContent({
                   {t('awaitingReview')}
                 </p>
               )}
-              {currentReport && <InsightsResult report={currentReport} />}
-              {ai.answer}
+              {currentReport?.kind === 'tokens' && <InsightsResult report={currentReport.value} />}
+              {currentReport?.kind === 'provider' && (
+                <ProviderQualityResult report={currentReport.value} />
+              )}
+              {!providerReport && ai.answer}
             </CardContent>
           </Card>
         </div>
