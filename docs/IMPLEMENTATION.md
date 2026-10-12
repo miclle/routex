@@ -2,6 +2,37 @@
 
 Updated: 2026-10-12. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery and is resumed by the user's explicit instruction, prioritizing partially completed capabilities.
 
+## Controlled cold backup and restore qualification (2026-10-12)
+
+The dedicated stopped single-node drill passed on PostgreSQL and MySQL using
+native SQL dump/restore, matching journal copies and the same qualified default
+production binary. Ten genuine applications (five per driver) verified retained
+administrator and original Session authority, active and revoked Keys, exact
+immutable Call/Attempt facts, finite quota continuity and native usability of an
+encrypted inline Credential. Separate restored targets refused missing and foreign
+journals. This is controlled restore evidence; production RTO/RPO, backup
+scheduling/retention, Vault/S3 recovery, browser and broader release acceptance
+remain open. A20 remains Partial; totals remain **16 Completed / 14 Partial / 0 Not started**.
+
+Root observed original 70023 directly join zero. Independent readback SHA-256:
+`c63d7e464ff7ab8a07cf4e652563fcdc02afce76ad25f96b99212e46e6ebdd25`;
+physical closure SHA-256:
+`2aee87ba868d85499606b570ce57c7692df80389d58fd22ab1e1445dc77306ba`.
+All 55 owned workers, fourteen ports and project resources closed; source, binary
+and the existing development process remained preserved. The drill source floor
+was `0ffe47e1459e4e7c0a8d9782a406bd426453a3104844eb05b9087d04ddc30b52`
+(2,503 paths), using binary
+`ce1a90cb286e37ec980d242a059105310484a467e8e174196b45a641c6263671`.
+
+Originals 69741 and 11970 remain failures with separately accepted physical
+cleanup. The first lacks enough diagnostic evidence to identify its immediate
+cause. The second measured 73,497 application stdout bytes above the previous
+65,536-byte cap; the reviewed finite 1 MiB stdout limit preserves the 64 KiB
+stderr limit and SQL, HTTP, work and cleanup budgets. No stdout-content claim is
+made. The accepted source also passed its own mandatory check and complete
+ordinary Task. This phase adds the dedicated Task, drill and recovery runbook;
+final main checks accompany the containing commit.
+
 ## Coherent Model, authentication and operations qualification (2026-10-12)
 
 A clean worktree on delivered main `18d6a3e44e673d0505327a763c4849887828357f`
@@ -124,9 +155,10 @@ audience/retention, forecasts and wider evaluation remain open. F03, F12 and F29
 also remain Partial. Browser and live external-provider acceptance are deferred.
 Role management remains Completed under its separately recorded controlled scope.
 
-Next bounded work is the cold PostgreSQL/MySQL backup-and-restore drill, followed
-by the prepared Audit/offboarding and acknowledged-Vault-delete persistence-loss
-regressions. Their main adoption and coherent verification remain pending.
+The controlled cold PostgreSQL/MySQL restore drill has passed as recorded above;
+this phase adds its dedicated Task, drill and recovery runbook. Next bounded work
+is the prepared Audit/offboarding and acknowledged-Vault-delete persistence-loss
+regressions, whose coherent verification and delivery remain pending.
 Qualified RSS helper controls and reviewed performance runners are preparation,
 not measured workload acceptance; hardware and goroutine qualification remain
 unknown. Saved-report policy, workload identities, notification recipients and
@@ -4381,7 +4413,7 @@ A01 and A13 are fully accepted across their defined controlled scope. Other case
 | A17 | Images/PDF, object authorization, and model comparison | Partially completed | Object backend, comparison, conservative route capability discovery, owner-bound user/Project byte reads, current-manager Project lifecycle, native inline rewriting, both Playground attachment interfaces, and attested token/TPM/money reservation with exact media occurrence settlement exist; external acceptance remains open. |
 | A18 | Call queries, CSV, reports, and hostile analysis inputs | Partially completed | Call queries, usage views and safe scoped call-record CSV exports have controlled evidence. Authorized aggregate analysis, separate fresh CSV capture and optional current-user personal-model advice have coherent controlled qualification, including denied/late authority and native completion negatives. Only bounded aggregates and transient Model labels reach the model; results remain plain text. Saved reports, broader evaluation and the complete hostile-input acceptance matrix remain open. |
 | A19 | S3, SMTP, site, announcements, instances, and jobs | Partially completed | Controlled local coverage now includes storage, SMTP configuration/test and durable notification delivery, site/announcements, authoritative instances, and actual system jobs. External services, bounce/inbox behavior, production clock/capacity assumptions, and release acceptance remain open. |
-| A20 | Fresh install, upgrade, backup/restore, and production SPA | Partially completed | Installation, migrations, restart, and SPA evidence exists; backup/restore and production release acceptance remain open. |
+| A20 | Fresh install, upgrade, backup/restore, and production SPA | Partially completed | Controlled cold SQL/journal restore passed on PostgreSQL and MySQL, including retained authority, Keys, immutable calls, quota, encrypted inline Credential use and missing/foreign journal refusal. Production RTO/RPO, retention, external-store recovery and broader release acceptance remain open. |
 
 2026-09-23, baseline `493cf39`: three parallel subtasks deliver changes, with the coordinating task consolidating acceptance and staged commits.
 

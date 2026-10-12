@@ -167,6 +167,11 @@ tasks:
     cmds:
       - ./scripts/test-auth-lifecycle.sh
 
+  test-backup-restore:
+    desc: Verify cold backup and restore against isolated PostgreSQL and MySQL databases
+    cmds:
+      - ./scripts/test-backup-restore.sh
+
   test-production:
     desc: Build web assets and test production asset serving
     cmds:

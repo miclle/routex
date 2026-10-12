@@ -45,6 +45,12 @@ The buffer also holds the current minute's RPM ledger and active concurrency lea
 
 Keep the buffer's directory on a persistent writable volume, including in container deployments. The file is private to its OS user and exclusively locked by one RouteX process; only one gateway process per installation is supported. Preserve it across application restarts so completed and interrupted call facts can be replayed after database recovery. Deleting it without restoring the matching backup loses undelivered records and prevents normal startup. The buffer is separate from the database volumes managed by Compose.
 
+See [Cold backup and restore](BACKUP_RESTORE.md) for stopped single-node native
+database capture, the matching journal, separately protected bootstrap roots and
+isolated restore validation. The dedicated `go tool task test-backup-restore`
+exercise is separate from the full integration matrix and production recovery
+acceptance.
+
 ## Stop Services, Inspect Status, and Preserve Data
 
 ```bash
