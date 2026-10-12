@@ -393,6 +393,65 @@ func TestProviderCleanupUnknownNeverReplaysAndPersistenceLossStaysUncertain(t *t
 			}
 		})
 	}
+
+	// Even an acknowledged destroy cannot become a saved success when its
+	// observation transaction fails; the original durable claim fences replay.
+	s, f, c, roles := cleanupSQLService(t)
+	_, op := cleanupConfirmedOrphan(t, s, f)
+	v, err := s.GetProviderCredentialOrphan(context.Background(), "usr_admin", op.IntegrationID, op.RequestID)
+	if err != nil || !v.Eligible || !v.OwnershipRecorded {
+		t.Fatal("acknowledged persistence-loss orphan preview failed", err)
+	}
+	c.failObservation = true
+	input := ProviderCredentialCleanupInput{RequestID: "22222222-2222-4222-8222-222222222222", Reason: "Record acknowledged destroy uncertainty", cleanupToken: "cleanup-only-token"}
+	result, err := s.CleanupProviderCredentialOrphan(context.Background(), "usr_admin", op.IntegrationID, op.RequestID, v.ReviewETag, input)
+	if !errors.Is(err, vaultUnavailable) || result != nil {
+		t.Fatal("acknowledged destroy with lost persistence became a successful receipt")
+	}
+	if c.unknownDestroy || c.posts != 1 || c.gets != 2 || c.destroys != 1 || len(f.values) != 0 {
+		t.Fatal("controlled acknowledged destroy did not remove the exact owned object once")
+	}
+	claim, ok := c.rows[op.RequestID]
+	if !ok || len(c.rows) != 1 || claim.RequestID != input.RequestID || claim.State != "pending" || claim.FinishedAt != nil {
+		t.Fatal("failed final observation did not preserve the durable pending claim")
+	}
+	c.failObservation = false
+	input.cleanupToken = ""
+	s.rootNow = func() time.Time { return claim.StartedAt }
+	result, err = s.CleanupProviderCredentialOrphan(context.Background(), "usr_admin", op.IntegrationID, op.RequestID, v.ReviewETag, input)
+	if err != nil || result == nil || result.Receipt.State != "pending" || !result.Running || result.Receipt.FinishedAt != nil || result.Receipt.Ownership.Attempted || result.Receipt.Cleanup.Observation.Attempted {
+		t.Fatal("unsaved acknowledgement was inferred from remote absence before claim expiry")
+	}
+	s.rootNow = func() time.Time { return claim.Deadline }
+	result, err = s.CleanupProviderCredentialOrphan(context.Background(), "usr_admin", op.IntegrationID, op.RequestID, v.ReviewETag, input)
+	if err != nil || result == nil || result.Receipt.State != "unknown" || result.Running || result.Receipt.FinishedAt != nil || result.Receipt.Ownership.Attempted || result.Receipt.Cleanup.Observation.Attempted {
+		t.Fatal("expired unsaved acknowledgement did not remain unknown")
+	}
+	changed := input
+	changed.RequestID = "33333333-3333-4333-8333-333333333333"
+	if _, err = s.CleanupProviderCredentialOrphan(context.Background(), "usr_admin", op.IntegrationID, op.RequestID, v.ReviewETag, changed); !errors.Is(err, catalogConflict) {
+		t.Fatal("different command bypassed the uncertain original claim")
+	}
+	if c.posts != 1 || c.gets != 2 || c.destroys != 1 || len(f.values) != 0 || !reflect.DeepEqual(claim, c.rows[op.RequestID]) || !reflect.DeepEqual(op, f.data.ops[op.RequestID]) {
+		t.Fatal("uncertain acknowledged cleanup replay changed remote work or immutable records")
+	}
+	cleanupAudits := 0
+	for _, event := range roles.data.audits {
+		if !strings.HasPrefix(event.Action, "credential.orphan.cleanup.") {
+			continue
+		}
+		cleanupAudits++
+		if event.Action != "credential.orphan.cleanup.claim" || event.ActorID != "usr_admin" || event.ResourceType != "credential" || event.ResourceID != op.CredentialID || event.DetailsJSON == nil {
+			t.Fatal("failed observation published an audit result or lost claim attribution")
+		}
+		var details map[string]string
+		if json.Unmarshal([]byte(*event.DetailsJSON), &details) != nil || !reflect.DeepEqual(details, map[string]string{"creation_request_id": op.RequestID, "request_id": input.RequestID}) {
+			t.Fatal("uncertain claim audit lost its exact command correlation")
+		}
+	}
+	if cleanupAudits != 1 {
+		t.Fatal("failed observation changed the single durable claim audit")
+	}
 }
 func TestProviderCleanupHoldersRejectBothDirectionsAndReleaseOnce(t *testing.T) {
 	s := &Service{}

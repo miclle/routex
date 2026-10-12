@@ -1,7 +1,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
+import { AxiosError, AxiosHeaders, type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import client from '@/api/client'
 import i18n from '@/i18n'
@@ -79,6 +79,7 @@ beforeEach(async () => {
     if (config.url === '/auth/session') response.data = session
     else if (config.url === '/auth/permissions') response.data = { permissions }
     else if (config.url === '/admin/audit') {
+      const requestedEntry = structuredClone(entry)
       if (config.params?.q === 'slow')
         await new Promise<void>((resolve) => {
           releaseSlow = resolve
@@ -96,8 +97,9 @@ beforeEach(async () => {
           : {
               items: [
                 {
-                  ...entry,
-                  actor_name: config.params?.q === 'fast' ? 'Fresh actor' : entry.actor_name,
+                  ...requestedEntry,
+                  actor_name:
+                    config.params?.q === 'fast' ? 'Fresh actor' : requestedEntry.actor_name,
                 },
               ],
               next_cursor: 'aud_2',
@@ -813,4 +815,203 @@ it('does not render extra Telegram identity fields beyond the typed reason', asy
   expect(document.body.textContent).not.toContain('private-remote-subject')
   expect(document.body.textContent).not.toContain('private-token')
   expect(document.querySelector('[role="dialog"] pre')).toBeNull()
+})
+
+const commandID = '6f739b12-12ce-4a20-8da7-000000000001'
+it.each([
+  ['claimed', 'runtime.publication.claim', 'Claim recorded', '已记录认领'],
+  [
+    'refresh_returned_nil',
+    'runtime.publication.finalize',
+    'Refresh returned without error',
+    '刷新返回且无错误',
+  ],
+  [
+    'refresh_returned_error',
+    'runtime.publication.finalize',
+    'Refresh returned an error',
+    '刷新返回错误',
+  ],
+] as const)(
+  'renders historical publication %s separately from committed result and transport metadata',
+  async (outcome, action, english, chinese) => {
+    const reason = '<script>Historical reason 原因</script>'
+    entry = {
+      ...first,
+      action,
+      resource_type: 'system_instance',
+      resource_id: 'ins_retained',
+      changes: { kind: 'runtime_publication', command_request_id: commandID, reason, outcome },
+    }
+    await mount()
+    await until(() => expect(host.textContent).toContain(english))
+    await click('Open audit event aud_2')
+    const drawer = document.querySelector('[role="dialog"]')!
+    expect(drawer.textContent).toContain(`Publication command request ID: ${commandID}`)
+    expect(drawer.textContent).toContain('Related request IDNot recorded')
+    expect(drawer.textContent).toContain('ResultCommitted')
+    expect(drawer.textContent).toContain('Historical command event only.')
+    expect(drawer.textContent).toContain(reason)
+    expect(drawer.querySelector('pre')).toBeNull()
+    expect(drawer.querySelector('script')).toBeNull()
+    expect(drawer.querySelector('a')).toBeNull()
+    const reads = audits().length
+    await act(async () => {
+      await i18n.changeLanguage('zh')
+    })
+    expect(drawer.textContent).toContain(chinese)
+    expect(drawer.textContent).toContain(commandID)
+    expect(drawer.textContent).toContain('不表示当前命令状态')
+    expect(audits()).toHaveLength(reads)
+    expect(requests.every((request) => request.method === 'get')).toBe(true)
+  },
+)
+
+it('keeps malformed publication details unavailable without fetching a receipt', async () => {
+  entry = {
+    ...first,
+    action: 'runtime.publication.finalize',
+    resource_type: 'system_instance',
+    changes: null,
+  }
+  await mount()
+  await until(() => expect(host.textContent).toContain(entry.action))
+  await click('Open audit event aud_2')
+  const drawer = document.querySelector('[role="dialog"]')!
+  expect(drawer.textContent).toContain('Not recorded')
+  expect(drawer.textContent).not.toContain('Refresh returned')
+  expect(requests.some((request) => request.url?.includes('publication-commands'))).toBe(false)
+})
+
+it('hides selected historical facts during same-actor Session renewal and rejects a retained row callback', async () => {
+  entry = {
+    ...first,
+    changes: {
+      kind: 'runtime_publication',
+      command_request_id: commandID,
+      reason: 'Recorded original reason',
+      outcome: 'claimed',
+    },
+  }
+  await mount()
+  await until(() => expect(host.textContent).toContain('Recorded original reason'))
+  const row = host.querySelector<HTMLTableRowElement>('tbody tr')!
+  const propsKey = Object.getOwnPropertyNames(row).find((key) => key.startsWith('__reactProps$'))!
+  const retained = (row as unknown as Record<string, { onClick: () => void }>)[propsKey].onClick
+  await click('Open audit event aud_2')
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain(commandID)
+  let release: (() => void) | undefined
+  const adapter = client.defaults.adapter
+  client.defaults.adapter = async (config) => {
+    if (config.url === '/auth/session')
+      await new Promise<void>((resolve) => {
+        release = resolve
+      })
+    return (adapter as AxiosAdapter)(config)
+  }
+  let renewal: Promise<unknown> | undefined
+  await act(async () => {
+    renewal = cache.refetchQueries({ queryKey: sessionKey })
+  })
+  await until(() => expect(release).toBeDefined())
+  expect(host.textContent).not.toContain('Recorded original reason')
+  expect(document.querySelector('[role="dialog"]')?.textContent ?? '').not.toContain(commandID)
+  const reads = audits().length
+  await act(async () => retained())
+  expect(audits()).toHaveLength(reads)
+  await act(async () => {
+    release?.()
+    await renewal
+  })
+  await until(() => expect(host.textContent).toContain('Recorded original reason'))
+  expect(document.querySelector('[role="dialog"]')).toBeNull()
+})
+
+it('rejects an obsolete audit response after permission revocation', async () => {
+  await mount()
+  await search('slow')
+  await until(() => expect(releaseSlow).toBeDefined())
+  await act(async () => {
+    cache.setQueryData(['permissions', session.user.id], [])
+  })
+  await until(() => expect(host.textContent).toContain('Access denied'))
+  await act(async () => {
+    releaseSlow?.()
+  })
+  expect(host.textContent).not.toContain(first.actor_name)
+  expect(document.querySelector('[role="dialog"]')).toBeNull()
+})
+
+it('scopes renewed actor reads separately and rejects the prior actor response', async () => {
+  await mount()
+  await search('slow')
+  await until(() => expect(releaseSlow).toBeDefined())
+  const oldRead = audits().at(-1)!
+  entry = { ...second, actor_name: 'New authorized actor' }
+  await act(async () => {
+    cache.setQueryData(sessionKey, { ...session, user: { ...session.user, id: 'usr_new_actor' } })
+  })
+  await until(() => expect(host.textContent).toContain('New authorized actor'))
+  expect(oldRead.signal?.aborted).toBe(true)
+  await act(async () => {
+    releaseSlow?.()
+  })
+  expect(host.textContent).not.toContain(first.actor_name)
+  expect(host.textContent).toContain('New authorized actor')
+})
+
+it.each(['/auth/session', '/auth/permissions'])(
+  'hides facts and the selected drawer when %s renewal fails',
+  async (path) => {
+    entry = {
+      ...first,
+      changes: {
+        kind: 'runtime_publication',
+        command_request_id: commandID,
+        reason: 'Retained historical reason',
+        outcome: 'claimed',
+      },
+    }
+    await mount()
+    await until(() => expect(host.textContent).toContain('Retained historical reason'))
+    await click('Open audit event aud_2')
+    const adapter = client.defaults.adapter as AxiosAdapter
+    client.defaults.adapter = async (config) => {
+      if (config.url === path)
+        throw new AxiosError('Fixture', '', config, undefined, {
+          config,
+          status: 503,
+          statusText: 'Unavailable',
+          headers: new AxiosHeaders(),
+          data: { code: 503, message: 'Unavailable' },
+        })
+      return adapter(config)
+    }
+    await act(async () => {
+      await cache.refetchQueries({
+        queryKey: path === '/auth/session' ? sessionKey : ['permissions', session.user.id],
+      })
+    })
+    expect(host.textContent).not.toContain('Retained historical reason')
+    expect(document.querySelector('[role="dialog"]')?.textContent ?? '').not.toContain(commandID)
+    expect(host.querySelector('table')).toBeNull()
+  },
+)
+
+it('does not dispatch a retained pagination callback after synchronous permission invalidation', async () => {
+  await mount()
+  await until(() => expect(host.textContent).toContain(first.actor_name))
+  const more = button('Load more')
+  const key = Object.getOwnPropertyNames(more).find((key) => key.startsWith('__reactProps$'))!
+  const retained = (more as unknown as Record<string, { onClick: () => void }>)[key].onClick
+  const reads = audits().length
+  await act(async () => {
+    void cache.invalidateQueries({
+      queryKey: ['permissions', session.user.id],
+      refetchType: 'none',
+    })
+    retained()
+  })
+  expect(audits()).toHaveLength(reads)
+  expect(host.querySelector('table')).toBeNull()
 })

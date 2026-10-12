@@ -46,7 +46,10 @@ func telegramEnableMFA(t *testing.T, f *telegramApplicationFixture, session Sess
 func telegramChallenge(t *testing.T, f *telegramApplicationFixture, subject string) service.MFALoginChallenge {
 	t.Helper()
 	c := f.begin(t, "/api/v1/auth/telegram/start", subject, nil, "", "", "")
-	r := f.finish(c, nil, "")
+	return telegramReadChallenge(t, f.finish(c, nil, ""))
+}
+func telegramReadChallenge(t *testing.T, r *httptest.ResponseRecorder) service.MFALoginChallenge {
+	t.Helper()
 	v := telegramApplicationDecode[service.MFALoginChallenge](t, r, 202)
 	if !v.MFARequired || v.ChallengeToken == "" {
 		t.Fatal("Telegram primary did not require native MFA")
@@ -434,10 +437,26 @@ func testTelegramLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal("departure requires genuine explicit binding")
 		}
 		local, localCookie, recovery := telegramEnableMFA(t, f, local, localCookie)
-		factor := telegramChallenge(t, f, "Telegram-Departing-303")
+		resetDiagnostic, queryDiagnostic := fixtureQueryDiagnostics(t, db)
+		challenge := func(stage string) service.MFALoginChallenge {
+			resetDiagnostic()
+			started := time.Now()
+			c := f.begin(t, "/api/v1/auth/telegram/start", "Telegram-Departing-303", nil, "", "", "")
+			r := f.finish(c, nil, "")
+			if r.Code != http.StatusAccepted {
+				table, class := queryDiagnostic()
+				remaining := time.Duration(0)
+				if deadline, ok := f.ctx.Deadline(); ok {
+					remaining = time.Until(deadline)
+				}
+				t.Logf("Telegram departure diagnostic: stage=%s elapsed=%s caller_canceled=%t remaining=%s query_table=%s query_error=%s", stage, time.Since(started), f.ctx.Err() != nil, remaining, table, class)
+			}
+			return telegramReadChallenge(t, r)
+		}
+		factor := challenge("initial_challenge")
 		admitted, telegramCookie := telegramApplicationSession(t, f.request("POST", "/api/v1/auth/mfa/verify", MFALoginRequest{ChallengeToken: factor.ChallengeToken, RecoveryCode: recovery[0]}, "", ""))
 		telegramAssertPrimary(t, db, telegramCookie, admitted.User.ID)
-		pending := telegramChallenge(t, f, "Telegram-Departing-303")
+		pending := challenge("held_departure_challenge")
 		staged := f.begin(t, "/api/v1/auth/telegram/start", "Telegram-Departing-303", nil, "", "", "")
 		held := f.start(t, "/api/v1/auth/telegram/start", "Telegram-Departing-303", nil, "", "", "")
 		hold := f.peer.holdToken(t)

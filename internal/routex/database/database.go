@@ -26,7 +26,7 @@ func Open(ctx context.Context, driver, dsn string) (*gorm.DB, error) {
 	case "mysql":
 		dialector = mysql.Open(dsn)
 	case "postgres", "":
-		dialector = postgres.Open(dsn)
+		dialector = postgresErrorDialector{Dialector: &postgres.Dialector{Config: &postgres.Config{DSN: dsn}}}
 	default:
 		return nil, errors.New("unsupported database driver")
 	}

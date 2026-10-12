@@ -21,8 +21,12 @@ func TestInsightsRegistry222ExactPrefixAndSuffix(t *testing.T) {
 	for i, m := range matches {
 		names[i] = m[1] + ":" + m[2]
 	}
-	if !insightsRegistry222Current(names) || !strings.Contains(string(raw), "versions != 106") {
-		t.Fatal("exact V106/222 Insights registry required")
+	if !credentialInferenceRegistry224Current(names) {
+		t.Fatal("exact224 Credential observer successor required")
+	}
+	names = names[:222]
+	if !insightsRegistry222Current(names) || !strings.Contains(string(raw), "versions != 109") {
+		t.Fatal("exact V107/222 Insights registry required")
 	}
 	if !telegramRegistry221Current(names[:221]) || insightsRegistry222Current(names[:221]) || telegramRegistry221Current(names) {
 		t.Fatal("historical221 boundary")

@@ -134,6 +134,7 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 				return err
 			}
 		}
+		firstRecorded := 0
 		updates := map[string]any{"verification_status": "failed", "verified_at": nil, "enabled": false}
 		if verified {
 			updates["verification_status"], updates["verified_at"] = "verified", time.Now().UTC()
@@ -153,6 +154,7 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 					if err := tx.Create(&model).Error; err != nil {
 						return err
 					}
+					firstRecorded++
 				} else if err != nil {
 					return err
 				}
@@ -185,10 +187,24 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 		if !verified {
 			action = "credential.verify.failed"
 		}
-		return tx.Create(&entity.AuditEvent{ID: auditID, ActorID: actorID, Action: action, ResourceType: "credential", ResourceID: credential.ID}).Error
+		if err := tx.Create(&entity.AuditEvent{ID: auditID, ActorID: actorID, Action: action, ResourceType: "credential", ResourceID: credential.ID}).Error; err != nil {
+			return err
+		}
+		if firstRecorded == 0 {
+			return nil
+		}
+		var provider entity.Provider
+		if err := personalExact(modelCreationDB(tx), "id", connection.ProviderID).Take(&provider).Error; err != nil {
+			return err
+		}
+		return saveModelDiscoveryNotice(tx, auditID, connection, provider, firstRecorded, time.Now().UTC())
 	})
 	if err == nil {
 		s.InvalidateRuntimeCredential(credentialID)
+		if verified {
+			// The durable discovery source survives an interrupted best-effort projection.
+			_ = db.Transaction(func(tx *gorm.DB) error { return s.reconcileModelDiscoveryNotices(tx) })
+		}
 		if !verified {
 			// Delivery observability cannot change the authoritative credential
 			// result. The durable failed audit event is reconciled automatically if

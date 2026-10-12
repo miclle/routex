@@ -4,6 +4,7 @@ import (
 	"os"
 	"regexp"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -200,6 +201,10 @@ func TestModelWeightHistoryExact174RegistryPrefix(t *testing.T) {
 	for _, pair := range pairs {
 		currentIdentities = append(currentIdentities, pair[1]+":"+pair[2])
 	}
+	if !credentialInferenceRegistry224Current(currentIdentities) || !strings.Contains(string(raw), "versions != 109") {
+		t.Fatal("exact V109/224 Credential registry required before historical checks")
+	}
+	currentIdentities = currentIdentities[:222]
 	if !insightsRegistry222Current(currentIdentities) {
 		t.Fatal("exact222 Insights successor required before historical221 checks")
 	}

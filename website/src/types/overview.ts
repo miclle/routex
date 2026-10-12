@@ -47,6 +47,8 @@ export interface OverviewModel {
 export type OperationalAlertState = 'open' | 'handling' | 'resolved'
 
 export interface OperationalAlert {
+  credential_id?: string
+  first_recorded_model_count?: number
   id: string
   kind: string
   detail_code: string

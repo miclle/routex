@@ -21,12 +21,12 @@ func TestTelegramRegistry221ExactPrefixAndSuffix(t *testing.T) {
 	for i, m := range matches {
 		names[i] = m[1] + ":" + m[2]
 	}
-	if !insightsRegistry222Current(names) {
+	if !credentialInferenceRegistry224Current(names) {
 		t.Fatal("exact222 Insights successor required before historical221 checks")
 	}
 	names = names[:221]
-	if !telegramRegistry221Current(names) || !strings.Contains(string(raw), "versions != 106") {
-		t.Fatal("exact V106/221 Telegram registry required")
+	if !telegramRegistry221Current(names) || !strings.Contains(string(raw), "versions != 109") {
+		t.Fatal("exact 221 Telegram prefix and V107 ledger required")
 	}
 	if !enterpriseRegistry218Current(names[:218]) || telegramRegistry221Current(names[:218]) || enterpriseRegistry218Current(names) {
 		t.Fatal("historical218 boundary")

@@ -259,7 +259,7 @@ func testRuntimePublicationCommandMigration(t *testing.T, db *gorm.DB) {
 		migrate()
 	}
 	checkLedger()
-	if database.MigrateThrough(ctx, db, 104) == nil || database.MigrateThrough(ctx, db, 107) == nil {
+	if database.MigrateThrough(ctx, db, 104) == nil || database.MigrateThrough(ctx, db, 110) == nil {
 		t.Fatal("historical/newer migration bound admitted")
 	}
 	if db.Model(model).Count(&count).Error != nil || count != 0 {
@@ -477,10 +477,44 @@ func testRuntimePublicationCommandLifecycle(t *testing.T, db *gorm.DB) {
 		}
 		stored := runtimePublicationStoredV105(t, db, in.RequestID)
 		runtimePublicationAuditV105(t, db, stored, 1)
+		// Read the genuine transactional events through the authorized audit API
+		// projection; this must not dispatch or reinterpret the original command.
+		readAudit := func() {
+			t.Helper()
+			page, err := svc.ListAudit(ctx, admin.User.ID, service.AuditFilter{Category: "system", Query: "runtime.publication", Range: "7d"})
+			if err != nil {
+				t.Fatal("read publication audit projection")
+			}
+			seen := map[string]bool{}
+			for _, event := range page.Items {
+				var detail struct {
+					Kind      string `json:"kind"`
+					RequestID string `json:"command_request_id"`
+					Reason    string `json:"reason"`
+					Outcome   string `json:"outcome"`
+				}
+				if json.Unmarshal(event.Changes, &detail) != nil || detail.RequestID != in.RequestID {
+					continue
+				}
+				if detail.Kind != "runtime_publication" || detail.Reason != in.Reason || event.ActorID != admin.User.ID || event.ResourceID != stored.ClaimInstanceID || event.Result != "committed" || event.RequestID != nil || event.Source != nil || event.IP != nil || seen[event.Action] {
+					t.Fatal("audit projection changed recorded identity or transport unknowns")
+				}
+				if event.Action == "runtime.publication.claim" && detail.Outcome != "claimed" || event.Action == "runtime.publication.finalize" && detail.Outcome != "refresh_returned_nil" {
+					t.Fatal("audit projection fabricated current status")
+				}
+				seen[event.Action] = true
+			}
+			if !seen["runtime.publication.claim"] || !seen["runtime.publication.finalize"] || len(seen) != 2 || loads.Load() != before+1 {
+				t.Fatal("missing original audit pair or read dispatched publication")
+			}
+		}
+		readAudit()
 		replay, err := svc.PublishRuntimeCommand(ctx, admin, in)
 		if err != nil || !reflect.DeepEqual(receipt, replay) || loads.Load() != before+1 {
 			t.Fatal("identical UUID replay redispatched or changed original receipt")
 		}
+		runtimePublicationAuditV105(t, db, stored, 1)
+		readAudit()
 		changed := in
 		changed.Reason = "Changed original reason"
 		_, err = svc.PublishRuntimeCommand(ctx, admin, changed)

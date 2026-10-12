@@ -8,6 +8,16 @@ Use GORM model tags, query builders, transactions, and Migrator APIs for ordinar
 
 Driver imports, dialect switches, vendor-specific locking, collation compatibility, and any missing error adapters belong in `internal/routex/database/`. Handlers, services, and entities must not inspect SQLSTATE or driver error numbers. Portable, parameterized query expressions are permitted within GORM queries; this policy does not prohibit ordinary joins or predicates.
 
+The PostgreSQL connection adapter fills the pinned GORM driver's missing
+`restrict_violation` (`23001`) translation with `gorm.ErrForeignKeyViolated`,
+including wrapped driver errors, while retaining the original error chain.
+Every other error delegates to the upstream translator; MySQL is unchanged.
+Concrete dialector embedding preserves configuration and savepoint interfaces.
+Unit controls cover classification and delegation, and the V109 migration's real
+PostgreSQL/MySQL controls require restrictive evidence deletion to fail with the
+portable foreign-key error after successful baseline inserts. No schema or SQL
+change is involved.
+
 ## Database diagnostics
 
 Connection setup keeps GORM logging silent until configuration has been validated.
@@ -1855,3 +1865,71 @@ never rewrites prior runtime observations or resumes a claim after restart.
 Portable migration and command acceptance is
 `54b4b3fb5c51725c4387837d1f24f111beeabc763dab1294584b9da16db4ab4f`; see [Runtime](RUNTIME.md#manual-publication-command)
 for the wire break, original three-second budget, restart witness and outcome limits.
+
+## V107 recipient-only offboarding completion
+
+V107 appends a frozen five-column `offboarding_notification_recipients` receipt:
+Case, recipient, occurrence, Notification and nonzero microsecond recipient birth.
+Restrictive foreign keys and unique Case/recipient, occurrence/recipient and
+Notification identities preserve exact deduplication and retained history. Startup
+refuses incompatible retained column/index metadata and resumes independently
+committed partial DDL; it does not rely on MySQL transactional DDL rollback.
+
+The existing four operational source/kind predicates are retained. A separate
+byte-exact `offboarding_completed` branch permits only a medium, resolved,
+count-one, subject-free completion fact. Publishing is explicit inside the
+completed Case transaction; it never enumerates system readers. Current admitted
+recipients must match the retained account birth to read/mark the notice or receive
+email. Administrative operational queries exclude this recipient-only kind.
+Released migrations remain unchanged. Controlled dual-driver migration and
+transaction validation is required before delivery of this phase.
+
+### First-recorded Model discovery (V108 candidate)
+
+V108 appends a private frozen six-column discovery source and a restrictive audit
+reference. It adds zero-default Model-count columns only to alerts, occurrences
+and inbox projections. Existing columns, including empty partially applied
+tables, must retain the frozen integer type, NOT NULL and explicit zero default. Existing V107 source predicates remain intact inside the
+zero-count branch; a separate byte-exact discovery branch admits only low
+severity, `first_recorded`, a Provider snapshot and counts1–2,000. Other sources
+cannot borrow the low severity or count. A separate CHECK excludes discovery
+from SMTP intents. Frozen cross-column CHECK tags are necessary because GORM
+cannot otherwise express these conditional envelopes; all DDL uses Migrator.
+
+Startup validates retained source metadata and envelope rows before replacing
+CHECKs, and repairs missing columns only in an empty partial source table.
+Versioned source is immutable after release. Historical test downgrades refuse
+retained discovery facts, restore exact V107 CHECKs and remove only the reviewed
+V108 receipt/owned additions. These are exclusively owned fixture operations,
+not production downgrade support. Real PostgreSQL/MySQL qualification is pending.
+
+
+### Prospective Credential inference episodes (V109 candidate)
+
+V109 appends two private frozen GORM tables: exact Credential observer state and
+immutable triggered episodes. A domain-separated SHA-256 digest isolates
+byte-exact Credential IDs even under case-insensitive collation; the retained ID
+is checked against that digest by the observer. Signed int64 acceptance sequences
+are bounded explicitly from zero/five through 9,223,372,036,854,775,807. Startup
+rejects unsigned metadata, incorrect widths/defaults/nullability and incompatible
+retained CHECK/index layouts. Missing columns may be repaired only for empty
+partial observer tables. Restrictive episode references preserve its original
+Attempt and state; there is no current Credential foreign key or backfill.
+
+Four existing alert/inbox/delivery tables gain a frozen non-null varchar(30)
+`credential_id` with an explicit empty default. Existing V108 predicates remain
+unchanged inside the empty-identity branch. Only the byte-exact new source/kind,
+medium severity, five-failure detail and valid non-secret identity may populate
+the new field; other sources cannot borrow it. Startup validates existing column
+metadata even on empty tables before replacing candidate CHECKs. Cross-column
+CHECK tags express the conditional envelopes that ordinary GORM field options
+cannot describe; all DDL uses Migrator and all business persistence uses GORM.
+
+The existing real-driver owner registers separate observer lifecycle and migration
+leaves, with empty/upgrade/repeat/concurrent/partial DDL, signedness, CHECK/FK and
+unique-index controls. Genuine older-prefix fixtures insert frozen historical
+Call/Attempt facts instead of invoking today's observer or pre-creating its future
+tables. Test-only peeling refuses retained observer or projected identities,
+restores exact frozen V108 CHECKs and removes only its reviewed V109 receipt and
+owned additions. Released migration steps remain unchanged. These source tests
+are pending execution; this is not production downgrade support or acceptance.

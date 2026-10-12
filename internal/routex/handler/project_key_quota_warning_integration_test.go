@@ -62,6 +62,8 @@ func testProjectKeyMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		}
 	}()
 	var diagnosticWriteActive atomic.Bool
+	var diagnosticStage atomic.Value
+	diagnosticStage.Store("policy_write")
 	const diagnosticCallback = "test:project-key-warning-query-diagnostic"
 	if err := db.Callback().Query().After("gorm:query").Register(diagnosticCallback, func(tx *gorm.DB) {
 		if tx.Error == nil || !diagnosticWriteActive.Load() {
@@ -72,7 +74,7 @@ func testProjectKeyMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 			contextClass = projectKeyWarningFixtureDiagnosticClass(tx.Statement.Context.Err())
 			worker = tx.Statement.Context.Value(projectKeyWarningFixtureWorkerContext{}) == &publicationBarrier
 		}
-		t.Logf("project_key_warning_query_failure observed_at=%s error_class=%s context_class=%s fixture_worker=%t", time.Now().UTC().Format(time.RFC3339Nano), projectKeyWarningFixtureDiagnosticClass(tx.Error), contextClass, worker)
+		t.Logf("project_key_warning_query_failure stage=%s observed_at=%s error_class=%s context_class=%s fixture_worker=%t", diagnosticStage.Load().(string), time.Now().UTC().Format(time.RFC3339Nano), projectKeyWarningFixtureDiagnosticClass(tx.Error), contextClass, worker)
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +118,8 @@ func testProjectKeyMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		upstream.Close()
 	}()
 	makeService := func() *service.Service {
-		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+		// Keep the publisher live; explicit fault/refresh controls own fixture publication.
+		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1158,10 +1161,28 @@ func testProjectKeyMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal(err)
 		}
 		write(grandchild.Key.ID, map[string]any{"tokens_month": 10, "rpm": 100}, "exact_10000_grandchild")
+		// Diagnose the actual boundary stages without changing their calls or budgets.
+		diagnosticWriteActive.Store(true)
+		defer diagnosticWriteActive.Store(false)
+		refreshBoundary := func(stage string) {
+			t.Helper()
+			diagnosticStage.Store(stage)
+			before := svc.RuntimeStatus()
+			started := time.Now()
+			err := svc.RefreshRuntime(ctx)
+			after := svc.RuntimeStatus()
+			t.Logf("project_key_warning_boundary stage=%s elapsed_ns=%d observed_at=%s error_class=%s caller_context_class=%s before_ready=%t before_code=%q before_last_refresh=%v before_lease=%v after_ready=%t after_code=%q after_last_refresh=%v after_lease=%v", stage, time.Since(started).Nanoseconds(), time.Now().UTC().Format(time.RFC3339Nano), projectKeyWarningFixtureDiagnosticClass(err), projectKeyWarningFixtureDiagnosticClass(ctx.Err()), before.Ready, before.ErrorCode, before.LastRefreshAt, before.AuthorizationValidUntil, after.Ready, after.ErrorCode, after.LastRefreshAt, after.AuthorizationValidUntil)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
 		// Keep both unmarked refreshes around the real observer without nesting its fence.
-		refresh()
+		refreshBoundary("pre_observer_refresh")
+		diagnosticStage.Store("observer")
+		observerStarted := time.Now()
 		reconcileErr := reconcileRaw()
-		refresh()
+		t.Logf("project_key_warning_boundary stage=observer elapsed_ns=%d observed_at=%s error_class=%s caller_context_class=%s", time.Since(observerStarted).Nanoseconds(), time.Now().UTC().Format(time.RFC3339Nano), projectKeyWarningFixtureDiagnosticClass(reconcileErr), projectKeyWarningFixtureDiagnosticClass(ctx.Err()))
+		refreshBoundary("post_observer_refresh")
 		if reconcileErr != nil {
 			t.Fatal(reconcileErr)
 		}

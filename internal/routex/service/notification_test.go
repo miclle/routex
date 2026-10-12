@@ -38,6 +38,28 @@ func TestSystemJobNotificationMetadata(t *testing.T) {
 	if _, _, ok := systemJobNotificationMetadata(SystemJobCallRecordDelivery, "delivered"); ok {
 		t.Fatal("successful job created an alert")
 	}
+	for _, detail := range []string{"rotation_blocked", "executor_lost"} {
+		severity, group, ok := systemJobNotificationMetadata(SystemJobSecretRootRotation, detail)
+		if !ok || severity != "high" || group != "system_job:secret_root_rotation:"+detail || !notificationEventAllowed(notificationSourceSystemJob, notificationKindSystemJobFailure, severity, detail) {
+			t.Fatal("recorded rotation batch failure rejected", detail, severity, group, ok)
+		}
+	}
+	for _, test := range []struct{ code, detail string }{
+		{SystemJobSecretRootRotation, "processed"},
+		{SystemJobSecretRootRotation, "publication_pending"},
+		{SystemJobSecretRootRotation, "ciphertext_invalid"},
+		{SystemJobSecretRootRotation, "private raw error"},
+		{SystemJobStorageCleanup, "rotation_blocked"},
+		{SystemJobRuntimePublication, "rotation_blocked"},
+		{SystemJobCallRecordDelivery, "rotation_blocked"},
+	} {
+		if _, _, ok := systemJobNotificationMetadata(test.code, test.detail); ok {
+			t.Fatal("non-batch/unsupported rotation detail became alertable", test)
+		}
+	}
+	if notificationEventAllowed(notificationSourceSystemJob, notificationKindSystemJobFailure, "medium", "rotation_blocked") {
+		t.Fatal("rotation batch failure accepted below its high severity")
+	}
 }
 
 func TestNotificationDeliveryResultCodesAreRedacted(t *testing.T) {

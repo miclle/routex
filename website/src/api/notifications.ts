@@ -1,3 +1,4 @@
+import { recordedCredentialInference } from './credential-inference-notices'
 import axios from 'axios'
 import client from './client'
 import type {
@@ -955,9 +956,144 @@ export function recordedTeamRollingQuotaWarning(
   return warning
 }
 
+// This recipient-only event carries no Case, member, resource, or proof payload.
+export function recordedOffboardingCompletion(value: unknown): value is Notification {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const item = value as Record<string, unknown>
+  const allowed = [
+    'id',
+    'kind',
+    'severity',
+    'detail_code',
+    'occurrence_count',
+    'read',
+    'read_at',
+    'first_seen_at',
+    'last_seen_at',
+    'delivery_status',
+    'delivery_code',
+    'delivery_attempts',
+    'delivery_updated_at',
+  ]
+  const timestamp = (value: unknown): value is string =>
+    typeof value === 'string' &&
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.test(value) &&
+    Number.isFinite(Date.parse(value))
+  if (
+    Object.keys(item).some((key) => !allowed.includes(key)) ||
+    typeof item.id !== 'string' ||
+    !/^ntf_[0-7][0-9a-hjkmnp-tv-z]{25}$/.test(item.id) ||
+    item.kind !== 'offboarding_completed' ||
+    item.severity !== 'medium' ||
+    item.detail_code !== 'completed' ||
+    item.occurrence_count !== 1 ||
+    typeof item.read !== 'boolean' ||
+    !timestamp(item.first_seen_at) ||
+    item.last_seen_at !== item.first_seen_at ||
+    (item.read ? !timestamp(item.read_at) : item.read_at !== null)
+  )
+    return false
+  if (item.delivery_status == null)
+    return (
+      item.delivery_code == null &&
+      item.delivery_attempts == null &&
+      item.delivery_updated_at == null
+    )
+  return (
+    ['pending', 'sending', 'retry', 'accepted', 'unknown', 'failed'].includes(
+      item.delivery_status as string,
+    ) &&
+    (item.delivery_code == null ||
+      [
+        '',
+        'accepted',
+        'recipient_ineligible',
+        'configuration_unavailable',
+        'configuration_changed',
+        'invalid_configuration',
+        'connect_failed',
+        'greeting_failed',
+        'tls_failed',
+        'auth_failed',
+        'sender_failed',
+        'recipient_failed',
+        'data_failed',
+        'acceptance_failed',
+        'timed_out',
+        'canceled',
+        'delivery_failed',
+        'lease_expired',
+      ].includes(item.delivery_code as string)) &&
+    (item.delivery_attempts == null ||
+      (Number.isSafeInteger(item.delivery_attempts) &&
+        (item.delivery_attempts as number) >= 0 &&
+        (item.delivery_attempts as number) <= 3)) &&
+    timestamp(item.delivery_updated_at)
+  )
+}
+
+// A closed, low-severity, inbox-only operational projection. No email or quota
+// fields may be borrowed from other notification kinds.
+export function recordedModelDiscovery(value: unknown): value is Notification {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const item = value as Record<string, unknown>
+  const allowed = [
+    'id',
+    'alert_id',
+    'kind',
+    'severity',
+    'detail_code',
+    'subject_type',
+    'subject_id',
+    'subject_name',
+    'occurrence_count',
+    'read',
+    'read_at',
+    'first_seen_at',
+    'last_seen_at',
+    'first_recorded_model_count',
+  ]
+  const id = (value: unknown, prefix: string) =>
+    typeof value === 'string' && new RegExp(`^${prefix}_[0-7][0-9a-hjkmnp-tv-z]{25}$`).test(value)
+  const timestamp = (value: unknown): value is string =>
+    typeof value === 'string' &&
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.test(value) &&
+    Number.isFinite(Date.parse(value))
+  return (
+    Object.keys(item).every((key) => allowed.includes(key)) &&
+    id(item.id, 'ntf') &&
+    id(item.alert_id, 'alr') &&
+    item.kind === 'models_first_recorded' &&
+    item.severity === 'low' &&
+    item.detail_code === 'first_recorded' &&
+    item.subject_type === 'provider' &&
+    id(item.subject_id, 'prv') &&
+    typeof item.subject_name === 'string' &&
+    item.subject_name.trim() === item.subject_name &&
+    item.subject_name.length > 0 &&
+    [...item.subject_name].length <= 100 &&
+    !/\p{Cc}/u.test(item.subject_name) &&
+    Number.isSafeInteger(item.first_recorded_model_count) &&
+    (item.first_recorded_model_count as number) >= 1 &&
+    (item.first_recorded_model_count as number) <= 2000 &&
+    Number.isSafeInteger(item.occurrence_count) &&
+    (item.occurrence_count as number) >= 1 &&
+    typeof item.read === 'boolean' &&
+    timestamp(item.first_seen_at) &&
+    timestamp(item.last_seen_at) &&
+    Date.parse(item.first_seen_at) <= Date.parse(item.last_seen_at) &&
+    (item.read ? timestamp(item.read_at) : item.read_at === null)
+  )
+}
+
 function validNotification(value: unknown, recipientId?: string): value is Notification {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const item = value as Record<string, unknown>
+  if (item.kind === 'credential_inference_failure' || Object.hasOwn(item, 'credential_id'))
+    return recordedCredentialInference(item)
+  if (item.kind === 'models_first_recorded' || item.first_recorded_model_count != null)
+    return recordedModelDiscovery(item)
+  if (item.kind === 'offboarding_completed') return recordedOffboardingCompletion(item)
   if (
     item.kind === 'project_key_rolling_quota_warning' ||
     item.project_key_rolling_quota_warning != null

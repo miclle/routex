@@ -156,6 +156,8 @@ let permissionsGate: Promise<void> | null
 let settingsWriteGate: Promise<void> | null
 let settingsWriteFailureOnce: boolean
 let settingsWriteStatusOnce: number | null
+let discoveryAlerts: AdminOverview['alerts'] | null = null
+let discoveryInbox: NotificationsPage | null = null
 let qualityUnavailableReason: ProviderQualityUnavailableReason | null
 
 beforeEach(async () => {
@@ -182,6 +184,8 @@ beforeEach(async () => {
   settingsReadFailureOnce = false
   settingsReadGate = null
   releaseSettingsRead = null
+  discoveryAlerts = null
+  discoveryInbox = null
   qualityUnavailableReason = null
   host = document.createElement('div')
   document.body.append(host)
@@ -205,13 +209,16 @@ beforeEach(async () => {
       response.data = { permissions }
     } else if (config.url === '/admin/overview') {
       const data = structuredClone(overview)
+      if (discoveryAlerts) data.alerts = structuredClone(discoveryAlerts)
       if (qualityUnavailableReason) {
         data.provider_readiness.items[0].quality = null
         data.provider_readiness.items[0].quality_unavailable_reason = qualityUnavailableReason
       }
       response.data = data
     } else if (config.url === '/notifications') {
-      if (!permissions.includes('system.read')) {
+      if (discoveryInbox && permissions.includes('system.read')) {
+        response.data = structuredClone(discoveryInbox)
+      } else if (!permissions.includes('system.read')) {
         response.data = { items: [], unread_count: 0, next_cursor: null }
       } else if (config.params?.status === 'all' && config.params?.cursor) {
         response.data = {
@@ -341,6 +348,183 @@ async function setInput(input: HTMLInputElement, value: string) {
 }
 
 describe('F23 operations overview and notifications', () => {
+  it('identifies the exact affected Credential in medium operational reminders and switches existing copy live', async () => {
+    const suffix = '01j00000000000000000000001'
+    const alert = {
+      id: `alr_${suffix}`,
+      etag: `rev_${suffix}`,
+      kind: 'credential_inference_failure',
+      severity: 'medium' as const,
+      detail_code: 'five_consecutive_recorded_failures',
+      credential_id: 'CRD_recorded_exact',
+      occurrence_count: 2,
+      state: 'open' as const,
+      first_seen_at: '2026-10-12T01:00:00Z',
+      last_seen_at: '2026-10-12T02:00:00Z',
+      updated_at: '2026-10-12T02:00:00Z',
+    }
+    discoveryAlerts = [alert]
+    discoveryInbox = {
+      items: [
+        {
+          id: `ntf_${suffix}`,
+          alert_id: alert.id,
+          kind: alert.kind,
+          severity: alert.severity,
+          detail_code: alert.detail_code,
+          credential_id: alert.credential_id,
+          occurrence_count: 2,
+          read: false,
+          read_at: null,
+          first_seen_at: alert.first_seen_at,
+          last_seen_at: alert.last_seen_at,
+        },
+      ],
+      unread_count: 1,
+      next_cursor: null,
+    }
+    await render(
+      <>
+        <AdminOverviewPage />
+        <NotificationMenu />
+      </>,
+    )
+    await until(() =>
+      expect(document.body.textContent).toContain(
+        'Credential CRD_recorded_exact recorded five consecutive inference failures',
+      ),
+    )
+    await click('Review alert')
+    await until(() => expect(document.querySelector('[role="dialog"]')).not.toBeNull())
+    const dialog = document.querySelector('[role="dialog"]')!
+    expect(dialog.textContent).toContain('Credential inference')
+    expect(dialog.textContent).toContain('Credential: CRD_recorded_exact')
+    expect(dialog.textContent).toContain('Medium')
+    await act(async () => void (await i18n.changeLanguage('zh')))
+    expect(dialog.textContent).toContain('凭证推理')
+    expect(dialog.textContent).toContain('凭证：CRD_recorded_exact')
+    expect(dialog.textContent).toContain('凭证 CRD_recorded_exact 已连续记录五次推理失败')
+    await act(async () => void (await i18n.changeLanguage('en')))
+    await click('Close')
+    await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    await click('Notifications')
+    expect(document.body.textContent).toContain('Credential: CRD_recorded_exact')
+    await until(() =>
+      expect(
+        document.body.textContent?.match(
+          /Credential CRD_recorded_exact recorded five consecutive inference failures/g,
+        ),
+      ).toHaveLength(2),
+    )
+    expect(document.body.textContent).not.toContain('Email queued')
+    await act(async () => void (await i18n.changeLanguage('zh')))
+    expect(
+      document.body.textContent?.match(/凭证 CRD_recorded_exact 已连续记录五次推理失败/g),
+    ).toHaveLength(2)
+    expect(document.body.textContent).toContain('凭证：CRD_recorded_exact')
+    expect(document.body.textContent).not.toContain('credential_inference_failure')
+  })
+
+  it('does not expose a recorded Credential identity without operational read authority', async () => {
+    permissions = []
+    discoveryAlerts = [
+      {
+        id: 'alr_01j00000000000000000000001',
+        etag: 'rev_01j00000000000000000000001',
+        kind: 'credential_inference_failure',
+        severity: 'medium',
+        detail_code: 'five_consecutive_recorded_failures',
+        credential_id: 'CRD_private_recorded',
+        occurrence_count: 1,
+        state: 'open',
+        first_seen_at: '2026-10-12T01:00:00Z',
+        last_seen_at: '2026-10-12T02:00:00Z',
+        updated_at: '2026-10-12T02:00:00Z',
+      },
+    ]
+    await render(<AdminOverviewPage />)
+    await until(() => expect(document.body.textContent).toContain('Access denied'))
+    expect(document.body.textContent).not.toContain('CRD_private_recorded')
+    expect(requests.some((request) => request.url === '/admin/overview')).toBe(false)
+  })
+
+  it('renders first-recorded Model counts in the existing overview and inbox with live localization', async () => {
+    const suffix = '01j00000000000000000000001'
+    const alert = {
+      id: `alr_${suffix}`,
+      etag: `rev_${suffix}`,
+      kind: 'models_first_recorded',
+      severity: 'low' as const,
+      detail_code: 'first_recorded',
+      first_recorded_model_count: 2,
+      occurrence_count: 3,
+      state: 'open' as const,
+      subject_type: 'provider',
+      subject_id: `prv_${suffix}`,
+      subject_name: 'Recorded supplier',
+      first_seen_at: '2026-10-12T01:00:00Z',
+      last_seen_at: '2026-10-12T02:00:00Z',
+      updated_at: '2026-10-12T02:00:00Z',
+    }
+    discoveryAlerts = [alert]
+    discoveryInbox = {
+      items: [
+        {
+          id: `ntf_${suffix}`,
+          alert_id: alert.id,
+          kind: alert.kind,
+          severity: alert.severity,
+          detail_code: alert.detail_code,
+          first_recorded_model_count: 2,
+          occurrence_count: 3,
+          read: false,
+          read_at: null,
+          first_seen_at: alert.first_seen_at,
+          last_seen_at: alert.last_seen_at,
+          subject_type: alert.subject_type,
+          subject_id: alert.subject_id,
+          subject_name: alert.subject_name,
+        },
+      ],
+      unread_count: 1,
+      next_cursor: null,
+    }
+    await render(
+      <>
+        <AdminOverviewPage />
+        <NotificationMenu />
+      </>,
+    )
+    await until(() =>
+      expect(document.body.textContent).toContain('2 upstream models first recorded'),
+    )
+    await click('Review alert')
+    await until(() => expect(document.querySelector('[role="dialog"]')).not.toBeNull())
+    const dialog = document.querySelector('[role="dialog"]')!
+    expect(dialog.textContent).toContain('Model discovery')
+    expect(dialog.textContent).toContain('Provider: Recorded supplier')
+    expect(dialog.textContent).toContain('2 upstream models first recorded')
+    await act(async () => void (await i18n.changeLanguage('zh')))
+    expect(dialog.textContent).toContain('模型发现')
+    expect(dialog.textContent).toContain('供应商：Recorded supplier')
+    expect(dialog.textContent).toContain('最近一次显式发现首次记录了 2 个上游模型')
+    await act(async () => void (await i18n.changeLanguage('en')))
+    await click('Close')
+    await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    await click('Notifications')
+    expect(document.body.textContent).toContain('Provider: Recorded supplier')
+    await until(() =>
+      expect(document.body.textContent?.match(/2 upstream models first recorded/g)).toHaveLength(2),
+    )
+    expect(document.body.textContent).not.toContain('Email queued')
+    expect(document.body.textContent).not.toContain('3 upstream models')
+    await act(async () => void (await i18n.changeLanguage('zh')))
+    expect(
+      document.body.textContent?.match(/最近一次显式发现首次记录了 2 个上游模型/g),
+    ).toHaveLength(2)
+    expect(document.body.textContent).toContain('供应商：Recorded supplier')
+  })
+
   it('renders the Mockup hierarchy from real response states without inventing unknown totals', async () => {
     await render(<AdminOverviewPage />)
     await until(() => expect(document.body.textContent).toContain('Provider One'))

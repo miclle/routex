@@ -73,6 +73,45 @@ func validateAuditFilter(f AuditFilter) (AuditFilter, time.Duration, error) {
 	}
 	return f, duration, nil
 }
+
+// Runtime publication events describe the original command, never current
+// pending ownership, snapshot installation or fleet acknowledgement.
+type runtimePublicationAuditChanges struct {
+	Kind      string `json:"kind"`
+	RequestID string `json:"command_request_id"`
+	Reason    string `json:"reason"`
+	Outcome   string `json:"outcome"`
+}
+
+func runtimePublicationAuditProjection(row entity.AuditEvent) (runtimePublicationAuditChanges, bool) {
+	var result runtimePublicationAuditChanges
+	if row.DetailsJSON == nil || row.ResourceType != "system_instance" || !systemInstanceIDPattern.MatchString(row.ResourceID) || !strings.HasPrefix(row.ActorID, "usr_") || !safeTeamSessionID(row.ActorID) {
+		return result, false
+	}
+	raw := []byte(*row.DetailsJSON)
+	if len(raw) > 64*1024 || !utf8.Valid(raw) || !modelCreationUnicode(raw) {
+		return result, false
+	}
+	fields, err := decodeDefaultLimitObject(raw, []string{"request_id", "reason", "outcome"})
+	if err != nil || json.Unmarshal(fields["request_id"], &result.RequestID) != nil || json.Unmarshal(fields["reason"], &result.Reason) != nil || json.Unmarshal(fields["outcome"], &result.Outcome) != nil || !runtimePublicationRequestID.MatchString(result.RequestID) || !runtimePublicationReason(result.Reason) {
+		return result, false
+	}
+	switch row.Action {
+	case "runtime.publication.claim":
+		if result.Outcome != "claimed" {
+			return result, false
+		}
+	case "runtime.publication.finalize":
+		if result.Outcome != "refresh_returned_nil" && result.Outcome != "refresh_returned_error" {
+			return result, false
+		}
+	default:
+		return result, false
+	}
+	result.Kind = "runtime_publication"
+	return result, true
+}
+
 func auditRecord(row entity.AuditEvent) AuditRecord {
 	result := AuditRecord{ID: row.ID, ActorID: row.ActorID, ActorName: row.ActorID, Action: row.Action, ResourceType: row.ResourceType, ResourceID: row.ResourceID, CreatedAt: row.CreatedAt, Result: "committed"}
 	if row.DetailsJSON == nil || len(*row.DetailsJSON) > 64*1024 {
@@ -82,6 +121,12 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 	// never become an accidental credential/request-body read API.
 	var changes any
 	switch row.Action {
+	case "runtime.publication.claim", "runtime.publication.finalize":
+		record, valid := runtimePublicationAuditProjection(row)
+		if !valid {
+			return result
+		}
+		changes = record
 	case "identity.saml.config.update", "identity.saml.status.update", "identity.saml.verify", "account.saml.bind", "account.saml.unlink":
 		record, valid := samlAuditProjection(row)
 		if !valid {

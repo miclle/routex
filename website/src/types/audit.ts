@@ -66,7 +66,14 @@ export interface TelegramIdentityAuditChanges {
   kind: 'telegram_identity'
   reason: string
 }
+export interface RuntimePublicationAuditChanges {
+  kind: 'runtime_publication'
+  command_request_id: string
+  reason: string
+  outcome: 'claimed' | 'refresh_returned_nil' | 'refresh_returned_error'
+}
 export type AuditChanges =
+  | RuntimePublicationAuditChanges
   | AuditBeforeAfterChanges
   | ModelLifecycleAuditChanges
   | SystemInstanceCleanupAuditChanges

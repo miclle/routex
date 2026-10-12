@@ -265,7 +265,11 @@ func testTeamMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		t.Helper()
 		status := svc.RuntimeStatus()
 		if !status.Enabled || !status.Ready || status.ErrorCode != "" || status.SnapshotID == "" || status.AuthorizationValidUntil == nil || !time.Now().Before(*status.AuthorizationValidUntil) {
-			t.Fatalf("%s: manually published observer authorization is not ready", stage)
+			remaining := time.Duration(0)
+			if status.AuthorizationValidUntil != nil {
+				remaining = time.Until(*status.AuthorizationValidUntil)
+			}
+			t.Fatalf("%s: manually published observer authorization is not ready: enabled=%t ready=%t error_code=%s has_snapshot=%t valid_until=%v remaining_lease=%s", stage, status.Enabled, status.Ready, status.ErrorCode, status.SnapshotID != "", status.AuthorizationValidUntil, remaining)
 		}
 		return status
 	}
@@ -275,8 +279,10 @@ func testTeamMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		// its original live lease throughout this cycle so expiry cannot pass an
 		// unpublished-mismatch negative merely by skipping every observation.
 		before := assertObserverReady("before reconcile")
+		beforeRemaining := time.Until(*before.AuthorizationValidUntil)
+		started := time.Now()
 		err := svc.ReconcileMonthlyQuotaNotifications(ctx)
-		after := assertObserverReady("after reconcile")
+		after := assertObserverReady(fmt.Sprintf("after reconcile (elapsed=%s before_remaining_lease=%s)", time.Since(started), beforeRemaining))
 		if after.SnapshotID != before.SnapshotID || !after.AuthorizationValidUntil.Equal(*before.AuthorizationValidUntil) || !reflect.DeepEqual(after.PublishedAt, before.PublishedAt) || !reflect.DeepEqual(after.LastRefreshAt, before.LastRefreshAt) {
 			t.Fatal("unpublished reconcile changed its manually captured publication")
 		}

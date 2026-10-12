@@ -181,14 +181,16 @@ func (s *Service) RecordCall(ctx context.Context, fact CallFact) error {
 			}
 			return err
 		}
+		persistedAttempts := make([]entity.CallAttempt, 0, len(fact.Attempts))
 		for _, attempt := range fact.Attempts {
 			durationMS := attempt.CompletedAt.Sub(attempt.StartedAt).Milliseconds()
 			row := entity.CallAttempt{ID: attempt.ID, CredentialID: attempt.CredentialID, SnapshotID: attempt.SnapshotID, RequestID: fact.RequestID, ProviderID: attempt.ProviderID, ProviderName: attempt.ProviderName, ProviderModelID: attempt.ProviderModelID, ConnectionID: attempt.ConnectionID, ConnectionName: attempt.ConnectionName, UpstreamModelName: attempt.UpstreamModelName, DurationMS: &durationMS, AttemptNumber: attempt.AttemptNumber, Status: attempt.Status, FailureClass: attempt.FailureClass, WorkEvidence: attempt.WorkEvidence, OutputStarted: attempt.OutputStarted, FinalUsageKnown: attempt.FinalUsageKnown, EvidenceCode: attempt.EvidenceCode, NativeCompletionEvidence: attempt.NativeCompletionEvidence, HTTPStatus: attempt.HTTPStatus, ErrorCode: safeCallError(attempt.ErrorCode), StartedAt: attempt.StartedAt.UTC().Truncate(time.Microsecond), CompletedAt: attempt.CompletedAt.UTC().Truncate(time.Microsecond)}
 			if err := tx.Create(&row).Error; err != nil {
 				return err
 			}
+			persistedAttempts = append(persistedAttempts, row)
 		}
-		return nil
+		return observeCredentialInferenceFailures(tx, persistedAttempts, time.Now().UTC())
 	})
 	if errors.Is(err, errCallAlreadyRecorded) {
 		return nil

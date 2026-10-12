@@ -1194,7 +1194,10 @@ describe('Provider directory stored status', () => {
     await act(async () => {
       cache.setQueryData(['permissions', 'usr_1'], [])
     })
-    expect(statusCell()).toBeNull()
-    expect(container.querySelector('table')).toBeNull()
+    expect(statusCell()?.textContent).not.toBe('Enabled')
+    await until(() => {
+      expect(statusCell()).toBeNull()
+      expect(container.querySelector('table')).toBeNull()
+    })
   })
 })

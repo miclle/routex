@@ -91,15 +91,28 @@ func testOIDCLifecycle(t *testing.T, db *gorm.DB) {
 	runErr := command.Run()
 	closeErr := output.Close()
 	var report struct {
-		Stage  string
-		Failed bool
+		Stage          string
+		Failed         bool
+		AssertionCode  string
+		ExpectedStatus int
+		ActualStatus   int
 	}
 	raw, readErr := os.ReadFile(filepath.Join(dir, "result.json"))
 	if readErr != nil || json.Unmarshal(raw, &report) != nil {
 		t.Fatal("OIDC child did not produce its terminal report")
 	}
 	if runErr != nil || closeErr != nil || report.Failed {
-		t.Fatalf("OIDC child failed at bounded stage %q", report.Stage)
+		switch report.AssertionCode {
+		case "http_status":
+			if report.ExpectedStatus < 100 || report.ExpectedStatus > 599 || report.ActualStatus < 100 || report.ActualStatus > 599 {
+				t.Fatal("OIDC child returned invalid safe HTTP diagnostics")
+			}
+			t.Fatalf("OIDC child failed at bounded stage %q code=http_status status=%d want=%d", report.Stage, report.ActualStatus, report.ExpectedStatus)
+		case "assertion_failed", "":
+			t.Fatalf("OIDC child failed at bounded stage %q code=assertion_or_process_failure", report.Stage)
+		default:
+			t.Fatal("OIDC child returned an unknown safe assertion code")
+		}
 	}
 	if report.Stage != "complete" {
 		t.Fatal("OIDC child did not complete all stages")
@@ -144,11 +157,25 @@ func TestOIDCLifecycleTLSChild(t *testing.T) {
 		t.Skip("launched only by the registered OIDC real-driver lifecycle")
 	}
 	stage := "open_database"
+	expectedStatus, actualStatus := 0, 0
+	recordHTTPFailure := func(actual, expected int) {
+		actualStatus, expectedStatus = actual, expected
+	}
 	defer func() {
+		code := ""
+		if t.Failed() {
+			code = "assertion_failed"
+			if expectedStatus != 0 {
+				code = "http_status"
+			}
+		}
 		raw, _ := json.Marshal(struct {
-			Stage  string
-			Failed bool
-		}{stage, t.Failed()})
+			Stage          string
+			Failed         bool
+			AssertionCode  string
+			ExpectedStatus int
+			ActualStatus   int
+		}{stage, t.Failed(), code, expectedStatus, actualStatus})
 		if err := os.WriteFile(filepath.Join(os.Getenv("ROUTEX_OIDC_TLS_DIR"), "result.json"), raw, 0600); err != nil {
 			t.Error("write child terminal report")
 		}
@@ -260,6 +287,7 @@ func TestOIDCLifecycleTLSChild(t *testing.T) {
 	requireStatus := func(response *httptest.ResponseRecorder, want int) {
 		t.Helper()
 		if response.Code != want {
+			recordHTTPFailure(response.Code, want)
 			t.Fatalf("OIDC stage %s status=%d want=%d", stage, response.Code, want)
 		}
 	}
@@ -867,6 +895,191 @@ func TestOIDCLifecycleTLSChild(t *testing.T) {
 			t.Fatal("offboarding rewrote provider configuration or explicit binding history")
 		}
 		assertRetained()
+	}()
+	stage = "emergency_enterprise_offboarding"
+	// Keep the planned departure above intact. This distinct existing member
+	// exercises emergency containment with genuine OIDC and native-MFA authority.
+	stage = "emergency_member"
+	emergencyMember := entity.User{ID: "usr_oidc_emergency_member", Email: "oidc-emergency@example.invalid", Name: "Emergency OIDC member", Role: entity.RoleMember, PasswordHash: storedAdmin.PasswordHash}
+	if db.Create(&emergencyMember).Error != nil || db.Take(&emergencyMember, "id = ?", emergencyMember.ID).Error != nil {
+		t.Fatal("create admitted emergency member and read exact birth")
+	}
+	stage = "emergency_local_login"
+	emergencyLogin := request("POST", "/api/v1/auth/login", map[string]any{"email": emergencyMember.Email, "password": password}, nil, "", "", nil)
+	requireStatus(emergencyLogin, 200)
+	emergencyLocal, emergencyLocalCookie := readSession(emergencyLogin)
+	stage = "emergency_binding"
+	_, emergencyReview := reviewSelf(emergencyLocalCookie)
+	emergencyBinding, _ := start("/api/v1/account/identity/bind", "emergency-subject", emergencyLocalCookie, emergencyLocal.CSRFToken, emergencyReview, identityInput(""))
+	requireStatus(complete(emergencyBinding, emergencyLocalCookie, emergencyLocal.CSRFToken), 200)
+	stage = "emergency_mfa_enrollment"
+	emergencyEnrollmentResponse := request("POST", "/api/v1/account/mfa/enrollment", map[string]any{"current_password": password}, emergencyLocalCookie, emergencyLocal.CSRFToken, "", nil)
+	requireStatus(emergencyEnrollmentResponse, 200)
+	var emergencyEnrollment service.MFAEnrollment
+	if json.Unmarshal(emergencyEnrollmentResponse.Body.Bytes(), &emergencyEnrollment) != nil || emergencyEnrollment.Secret == "" || emergencyEnrollment.EnrollmentToken == "" {
+		t.Fatal("decode emergency member's real MFA enrollment")
+	}
+	stage = "emergency_mfa_enable"
+	emergencyEnabled := request("POST", "/api/v1/account/mfa/enable", MFAEnableRequest{CurrentPassword: password, EnrollmentToken: emergencyEnrollment.EnrollmentToken, Code: mfaFixtureCode(t, emergencyEnrollment.Secret, 0)}, emergencyLocalCookie, emergencyLocal.CSRFToken, "", nil)
+	requireStatus(emergencyEnabled, 200)
+	var emergencyRecovery MFARecoveryResponse
+	if json.Unmarshal(emergencyEnabled.Body.Bytes(), &emergencyRecovery) != nil || emergencyRecovery.Session == nil || len(emergencyRecovery.RecoveryCodes) != 10 {
+		t.Fatal("invalid emergency member MFA enable result")
+	}
+	stage = "emergency_renewed_session"
+	emergencyLocal = *emergencyRecovery.Session
+	emergencyLocalCookie = nil
+	for _, cookie := range emergencyEnabled.Result().Cookies() {
+		if cookie.Name == sessionCookie && cookie.MaxAge > 0 {
+			emergencyLocalCookie = cookie
+		}
+	}
+	if emergencyLocal.User.ID != emergencyMember.ID || emergencyLocal.CSRFToken == "" || emergencyLocalCookie == nil || !emergencyLocalCookie.Secure || !emergencyLocalCookie.HttpOnly || emergencyLocalCookie.SameSite != http.SameSiteStrictMode {
+		t.Fatal("MFA enable lost the renewed emergency member Session")
+	}
+	emergencyFactor := func(factorStage string) service.MFALoginChallenge {
+		t.Helper()
+		stage = factorStage
+		correlation, _ := start("/api/v1/auth/oidc/start", "emergency-subject", nil, "", "", map[string]any{})
+		response := complete(correlation, nil, "")
+		requireStatus(response, 202)
+		var factor service.MFALoginChallenge
+		if json.Unmarshal(response.Body.Bytes(), &factor) != nil || !factor.MFARequired || factor.ChallengeToken == "" {
+			t.Fatal("emergency OIDC login lacks pending native MFA")
+		}
+		for _, cookie := range response.Result().Cookies() {
+			if cookie.Name == sessionCookie {
+				t.Fatal("emergency OIDC primary issued a Session before MFA")
+			}
+		}
+		var row entity.MFAChallenge
+		if db.Where("token_hash = ?", secret.SHA256Hex(factor.ChallengeToken)).Take(&row).Error != nil || row.UserID != emergencyMember.ID || row.PrimaryMethod != "oidc" || row.OIDCBindingID == "" || row.OIDCBindingCreatedAt == nil || row.OIDCUserCreatedAt == nil || !row.OIDCUserCreatedAt.Equal(emergencyMember.CreatedAt) || row.OIDCConfigRevision == "" || row.OIDCPolicyRevision == "" {
+			t.Fatal("emergency factor lost exact OIDC subject or birth")
+		}
+		return factor
+	}
+	emergencyAdmittedFactor := emergencyFactor("emergency_enterprise_primary")
+	stage = "emergency_enterprise_factor"
+	emergencyNativeLogin := request("POST", "/api/v1/auth/mfa/verify", MFALoginRequest{ChallengeToken: emergencyAdmittedFactor.ChallengeToken, RecoveryCode: emergencyRecovery.RecoveryCodes[0]}, nil, "", "", nil)
+	requireStatus(emergencyNativeLogin, 200)
+	stage = "emergency_enterprise_session"
+	emergencyNative, emergencyNativeCookie := readSession(emergencyNativeLogin)
+	var emergencySession entity.Session
+	if emergencyNative.User.ID != emergencyMember.ID || db.Where("token_hash = ?", secret.SHA256Hex(emergencyNativeCookie.Value)).Take(&emergencySession).Error != nil || emergencySession.UserID != emergencyMember.ID || emergencySession.PrimaryMethod != "oidc" || emergencySession.OIDCBindingID == "" || emergencySession.OIDCBindingCreatedAt == nil || emergencySession.OIDCUserCreatedAt == nil || !emergencySession.OIDCUserCreatedAt.Equal(emergencyMember.CreatedAt) {
+		t.Fatal("emergency baseline lacks genuine enterprise MFA Session")
+	}
+	stage = "emergency_current_session"
+	requireStatus(request("GET", "/api/v1/auth/session", nil, emergencyNativeCookie, "", "", nil), 200)
+	requireStatus(request("GET", "/api/v1/auth/session", nil, emergencyLocalCookie, "", "", nil), 200)
+	emergencyPendingFactor := emergencyFactor("emergency_pending_factor")
+	stage = "emergency_staged_primary"
+	emergencyStaged, _ := start("/api/v1/auth/oidc/start", "emergency-subject", nil, "", "", map[string]any{})
+	stage = "emergency_identity_baseline"
+	emergencyProvider := readStoredProvider()
+	emergencyBindings := readStoredBindings()
+	matchedEmergencyBinding := false
+	for _, binding := range emergencyBindings {
+		if binding.UserID == emergencyMember.ID && binding.Subject == "emergency-subject" && binding.ID == emergencySession.OIDCBindingID && binding.CreatedAt.Equal(*emergencySession.OIDCBindingCreatedAt) && binding.UserCreatedAt.Equal(emergencyMember.CreatedAt) {
+			matchedEmergencyBinding = true
+		}
+	}
+	if !matchedEmergencyBinding || !emergencyProvider.Enabled || emergencyProvider.VerifiedConfigRevision != emergencyProvider.ConfigRevision || emergencySession.OIDCConfigRevision != emergencyProvider.ConfigRevision || emergencySession.OIDCPolicyRevision != emergencyProvider.PolicyRevision {
+		t.Fatal("emergency Session lacks current exact verified identity proof")
+	}
+	stage = "emergency_recovery_baseline"
+	var emergencyRecoveryBefore []entity.MFARecoveryCode
+	if db.Where("user_id = ?", emergencyMember.ID).Order("code_hash").Find(&emergencyRecoveryBefore).Error != nil {
+		t.Fatal("capture emergency unconsumed recovery proof")
+	}
+	emergencyComplete, assertEmergencyRetained := prepareEmergencyEnterpriseOffboarding(t, ctx, db, svc, emergencyMember.ID, password, admin, emergencyLocal, adminCookie, emergencyLocalCookie, request, func(value string) { stage = value }, recordHTTPFailure)
+	func() {
+		stage = "emergency_callback_start"
+		correlation, callback := start("/api/v1/auth/oidc/start", "emergency-subject", nil, "", "", map[string]any{}, true)
+		hold := provider.holdNextToken(t)
+		operation, stop := context.WithTimeout(ctx, 10*time.Second)
+		defer stop()
+		done := make(chan *httptest.ResponseRecorder, 1)
+		joined := false
+		defer func() {
+			hold.release()
+			if !joined {
+				select {
+				case <-done:
+				case <-operation.Done():
+					t.Error("emergency callback did not join within original operation")
+				}
+			}
+		}()
+		before := provider.tokenCount()
+		req := httptest.NewRequest("GET", "https://routex.test"+callback, nil).WithContext(operation)
+		req.AddCookie(correlation)
+		go func() { response := httptest.NewRecorder(); router.ServeHTTP(response, req); done <- response }()
+		select {
+		case <-hold.entered:
+		case <-done:
+			joined = true
+			t.Fatal("emergency callback returned before real token hold")
+		case <-operation.Done():
+			t.Fatal("emergency token hold exceeded original operation")
+		}
+		stage = "emergency_callback_claim"
+		var ceremony entity.OIDCCeremony
+		if db.Where("cookie_hash = ?", secret.SHA256Hex(correlation.Value)).Take(&ceremony).Error != nil || ceremony.Purpose != "login" || ceremony.Status != "exchanging" || ceremony.Subject != "" || ceremony.VerifiedAt != nil {
+			t.Fatal("emergency callback lacks durable exclusive exchange claim")
+		}
+		emergencyComplete()
+		stage = "emergency_revoked_session"
+		requireStatus(request("GET", "/api/v1/auth/session", nil, emergencyNativeCookie, "", "", nil), 401)
+		stage = "emergency_revoked_local_session"
+		requireStatus(request("GET", "/api/v1/auth/session", nil, emergencyLocalCookie, "", "", nil), 401)
+		stage = "emergency_revoked_factor"
+		deniedFactor := request("POST", "/api/v1/auth/mfa/verify", MFALoginRequest{ChallengeToken: emergencyPendingFactor.ChallengeToken, RecoveryCode: emergencyRecovery.RecoveryCodes[1]}, nil, "", "", nil)
+		requireStatus(deniedFactor, 401)
+		stage = "emergency_callback_join"
+		hold.release()
+		var response *httptest.ResponseRecorder
+		select {
+		case response = <-done:
+			joined = true
+		case <-operation.Done():
+			t.Fatal("emergency callback exceeded original operation")
+		}
+		if operation.Err() != nil {
+			t.Fatal("late emergency callback cannot prove positive closure")
+		}
+		requireStatus(response, 303)
+		if response.Header().Get("Location") != "/auth/oidc/complete" || response.Header().Get("Referrer-Policy") != "no-referrer" || response.Header().Get("Cache-Control") != "no-store" {
+			t.Fatal("emergency callback lost fixed private completion route")
+		}
+		stage = "emergency_callback_verified"
+		ceremony = entity.OIDCCeremony{}
+		if db.Where("cookie_hash = ?", secret.SHA256Hex(correlation.Value)).Take(&ceremony).Error != nil || ceremony.Status != "verified" || ceremony.Subject != "emergency-subject" || ceremony.VerifiedAt == nil {
+			t.Fatal("emergency callback lacks genuine remote verification after departure")
+		}
+		stage = "emergency_late_completion"
+		for _, correlation := range []*http.Cookie{emergencyStaged, correlation} {
+			denied := complete(correlation, nil, "")
+			requireStatus(denied, 401)
+			requireStatus(complete(correlation, nil, ""), 401)
+			for _, result := range []*httptest.ResponseRecorder{response, deniedFactor, denied} {
+				for _, cookie := range result.Result().Cookies() {
+					if cookie.Name == sessionCookie {
+						t.Fatal("emergency departure issued a late Session cookie")
+					}
+				}
+			}
+		}
+		stage = "emergency_callback_replay"
+		requireStatus(request("GET", callback, nil, nil, "", "", correlation), 303)
+		if provider.tokenCount() != before+1 {
+			t.Fatal("emergency callback replay repeated remote exchange")
+		}
+		stage = "emergency_retained_identity"
+		var emergencyRecoveryAfter []entity.MFARecoveryCode
+		if db.Where("user_id = ?", emergencyMember.ID).Order("code_hash").Find(&emergencyRecoveryAfter).Error != nil || !reflect.DeepEqual(emergencyRecoveryBefore, emergencyRecoveryAfter) || !reflect.DeepEqual(emergencyProvider, readStoredProvider()) || !reflect.DeepEqual(emergencyBindings, readStoredBindings()) {
+			t.Fatal("emergency departure or late proof rewrote retained identity or recovery history")
+		}
+		assertEmergencyRetained()
 	}()
 	stage = "complete"
 }

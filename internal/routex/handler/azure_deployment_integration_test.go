@@ -91,6 +91,10 @@ func testAzureDeploymentCoverage(t *testing.T, db *gorm.DB) {
 	if !verification.Verified || verification.DiscoveredModels != 0 || discovery.Load() != 1 || native.Load() != 0 {
 		t.Fatal("authentication falsely claimed deployment discovery")
 	}
+	var noticeCount int64
+	if e := db.Model(&entity.ModelDiscoveryNotice{}).Count(&noticeCount).Error; e != nil || noticeCount != 0 {
+		t.Fatal("Azure authentication invented discovery notices", e)
+	}
 	var discovered, models int64
 	if e := db.Model(&entity.CredentialModelAccess{}).Where("credential_id = ?", credential.ID).Count(&discovered).Error; e != nil {
 		t.Fatal(e)

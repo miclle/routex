@@ -57,10 +57,14 @@ export default {
     unknownTime: 'Unknown time',
   },
   subject: {
+    credential: 'Credential: {{id}}',
     provider: 'Provider: {{name}}',
     model: 'Model: {{name}}',
   },
   categories: {
+    credential_inference_failure: 'Credential inference',
+    models_first_recorded: 'Model discovery',
+    offboarding_completed: 'Offboarding',
     system_job_failure: 'System job',
     credential_verification_failure: 'Credential verification',
     provider_quality_degraded: 'Provider quality',
@@ -81,6 +85,24 @@ export default {
     unknown: 'Email delivery result is unknown',
   },
   items: {
+    credential_inference_failure: {
+      default: 'Recorded Credential inference alert',
+      five_consecutive_recorded_failures:
+        'Credential {{id}} recorded five consecutive inference failures. A recorded success resolves the alert and allows a new episode; this does not establish current health.',
+    },
+    models_first_recorded: {
+      default: 'Models were first recorded by a successful explicit discovery.',
+      first_recorded_one:
+        '{{count}} upstream model first recorded in the latest successful discovery.',
+      first_recorded_other:
+        '{{count}} upstream models first recorded in the latest successful discovery.',
+    },
+    offboarding_completed: {
+      default:
+        'An offboarding case was completed. This notice is for its executor or an applied responsibility successor.',
+      completed:
+        'An offboarding case was completed. This notice is for its executor or an applied responsibility successor.',
+    },
     personal_rolling_quota_warning: {
       default: 'A personal rolling token warning was recorded.',
       tokens_5h_near: 'Personal rolling five-hour token warning recorded.',
@@ -165,6 +187,7 @@ export default {
       money_month_exhausted: 'Monthly money limit reached.',
     },
     system_job_failure: {
+      rotation_blocked: 'A root-key rotation batch was blocked before completion.',
       default: 'A system job failed.',
       runtime_publication: 'Runtime publication failed.',
       call_record_delivery: 'Call record delivery failed.',

@@ -178,6 +178,7 @@ func telegramPeelV106(db *gorm.DB, expected []personalKeyBehaviorMigrationEntry)
 
 func legacyTelegramBeforeV106(t *testing.T, db *gorm.DB) {
 	t.Helper()
+	legacyOffboardingNotificationsBeforeV107(t, db)
 	if err := telegramPeelV106(db, personalKeyBehaviorLedger(t, db)); err != nil {
 		t.Fatal(err)
 	}
@@ -185,6 +186,7 @@ func legacyTelegramBeforeV106(t *testing.T, db *gorm.DB) {
 
 // A single registered real-driver scenario: no additional named subtests.
 func testTelegramMigration(t *testing.T, db *gorm.DB) {
+	legacyOffboardingNotificationsBeforeV107(t, db)
 	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
 	defer cancel()
 	original := personalKeyBehaviorLedger(t, db)
@@ -307,7 +309,7 @@ func testTelegramMigration(t *testing.T, db *gorm.DB) {
 	}
 	migrate := func() {
 		t.Helper()
-		if err := database.Migrate(ctx, db); err != nil {
+		if err := database.MigrateThrough(ctx, db, 106); err != nil {
 			t.Fatal("V106 migration", err)
 		}
 		rows := personalKeyBehaviorLedger(t, db)
@@ -319,7 +321,7 @@ func testTelegramMigration(t *testing.T, db *gorm.DB) {
 	var wg sync.WaitGroup
 	results := make(chan error, 2)
 	for range 2 {
-		wg.Go(func() { results <- database.Migrate(ctx, db) })
+		wg.Go(func() { results <- database.MigrateThrough(ctx, db, 106) })
 	}
 	wg.Wait()
 	close(results)
@@ -371,7 +373,7 @@ func testTelegramMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal("construct incompatible V106 column", bad.field)
 		}
 		removeReceipt()
-		if database.Migrate(ctx, db) == nil || !reflect.DeepEqual(prefix, personalKeyBehaviorLedger(t, db)) {
+		if database.MigrateThrough(ctx, db, 106) == nil || !reflect.DeepEqual(prefix, personalKeyBehaviorLedger(t, db)) {
 			t.Fatal("V106 admitted incompatible column", bad.field)
 		}
 		assertRetained()
@@ -389,7 +391,7 @@ func testTelegramMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal("construct incompatible V106 owner index")
 		}
 		removeReceipt()
-		if database.Migrate(ctx, db) == nil || !reflect.DeepEqual(prefix, personalKeyBehaviorLedger(t, db)) {
+		if database.MigrateThrough(ctx, db, 106) == nil || !reflect.DeepEqual(prefix, personalKeyBehaviorLedger(t, db)) {
 			t.Fatal("V106 admitted incompatible owner index")
 		}
 		assertRetained()

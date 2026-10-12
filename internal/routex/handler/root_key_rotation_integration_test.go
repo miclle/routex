@@ -934,6 +934,31 @@ func testRootKeyRotationLifecycle(t *testing.T, db *gorm.DB) {
 	if blocked.Rotation == nil || blocked.Rotation.Status != "blocked" || len(blocked.Rotation.BlockerCodes) == 0 || slices.Contains(blocked.Rotation.AllowedActions, "retire") {
 		t.Fatal("corrupt historical domain was treated as globally complete")
 	}
+	// The real worker's incomplete batch publishes a bounded operational fact;
+	// it does not expose the corrupt envelope, inventory or root key material.
+	var failedBatch entity.SystemJob
+	if err := db.Where("code = ? AND status = ? AND detail_code = ?", service.SystemJobSecretRootRotation, "failed", "rotation_blocked").Order("updated_at DESC").Take(&failedBatch).Error; err != nil || failedBatch.ItemsCompleted >= failedBatch.ItemsTotal || failedBatch.CompletedAt == nil {
+		t.Fatal("blocked worker lacked its real incomplete batch fact", err)
+	}
+	if _, err := svc.ListOperationalAlerts(ctx, admin.User.ID, service.OperationalAlertFilter{Limit: 100}); err != nil {
+		t.Fatal("real blocked batch notification recovery failed", err)
+	}
+	var blockedOccurrence entity.OperationalAlertOccurrence
+	if err := db.Where("source_type = ? AND source_id = ?", "system_job", failedBatch.ID).Take(&blockedOccurrence).Error; err != nil || blockedOccurrence.DetailCode != "rotation_blocked" || blockedOccurrence.SubjectID != "" || blockedOccurrence.CredentialID != "" {
+		t.Fatal("real batch notification lost secret-free source", err)
+	}
+	var blockedAlert entity.OperationalAlert
+	if err := db.Take(&blockedAlert, "id = ?", blockedOccurrence.AlertID).Error; err != nil || blockedAlert.Severity != "high" || blockedAlert.Kind != "system_job_failure" || blockedAlert.GroupKey != "system_job:secret_root_rotation:rotation_blocked" {
+		t.Fatal("real batch notification changed category/severity", err)
+	}
+	var successfulBatch entity.SystemJob
+	if err := db.Where("code = ? AND status = ? AND detail_code = ?", service.SystemJobSecretRootRotation, "completed", "processed").Take(&successfulBatch).Error; err != nil {
+		t.Fatal("rotation negative control lacks an actual completed batch", err)
+	}
+	var successfulNotices int64
+	if err := db.Model(&entity.OperationalAlertOccurrence{}).Where("source_type = ? AND source_id = ?", "system_job", successfulBatch.ID).Count(&successfulNotices).Error; err != nil || successfulNotices != 0 {
+		t.Fatal("successful actual rotation batch produced failure notice", successfulNotices, err)
+	}
 	send("POST", jobPath+"/retire", map[string]any{"request_id": "48000000-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "reason": "Cannot retire incomplete inventory"}, blocked.ReviewETag, 503)
 	if err := db.Table(corrupt.table).Where(corrupt.idColumn+" = ?", corrupt.id).Update(corrupt.column, original[corrupt.column]).Error; err != nil {
 		t.Fatal(err)

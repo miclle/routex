@@ -45,6 +45,8 @@ type QuotaNotificationSnapshot struct {
 }
 
 type NotificationRecord struct {
+	CredentialID                     string                                  `json:"credential_id,omitempty"`
+	FirstRecordedModelCount          int                                     `json:"first_recorded_model_count,omitempty"`
 	RollingQuotaWarningObservationID string                                  `json:"rolling_quota_warning_observation_id,omitempty"`
 	ProjectKeyRollingQuotaWarning    *ProjectKeyRollingQuotaWarningSnapshot  `json:"project_key_rolling_quota_warning,omitempty"`
 	TeamRollingQuotaWarning          *TeamRollingQuotaWarningSnapshot        `json:"team_rolling_quota_warning,omitempty"`
@@ -102,19 +104,21 @@ type OperationalAlertFilter struct {
 }
 
 type OperationalAlertRecord struct {
-	ID              string    `json:"id"`
-	Kind            string    `json:"kind"`
-	Severity        string    `json:"severity"`
-	DetailCode      string    `json:"detail_code"`
-	SubjectType     string    `json:"subject_type,omitempty"`
-	SubjectID       string    `json:"subject_id,omitempty"`
-	SubjectName     string    `json:"subject_name,omitempty"`
-	State           string    `json:"state"`
-	ETag            string    `json:"etag"`
-	OccurrenceCount int       `json:"occurrence_count"`
-	FirstSeenAt     time.Time `json:"first_seen_at"`
-	LastSeenAt      time.Time `json:"last_seen_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	CredentialID            string    `json:"credential_id,omitempty"`
+	FirstRecordedModelCount int       `json:"first_recorded_model_count,omitempty"`
+	ID                      string    `json:"id"`
+	Kind                    string    `json:"kind"`
+	Severity                string    `json:"severity"`
+	DetailCode              string    `json:"detail_code"`
+	SubjectType             string    `json:"subject_type,omitempty"`
+	SubjectID               string    `json:"subject_id,omitempty"`
+	SubjectName             string    `json:"subject_name,omitempty"`
+	State                   string    `json:"state"`
+	ETag                    string    `json:"etag"`
+	OccurrenceCount         int       `json:"occurrence_count"`
+	FirstSeenAt             time.Time `json:"first_seen_at"`
+	LastSeenAt              time.Time `json:"last_seen_at"`
+	UpdatedAt               time.Time `json:"updated_at"`
 }
 
 type OperationalAlertPage struct {
@@ -160,7 +164,7 @@ func decodeNotificationCursor(raw string) (time.Time, string, error) {
 
 func (s *Service) ListNotifications(ctx context.Context, actor string, filter NotificationFilter) (*NotificationPage, error) {
 	limit, err := validateNotificationPage(filter.Limit, filter.Cursor)
-	if err != nil || (filter.Severity != "" && !slices.Contains([]string{"high", "medium"}, filter.Severity)) {
+	if err != nil || (filter.Severity != "" && !slices.Contains([]string{"high", "medium", "low"}, filter.Severity)) {
 		return nil, apperrors.ErrBadRequest
 	}
 	cursorTime, cursorID, err := decodeNotificationCursor(filter.Cursor)
@@ -222,7 +226,11 @@ func (s *Service) ListNotifications(ctx context.Context, actor string, filter No
 				return err
 			}
 		}
-		if filter.Severity != "medium" {
+		if filter.Severity == "low" {
+			page.Items, page.NextCursor = mergeNotificationRecords(records, limit)
+			return nil
+		}
+		if filter.Severity != "medium" && filter.Severity != "low" {
 			query := quotaInboxQuery(tx, access)
 			if filter.UnreadOnly {
 				query = query.Where("quota_notification_inboxes.read_at IS NULL")
@@ -311,6 +319,12 @@ func (s *Service) ListNotifications(ctx context.Context, actor string, filter No
 		}
 		records = append(records, projectKeyWarnings...)
 		page.UnreadCount += projectKeyWarningUnread
+		offboarding, offboardingUnread, err := offboardingNotificationPage(tx, access, filter, limit, cursorTime, cursorID)
+		if err != nil {
+			return err
+		}
+		records = append(records, offboarding...)
+		page.UnreadCount += offboardingUnread
 		page.Items, page.NextCursor = mergeNotificationRecords(records, limit)
 		return nil
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
@@ -321,7 +335,7 @@ func (s *Service) ListNotifications(ctx context.Context, actor string, filter No
 }
 
 func operationalInboxQuery(tx *gorm.DB, actor string) *gorm.DB {
-	return tx.Model(&entity.Notification{}).Where(database.ExactText(tx, clause.Column{Name: "recipient_id"}, actor))
+	return tx.Model(&entity.Notification{}).Where(database.ExactText(tx, clause.Column{Name: "recipient_id"}, actor)).Where("kind <> ?", notificationKindOffboardingCompleted)
 }
 
 func mergeNotificationRecords(records []NotificationRecord, limit int) ([]NotificationRecord, string) {
@@ -339,8 +353,14 @@ func mergeNotificationRecords(records []NotificationRecord, limit int) ([]Notifi
 }
 
 func notificationRecord(row entity.Notification) NotificationRecord {
+	if row.Kind == notificationKindOffboardingCompleted {
+		row.AlertID = ""
+		row.SubjectType = ""
+		row.SubjectID = ""
+		row.SubjectName = ""
+	}
 	return NotificationRecord{
-		ID: row.ID, AlertID: row.AlertID, Kind: row.Kind, Severity: row.Severity,
+		CredentialID: row.CredentialID, FirstRecordedModelCount: row.FirstRecordedModelCount, ID: row.ID, AlertID: row.AlertID, Kind: row.Kind, Severity: row.Severity,
 		DetailCode: row.DetailCode, SubjectType: row.SubjectType, SubjectID: row.SubjectID, SubjectName: row.SubjectName,
 		OccurrenceCount: row.OccurrenceCount, Read: row.Read,
 		FirstSeenAt: row.FirstSeenAt, LastSeenAt: row.LastSeenAt, ReadAt: row.ReadAt,
@@ -464,6 +484,14 @@ func (s *Service) MarkNotificationRead(ctx context.Context, actor, notificationI
 			record = projectKeyWarning
 			return nil
 		}
+		offboarding, found, err := markOffboardingNotificationRead(tx, access, notificationID)
+		if err != nil {
+			return err
+		}
+		if found {
+			record = offboarding
+			return nil
+		}
 		if !access.Operational {
 			return apperrors.ErrNotFound
 		}
@@ -501,6 +529,9 @@ func (s *Service) MarkAllNotificationsRead(ctx context.Context, actor string) er
 			return err
 		}
 		now := time.Now().UTC()
+		if err := markAllOffboardingNotificationsRead(tx, access, now); err != nil {
+			return err
+		}
 		if access.Operational {
 			if err := operationalInboxQuery(tx, actor).Where(clause.Eq{Column: clause.Column{Name: "read"}, Value: false}).Updates(map[string]any{"read": true, "read_at": now}).Error; err != nil {
 				return err
@@ -634,12 +665,12 @@ func (s *Service) WriteNotificationSettings(ctx context.Context, actor string, i
 }
 
 func operationalAlertRecord(row entity.OperationalAlert) OperationalAlertRecord {
-	return OperationalAlertRecord{ID: row.ID, Kind: row.Kind, Severity: row.Severity, DetailCode: row.DetailCode, SubjectType: row.SubjectType, SubjectID: row.SubjectID, SubjectName: row.SubjectName, State: row.State, ETag: row.ETag, OccurrenceCount: row.OccurrenceCount, FirstSeenAt: row.FirstSeenAt, LastSeenAt: row.LastSeenAt, UpdatedAt: row.UpdatedAt}
+	return OperationalAlertRecord{CredentialID: row.CredentialID, FirstRecordedModelCount: row.FirstRecordedModelCount, ID: row.ID, Kind: row.Kind, Severity: row.Severity, DetailCode: row.DetailCode, SubjectType: row.SubjectType, SubjectID: row.SubjectID, SubjectName: row.SubjectName, State: row.State, ETag: row.ETag, OccurrenceCount: row.OccurrenceCount, FirstSeenAt: row.FirstSeenAt, LastSeenAt: row.LastSeenAt, UpdatedAt: row.UpdatedAt}
 }
 
 func (s *Service) ListOperationalAlerts(ctx context.Context, actor string, filter OperationalAlertFilter) (*OperationalAlertPage, error) {
 	limit, err := validateNotificationPage(filter.Limit, filter.Cursor)
-	if err != nil || (filter.State != "" && !slices.Contains([]string{"open", "handling", "resolved"}, filter.State)) || (filter.Severity != "" && !slices.Contains([]string{"high", "medium"}, filter.Severity)) {
+	if err != nil || (filter.State != "" && !slices.Contains([]string{"open", "handling", "resolved"}, filter.State)) || (filter.Severity != "" && !slices.Contains([]string{"high", "medium", "low"}, filter.Severity)) {
 		return nil, apperrors.ErrBadRequest
 	}
 	cursorTime, cursorID, err := decodeNotificationCursor(filter.Cursor)
@@ -653,7 +684,7 @@ func (s *Service) ListOperationalAlerts(ctx context.Context, actor string, filte
 	if err := db.Transaction(func(tx *gorm.DB) error { return s.reconcileNotificationSources(tx) }); err != nil {
 		return nil, catalogError(err)
 	}
-	query := db.Model(&entity.OperationalAlert{})
+	query := db.Model(&entity.OperationalAlert{}).Where("kind <> ?", notificationKindOffboardingCompleted)
 	if filter.State != "" {
 		query = query.Where("state = ?", filter.State)
 	}
@@ -687,7 +718,7 @@ func (s *Service) UpdateOperationalAlertState(ctx context.Context, actor, alertI
 		if err := authorizeGovernance(tx, actor, "system.write"); err != nil {
 			return err
 		}
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&saved, "id = ?", alertID).Error; err != nil {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("kind <> ?", notificationKindOffboardingCompleted).First(&saved, "id = ?", alertID).Error; err != nil {
 			return err
 		}
 		if saved.ETag != input.ETag {

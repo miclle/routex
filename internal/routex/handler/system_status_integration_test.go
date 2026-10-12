@@ -279,6 +279,11 @@ func testSystemStatusLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Create(&orphan).Error; err != nil {
 		t.Fatal(err)
 	}
+	rotationOrphan := orphan
+	rotationOrphan.ID, rotationOrphan.Code = "job_zzzzzzzzzzzzzzzzzzzx", service.SystemJobSecretRootRotation
+	if err := db.Create(&rotationOrphan).Error; err != nil {
+		t.Fatal(err)
+	}
 	oldTerminal := make([]entity.SystemJob, 300)
 	for i := range oldTerminal {
 		oldTerminal[i] = entity.SystemJob{
@@ -294,6 +299,22 @@ func testSystemStatusLifecycle(t *testing.T, db *gorm.DB) {
 	var reconciled entity.SystemJob
 	if err := db.First(&reconciled, "id = ?", orphanID).Error; err != nil || reconciled.Status != "failed" || reconciled.DetailCode != "executor_lost" || reconciled.CompletedAt == nil || reconciled.Progress == nil || *reconciled.Progress != 25 {
 		t.Fatal("expired or missing executor was still presented as running")
+	}
+	var recoveredRotation entity.SystemJob
+	if err := db.Take(&recoveredRotation, "id = ?", rotationOrphan.ID).Error; err != nil || recoveredRotation.Status != "failed" || recoveredRotation.DetailCode != "executor_lost" || recoveredRotation.CompletedAt == nil || recoveredRotation.Progress == nil || *recoveredRotation.Progress != 25 {
+		t.Fatal("abandoned rotation batch did not retain authoritative failure/progress", err)
+	}
+	var rotationOccurrence entity.OperationalAlertOccurrence
+	if err := db.Where("source_type = ? AND source_id = ?", "system_job", rotationOrphan.ID).Take(&rotationOccurrence).Error; err != nil {
+		t.Fatal("abandoned rotation batch failure did not publish", err)
+	}
+	var rotationAlert entity.OperationalAlert
+	if err := db.Take(&rotationAlert, "id = ?", rotationOccurrence.AlertID).Error; err != nil || rotationAlert.GroupKey != "system_job:secret_root_rotation:executor_lost" || rotationAlert.Severity != "high" || rotationAlert.OccurrenceCount != 1 {
+		t.Fatal("abandoned rotation notice lost closed batch source", err)
+	}
+	expectStatus(t, request("GET", "/api/v1/admin/system/jobs", nil), 200)
+	if err := db.Take(&rotationAlert, "id = ?", rotationAlert.ID).Error; err != nil || rotationAlert.OccurrenceCount != 1 {
+		t.Fatal("abandoned batch replay duplicated occurrence", err)
 	}
 	var liveCount int64
 	if err := db.Model(&entity.SystemJob{}).Where("id LIKE ? AND status = ?", "job_live_%", "running").Count(&liveCount).Error; err != nil || liveCount != systemStatusLiveJobCount {

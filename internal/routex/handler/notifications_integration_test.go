@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -20,7 +21,7 @@ import (
 
 func testNotificationHTTPLifecycle(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
-	svc, err := service.New(ctx, db)
+	svc, err := service.New(ctx, db, service.WithSMTPPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,6 +80,8 @@ func testNotificationHTTPLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal(err)
 		}
 	}
+
+	testRotationBatchNotificationDelivery(t, db, svc, admin.User.ID, admin.User.Email)
 
 	// A late reconciliation of an older durable source must update the count and
 	// earliest occurrence without replacing the current inbox event or reopening
@@ -459,15 +462,42 @@ func testNotificationHTTPLifecycle(t *testing.T, db *gorm.DB) {
 	outageJobs := make([]entity.SystemJob, 0, 269)
 	for index := range 269 {
 		completed := failedAt.Add(-time.Duration(index+1) * time.Second)
+		code, detail := service.SystemJobRuntimePublication, "publication_failed"
+		if index%3 != 0 {
+			code, detail = service.SystemJobSecretRootRotation, "rotation_blocked"
+			if index%3 == 2 {
+				detail = "executor_lost"
+			}
+		}
 		outageJobs = append(outageJobs, entity.SystemJob{
-			ID: fmt.Sprintf("job_ntf_outage_%03d", index), Code: service.SystemJobRuntimePublication, Status: "failed",
-			ItemsTotal: 1, DetailCode: "publication_failed", StartedAt: completed, UpdatedAt: completed, CompletedAt: &completed,
+			ID: fmt.Sprintf("job_ntf_outage_%03d", index), Code: code, Status: "failed",
+			ItemsTotal: 1, DetailCode: detail, StartedAt: completed, UpdatedAt: completed, CompletedAt: &completed,
 		})
 	}
 	if err := db.Create(&outageJobs).Error; err != nil {
 		t.Fatal(err)
 	}
 	expectStatus(t, adminRequest(http.MethodGet, "/api/v1/admin/system/jobs", nil), http.StatusOK)
+	// Successful runtime publication prunes terminal jobs outside the failed
+	// notification transaction. Newer ordinary completions must not evict the
+	// older unpublished rotation sources beyond the normal 256-row allowance.
+	ordinary := make([]entity.SystemJob, 300)
+	for index := range ordinary {
+		ordinary[index] = entity.SystemJob{ID: fmt.Sprintf("job_ntf_completed_%03d", index), Code: service.SystemJobRuntimePublication,
+			Status: "completed", DetailCode: "published", StartedAt: failedAt, UpdatedAt: failedAt, CompletedAt: &failedAt}
+	}
+	if err := db.CreateInBatches(ordinary, 100).Error; err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(svc.StopRuntime)
+	if err := svc.StartRuntime(ctx); err != nil {
+		t.Fatal("successful publication pruning control failed", err)
+	}
+	svc.StopRuntime()
+	var ordinaryRetained int64
+	if err := db.Model(&entity.SystemJob{}).Where("status = ?", "completed").Count(&ordinaryRetained).Error; err != nil || ordinaryRetained != 256 {
+		t.Fatal("ordinary completed retention control was not exercised", ordinaryRetained, err)
+	}
 	var persisted entity.SystemJob
 	if err := db.First(&persisted, "id = ?", terminal.ID).Error; err != nil || persisted.Status != "failed" || persisted.DetailCode != "publication_failed" || persisted.CompletedAt == nil {
 		t.Fatalf("notification failure rewrote the authoritative terminal source: %+v err=%v", persisted, err)
@@ -480,7 +510,7 @@ func testNotificationHTTPLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Model(&entity.SystemJob{}).Where("id = ? OR id LIKE ?", terminal.ID, "job_ntf_outage_%").Count(&outageSources).Error; err != nil || outageSources != 270 {
 		t.Fatalf("retention removed unreconciled alert sources during notification outage: count=%d err=%v", outageSources, err)
 	}
-	if err := db.Table("schema_migrations").Where("version IN ?", []int{29, 30}).Delete(&struct{}{}).Error; err != nil {
+	if err := db.Table("schema_migrations").Where("version IN ?", []int{29, 30, 107, 108, 109}).Delete(&struct{}{}).Error; err != nil {
 		t.Fatal(err)
 	}
 	if err := database.Migrate(ctx, db); err != nil {
@@ -522,7 +552,7 @@ func testNotificationHTTPLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.First(&persisted, "id = ?", occurrenceOutageJob.ID).Error; err != nil || persisted.Status != "failed" {
 		t.Fatalf("notification metadata outage hid or removed the authoritative source: %+v err=%v", persisted, err)
 	}
-	if err := db.Table("schema_migrations").Where("version IN ?", []int{29, 30}).Delete(&struct{}{}).Error; err != nil {
+	if err := db.Table("schema_migrations").Where("version IN ?", []int{29, 30, 107, 108, 109}).Delete(&struct{}{}).Error; err != nil {
 		t.Fatal(err)
 	}
 	if err := database.Migrate(ctx, db); err != nil {
@@ -534,5 +564,150 @@ func testNotificationHTTPLifecycle(t *testing.T, db *gorm.DB) {
 	recoveredOccurrence = entity.OperationalAlertOccurrence{}
 	if err := db.First(&recoveredOccurrence, "source_type = ? AND source_id = ?", "system_job", occurrenceOutageJob.ID).Error; err != nil {
 		t.Fatalf("restored occurrence schema did not reconcile the retained source: %v", err)
+	}
+	authorityAt := time.Now().UTC()
+	authorityJob := entity.SystemJob{ID: "job_rotation_authority", Code: service.SystemJobSecretRootRotation, Status: "failed", DetailCode: "rotation_blocked", ItemsTotal: 1, StartedAt: authorityAt, UpdatedAt: authorityAt, CompletedAt: &authorityAt}
+	if err := db.Create(&authorityJob).Error; err != nil {
+		t.Fatal(err)
+	}
+	expectStatus(t, adminRequest(http.MethodGet, "/api/v1/admin/system/jobs", nil), http.StatusOK)
+	var rotationOccurrence entity.OperationalAlertOccurrence
+	if err := db.Where("source_type = ? AND source_id = ?", "system_job", authorityJob.ID).Take(&rotationOccurrence).Error; err != nil {
+		t.Fatal("rotation authority control source absent", err)
+	}
+	var rotationAlert entity.OperationalAlert
+	if err := db.Take(&rotationAlert, "id = ?", rotationOccurrence.AlertID).Error; err != nil || rotationAlert.Severity != "high" {
+		t.Fatal("recovered rotation severity changed", err)
+	}
+	var adminRotationNotice, readerRotationNotice entity.Notification
+	if err := db.Where("alert_id = ? AND recipient_id = ?", rotationAlert.ID, admin.User.ID).Take(&adminRotationNotice).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Where("alert_id = ? AND recipient_id = ?", rotationAlert.ID, reader.User.ID).Take(&readerRotationNotice).Error; err != nil {
+		t.Fatal(err)
+	}
+	expectStatus(t, readerRequest(http.MethodPost, "/api/v1/notifications/"+adminRotationNotice.ID+"/read", nil), http.StatusNotFound)
+	expectStatus(t, readerRequest(http.MethodPost, "/api/v1/notifications/"+readerRotationNotice.ID+"/read", nil), http.StatusOK)
+	expectStatus(t, readerRequest(http.MethodPatch, "/api/v1/admin/alerts/"+rotationAlert.ID, map[string]any{"state": "handling", "etag": rotationAlert.ETag}), http.StatusForbidden)
+	expectStatus(t, writerRequest(http.MethodGet, "/api/v1/admin/alerts", nil), http.StatusForbidden)
+	writerInbox := decodeCatalogResponse[service.NotificationPage](t, writerRequest(http.MethodGet, "/api/v1/notifications", nil), http.StatusOK)
+	if len(writerInbox.Items) != 0 {
+		t.Fatal("rotation notice leaked without system.read", writerInbox)
+	}
+	expectStatus(t, adminRequest(http.MethodGet, "/api/v1/admin/system/jobs", nil), http.StatusOK)
+	var replayedRead entity.Notification
+	if err := db.Take(&replayedRead, "id = ?", readerRotationNotice.ID).Error; err != nil || !replayedRead.Read || replayedRead.ReadAt == nil {
+		t.Fatal("rotation reconciliation replay cleared recipient read", err)
+	}
+}
+
+// Reuses the existing controlled SMTP peers and registered notification leaf.
+// Only the two failed rotation batch details may publish; delivery replay keeps
+// accepted and ambiguous terminal outcomes without sending another message.
+func testRotationBatchNotificationDelivery(t *testing.T, db *gorm.DB, svc *service.Service, actor, email string) {
+	t.Helper()
+	ctx := t.Context()
+	var priorSMTP entity.SMTPSetting
+	if err := db.Take(&priorSMTP, 1).Error; err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC().Add(-time.Minute)
+	if err := db.Create(&entity.NotificationSetting{UserID: actor, ExternalEmail: email, EmailHigh: true, ETag: "rev_rotation_notice", UpdatedAt: now}).Error; err != nil {
+		t.Fatal(err)
+	}
+	host, port, accepted := smtpDeliveryFixture(t)
+	unknownHost, unknownPort := smtpUnknownAcceptanceFixture(t)
+	for _, scenario := range []struct {
+		detail, host, status string
+		port                 int
+	}{{"rotation_blocked", host, "accepted", port}, {"executor_lost", unknownHost, "unknown", unknownPort}} {
+		etag := "rev_rotation_" + scenario.detail
+		if err := db.Model(&entity.SMTPSetting{}).Where("id = ?", 1).Updates(map[string]any{"enabled": true, "host": scenario.host, "port": scenario.port, "security": "NONE", "sender_name": "RouteX", "sender_email": "notices@example.invalid", "e_tag": etag}).Error; err != nil {
+			t.Fatal(err)
+		}
+		job := entity.SystemJob{ID: "job_notice_" + scenario.detail, Code: service.SystemJobSecretRootRotation, Status: "failed", DetailCode: scenario.detail, ItemsTotal: 1, StartedAt: now, UpdatedAt: now, CompletedAt: &now}
+		if err := db.Create(&job).Error; err != nil {
+			t.Fatal(err)
+		}
+		for range 2 {
+			if _, err := svc.ListSystemJobs(ctx, actor); err != nil {
+				t.Fatal(err)
+			}
+		}
+		var occurrence entity.OperationalAlertOccurrence
+		if err := db.Where("source_type = ? AND source_id = ?", "system_job", job.ID).Take(&occurrence).Error; err != nil {
+			t.Fatal(err)
+		}
+		var alert entity.OperationalAlert
+		if err := db.Take(&alert, "id = ?", occurrence.AlertID).Error; err != nil || alert.Kind != "system_job_failure" || alert.Severity != "high" || alert.OccurrenceCount != 1 || alert.GroupKey != "system_job:secret_root_rotation:"+scenario.detail || alert.SubjectID != "" || alert.CredentialID != "" {
+			t.Fatal("rotation batch projection lost closed source identity", err, alert)
+		}
+		if count, err := svc.FlushNotificationDelivery(ctx, 100); err != nil || count != 1 {
+			t.Fatal("rotation delivery did not consume exactly one source", count, err)
+		}
+		var intent entity.NotificationDeliveryIntent
+		if err := db.Where("occurrence_id = ? AND recipient_id = ?", occurrence.ID, actor).Take(&intent).Error; err != nil || intent.Status != scenario.status || intent.Attempts != 1 || intent.SMTPETag != etag || intent.DetailCode != scenario.detail || intent.Severity != "high" || intent.CompletedAt == nil || accepted.Load() != 1 {
+			t.Fatal("rotation SMTP result lost exact source/native terminal receipt", err, intent)
+		}
+		if _, err := svc.ListSystemJobs(ctx, actor); err != nil {
+			t.Fatal(err)
+		}
+		if count, err := svc.FlushNotificationDelivery(ctx, 100); err != nil || count != 0 {
+			t.Fatal("accepted/unknown rotation delivery replayed", count, err)
+		}
+		var after entity.NotificationDeliveryIntent
+		if err := db.Take(&after, "id = ?", intent.ID).Error; err != nil || !reflect.DeepEqual(intent, after) || accepted.Load() != 1 {
+			t.Fatal("rotation delivery replay rewrote terminal history", err)
+		}
+	}
+	if err := db.Model(&entity.NotificationSetting{}).Where("user_id = ?", actor).Update("email_high", false).Error; err != nil {
+		t.Fatal(err)
+	}
+	optOut := entity.SystemJob{ID: "job_rotation_mail_optout", Code: service.SystemJobSecretRootRotation, Status: "failed", DetailCode: "rotation_blocked", ItemsTotal: 1, StartedAt: now, UpdatedAt: now, CompletedAt: &now}
+	if err := db.Create(&optOut).Error; err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.ListSystemJobs(ctx, actor); err != nil {
+		t.Fatal(err)
+	}
+	var optOutOccurrence entity.OperationalAlertOccurrence
+	if err := db.Where("source_type = ? AND source_id = ?", "system_job", optOut.ID).Take(&optOutOccurrence).Error; err != nil {
+		t.Fatal("email opt-out suppressed durable inbox source", err)
+	}
+	var optOutIntents int64
+	if err := db.Model(&entity.NotificationDeliveryIntent{}).Where("occurrence_id = ?", optOutOccurrence.ID).Count(&optOutIntents).Error; err != nil || optOutIntents != 0 {
+		t.Fatal("rotation notice ignored high-severity email preference", optOutIntents, err)
+	}
+	// A running batch is not orphaned here: it has no executor but is fresh.
+	negativeAt := time.Now().UTC()
+	for index, test := range []struct{ code, status, detail string }{
+		{service.SystemJobSecretRootRotation, "completed", "processed"},
+		{service.SystemJobSecretRootRotation, "running", "rotation_blocked"},
+		{service.SystemJobSecretRootRotation, "failed", "ciphertext_invalid"},
+		{service.SystemJobStorageCleanup, "failed", "rotation_blocked"},
+	} {
+		job := entity.SystemJob{ID: fmt.Sprintf("job_rotation_negative_%d", index), Code: test.code, Status: test.status, DetailCode: test.detail, StartedAt: negativeAt, UpdatedAt: negativeAt}
+		if test.status != "running" {
+			job.CompletedAt = &negativeAt
+		}
+		if err := db.Create(&job).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := svc.ListSystemJobs(ctx, actor); err != nil {
+		t.Fatal(err)
+	}
+	var negativeOccurrences int64
+	if err := db.Model(&entity.OperationalAlertOccurrence{}).Where("source_type = ? AND source_id LIKE ?", "system_job", "job_rotation_negative_%").Count(&negativeOccurrences).Error; err != nil || negativeOccurrences != 0 {
+		t.Fatal("nonfailed/nonbatch/unsupported rotation event published", negativeOccurrences, err)
+	}
+	// Restore exactly the empty fixture boundary used by the existing next case.
+	for _, model := range []any{&entity.NotificationDeliveryIntent{}, &entity.Notification{}, &entity.OperationalAlertOccurrence{}, &entity.OperationalAlert{}, &entity.NotificationSetting{}, &entity.SystemJob{}} {
+		if err := db.Where("1 = 1").Delete(model).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := db.Save(&priorSMTP).Error; err != nil {
+		t.Fatal(err)
 	}
 }

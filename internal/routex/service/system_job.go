@@ -236,10 +236,11 @@ func (s *Service) recordSystemJobOutcome(code, status, detailCode string, itemsC
 func pruneSystemJobs(db *gorm.DB) error {
 	alertableFailures := db.Model(&entity.SystemJob{}).Select("id").
 		Where("status = ?", systemJobFailed).
-		Where("(code = ? AND detail_code IN ?) OR (code = ? AND detail_code IN ?) OR (code = ? AND detail_code IN ?)",
+		Where("(code = ? AND detail_code IN ?) OR (code = ? AND detail_code IN ?) OR (code = ? AND detail_code IN ?) OR (code = ? AND detail_code IN ?)",
 			SystemJobRuntimePublication, []string{"database_unavailable", "invalid_configuration", "publication_failed", "executor_lost"},
 			SystemJobCallRecordDelivery, []string{"buffer_read_failed", "invalid_fact", "identity_mismatch", "persistence_failed", "acknowledge_failed", "executor_lost"},
-			SystemJobStorageCleanup, []string{"claim_failed", "delete_failed", "state_update_failed", "executor_lost"})
+			SystemJobStorageCleanup, []string{"claim_failed", "delete_failed", "state_update_failed", "executor_lost"},
+			SystemJobSecretRootRotation, []string{"rotation_blocked", "executor_lost"})
 	reconciledSources := db.Model(&entity.OperationalAlertOccurrence{}).Select("source_id").Where("source_type = ?", notificationSourceSystemJob)
 	unreconciledAlertableFailures := alertableFailures.Where("id NOT IN (?)", reconciledSources)
 	for {

@@ -309,5 +309,8 @@ func applyOffboarding(tx *gorm.DB, actorID string, inventory *OffboardingInvento
 	if err := tx.Session(&gorm.Session{NewDB: true}).Where("id = ?", row.ID).Take(row).Error; err != nil {
 		return nil, err
 	}
+	if err := publishOffboardingCompletion(tx, *row, assignments); err != nil {
+		return nil, err
+	}
 	return projects, nil
 }

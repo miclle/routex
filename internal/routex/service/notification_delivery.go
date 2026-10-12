@@ -26,20 +26,21 @@ type NotificationDeliveryFilter struct {
 }
 
 type NotificationDeliveryRecord struct {
-	ID          string     `json:"id"`
-	RecipientID string     `json:"recipient_id"`
-	Kind        string     `json:"kind"`
-	Severity    string     `json:"severity"`
-	DetailCode  string     `json:"detail_code"`
-	SubjectType string     `json:"subject_type,omitempty"`
-	SubjectID   string     `json:"subject_id,omitempty"`
-	SubjectName string     `json:"subject_name,omitempty"`
-	Status      string     `json:"status"`
-	ResultCode  string     `json:"result_code"`
-	Attempts    int        `json:"attempts"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
-	CompletedAt *time.Time `json:"completed_at"`
+	CredentialID string     `json:"credential_id,omitempty"`
+	ID           string     `json:"id"`
+	RecipientID  string     `json:"recipient_id"`
+	Kind         string     `json:"kind"`
+	Severity     string     `json:"severity"`
+	DetailCode   string     `json:"detail_code"`
+	SubjectType  string     `json:"subject_type,omitempty"`
+	SubjectID    string     `json:"subject_id,omitempty"`
+	SubjectName  string     `json:"subject_name,omitempty"`
+	Status       string     `json:"status"`
+	ResultCode   string     `json:"result_code"`
+	Attempts     int        `json:"attempts"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+	CompletedAt  *time.Time `json:"completed_at"`
 }
 
 type NotificationDeliveryPage struct {
@@ -49,7 +50,7 @@ type NotificationDeliveryPage struct {
 
 func notificationDeliveryRecord(row entity.NotificationDeliveryIntent) NotificationDeliveryRecord {
 	return NotificationDeliveryRecord{
-		ID: row.ID, RecipientID: row.RecipientID, Kind: row.Kind, Severity: row.Severity,
+		CredentialID: row.CredentialID, ID: row.ID, RecipientID: row.RecipientID, Kind: row.Kind, Severity: row.Severity,
 		DetailCode: row.DetailCode, SubjectType: row.SubjectType, SubjectID: row.SubjectID, SubjectName: row.SubjectName,
 		Status: row.Status, ResultCode: row.ResultCode,
 		Attempts: row.Attempts, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt, CompletedAt: row.CompletedAt,
@@ -66,7 +67,7 @@ func (s *Service) ListNotificationDeliveries(ctx context.Context, actor string, 
 	if err := authorizeGovernance(db, actor, "system.read"); err != nil {
 		return nil, catalogError(err)
 	}
-	query := db.Model(&entity.NotificationDeliveryIntent{})
+	query := db.Model(&entity.NotificationDeliveryIntent{}).Where("kind <> ?", notificationKindOffboardingCompleted)
 	if filter.Status != "" {
 		query = query.Where("status = ?", filter.Status)
 	}
@@ -182,7 +183,14 @@ func (s *Service) claimNotificationDelivery(ctx context.Context, now time.Time) 
 
 func (s *Service) executeNotificationDelivery(ctx context.Context, intent entity.NotificationDeliveryIntent) error {
 	now := time.Now().UTC()
-	if err := authorizeGovernance(s.authDB(ctx), intent.RecipientID, "system.read"); err != nil {
+	if !validCredentialInferenceEnvelope(intent.Kind, intent.CredentialID) {
+		return s.finishNotificationDelivery(ctx, intent, "failed", "invalid_configuration", now, true)
+	}
+	if intent.Kind == notificationKindOffboardingCompleted {
+		if !offboardingDeliveryEligible(s.authDB(ctx), intent) {
+			return s.finishNotificationDelivery(ctx, intent, "failed", "recipient_ineligible", now, true)
+		}
+	} else if err := authorizeGovernance(s.authDB(ctx), intent.RecipientID, "system.read"); err != nil {
 		return s.finishNotificationDelivery(ctx, intent, "failed", "recipient_ineligible", now, true)
 	}
 	var smtp entity.SMTPSetting
@@ -196,9 +204,13 @@ func (s *Service) executeNotificationDelivery(ctx context.Context, intent entity
 	if err != nil {
 		return s.finishNotificationDelivery(ctx, intent, "failed", "configuration_unavailable", now, true)
 	}
+	subject := "RouteX operational alert: " + intent.Severity
+	if intent.Kind == notificationKindOffboardingCompleted {
+		subject = "RouteX offboarding completed"
+	}
 	message := smtpclient.Message{
 		From: smtp.SenderEmail, Name: smtp.SenderName, ReplyTo: smtp.ReplyTo, To: intent.RecipientEmail,
-		RequestID: intent.ID, Subject: "RouteX operational alert: " + intent.Severity,
+		RequestID: intent.ID, Subject: subject,
 		Body: notificationDeliveryBody(intent),
 	}
 	result := smtpclient.New(s.allowPrivateSMTP).Send(ctx, config, message)
@@ -217,7 +229,13 @@ func (s *Service) executeNotificationDelivery(ctx context.Context, intent entity
 }
 
 func notificationDeliveryBody(intent entity.NotificationDeliveryIntent) string {
+	if intent.Kind == notificationKindOffboardingCompleted {
+		return "An offboarding case was completed. You received this notice as the executor or an applied responsibility successor."
+	}
 	body := fmt.Sprintf("Kind: %s\nDetail: %s\nSeverity: %s", intent.Kind, intent.DetailCode, intent.Severity)
+	if intent.Kind == notificationKindCredentialInference && validCredentialInferenceEnvelope(intent.Kind, intent.CredentialID) {
+		body += "\nRecorded Credential ID: " + intent.CredentialID + "\nFive consecutive inference failures were recorded. A recorded success resolves the alert and allows a new episode; this history does not establish current health."
+	}
 	if validNotificationSubject(intent.SubjectType, intent.SubjectID, intent.SubjectName) && intent.SubjectType != "" {
 		body += fmt.Sprintf("\nSubject type: %s\nSubject ID: %s\nSubject name: %s", intent.SubjectType, intent.SubjectID, intent.SubjectName)
 	}

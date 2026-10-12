@@ -28,6 +28,46 @@ Authorization during a primary-database outage is separately bounded by the five
 
 ## Internal attempt attribution
 
+### Credential inference-failure episodes
+
+Newly accepted attributed Attempts also advance a durable observer for their exact
+recorded Credential. Five consecutive recorded inference errors create one
+immutable medium-severity episode. Additional errors do not create another episode
+until an explicitly recorded inference success resolves the current operational
+alert and resets and rearms the observer. Resolution commits with the accepted
+success; it does not rewrite recipient read timestamps or SMTP delivery history.
+Cancellation or unknown/invalid observations interrupt the proven consecutive
+count without rearming an already-triggered episode. Manual Verify and Test
+connection results are separate and never advance or reset this observer.
+
+The observer uses prospective primary-database acceptance order. One accepted
+Call and its Attempts, state advancement, and any episode commit atomically.
+Within a Call, Attempts advance in ascending Attempt number; concurrent Calls
+serialize on byte-exact Credential state locks. Delayed facts are new observations
+at their actual acceptance position, regardless of their completion timestamps.
+Duplicate delivery changes neither counters nor episodes. Historical retained
+Attempts are not backfilled, and no state or notification is inferred for missing
+Credential attribution. This ordering is deliberately distinct from the
+completion-time ordering used by the read-only Credential statistics table and
+does not establish upstream causality or complete live-traffic coverage.
+
+Only immutable triggered episodes add source rows; there is no duplicate receipt
+for every Attempt. An episode retains its exact triggering Attempt, Credential,
+acceptance sequence, fixed threshold, observation time, and preceding recorded
+success anchor when one exists. Rearming does not delete or rewrite notification
+history. Reconciliation retries missing publication from the durable episode,
+using locked current-state success/trigger anchors and acceptance sequence.
+Already-projected recovery is also reconciled after restart. Delayed older
+episodes cannot reopen a recovered alert, replace a newer episode snapshot or
+reset its recipient read state. Reconciliation preserves manually handling or
+resolved states; only a newly published current trigger may reopen the alert.
+Existing operational inbox and
+medium-severity email preferences remain authoritative. Unknown SMTP outcomes
+are never replayed automatically. An episode never disables a Credential, changes
+routing or verification, or proves that the upstream provider failed. In
+particular, a recorded `error` remains a RouteX inference failure even when its
+native completion or provider-work evidence is unknown.
+
 Each actual attempt preserves its selected `CredentialID` and published
 `SnapshotID` alongside Provider/Connection attribution. Failed attempts, final
 native results and fsynced active interruption checkpoints copy their own exact

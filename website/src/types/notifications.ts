@@ -91,6 +91,8 @@ export interface TeamRollingQuotaWarningSnapshot extends Omit<
 }
 
 export interface Notification {
+  credential_id?: string
+  first_recorded_model_count?: number
   project_key_rolling_quota_warning?: ProjectKeyRollingQuotaWarningSnapshot
   team_rolling_quota_warning?: TeamRollingQuotaWarningSnapshot
   project_rolling_quota_warning?: ProjectRollingQuotaWarningSnapshot

@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -23,6 +24,51 @@ import (
 	"github.com/miclle/routex/pkg/secret"
 	"github.com/miclle/routex/pkg/secretstore"
 )
+
+// fixtureQueryDiagnostics retains only a bounded table label and portable error
+// class. It deliberately excludes SQL, parameters and authentication material.
+func fixtureQueryDiagnostics(t *testing.T, db *gorm.DB) (func(), func() (string, string)) {
+	t.Helper()
+	type failure struct{ table, class string }
+	var observed atomic.Pointer[failure]
+	hook := "fixture_query_diagnostic_" + t.Name()
+	record := func(tx *gorm.DB) {
+		if tx.Error == nil || errors.Is(tx.Error, gorm.ErrRecordNotFound) {
+			return
+		}
+		table := "other"
+		switch tx.Statement.Table {
+		case "users", "sessions", "user_mfas", "mfa_login_challenges", "named_identity_providers", "named_identity_bindings", "named_identity_ceremonies", "provider_credentials", "provider_connections", "provider_models", "models", "model_provider_bindings", "system_instances":
+			table = tx.Statement.Table
+		}
+		class := "other"
+		switch {
+		case errors.Is(tx.Error, context.DeadlineExceeded) || errors.Is(tx.Statement.Context.Err(), context.DeadlineExceeded):
+			class = "deadline_exceeded"
+		case errors.Is(tx.Error, context.Canceled) || errors.Is(tx.Statement.Context.Err(), context.Canceled):
+			class = "canceled"
+		case errors.Is(tx.Error, gorm.ErrDuplicatedKey):
+			class = "duplicate"
+		case errors.Is(tx.Error, gorm.ErrForeignKeyViolated):
+			class = "foreign_key"
+		}
+		observed.CompareAndSwap(nil, &failure{table, class})
+	}
+	if err := db.Callback().Query().After("gorm:query").Register(hook, record); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Callback().Query().Remove(hook) })
+	if err := db.Callback().Create().After("gorm:create").Register(hook, record); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Callback().Create().Remove(hook) })
+	return func() { observed.Store(nil) }, func() (string, string) {
+		if value := observed.Load(); value != nil {
+			return value.table, value.class
+		}
+		return "none", "none"
+	}
+}
 
 func testRuntimeLifecycle(t *testing.T, db *gorm.DB) {
 	t.Helper()
@@ -85,6 +131,16 @@ func testRuntimeLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal(err)
 		}
 	}
+	resetDiagnostic, queryDiagnostic := fixtureQueryDiagnostics(t, privateDB)
+	stage, stageStarted := "initial_publication", time.Now()
+	t.Cleanup(func() {
+		if !t.Failed() {
+			return
+		}
+		table, class := queryDiagnostic()
+		status := svc.RuntimeStatus()
+		t.Logf("runtime diagnostic: stage=%s elapsed=%s caller_canceled=%t ready=%t runtime_error=%s last_refresh=%v query_table=%s query_error=%s", stage, time.Since(stageStarted), ctx.Err() != nil, status.Ready, status.ErrorCode, status.LastRefreshAt, table, class)
+	})
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -99,6 +155,8 @@ func testRuntimeLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Model(&entity.RuntimePublication{}).Count(&count).Error; err != nil || count != 1 {
 		t.Fatal("publication metadata not persisted")
 	}
+	stage, stageStarted = "public_mutations", time.Now()
+	resetDiagnostic()
 	testRuntimePublicMutations(t, db, svc, admin.User.ID, bearer)
 	first = svc.RuntimeStatus()
 	if err := db.Model(&entity.ModelProviderBinding{}).Where("id = ?", "bnd_runtime").Update("weight", 50).Error; err != nil {
@@ -127,6 +185,8 @@ func testRuntimeLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Model(&entity.ModelProviderBinding{}).Where("id = ?", "bnd_runtime").Update("weight", 100).Error; err != nil {
 		t.Fatal(err)
 	}
+	stage, stageStarted = "restore_valid_publication", time.Now()
+	resetDiagnostic()
 	if err := svc.RefreshRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}

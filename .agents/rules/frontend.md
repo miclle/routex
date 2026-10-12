@@ -1752,3 +1752,33 @@ full-attempt duration distinct. P95 is not first-token latency or native complet
 reports use deterministic server aggregates and a separate fresh bounded CSV capture; optional
 personal-model AI remains Tokens-by-Model only. Do not forward Provider data, raw attempts,
 member identities or free-text questions to a model, and do not add persistence or policy writes.
+
+Offboarding completion uses the existing recipient notification menu with a closed
+privacy-bounded completion envelope and paired localized copy. It carries no Case,
+member, resource, reason, or proof details and needs no operational read permission.
+Preserve current Session-generation/recipient query lifetimes, hidden stale rows,
+exact CSRF writes, and existing email accepted-versus-unknown wording.
+
+Manual-publication audit display stays in the existing event table and drawer.
+Render only the closed server-projected command ID, reason and historical
+claim/refresh outcome; preserve unknown HTTP request metadata and keep the
+committed database result separate from current command ownership, runtime
+application and fleet acknowledgement. Fresh actor/Session/permission generations
+fence list reads, selection and retained callbacks; never fetch an actor-owned
+command receipt to reconstruct audit history. Pair English/Chinese labels.
+
+First-recorded upstream Model notices use actual successful explicit discovery
+creation facts, including initial discovery, in the exact Connection catalogue.
+Keep immutable source counts separate from grouped occurrence counts, preserve
+recoverable projection and historical Provider labels, and never infer upstream
+release time, routing readiness or grants. Low-severity discovery is inbox-only
+under existing operational read/write permissions. Use the existing Overview and
+notification menu with paired count translations and closed response envelopes.
+
+Credential inference reminders retain the existing Overview and notification-menu
+composition. Render only the closed medium five-recorded-failure envelope with
+its exact non-secret Credential ID and paired English/Chinese live copy. Preserve
+operational read/write and recipient boundaries, source-based occurrence counts,
+existing medium email preferences and durable accepted/unknown delivery wording.
+Do not infer current health, current Credential names or automatic disablement,
+or issue extra catalog reads to identify an immutable triggering Attempt.

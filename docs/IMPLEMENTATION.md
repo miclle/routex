@@ -1,17 +1,27 @@
 # RouteX Implementation and Acceptance Index
 
-## Delivery checkpoint: Provider quality reports (2026-10-12)
+## Delivery checkpoint: durable notices and audit (2026-10-12)
 
-This phase adds selected-range Provider quality reports to the existing operations
-analysis layout, alongside Tokens by Model. The report and fresh CSV export
-independently require `calls.read_all` and `providers.read`. Quality facts use
-immutable Attempt attribution, explicit unknown coverage, excluded cancellations,
-separate Credential rejection and recorded full-attempt duration. Recorded names
-remain historical labels; Provider facts do not enter optional AI advice.
+This phase retains the Provider quality reports and adds the bounded notification
+and audit increment. V107–V109 preserve durable offboarding receipts, first-model
+discovery sources and exact-Credential inference-failure episodes. Five
+consecutive recorded inference failures trigger one medium-severity notice;
+recorded success resolves that alert and rearms the counter. Unknown and canceled
+Attempts do not invent success or failure. Manual verification remains separate.
+Immutable inbox, read and delivery history survives alert recovery.
 
-This phase does not deliver the later notification/audit increment, system-status
-localization, saved report definitions or quota analysis. Those remain subsequent
-phases. F24 is not complete merely because Provider quality is available.
+Offboarding completion reaches the executing administrator and actual applied
+successors under their existing preferences. Failed root-secret rotation batches
+use the existing high-severity system-job pipeline for `rotation_blocked` and
+`executor_lost`; unrelated root blocking is not reclassified as a failed batch.
+The existing bounded SMTP worker retains terminal and uncertain outcomes without
+replaying unknown delivery. Audit filtering and navigation preserve their
+independent authority checks. No notification automatically disables a Credential
+or claims current Provider health.
+
+This phase does not deliver the later system-status localization, saved report
+definitions or quota analysis. Migration guards remain appropriate to V109 until
+the saved-definition phase adds V110 and its complete successor-fixture updates.
 
 Final qualification for the composed delivery candidate passed on the unchanged
 2,633-path source `038d6b7397684830800338dcbfccf1a92ebf3f5d1be9b898cd55127ecc90c80e`:
@@ -53,6 +63,31 @@ historical checkpoint, not an additional feature delivered in this phase.
 
 Updated: 2026-10-12. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery and is resumed by the user's explicit instruction, prioritizing partially completed capabilities.
 
+## Latest bounded qualification checkpoint (2026-10-12)
+
+The containing candidate passed mandatory checking and complete ordinary tests,
+including 7,168 frontend cases, Go race tests, development lifecycle and
+production assets. Its separate authentication lifecycle passed all eight real
+applications and four official summaries, with independent physical closure.
+These successful runs retain their exact prior source scope.
+
+The next complete integration run failed. PostgreSQL completed 566 named nodes
+with 561 passes and five failures: runtime publication unavailable and a Telegram
+departure-login HTTP 503, plus their ancestors. MySQL was deliberately cancelled
+after the confirmed PostgreSQL failure; its 345 started names have no accepted
+terminal result. This run does not qualify delivery.
+
+The original was directly joined, and independent physical closure confirmed all
+nine workers, 24 recorded PostgreSQL applications, exact Compose resources,
+ports and helpers absent; source and development services remained preserved.
+Receipt: `6024d1a556848a19d2ae50074459fb74a505c2fefa64e5c897581aca91b90e96`.
+
+Only two test paths now add safe phase timings and portable query-error classes.
+No product behavior, assertion, retry or timeout changed. A focused real-driver
+reproduction is next; the cause remains unproven. Earlier failed originals are
+not relabeled. Complete integration, browser and delivery remain pending;
+totals remain **16 Completed / 14 Partial / 0 Not started**.
+
 ## Selected-range Provider quality reports (2026-10-12)
 
 Operations analysis now offers Provider quality alongside Tokens by Model in the
@@ -88,6 +123,95 @@ confirms all owned processes, resources, helpers and ports closed, unchanged
 source and preserved development. The failure did not reproduce in isolation;
 its cause remains unknown. This focused result does not replace full coherent
 qualification. The diagnostic preserves assertions, deadlines and retry behavior.
+
+## Pending combined offboarding and audit candidate (2026-10-12)
+
+An isolated candidate composes transactional offboarding completion notifications,
+the immutable V107 recipient/account-birth receipt, closed publication audit
+metadata and the bilingual permission-fenced audit view. It retains genuine
+OIDC/native-MFA emergency refusal and continuity tests, including the corrected
+MFAChallenge snapshot key, and the acknowledged-remote-cleanup/local-save-failure
+regression. Notification recipients follow the confirmed executor and actual
+successor policy; operational broadcasts remain separate.
+
+This composition has no current ordinary, mandatory, database, authentication,
+browser or external-delivery acceptance. Previous checks belong to their frozen
+source floors. Audit/F10 original 40552 remains failed overall: PostgreSQL passed
+13 names, while MySQL failed during cumulative schema startup at migration 98
+before the OIDC child. Independent receipt
+`ab82162706bcaa4e42a6155086f0d2011ab10044df91bacdf39cd00d35c2b049`
+proves physical closure separately. V107 source controls now cover the occurrence
+CHECK, receipt birth, restrictive foreign keys and unique identities; execution
+remains pending. Full coherent qualification is required before main delivery.
+No feature status or formal completion total changes at this source-only stage.
+
+## Pending discovery, Credential alerts and system-job repair (2026-10-12)
+
+The coherent candidate also contains V108 first-recorded model discovery notices
+and V109 prospective consecutive-inference failure alerts. Five accepted recorded
+failures trigger one medium notice for the exact Credential; a recorded success
+resolves that operational alert and rearms the next episode. Unknown or canceled
+attempts break an unproven pre-trigger sequence without resolving or rearming a
+fired episode. Manual verification stays separate. Durable state and triggered
+episodes share the immutable Call/Attempt transaction, with RequestID replay
+protection and no historical backfill. Latest-episode recovery uses durable
+acceptance order and exact success/trigger anchors; delayed historical projection
+cannot reopen a recovered or newer episode. Recipient read and SMTP history are
+retained. Administrator handling/resolution survives replay of the same episode.
+
+Successful explicit discovery creates a low inbox notice only for newly recorded
+models in the exact Connection. It does not establish upstream release time,
+activate routing, grant access or send low-severity email. Existing executable
+restart tests now cover retained notice and read-receipt identity. New source
+controls cover partial-DDL metadata, signed sequence bounds, transactional
+recovery, recipient permissions, accepted/unknown SMTP outcomes and canonical
+lowercase runtime IDs. Six system-status paths localize root-rotation job and
+batch-detail codes without claiming the whole rotation or key retirement.
+
+Scoped formatting passed, while mandatory predecessors failed on narrow Go
+formatting/lint issues that are now corrected. Focused frontend original 43598
+passed 136 cases and failed three category/job selectors. Their narrow repairs
+retain the existing UI and assertions; F26/localization successor 31659 passed
+all 17 cases with unchanged website source and a closed process group. Correctly
+scoped seven-file original 26044 then passed 137 cases and failed two Overview
+workflow assertions, with unchanged source and closed process group. Tests now
+review category and exact subject in the existing alert drawer before checking
+menu copy; concurrent projection cleanup also joins its worker before removing
+callbacks on every failure path. Production recovery source has no concrete defect
+in the bounded independent pass. Final focused tests and coherent checks remain
+pending. Mandatory original 90108 failed only on an unchecked controlled GORM
+failure-injection return in the offboarding fixture; explicit discard preserves
+the injected error and all assertions. Refreshed checks remain required. The
+current source contract has 224 registered scenarios and 566 named
+events per database, including four existing constraints and unchanged nested
+scenarios; 48 genuine process births remain unchanged. Previous 222/564 evidence
+is historical. Full coherent ordinary, mandatory, dual-database and authentication
+checks are required before delivery. Formal totals remain unchanged.
+
+Mandatory successor 7501 passed backend checks but failed three frontend lint
+rules for explicit control-character regex ranges. The validators now use the
+established Unicode Cc pattern with the same C0/C1 rejection; four boundary
+controls per notice type cover both inbox and alert decoders. Refreshed focused
+and mandatory checks remain required. No validation constraint is removed.
+The seven-file successor 40072 passed all 147 cases. Mandatory 78843 then passed
+Go/style/lint but exposed overly broad Credential type predicates that erased
+other notice kinds in false branches. Predicates now narrow only the validated
+Credential kind and identity; runtime checks stay unchanged. Focused TypeScript
+original 75220 passed with unchanged source and closed process group.
+
+
+The isolated nine-path rotation-failure follow-up passed bounded independent source
+review and was adopted only after mandatory 27377 passed on the preceding source.
+Adoption receipt `95cf1cb9a7b64516ece08f063fe1232eb1d759d9cdc37633392d13509908d0d8`
+verifies exact before/after images and all 2,603 source paths/modes against the
+reviewed worktree. Exactly failed `secret_root_rotation` batch jobs with
+`rotation_blocked` or `executor_lost` now enter the existing high-severity pipeline
+and remain protected from terminal-job pruning until projection. Successful or
+running batches and non-batch blockers stay excluded. Existing source replay,
+recipient/read/write, retention recovery and SMTP tests are extended without new
+schema, registry names or application births. One final coherent ordinary,
+mandatory, dual-database and authentication qualification will cover the combined
+candidate. No acceptance transfers from source review or predecessor gates.
 
 ## Manual Model input declarations: controlled acceptance (2026-10-12)
 

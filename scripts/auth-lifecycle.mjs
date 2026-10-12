@@ -90,9 +90,11 @@ async function waitForCall(origin, requestID, cookie) {
 
 async function verifyGatewayLifecycle(origin, config, driver, cookie, csrf) {
   const credential = randomBytes(24).toString('hex')
+  let discoveryRequests = 0
   const upstream = createHTTPServer(async (req, res) => {
     if (req.headers.authorization !== `Bearer ${credential}`) { res.writeHead(401); res.end(); return }
     if (req.url === '/v1/models') {
+      discoveryRequests++
       res.setHeader('Content-Type', 'application/json')
       res.end(JSON.stringify({ data: [{ id: 'native-model' }] }))
       return
@@ -123,6 +125,36 @@ async function verifyGatewayLifecycle(origin, config, driver, cookie, csrf) {
     const credentialID = connection.credentials[0].id
     const verified = await (await write(`/admin/credentials/${credentialID}/verify`, {})).json()
     assert.equal(verified.verified, true, 'Controlled provider verification failed')
+    // Use the existing production worker and executable restarts. Source replay
+    // must preserve the exact recipient receipt without repeating discovery.
+    const discoveryNotice = async () => {
+      const page = await (await request(origin, '/notifications?severity=low', 200, { cookie })).json()
+      const matches = page.items.filter((item) => item.kind === 'models_first_recorded' && item.subject_id === provider.id)
+      assert.equal(matches.length, 1, 'First discovery did not create exactly one recipient receipt')
+      const notice = matches[0]
+      assert.equal(notice.severity, 'low', 'Discovery severity was not low')
+      assert.equal(notice.detail_code, 'first_recorded', 'Discovery detail changed')
+      assert.equal(notice.subject_type, 'provider', 'Discovery subject changed')
+      assert.equal(notice.first_recorded_model_count, 1, 'Discovery model count changed')
+      assert.equal(notice.occurrence_count, 1, 'Discovery replay duplicated occurrences')
+      for (const field of ['delivery_status', 'delivery_code', 'delivery_attempts', 'delivery_updated_at', 'connection_id', 'credential_id', 'audit_id', 'quota']) {
+        assert.ok(!(field in notice), 'Discovery exposed a private or external-delivery field')
+      }
+      assert.ok(!JSON.stringify(notice).includes(credential), 'Discovery disclosed credential material')
+      return notice
+    }
+    const firstDiscovery = await discoveryNotice()
+    assert.equal(firstDiscovery.read, false, 'New discovery receipt was already read')
+    const markedDiscovery = await (await write(`/notifications/${firstDiscovery.id}/read`, undefined)).json()
+    assert.equal(markedDiscovery.id, firstDiscovery.id, 'Read changed discovery receipt identity')
+    assert.equal(markedDiscovery.read, true, 'Discovery read state was not saved')
+    // Capture the persisted database timestamp before comparing across restarts.
+    const retainedDiscovery = await discoveryNotice()
+    assert.equal(retainedDiscovery.read, true, 'Persisted discovery receipt was not read')
+    assert.ok(retainedDiscovery.read_at, 'Discovery read timestamp was not saved')
+    const assertDiscoveryRetained = async () => {
+      assert.deepEqual(await discoveryNotice(), retainedDiscovery, 'Executable restart or repeat discovery changed the saved receipt')
+    }
     await write(`/admin/credentials/${credentialID}`, { enabled: true }, 200, 'PATCH')
     const providers = await (await request(origin, '/admin/providers', 200, { cookie })).json()
     assert.ok(!JSON.stringify(providers).includes(credential), 'Provider list disclosed secret')
@@ -152,15 +184,26 @@ async function verifyGatewayLifecycle(origin, config, driver, cookie, csrf) {
     assert.ok(!stream.includes('native-model'), 'Native model name leaked through streaming response')
     const record = await waitForCall(origin, requestID, cookie)
     assert.ok(!JSON.stringify(record).includes(credential), 'Call record disclosed secret')
+    const firstGatewayPID = server.pid
     await stopServer()
     await startServer(config, origin, driver)
+    assert.notEqual(server.pid, firstGatewayPID, 'Gateway restart reused the owned process identity')
+    assert.equal(discoveryRequests, 1, 'Executable restart repeated upstream discovery')
+    await assertDiscoveryRetained()
+    assert.equal((await (await write(`/admin/credentials/${credentialID}/verify`, {})).json()).verified, true, 'Repeated real discovery failed')
+    assert.equal(discoveryRequests, 2, 'Explicit discovery did not use the controlled upstream exactly once')
+    await assertDiscoveryRetained()
     const restored = await waitForCall(origin, streamRequestID, cookie)
     assert.equal(restored.input_tokens, 3, 'Restart changed accepted streaming usage')
     assert.equal(restored.output_tokens, 2, 'Restart changed accepted streaming usage')
     await inference(false)
     await write(`/keys/${key.key.id}`, undefined, 204, 'DELETE')
+    const secondGatewayPID = server.pid
     await stopServer()
     await startServer(config, origin, driver)
+    assert.notEqual(server.pid, secondGatewayPID, 'Second gateway restart reused the owned process identity')
+    assert.equal(discoveryRequests, 2, 'Second executable restart repeated upstream discovery')
+    await assertDiscoveryRetained()
     await inference(false, 401)
     console.log(`${driver}: encrypted provider, model grants, Key confirmation, ordinary/streaming gateway, call facts, restart and persistent revocation passed`)
   } finally {

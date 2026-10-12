@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
@@ -84,6 +85,63 @@ func testAuditLifecycle(t *testing.T, db *gorm.DB) {
 	expectStatus(t, response, 200)
 	if strings.Contains(response.Body.String(), "do-not-leak") || !strings.Contains(response.Body.String(), `"before"`) {
 		t.Fatal("unsafe detail response")
+	}
+	// The system category projects a closed historical command schema, including
+	// a failed refresh whose audit transaction itself successfully committed.
+	for i, outcome := range []string{"claimed", "refresh_returned_nil", "refresh_returned_error", "malformed"} {
+		action := "runtime.publication.finalize"
+		if outcome == "claimed" {
+			action = "runtime.publication.claim"
+		}
+		detail := fmt.Sprintf(`{"request_id":"6f739b12-12ce-4a20-8da7-%012d","reason":"Reviewed audit publication","outcome":"%s"}`, i+1, outcome)
+		if outcome == "malformed" {
+			detail = `{"request_id":"6f739b12-12ce-4a20-8da7-000000000004","reason":"Reviewed audit publication","outcome":"refresh_returned_nil","secret":"do-not-leak"}`
+		}
+		if db.Create(&entity.AuditEvent{ID: fmt.Sprintf("aud_000000000000000000000001%02d", i), ActorID: auth.User.ID, Action: action, ResourceType: "system_instance", ResourceID: "ins_01m36yee4gkbns18pfcqqc75a3", DetailsJSON: &detail, CreatedAt: base}).Error != nil {
+			t.Fatal("create bounded publication audit fixtures")
+		}
+	}
+	publication := get("/api/v1/admin/audit?category=system&q=runtime.publication")
+	if len(publication.Items) != 4 {
+		t.Fatal("publication events missing from system audit category")
+	}
+	projected, redacted := 0, 0
+	for _, event := range publication.Items {
+		if event.Result != "committed" || event.RequestID != nil || event.Source != nil || event.IP != nil {
+			t.Fatal("publication audit changed committed result or invented transport metadata")
+		}
+		var fields map[string]json.RawMessage
+		if json.Unmarshal(event.Changes, &fields) != nil || strings.Contains(string(event.Changes), "do-not-leak") {
+			t.Fatal("unsafe publication projection")
+		}
+		if fields == nil {
+			if event.ID != "aud_00000000000000000000000103" {
+				t.Fatal("valid publication audit was redacted")
+			}
+			redacted++
+			continue
+		}
+		var changes struct {
+			Kind             string `json:"kind"`
+			CommandRequestID string `json:"command_request_id"`
+			Reason           string `json:"reason"`
+			Outcome          string `json:"outcome"`
+		}
+		if len(fields) != 4 || json.Unmarshal(event.Changes, &changes) != nil || changes.Kind != "runtime_publication" || changes.Reason != "Reviewed audit publication" {
+			t.Fatal("unsafe publication projection")
+		}
+		expected := map[string]string{
+			"6f739b12-12ce-4a20-8da7-000000000001": "claimed",
+			"6f739b12-12ce-4a20-8da7-000000000002": "refresh_returned_nil",
+			"6f739b12-12ce-4a20-8da7-000000000003": "refresh_returned_error",
+		}
+		if expected[changes.CommandRequestID] == "" || changes.Outcome != expected[changes.CommandRequestID] || (changes.Outcome == "claimed") != (event.Action == "runtime.publication.claim") {
+			t.Fatal("publication projection changed exact command or outcome")
+		}
+		projected++
+	}
+	if projected != 3 || redacted != 1 {
+		t.Fatal("publication schema did not fail closed")
 	}
 	if err := db.Model(&entity.User{}).Where("id = ?", auth.User.ID).Update("role", entity.RoleMember).Error; err != nil {
 		t.Fatal(err)

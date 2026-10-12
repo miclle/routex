@@ -895,3 +895,117 @@ The current frozen R8 source passes check, complete Task testing and build,
 lifecycle. Earlier focused R7 receipts remain bound to that source. Complete
 R8 Full168, composed-main gates, browser and delivery remain pending. These
 source-specific facts do not establish wider runtime or feature acceptance.
+
+## First-recorded upstream Model notices
+
+Successful explicit Credential verification records a durable discovery source
+only when that transaction first creates Provider-model rows in the exact
+Connection catalogue. Initial discovery is included. Existing rows, duplicate
+names, manual entry, failed or incomplete discovery and Azure authentication do
+not count. "First recorded" describes RouteX catalogue history; it does not claim
+an upstream release time, global novelty, routing readiness or member access.
+
+Frozen GORM V108 adds `model_discovery_notices`, bound restrictively to the
+successful verification audit. Its immutable snapshot contains only the audit
+identity, Connection/Provider identities, a validated Provider label, a count of
+1–2,000 new rows and recording time. The source commits with the new catalogue
+rows and audit. Notification projection is separately recoverable through the
+existing bounded reconciliation worker, with source uniqueness preventing
+replay duplicates. No scheduled upstream polling or historical backfill is added.
+
+The closed `models_first_recorded` / `model_discovery` envelope has `low` severity
+and `first_recorded` detail. It groups by exact Connection. The API's optional
+`first_recorded_model_count` is the latest occurrence's count; `occurrence_count`
+continues to count recorded discovery operations. Older recovered occurrences
+cannot replace the latest count or reset read state. Other notification kinds
+retain zero/omitted Model counts. Provider snapshots remain historical labels;
+no model names, Credential identities, upstream payloads or secrets enter the
+notice. Recorded counts are not grants or enabled routes.
+
+Current `system.read` operators receive the existing operational inbox projection
+and can inspect the Overview alert. Alert-state writes still require independent
+`system.write`, CSRF and the reviewed ETag. The existing Overview table/details
+and header menu display paired English/Chinese count copy without changing their
+layout. These low-severity notices are inbox-only: neither high nor medium email
+preferences enable delivery, and V108 explicitly forbids their SMTP intents.
+
+Source, API/decoder, UI and migration tests cover count bounds, closed-envelope
+controls, transaction rollback, duplicate/concurrent discovery, durable projection
+recovery and current recipient authority. This candidate has not yet run Go,
+frontend, migration or production-process acceptance; heavyweight qualification
+remains serialized behind the preceding full matrix. Service reopening is a
+persisted-source recovery check, not evidence of a genuine application restart.
+
+
+## Recorded Credential inference failures (V109 candidate)
+
+The operational Credential category includes a medium-severity reminder after
+five consecutive accepted, recorded inference failures for the same byte-exact
+Credential ID. It uses the existing operational inbox, `system.read` eligibility,
+`system.write` state changes, severity settings and bounded SMTP worker. It does
+not automatically disable a Credential, classify the Provider as failed or prove
+current health. Manual connection checks remain a separate source.
+
+The observer runs prospectively inside `RecordCall` after immutable Attempts are
+inserted. Its sequence follows durable acceptance under sorted Credential locks;
+Attempts in one Call follow ascending recorded Attempt number. This order is
+separate from completion-time statistics. A recorded success clears the current
+count, automatically resolves this kind of operational alert, and rearms the
+latch in the same transaction. Unknown or canceled observations break a proven
+consecutive count but do not rearm an already-triggered episode. A late success
+still acts at its actual acceptance position. Duplicate Request IDs return before
+the observer; any source/state failure rolls back the Call and its Attempts.
+
+Only the exact Credential state and immutable triggered episodes are stored.
+There is no per-Attempt duplicate receipt or historical backfill. Episodes retain
+the exact triggering Attempt, acceptance sequence, count five and optional prior
+successful Attempt identity. Retained notifications and delivery history survive
+rearming. Missing attribution never borrows a logical Call's final route or a
+current catalog identity.
+
+Ordinary reconciliation recovers missing occurrences and already-projected
+success resolution. It locks exact Credential states in sorted order before
+alerts. Acceptance sequence and current success/trigger anchors govern the
+latest episode snapshot; timestamps captured before lock waits do not establish
+episode ordering. Delayed historical publication cannot reopen a recovered or
+newer alert or reset existing recipient reads. Replaying a current episode
+preserves administrator handling/resolved state; a new current trigger may reopen
+it after a recorded success. The recipient inbox remains historical, without
+a new alert-state field, and its past-tense copy makes no current-health claim. The
+closed `credential_inference_failure` envelope carries its non-secret
+`credential_id` into the existing Overview, impact composition and recipient
+menu. An optional Provider label comes exclusively from the immutable triggering
+Attempt. English and Chinese messages update live; the identity is preserved
+verbatim. No additional resource reads or navigation permissions are introduced.
+Medium email preferences apply at publication. SMTP accepted and uncertain
+results retain the existing durable no-replay behavior.
+
+Source implementation and focused tests are prepared; current mandatory gates,
+real PostgreSQL/MySQL qualification and browser acceptance remain pending.
+
+## Recorded root-key rotation batch failures
+
+Failed `secret_root_rotation` System Jobs now use the existing high-severity
+system-job notification pipeline for exactly `rotation_blocked` and
+`executor_lost`. A batch blocked before completing its recorded items and an
+abandoned batch whose executor lease expired are durable source facts. Successful
+`processed` batches, running jobs, and blockers outside a recorded batch do not
+create these notices. No underlying ciphertext, key material, raw error or
+rotation inventory is added to the notification.
+
+Existing `system.read` recipient eligibility, independent `system.write` alert
+state authority, recipient-only reads, high-severity inbox/email preferences and
+bounded SMTP delivery apply unchanged. Source identity deduplicates replay and
+recovery. English and Chinese copy describes the recorded blocked batch, without
+claiming current rotation health or retrying the rotation itself. Executor-loss
+copy remains the existing generic system-job explanation.
+
+Unreconciled alertable rotation failures are protected from the normal 256-row
+terminal-job retention just like other alertable failures. Publication outages
+retain the source even when newer completed jobs cause pruning. Once ordinary
+bounded reconciliation publishes the occurrence, terminal-job retention may
+remove the source row; immutable alert, recipient read and delivery history remain.
+No schema, new notification kind, registry scenario or layout is introduced.
+
+Source and regression controls are prepared. Fresh mandatory checks, real
+PostgreSQL/MySQL qualification and browser acceptance remain pending.

@@ -1,3 +1,4 @@
+import { validCredentialInferenceAlert } from '@/api/credential-inference-notices'
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -48,6 +49,19 @@ import type {
 import { chartRatio, exactNumber } from '@/views/usage/format'
 
 function alertText(alert: OperationalAlert, t: ReturnType<typeof useTranslation>['t']) {
+  if (validCredentialInferenceAlert(alert))
+    return t('items.credential_inference_failure.five_consecutive_recorded_failures', {
+      id: alert.credential_id,
+    })
+  if (
+    alert.kind === 'models_first_recorded' &&
+    Number.isSafeInteger(alert.first_recorded_model_count) &&
+    (alert.first_recorded_model_count ?? 0) >= 1 &&
+    (alert.first_recorded_model_count ?? 0) <= 2000
+  )
+    return t('items.models_first_recorded.first_recorded', {
+      count: alert.first_recorded_model_count,
+    })
   return t(`items.${alert.kind}.${alert.detail_code}`, {
     defaultValue: t(`items.${alert.kind}.default`, { defaultValue: t('unknownItem') }),
   })
@@ -58,6 +72,8 @@ function alertCategory(alert: OperationalAlert, t: ReturnType<typeof useTranslat
 }
 
 function alertSubject(alert: OperationalAlert, t: ReturnType<typeof useTranslation>['t']) {
+  if (validCredentialInferenceAlert(alert))
+    return t('subject.credential', { id: alert.credential_id })
   if (alert.subject_type !== 'provider' && alert.subject_type !== 'model')
     return t('overview.scopeUnknown')
   const value = alert.subject_name?.trim() || alert.subject_id?.trim()

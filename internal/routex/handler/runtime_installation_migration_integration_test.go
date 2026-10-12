@@ -291,7 +291,7 @@ func testRuntimeInstallationMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal("restore current V101 after historical V100", err)
 	}
 	current := personalKeyBehaviorLedger(t, db)
-	if len(current) != 106 || current[105].Version != 106 || current[104].Version != 105 || current[103].Version != 104 || current[102].Version != 103 || current[100].Version != 101 || current[101].Version != 102 || !reflect.DeepEqual(beforeSuccessor, current[:100]) {
+	if len(current) != 109 || current[108].Version != 109 || current[107].Version != 108 || current[106].Version != 107 || current[105].Version != 106 || current[104].Version != 105 || current[103].Version != 104 || current[102].Version != 103 || current[100].Version != 101 || current[101].Version != 102 || !reflect.DeepEqual(beforeSuccessor, current[:100]) {
 		t.Fatal("current V101 changed complete historical V100 receipts")
 	}
 	var retained []entity.RuntimeRoutingApplication

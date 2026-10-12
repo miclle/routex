@@ -195,3 +195,47 @@ it('keeps the inbox on manual same-actor CSRF replacement and dispatches only th
   ).toBe('csrf-replaced')
   expect(requests.filter((request) => request.url === '/auth/session')).toHaveLength(1)
 })
+
+it('renders private completion copy in both languages and hides it during renewed recipient authority', async () => {
+  const notice = {
+    id: 'ntf_01j00000000000000000000001',
+    kind: 'offboarding_completed',
+    severity: 'medium' as const,
+    detail_code: 'completed',
+    occurrence_count: 1,
+    read: false,
+    read_at: null,
+    first_seen_at: '2026-10-12T01:02:03Z',
+    last_seen_at: '2026-10-12T01:02:03Z',
+  }
+  inbox = async () => ({ items: [notice], unread_count: 1, next_cursor: null })
+  await act(async () =>
+    root.render(
+      <QueryClientProvider client={cache}>
+        <NotificationMenu />
+      </QueryClientProvider>,
+    ),
+  )
+  await until(() =>
+    expect(host.querySelector('[aria-label="1 unread notification"]')).not.toBeNull(),
+  )
+  await act(async () => button('Notifications')!.click())
+  await until(() =>
+    expect(document.body.textContent).toContain('An offboarding case was completed.'),
+  )
+  expect(requests.some((request) => request.url?.includes('permissions'))).toBe(false)
+  expect(document.body.textContent).not.toContain('usr_member')
+  await act(async () => i18n.changeLanguage('zh'))
+  await until(() => expect(document.body.textContent).toContain('离职交接已完成。'))
+  const gate = deferred()
+  gates.push(gate)
+  inbox = async () => {
+    await gate.promise
+    return { items: [], unread_count: 0, next_cursor: null }
+  }
+  await renew()
+  expect(document.body.textContent).not.toContain('离职交接已完成。')
+  expect(document.querySelector('[role="menuitem"]')).toBeNull()
+  await act(async () => gate.release())
+  await until(() => expect(document.body.textContent).toContain('暂无新通知'))
+})

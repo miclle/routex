@@ -73,3 +73,27 @@ The planned flow searches enabled members with pagination, allows multiple succe
 Emergency handling explains interim Project management and Team continuity. Its password input is cleared before dispatch and removed on dismissal. Reauthentication runs through a direct API call; neither password-bearing variables nor Axios request/error objects enter the query or mutation cache. A rejected password refreshes console session state without treating the password failure itself as proof that the session expired.
 
 Uncertain transport or publication failures retain the same request identifier and reviewed intent for an explicit retry. The UI never retries mutations automatically. Successful completion refreshes member status and history and reports that personal access was revoked while Project keys and history were preserved. All workflow copy is available in English and Chinese.
+
+## Recipient completion notifications
+
+Successful planned and emergency completion records one private completion event
+and its explicit recipients in the same transaction as the completed Case and
+Audit event. Recipients are the actual executor and applied Project Manager/Team
+Owner successors, deduplicated; the departing member and ineligible accounts are
+excluded. Planning, rejection, rollback and identical completion replay do not
+produce another notice. An immutable account-birth receipt prevents same-ID
+account replacement from inheriting inbox history or email delivery.
+
+Current admitted recipients can list and mark their own completion notices without
+`system.read`. Operational alerts retain their separate permission gates and do
+not include these recipient events. The notice contains only generic completion
+copy, with no Case/member/resource identity, reason, proof or credential material.
+Later responsibility changes retain history; disabled or replaced accounts cannot
+read or receive it.
+
+In-app delivery is always enabled. Existing external email and medium-severity
+preferences determine whether an email intent is created. The existing bounded
+worker retains captured SMTP revision, retry and unknown-result semantics; SMTP
+acceptance does not prove inbox delivery. No external email acceptance is claimed
+by controlled fixtures. V107 adds the frozen typed recipient receipt and the
+closed completion source without changing released migrations.

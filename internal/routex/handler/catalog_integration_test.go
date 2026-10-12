@@ -32,6 +32,7 @@ func decodeCatalogResponse[T any](t *testing.T, res *httptest.ResponseRecorder, 
 
 // Called by the single database lifecycle owner after a fresh migration.
 func testCatalogLifecycle(t *testing.T, db *gorm.DB) {
+	modelDiscoveryMigrationControls(t, db)
 	var upstreamFailure atomic.Bool
 	upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" || r.URL.Path != "/v1/models" {
@@ -324,5 +325,14 @@ func testCatalogLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Table("audit_events").Where("actor_id = ?", admin.User.ID).Count(&auditCount).Error; err != nil || auditCount < 10 {
 		t.Fatalf("catalog changes not audited: %d %v", auditCount, err)
 	}
+	testModelDiscoveryNotices(t, db, svc, router, admin, adminCookie, store)
+	testCredentialFailureManualVerification(t, db, svc, credential.ID, func(failed bool) {
+		upstreamFailure.Store(failed)
+		checked := decodeCatalogResponse[VerifyCredentialResponse](t, request("POST", credentialPath+"/verify", map[string]any{}), 200)
+		if checked.Verified == failed {
+			t.Fatal("controlled manual verification outcome changed")
+		}
+	})
+
 	t.Logf("catalog lifecycle verified: %d audit events", auditCount)
 }

@@ -81,6 +81,9 @@ func testProviderQualityMigration(t *testing.T, db *gorm.DB) {
 
 	// Reconstruct the last released V29 shape. Existing attempt and alert facts
 	// must survive without acquiring mutable catalog attribution.
+	// Remove successor notification envelopes before reconstructing historical
+	// columns; the full migration below restores their schema and receipts.
+	legacyOffboardingNotificationsBeforeV107(t, db)
 	for _, model := range []any{&entity.ProviderQualityState{}, &entity.ProviderQualityWindow{}, &entity.ProviderQualityPolicy{}} {
 		if err := db.Migrator().DropTable(model); err != nil {
 			t.Fatal(err)
@@ -262,6 +265,7 @@ func testProviderQualityMigration(t *testing.T, db *gorm.DB) {
 
 	// Reproduce interrupted MySQL DDL at independent V30 boundaries. A retry
 	// must restore columns, indexes, and the widened check without losing rows.
+	legacyOffboardingNotificationsBeforeV107(t, db)
 	if err := db.Migrator().DropColumn(&entity.Notification{}, "SubjectName"); err != nil {
 		t.Fatal(err)
 	}
@@ -282,6 +286,7 @@ func testProviderQualityMigration(t *testing.T, db *gorm.DB) {
 		t.Fatalf("partial V30 reentry lost provider quality state: %v", err)
 	}
 
+	legacyOffboardingNotificationsBeforeV107(t, db)
 	removeProviderQualityMigrationLedger(t, db)
 	if err := database.Migrate(context.Background(), db); err != nil {
 		t.Fatal(err)

@@ -11,12 +11,15 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/fox-gonic/fox"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
+	"github.com/miclle/routex/internal/routex/database"
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
 	"github.com/miclle/routex/internal/routex/service"
@@ -25,8 +28,25 @@ import (
 
 func testOffboardingLifecycle(t *testing.T, db *gorm.DB) {
 	t.Helper()
+	offboardingNotificationMigrationControls(t, db)
+	// Install the persistent fault before any Service worker starts. Only its
+	// synchronized arming changes while runtime publication may be active.
+	var rejectNotice atomic.Bool
+	const callback = "offboarding:reject-recipient-receipt"
+	if err := db.Callback().Create().Before("gorm:create").Register(callback, func(tx *gorm.DB) {
+		if rejectNotice.Load() && tx.Statement.Table == "offboarding_notification_recipients" {
+			_ = tx.AddError(errors.New("controlled recipient receipt failure"))
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := db.Callback().Create().Remove(callback); err != nil {
+			t.Error(err)
+		}
+	})
 	ctx := context.Background()
-	svc, err := service.New(ctx, db, service.WithRuntimeRefreshInterval(time.Hour))
+	svc, err := service.New(ctx, db, service.WithRuntimeRefreshInterval(time.Hour), service.WithSMTPPolicy(true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,6 +61,19 @@ func testOffboardingLifecycle(t *testing.T, db *gorm.DB) {
 	for _, userID := range []string{"usr_departing", "usr_successor", "usr_remaining", "usr_emergency", "usr_empty_team"} {
 		user := entity.User{ID: userID, Email: userID + "@example.invalid", Name: userID, PasswordHash: administrator.PasswordHash, Role: entity.RoleMember}
 		if err := db.Create(&user).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	now := time.Now().UTC()
+	if err := db.Model(&entity.SMTPSetting{}).Where("id = ?", 1).Updates(map[string]any{"enabled": true, "sender_email": "notices@example.invalid", "sender_name": "RouteX", "e_tag": "rev_offboarding_smtp", "updated_at": now}).Error; err != nil {
+		t.Fatal(err)
+	}
+	for _, setting := range []entity.NotificationSetting{
+		{UserID: admin.User.ID, ExternalEmail: "executor@example.invalid", EmailMedium: false, ETag: "rev_executor", UpdatedAt: now},
+		{UserID: "usr_successor", ExternalEmail: "successor@example.invalid", EmailMedium: true, ETag: "rev_successor", UpdatedAt: now},
+		{UserID: "usr_remaining", ExternalEmail: "remaining@example.invalid", EmailMedium: true, ETag: "rev_remaining", UpdatedAt: now},
+	} {
+		if err := db.Create(&setting).Error; err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -187,6 +220,7 @@ func testOffboardingLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Model(&entity.AuditEvent{}).Count(&auditsAfter).Error; err != nil || auditsAfter != auditsBefore {
 		t.Fatal("idempotent plan retry duplicated audit history")
 	}
+	assertNoOffboardingNotifications(t, db)
 	// A reviewed inventory cannot overwrite responsibilities added afterwards.
 	added := entity.ProjectManager{ID: "pjm_concurrent", ProjectID: "prj_sole", UserID: "usr_remaining"}
 	if err := db.Create(&added).Error; err != nil {
@@ -210,6 +244,38 @@ func testOffboardingLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	if err := db.Model(&entity.User{}).Where("id = ?", "usr_successor").Update("disabled", false).Error; err != nil {
 		t.Fatal(err)
+	}
+	// Publication failure rolls back the entire handover, Case, audit and all
+	// notification stages; it is not an eventually repaired partial completion.
+	transactionBeforeFailure := offboardingNotificationTransactionSnapshot(t, db)
+	var beforeFailure entity.OffboardingCase
+	if err := db.First(&beforeFailure, "id = ?", plan.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	var auditCountBeforeFailure int64
+	if err := db.Model(&entity.AuditEvent{}).Count(&auditCountBeforeFailure).Error; err != nil {
+		t.Fatal(err)
+	}
+	rejectNotice.Store(true)
+	_, noticeFailure := svc.CompleteOffboarding(ctx, admin.User.ID, "usr_departing", plan.ID)
+	rejectNotice.Store(false)
+	if noticeFailure == nil {
+		t.Fatal("recipient persistence failure did not abort completion")
+	}
+	var afterFailure entity.OffboardingCase
+	if err := db.First(&afterFailure, "id = ?", plan.ID).Error; err != nil || !reflect.DeepEqual(beforeFailure, afterFailure) {
+		t.Fatal("recipient failure changed Case receipt", err)
+	}
+	if err := db.First(&departing, "id = ?", "usr_departing").Error; err != nil || departing.Disabled {
+		t.Fatal("recipient failure partially disabled departing member")
+	}
+	var auditsAfterFailure int64
+	if err := db.Model(&entity.AuditEvent{}).Count(&auditsAfterFailure).Error; err != nil || auditsAfterFailure != auditCountBeforeFailure {
+		t.Fatal("recipient failure retained completion audit")
+	}
+	assertNoOffboardingNotifications(t, db)
+	if !reflect.DeepEqual(transactionBeforeFailure, offboardingNotificationTransactionSnapshot(t, db)) {
+		t.Fatal("recipient failure retained partial handover state")
 	}
 	// Governance locking serializes repeated completion, including its audit.
 	completed := make(chan error, 2)
@@ -247,6 +313,7 @@ func testOffboardingLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Model(&entity.APIKey{}).Where("user_id = ? AND status <> ?", "usr_departing", entity.KeyRevoked).Count(&keys).Error; err != nil || keys != 0 {
 		t.Fatal("completion missed a pending or active personal key")
 	}
+	assertOffboardingCompletionNotifications(t, db, svc, admin.User.ID, plan.ID, []string{admin.User.ID, "usr_successor"}, []string{"usr_successor"})
 	var successor entity.TeamMembership
 	if err := db.First(&successor, "team_id = ? AND user_id = ?", "tem_sole", "usr_successor").Error; err != nil || successor.Role != entity.TeamOwner || successor.Status != entity.ResourceActive {
 		t.Fatal("Team successor was not joined before ownership became effective")
@@ -292,6 +359,7 @@ func testOffboardingLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	testEmergencyOffboarding(t, db, svc, admin.User.ID)
 	testOffboardedAdministratorReactivation(t, db, svc, administrator)
+	testOffboardingNotificationSMTP(t, db, svc, administrator)
 }
 
 func testEmergencyOffboarding(t *testing.T, db *gorm.DB, svc *service.Service, adminID string) {
@@ -323,6 +391,7 @@ func testEmergencyOffboarding(t *testing.T, db *gorm.DB, svc *service.Service, a
 	if err != nil || replay.ID != result.ID {
 		t.Fatal("emergency retry was not idempotent")
 	}
+	assertOffboardingCompletionNotifications(t, db, svc, adminID, result.ID, []string{adminID, "usr_remaining"}, []string{"usr_remaining"})
 	var manager entity.ProjectManager
 	if err := db.First(&manager, "project_id = ?", "prj_usr_emergency").Error; err != nil || manager.UserID != adminID {
 		t.Fatal("emergency Project lost temporary administrator continuity")
@@ -529,4 +598,305 @@ func exerciseEnterpriseOffboarding(t *testing.T, ctx context.Context, db *gorm.D
 	}
 	assertRetained()
 	return assertRetained
+}
+
+// Prepare the ownership and refusal proofs before holding remote identity I/O.
+// The returned completion uses the real emergency HTTP entry, not planned handover.
+func prepareEmergencyEnterpriseOffboarding(t *testing.T, ctx context.Context, db *gorm.DB, svc *service.Service, userID, password string, admin, member SessionResponse, adminCookie, memberCookie *http.Cookie, request func(string, string, any, *http.Cookie, string, string, *http.Cookie) *httptest.ResponseRecorder, setStage func(string), recordHTTPFailure func(int, int)) (func(), func()) {
+	t.Helper()
+	checkStatus := func(response *httptest.ResponseRecorder, want int) {
+		t.Helper()
+		if response.Code != want {
+			recordHTTPFailure(response.Code, want)
+			t.Fatalf("emergency OIDC offboarding status=%d want=%d", response.Code, want)
+		}
+	}
+	modelID := "mdl_oidc_emergency"
+	const projectID, teamID = "prj_oidc_emergency", "tem_oidc_emergency"
+	personalBearer, projectBearer := "rx_"+strings.Repeat("e", 43), "rxp_"+strings.Repeat("r", 43)
+	// Ordinary ownership fixtures do not claim upstream invocation evidence.
+	rows := []any{
+		&entity.Model{ID: modelID, Status: entity.ResourceActive},
+		&entity.ModelName{Name: "oidc-emergency-model", ModelID: modelID, CurrentModelID: &modelID},
+		&entity.UserModelGrant{UserID: userID, ModelID: modelID},
+		&entity.APIKey{ID: "key_oidc_emergency", UserID: userID, Name: "Emergency personal Key", Prefix: personalBearer[:11], TokenHash: secret.SHA256Hex(personalBearer), Status: entity.KeyActive},
+		&entity.APIKeyModel{KeyID: "key_oidc_emergency", ModelID: modelID},
+		&entity.Project{ID: projectID, Name: "Emergency retained Project", Status: entity.ResourceActive, CreatorID: userID},
+		&entity.ProjectManager{ID: "pjm_oidc_emergency", ProjectID: projectID, UserID: userID},
+		&entity.ProjectModelGrant{ProjectID: projectID, ModelID: modelID},
+		&entity.ProjectKey{ID: "pky_oidc_emergency", ProjectID: projectID, CreatorID: userID, Name: "Emergency retained Project Key", Prefix: projectBearer[:12], TokenHash: secret.SHA256Hex(projectBearer), Status: entity.KeyActive, DeliveryMode: "manual"},
+		&entity.ProjectKeyModel{KeyID: "pky_oidc_emergency", ModelID: modelID},
+		&entity.Team{ID: teamID, Name: "Emergency retained Team", Status: entity.ResourceActive},
+		&entity.TeamMembership{ID: "tmm_oidc_emergency_owner", TeamID: teamID, UserID: userID, Role: entity.TeamOwner, Status: entity.ResourceActive},
+		&entity.TeamMembership{ID: "tmm_oidc_emergency_successor", TeamID: teamID, UserID: admin.User.ID, Role: entity.TeamMember, Status: entity.ResourceActive},
+		&entity.TeamModelGrant{TeamID: teamID, ModelID: modelID},
+	}
+	setStage("emergency_ownership_create")
+	for _, row := range rows {
+		if db.Create(row).Error != nil {
+			t.Fatal("create emergency ownership prerequisite")
+		}
+	}
+	// Persisted synthetic history proves retention only. Neither these rows nor
+	// their unknown native evidence claim an actual upstream invocation/completion.
+	historyIDs := []string{"req_oidc_emergency_personal", "req_oidc_emergency_project"}
+	stamp := time.Now().UTC().Truncate(time.Microsecond)
+	setStage("emergency_history_create")
+	for index, requestID := range historyIDs {
+		call := entity.CallRecord{RequestID: requestID, UserID: userID, KeyID: "key_oidc_emergency", ModelID: modelID, ModelName: "oidc-emergency-model", SnapshotID: "cfg_retained_history", ProviderModelID: "pmd_retained_history", ConnectionID: "con_retained_history", Protocol: entity.ProtocolOpenAIChat, Status: "error", ErrorCode: "upstream_unavailable", StartedAt: stamp, CompletedAt: stamp.Add(time.Millisecond), DurationMS: 1, CallPricingFields: entity.CallPricingFields{PricingStatus: "not_captured"}}
+		if index == 1 {
+			call.UserID, call.KeyID, call.ProjectID = "", "pky_oidc_emergency", projectID
+		}
+		attempt := entity.CallAttempt{ID: requestID + "_attempt", RequestID: requestID, ProviderModelID: call.ProviderModelID, ConnectionID: call.ConnectionID, AttemptNumber: 1, Status: "error", FailureClass: "permanent_failure", WorkEvidence: "unknown", NativeCompletionEvidence: "unknown", HTTPStatus: 503, ErrorCode: call.ErrorCode, StartedAt: call.StartedAt, CompletedAt: call.CompletedAt}
+		if db.Create(&call).Error != nil || db.Create(&attempt).Error != nil {
+			t.Fatal("persist synthetic emergency call and attempt history")
+		}
+	}
+	setStage("emergency_key_admission")
+	if auth, err := svc.AuthenticateAPIKey(ctx, personalBearer); err != nil || auth.Key.UserID != userID {
+		t.Fatal("emergency personal Key lacks admitted baseline")
+	}
+	if auth, err := svc.AuthenticateAPIKey(ctx, projectBearer); err != nil || auth.ProjectID != projectID {
+		t.Fatal("emergency Project Key lacks admitted baseline")
+	}
+	// Read the retained prerequisite rows independently of the service's joined
+	// admitted-successor queries. Count exact stored identities in Go, so this
+	// diagnostic does not repeat the exclusion predicate being investigated.
+	setStage("emergency_persisted_project_status")
+	var persistedProject entity.Project
+	if db.Where(database.ExactText(db, clause.Column{Name: "id"}, projectID)).Take(&persistedProject).Error != nil || persistedProject.ID != projectID || persistedProject.Status != entity.ResourceActive {
+		t.Fatal("emergency persisted Project is not exactly active")
+	}
+	setStage("emergency_persisted_team_status")
+	var persistedTeam entity.Team
+	if db.Where(database.ExactText(db, clause.Column{Name: "id"}, teamID)).Take(&persistedTeam).Error != nil || persistedTeam.ID != teamID || persistedTeam.Status != entity.ResourceActive {
+		t.Fatal("emergency persisted Team is not exactly active")
+	}
+	setStage("emergency_other_manager_count")
+	var persistedManagers []entity.ProjectManager
+	if db.Where(database.ExactText(db, clause.Column{Name: "project_id"}, projectID)).Order("id").Limit(3).Find(&persistedManagers).Error != nil || len(persistedManagers) == 3 {
+		t.Fatal("emergency exact manager diagnostic query failed or overflowed")
+	}
+	otherManagers := 0
+	for _, row := range persistedManagers {
+		if row.ProjectID != projectID {
+			t.Fatal("emergency manager diagnostic lost exact scope")
+		}
+		if row.UserID != userID {
+			otherManagers++
+		}
+	}
+	if len(persistedManagers) != 1 || otherManagers != 0 {
+		t.Fatalf("emergency manager prerequisite count=%d other=%d", len(persistedManagers), otherManagers)
+	}
+	setStage("emergency_other_active_owner_count")
+	var persistedMemberships []entity.TeamMembership
+	if db.Where(database.ExactText(db, clause.Column{Name: "team_id"}, teamID)).Order("id").Limit(3).Find(&persistedMemberships).Error != nil || len(persistedMemberships) == 3 {
+		t.Fatal("emergency exact owner diagnostic query failed or overflowed")
+	}
+	otherActiveOwners := 0
+	for _, row := range persistedMemberships {
+		if row.TeamID != teamID {
+			t.Fatal("emergency owner diagnostic lost exact scope")
+		}
+		if row.UserID != userID && row.Role == entity.TeamOwner && row.Status == entity.ResourceActive {
+			otherActiveOwners++
+		}
+	}
+	if len(persistedMemberships) != 2 || otherActiveOwners != 0 {
+		t.Fatalf("emergency owner prerequisite count=%d other=%d", len(persistedMemberships), otherActiveOwners)
+	}
+	base := "/api/v1/admin/members/" + userID + "/offboarding"
+	setStage("emergency_inventory_response_headers")
+	inventoryResponse := request("GET", base, nil, adminCookie, "", "", nil)
+	checkStatus(inventoryResponse, 200)
+	var inventory service.OffboardingInventory
+	setStage("emergency_inventory_decode")
+	if json.Unmarshal(inventoryResponse.Body.Bytes(), &inventory) != nil {
+		t.Fatal("emergency inventory decoding failed")
+	}
+	setStage("emergency_inventory_user")
+	if inventory.UserID != userID || inventory.Disabled {
+		t.Fatal("emergency inventory lost current member baseline")
+	}
+	setStage("emergency_inventory_project_count")
+	if len(inventory.Projects) != 1 {
+		t.Fatal("emergency inventory lost exact Project count")
+	}
+	setStage("emergency_inventory_team_count")
+	if len(inventory.Teams) != 1 {
+		t.Fatal("emergency inventory lost exact Team count")
+	}
+	setStage("emergency_inventory_project_id")
+	if inventory.Projects[0].ID != projectID {
+		t.Fatal("emergency inventory lost exact Project identity")
+	}
+	setStage("emergency_inventory_team_id")
+	if inventory.Teams[0].ID != teamID {
+		t.Fatal("emergency inventory lost exact Team identity")
+	}
+	setStage("emergency_inventory_project_successor")
+	if !inventory.Projects[0].RequiresSuccessor {
+		t.Fatal("emergency baseline lacks sole-manager continuity")
+	}
+	setStage("emergency_inventory_team_status")
+	if inventory.Teams[0].Status != entity.ResourceActive {
+		t.Fatal("emergency inventory Team status is not active")
+	}
+	setStage("emergency_inventory_team_successor")
+	if !inventory.Teams[0].RequiresSuccessor {
+		t.Fatal("emergency baseline lacks sole-owner continuity")
+	}
+	// Stable rows include credentials only in memory; never print the snapshot.
+	snapshot := func() []any {
+		t.Helper()
+		values := []struct {
+			rows  any
+			order string
+		}{
+			{&[]entity.User{}, "id"}, {&[]entity.Session{}, "id"}, {&[]entity.MFAChallenge{}, "user_id"},
+			{&[]entity.MFARecoveryCode{}, "user_id, code_hash"}, {&[]entity.OIDCProvider{}, "id"}, {&[]entity.OIDCBinding{}, "id"},
+			{&[]entity.APIKey{}, "id"}, {&[]entity.APIKeyModel{}, "key_id, model_id"},
+			{&[]entity.Project{}, "id"}, {&[]entity.ProjectManager{}, "id"}, {&[]entity.ProjectModelGrant{}, "project_id, model_id"},
+			{&[]entity.ProjectKey{}, "id"}, {&[]entity.ProjectKeyModel{}, "key_id, model_id"},
+			{&[]entity.Team{}, "id"}, {&[]entity.TeamMembership{}, "id"}, {&[]entity.TeamModelGrant{}, "team_id, model_id"},
+			{&[]entity.CallRecord{}, "request_id"}, {&[]entity.CallAttempt{}, "id"},
+			{&[]entity.OffboardingCase{}, "id"}, {&[]entity.AuditEvent{}, "id"},
+		}
+		captured := make([]any, 0, len(values))
+		for _, value := range values {
+			if db.Order(value.order).Find(value.rows).Error != nil {
+				t.Fatal("read emergency refusal snapshot")
+			}
+			captured = append(captured, value.rows)
+		}
+		return captured
+	}
+	input := OffboardingEmergencyRequest{RequestID: "req_oidc_emergency", CurrentPassword: password, Reason: "Controlled OIDC emergency containment"}
+	setStage("emergency_refusal_snapshot")
+	beforeRefusals := snapshot()
+	wrongPassword := input
+	wrongPassword.CurrentPassword = "test-only-wrong-emergency-password"
+	for _, refusal := range []struct {
+		stage  string
+		target string
+		body   OffboardingEmergencyRequest
+		cookie *http.Cookie
+		csrf   string
+		status int
+	}{
+		{"emergency_refusal_no_session", userID, input, nil, "", 401},
+		{"emergency_refusal_member", userID, input, memberCookie, member.CSRFToken, 403},
+		{"emergency_refusal_csrf", userID, input, adminCookie, "", 403},
+		{"emergency_refusal_password", userID, wrongPassword, adminCookie, admin.CSRFToken, 401},
+		{"emergency_refusal_alias", strings.ToUpper(userID), input, adminCookie, admin.CSRFToken, 404},
+	} {
+		setStage(refusal.stage)
+		checkStatus(request("POST", "/api/v1/admin/members/"+refusal.target+"/offboarding/emergency", refusal.body, refusal.cookie, refusal.csrf, "", nil), refusal.status)
+		if !reflect.DeepEqual(beforeRefusals, snapshot()) {
+			t.Fatal("refused emergency write changed authority, continuity or history")
+		}
+	}
+	setStage("emergency_capture_retained")
+	var projectBefore entity.Project
+	var keyBefore entity.ProjectKey
+	var grantBefore entity.ProjectModelGrant
+	var teamBefore entity.Team
+	var teamGrantBefore entity.TeamModelGrant
+	var callsBefore []entity.CallRecord
+	var attemptsBefore []entity.CallAttempt
+	var auditsBefore []entity.AuditEvent
+	if db.Take(&projectBefore, "id = ?", projectID).Error != nil || db.Take(&keyBefore, "id = ?", "pky_oidc_emergency").Error != nil || db.Take(&grantBefore, "project_id = ? AND model_id = ?", projectID, modelID).Error != nil || db.Take(&teamBefore, "id = ?", teamID).Error != nil || db.Take(&teamGrantBefore, "team_id = ? AND model_id = ?", teamID, modelID).Error != nil || db.Order("id").Find(&auditsBefore).Error != nil {
+		t.Fatal("capture retained emergency facts")
+	}
+	if db.Where("request_id IN ?", historyIDs).Order("request_id").Find(&callsBefore).Error != nil || len(callsBefore) != 2 || db.Where("request_id IN ?", historyIDs).Order("id").Find(&attemptsBefore).Error != nil || len(attemptsBefore) != 2 {
+		t.Fatal("capture exact persisted personal and Project history")
+	}
+	var receipt entity.OffboardingCase
+	assertRetained := func() {
+		t.Helper()
+		setStage("emergency_retained_authority")
+		if receipt.ID == "" {
+			t.Fatal("emergency containment lacks durable completed receipt")
+		}
+		for _, target := range []any{&entity.Session{}, &entity.MFAChallenge{}, &entity.ProjectManager{}, &entity.TeamMembership{}} {
+			var count int64
+			if db.Model(target).Where("user_id = ?", userID).Count(&count).Error != nil || count != 0 {
+				t.Fatal("emergency departure retained personal authority or responsibility")
+			}
+		}
+		var current entity.User
+		if db.Take(&current, "id = ?", userID).Error != nil || !current.Disabled || current.OffboardedAt == nil {
+			t.Fatal("emergency departure lost terminal account state")
+		}
+		if _, err := svc.AuthenticateAPIKey(ctx, personalBearer); !errors.Is(err, apperrors.ErrUnauthorized) {
+			t.Fatal("emergency departure retained personal Key authority")
+		}
+		var personalKey entity.APIKey
+		if db.Take(&personalKey, "id = ?", "key_oidc_emergency").Error != nil || personalKey.UserID != userID || personalKey.Status != entity.KeyRevoked {
+			t.Fatal("emergency departure did not persist exact personal Key revocation")
+		}
+		if auth, err := svc.AuthenticateAPIKey(ctx, projectBearer); err != nil || auth.ProjectID != projectID {
+			t.Fatal("emergency departure revoked independent Project Key")
+		}
+		setStage("emergency_retained_resources")
+		var projectAfter entity.Project
+		var keyAfter entity.ProjectKey
+		var grantAfter entity.ProjectModelGrant
+		var teamAfter entity.Team
+		var teamGrantAfter entity.TeamModelGrant
+		var receiptAfter entity.OffboardingCase
+		if db.Take(&projectAfter, "id = ?", projectID).Error != nil || db.Take(&keyAfter, "id = ?", keyBefore.ID).Error != nil || db.Take(&grantAfter, "project_id = ? AND model_id = ?", projectID, modelID).Error != nil || db.Take(&teamAfter, "id = ?", teamID).Error != nil || db.Take(&teamGrantAfter, "team_id = ? AND model_id = ?", teamID, modelID).Error != nil || db.Take(&receiptAfter, "id = ?", receipt.ID).Error != nil || !reflect.DeepEqual(projectBefore, projectAfter) || !reflect.DeepEqual(keyBefore, keyAfter) || !reflect.DeepEqual(grantBefore, grantAfter) || !reflect.DeepEqual(teamBefore, teamAfter) || !reflect.DeepEqual(teamGrantBefore, teamGrantAfter) || !reflect.DeepEqual(receipt, receiptAfter) {
+			t.Fatal("emergency departure or late callback changed retained resources or receipt")
+		}
+		setStage("emergency_retained_calls")
+		var callsAfter []entity.CallRecord
+		var attemptsAfter []entity.CallAttempt
+		if db.Where("request_id IN ?", historyIDs).Order("request_id").Find(&callsAfter).Error != nil || db.Where("request_id IN ?", historyIDs).Order("id").Find(&attemptsAfter).Error != nil || !reflect.DeepEqual(callsBefore, callsAfter) || !reflect.DeepEqual(attemptsBefore, attemptsAfter) {
+			t.Fatal("emergency departure, replay or late callback changed persisted call history")
+		}
+		setStage("emergency_retained_succession")
+		var managers []entity.ProjectManager
+		var owners []entity.TeamMembership
+		if db.Where("project_id = ?", projectID).Find(&managers).Error != nil || len(managers) != 1 || managers[0].UserID != admin.User.ID || db.Where("team_id = ?", teamID).Find(&owners).Error != nil || len(owners) != 1 || owners[0].UserID != admin.User.ID || owners[0].Role != entity.TeamOwner || owners[0].Status != entity.ResourceActive {
+			t.Fatal("emergency departure lost automatic Project or Team succession")
+		}
+		setStage("emergency_retained_audit")
+		var caseCount, completionCount, planCount int64
+		if db.Model(&entity.OffboardingCase{}).Where("user_id = ?", userID).Count(&caseCount).Error != nil || caseCount != 1 || db.Model(&entity.AuditEvent{}).Where("action = ? AND resource_id = ?", "offboarding.complete", receipt.ID).Count(&completionCount).Error != nil || completionCount != 1 || db.Model(&entity.AuditEvent{}).Where("action = ? AND resource_id = ?", "offboarding.plan", receipt.ID).Count(&planCount).Error != nil || planCount != 0 {
+			t.Fatal("emergency retry duplicated history or fabricated a planned case")
+		}
+		for _, original := range auditsBefore {
+			var current entity.AuditEvent
+			if db.Take(&current, "id = ?", original.ID).Error != nil || !reflect.DeepEqual(original, current) {
+				t.Fatal("emergency departure rewrote prior audit history")
+			}
+		}
+		setStage("emergency_administrator_session")
+		checkStatus(request("GET", "/api/v1/auth/session", nil, adminCookie, "", "", nil), 200)
+	}
+	complete := func() {
+		t.Helper()
+		setStage("emergency_complete")
+		response := request("POST", base+"/emergency", input, adminCookie, admin.CSRFToken, "", nil)
+		checkStatus(response, 200)
+		var result service.OffboardingCaseRecord
+		if json.Unmarshal(response.Body.Bytes(), &result) != nil || result.ID == "" || result.UserID != userID || result.ActorID != admin.User.ID || result.RequestID != input.RequestID || result.Mode != "emergency" || result.Status != "completed" || result.PlannedAt != nil || result.CompletedAt == nil || result.CompletedBy != admin.User.ID || result.Reason != input.Reason || len(result.Assignments.Projects) != 1 || result.Assignments.Projects[0].ProjectID != projectID || !reflect.DeepEqual(result.Assignments.Projects[0].ManagerUserIDs, []string{admin.User.ID}) || len(result.Assignments.Teams) != 1 || result.Assignments.Teams[0].TeamID != teamID || !reflect.DeepEqual(result.Assignments.Teams[0].OwnerUserIDs, []string{admin.User.ID}) {
+			t.Fatal("invalid exact emergency containment receipt")
+		}
+		if db.Take(&receipt, "id = ?", result.ID).Error != nil {
+			t.Fatal("read durable emergency receipt")
+		}
+		setStage("emergency_receipt_replay")
+		replay := request("POST", base+"/emergency", input, adminCookie, admin.CSRFToken, "", nil)
+		checkStatus(replay, 200)
+		if !bytes.Equal(response.Body.Bytes(), replay.Body.Bytes()) {
+			t.Fatal("emergency retry changed original public receipt")
+		}
+		setStage("emergency_changed_intent")
+		changed := input
+		changed.Reason = "Different emergency intent"
+		checkStatus(request("POST", base+"/emergency", changed, adminCookie, admin.CSRFToken, "", nil), 409)
+	}
+	return complete, assertRetained
 }

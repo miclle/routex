@@ -1,3 +1,4 @@
+import { validCredentialInferenceAlert } from './credential-inference-notices'
 import axios from 'axios'
 import client from './client'
 import { validRoleAssignment } from '@/lib/role-assignment'
@@ -17,8 +18,72 @@ export class OverviewError extends Error {
   }
 }
 
+export function validModelDiscoveryAlert(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const item = value as Record<string, unknown>
+  const allowed = [
+    'id',
+    'kind',
+    'detail_code',
+    'severity',
+    'state',
+    'occurrence_count',
+    'first_seen_at',
+    'last_seen_at',
+    'updated_at',
+    'etag',
+    'subject_type',
+    'subject_id',
+    'subject_name',
+    'first_recorded_model_count',
+  ]
+  const id = (value: unknown, prefix: string) =>
+    typeof value === 'string' && new RegExp(`^${prefix}_[0-7][0-9a-hjkmnp-tv-z]{25}$`).test(value)
+  const stamp = (value: unknown): value is string =>
+    typeof value === 'string' &&
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.test(value) &&
+    Number.isFinite(Date.parse(value))
+  return (
+    Object.keys(item).every((key) => allowed.includes(key)) &&
+    id(item.id, 'alr') &&
+    id(item.etag, 'rev') &&
+    item.kind === 'models_first_recorded' &&
+    item.severity === 'low' &&
+    item.detail_code === 'first_recorded' &&
+    ['open', 'handling', 'resolved'].includes(item.state as string) &&
+    item.subject_type === 'provider' &&
+    id(item.subject_id, 'prv') &&
+    typeof item.subject_name === 'string' &&
+    item.subject_name.length > 0 &&
+    item.subject_name.trim() === item.subject_name &&
+    [...item.subject_name].length <= 100 &&
+    !/\p{Cc}/u.test(item.subject_name) &&
+    Number.isSafeInteger(item.first_recorded_model_count) &&
+    (item.first_recorded_model_count as number) >= 1 &&
+    (item.first_recorded_model_count as number) <= 2000 &&
+    Number.isSafeInteger(item.occurrence_count) &&
+    (item.occurrence_count as number) >= 1 &&
+    stamp(item.first_seen_at) &&
+    stamp(item.last_seen_at) &&
+    stamp(item.updated_at) &&
+    Date.parse(item.first_seen_at) <= Date.parse(item.last_seen_at)
+  )
+}
+
 export async function getAdminOverview(signal?: AbortSignal) {
-  return (await client.get<AdminOverview>('/admin/overview', { signal })).data
+  const data = (await client.get<AdminOverview>('/admin/overview', { signal })).data
+  if (
+    Array.isArray(data?.alerts) &&
+    data.alerts.some(
+      (item) =>
+        ((item.kind === 'credential_inference_failure' || Object.hasOwn(item, 'credential_id')) &&
+          !validCredentialInferenceAlert(item)) ||
+        ((item.kind === 'models_first_recorded' || item.first_recorded_model_count != null) &&
+          !validModelDiscoveryAlert(item)),
+    )
+  )
+    throw new OverviewError(0)
+  return data
 }
 
 export async function updateOperationalAlert(
@@ -27,13 +92,21 @@ export async function updateOperationalAlert(
   csrf: string,
 ) {
   try {
-    return (
+    const data = (
       await client.patch<OperationalAlert>(
         `/admin/alerts/${encodeURIComponent(id)}`,
         { state: input.state, etag: input.etag },
         { headers: { 'X-CSRF-Token': csrf, 'If-Match': input.etag } },
       )
     ).data
+    if (
+      ((data.kind === 'credential_inference_failure' || Object.hasOwn(data, 'credential_id')) &&
+        !validCredentialInferenceAlert(data)) ||
+      ((data.kind === 'models_first_recorded' || data.first_recorded_model_count != null) &&
+        !validModelDiscoveryAlert(data))
+    )
+      throw new OverviewError(0)
+    return data
   } catch (error) {
     throw new OverviewError(axios.isAxiosError(error) ? (error.response?.status ?? 0) : 0)
   }

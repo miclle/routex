@@ -60,8 +60,12 @@ func smtpDeliveryFixture(t *testing.T) (string, int, *atomic.Int32) {
 							return
 						}
 						text := string(body)
-						if (!strings.Contains(text, "Subject: RouteX SMTP test") && !strings.Contains(text, "Subject: RouteX operational alert:")) || strings.Contains(text, "test-only-smtp-password") {
+						completion := strings.Contains(text, "Subject: RouteX offboarding completed")
+						if (!strings.Contains(text, "Subject: RouteX SMTP test") && !strings.Contains(text, "Subject: RouteX operational alert:") && !completion) || strings.Contains(text, "test-only-smtp-password") {
 							t.Error("unsafe test message")
+						}
+						if completion && (strings.Contains(text, "usr_") || strings.Contains(text, "off_") || !strings.Contains(text, "applied responsibility successor")) {
+							t.Error("unsafe completion message")
 						}
 						messages.Add(1)
 						_, _ = io.WriteString(conn, "250 accepted\r\n")

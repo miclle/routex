@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { useCallback, useState, useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
+import { sessionKey } from '@/hooks/use-auth'
+import type { Session } from '@/types/auth'
 import { Search, X } from 'lucide-react'
 import { listAudit } from '@/api/audit'
 import type {
+  RuntimePublicationAuditChanges,
   AuditCategory,
   AuditChanges,
   AuditFilters,
@@ -62,19 +65,68 @@ function isIdentityChanges(
       changes.kind === 'telegram_identity')
   )
 }
+function isPublicationChanges(changes: AuditChanges): changes is RuntimePublicationAuditChanges {
+  return 'kind' in changes && changes.kind === 'runtime_publication'
+}
+// Subscribe to admission changes synchronously; successful renewals own a new
+// query lifetime even when the actor ID is unchanged.
+function useAuditAuthority() {
+  const cache = useQueryClient()
+  const snapshot = useCallback(() => {
+    const session = cache.getQueryState<Session>(sessionKey)
+    const actorID = session?.data?.user.id
+    const permissions = cache.getQueryState<string[]>(['permissions', actorID])
+    const states = [session, permissions].map((state) => ({
+      status: state?.status ?? 'pending',
+      fetching: state?.fetchStatus ?? 'idle',
+      invalidated: state?.isInvalidated ?? true,
+      generation: state?.dataUpdateCount ?? 0,
+    }))
+    const ready =
+      !!actorID &&
+      permissions?.data?.includes('audit.read') === true &&
+      states.every(
+        (state) => state.status === 'success' && state.fetching === 'idle' && !state.invalidated,
+      )
+    return JSON.stringify({ actorID, ready, states })
+  }, [cache])
+  const subscribe = useCallback(
+    (changed: () => void) => cache.getQueryCache().subscribe(changed),
+    [cache],
+  )
+  const basis = useSyncExternalStore(subscribe, snapshot, snapshot)
+  const { ready } = JSON.parse(basis) as { ready: boolean }
+  return {
+    basis,
+    ready,
+    error: cache.getQueryState(sessionKey)?.error,
+    retry: () => {
+      if (snapshot() === basis) void cache.refetchQueries({ queryKey: sessionKey })
+    },
+    isCurrent: () => ready && snapshot() === basis,
+  }
+}
+function AuthorizedAuditRecords() {
+  const authority = useAuditAuthority()
+  return authority.ready ? (
+    <AuditRecords key={authority.basis} authority={authority} />
+  ) : (
+    <QueryState pending={!authority.error} error={authority.error} retry={authority.retry} />
+  )
+}
 export default function AuditPage() {
   return (
     <PermissionGate permission="audit.read">
-      <AuditRecords />
+      <AuthorizedAuditRecords />
     </PermissionGate>
   )
 }
-function AuditRecords() {
+function AuditRecords({ authority }: { authority: ReturnType<typeof useAuditAuthority> }) {
   const { t, i18n } = useTranslation('audit')
   const [filters, setFilters] = useState<AuditFilters>({ range: '7d', category: 'all', q: '' })
   const [selected, setSelected] = useState<AuditRecord | null>(null)
   const query = useInfiniteQuery({
-    queryKey: ['audit', filters],
+    queryKey: ['audit', authority.basis, filters],
     queryFn: ({ pageParam, signal }) => listAudit(filters, pageParam, signal),
     initialPageParam: null as string | null,
     getNextPageParam: (page) => page.next_cursor ?? undefined,
@@ -92,6 +144,11 @@ function AuditRecords() {
   }
   function summary(record: AuditRecord) {
     if (!record.changes) return missing
+    if (isPublicationChanges(record.changes))
+      return t('publicationSummary', {
+        outcome: t(`publication_${record.changes.outcome}`),
+        reason: record.changes.reason,
+      })
     if (isIdentityChanges(record.changes)) return `${t('reason')}: ${record.changes.reason}`
     if (isCleanupChanges(record.changes)) return t('cleanupSummary', { count: 1 })
     return `${JSON.stringify(record.changes.before)} → ${JSON.stringify(record.changes.after)}`
@@ -112,6 +169,8 @@ function AuditRecords() {
       ]
     : []
   const selectedChanges = selected?.changes ?? null
+  const currentSelection =
+    authority.isCurrent() && !query.isError && (!query.isFetching || query.isFetchingNextPage)
   return (
     <Page title={t('title')} description={t('scope')}>
       <div className="flex flex-wrap items-center gap-3" role="search" aria-label={t('filters')}>
@@ -168,7 +227,9 @@ function AuditRecords() {
       <QueryState
         pending={query.isPending}
         error={query.isFetchNextPageError ? null : query.error}
-        retry={() => void query.refetch()}
+        retry={() => {
+          if (authority.isCurrent()) void query.refetch()
+        }}
       />
       {!query.isPending && !query.isError && !items.length && (
         <p role="status" className="p-8 text-center text-sm text-muted-foreground">
@@ -202,7 +263,9 @@ function AuditRecords() {
                 <tr
                   key={record.id}
                   className="cursor-pointer hover:bg-muted/30"
-                  onClick={() => setSelected(record)}
+                  onClick={() => {
+                    if (authority.isCurrent() && currentSelection) setSelected(record)
+                  }}
                 >
                   <td className="truncate px-3 py-2">
                     <button
@@ -240,7 +303,9 @@ function AuditRecords() {
           <Button
             variant="outline"
             disabled={query.isFetching}
-            onClick={() => void query.fetchNextPage({ cancelRefetch: false })}
+            onClick={() => {
+              if (authority.isCurrent()) void query.fetchNextPage({ cancelRefetch: false })
+            }}
           >
             {t(
               query.isFetchingNextPage
@@ -253,14 +318,14 @@ function AuditRecords() {
         </div>
       )}
       <Drawer
-        open={!!selected}
+        open={!!selected && currentSelection}
         onOpenChange={(open) => {
           if (!open) setSelected(null)
         }}
         title={t('details')}
         description={t('scope')}
       >
-        {selected && (
+        {selected && currentSelection && (
           <dl className="divide-y rounded-md border">
             {descriptionRows.map(([label, value]) => (
               <div key={label} className="grid grid-cols-[150px_minmax(0,1fr)] text-sm">
@@ -285,6 +350,19 @@ function AuditRecords() {
                   <p className="whitespace-pre-wrap break-all">
                     {t('reason')}: {selectedChanges.reason}
                   </p>
+                ) : selectedChanges && isPublicationChanges(selectedChanges) ? (
+                  <div className="space-y-3">
+                    <p className="break-all font-mono text-xs">
+                      {t('publicationRequestID')}: {selectedChanges.command_request_id}
+                    </p>
+                    <p>
+                      {t('publicationOutcome')}: {t(`publication_${selectedChanges.outcome}`)}
+                    </p>
+                    <p className="whitespace-pre-wrap break-all">
+                      {t('reason')}: {selectedChanges.reason}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{t('publicationScope')}</p>
+                  </div>
                 ) : selectedChanges ? (
                   <div className="space-y-3">
                     {(['before', 'after'] as const).map((field) => (

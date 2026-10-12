@@ -1,9 +1,11 @@
+import { recordedCredentialInference } from '@/api/credential-inference-notices'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Bell, CheckCheck, CircleAlert, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
   getNotifications,
+  recordedModelDiscovery,
   recordedMonthlyQuota,
   recordedMonthlyQuotaWarning,
   recordedPersonalRollingQuotaWarning,
@@ -29,6 +31,19 @@ function itemText(
   recipientId: string,
   t: ReturnType<typeof useTranslation>['t'],
 ) {
+  if (notification.kind === 'credential_inference_failure')
+    return recordedCredentialInference(notification)
+      ? t('items.credential_inference_failure.five_consecutive_recorded_failures', {
+          id: notification.credential_id,
+        })
+      : t('items.credential_inference_failure.default')
+  if (notification.kind === 'models_first_recorded') {
+    return recordedModelDiscovery(notification)
+      ? t('items.models_first_recorded.first_recorded', {
+          count: notification.first_recorded_model_count,
+        })
+      : t('items.models_first_recorded.default')
+  }
   if (notification.kind === 'project_rolling_quota_warning') {
     const warning = recordedProjectRollingQuotaWarning(notification, recipientId)
     return warning
@@ -99,6 +114,8 @@ function deliveryText(notification: Notification, t: ReturnType<typeof useTransl
 }
 
 function subjectText(notification: Notification, t: ReturnType<typeof useTranslation>['t']) {
+  if (recordedCredentialInference(notification))
+    return t('subject.credential', { id: notification.credential_id })
   if (
     notification.kind === 'monthly_quota_warning' ||
     notification.kind === 'personal_rolling_quota_warning' ||

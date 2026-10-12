@@ -178,3 +178,71 @@ func TestTeamLimitAuditScopeIsBoundedAndTyped(t *testing.T) {
 		t.Fatal("arbitrary Team scope exposed")
 	}
 }
+
+func TestRuntimePublicationAuditProjection(t *testing.T) {
+	const requestID = "6f739b12-12ce-4a20-8da7-000000000001"
+	raw := `{"request_id":"` + requestID + `","reason":"Reviewed publication 原因","outcome":"claimed"}`
+	row := entity.AuditEvent{ActorID: "usr_01m36yee4gkbns18pfcqqc75a3", Action: "runtime.publication.claim", ResourceType: "system_instance", ResourceID: "ins_01m36yee4gkbns18pfcqqc75a3", DetailsJSON: &raw}
+	for _, pair := range []struct{ action, outcome string }{{"runtime.publication.claim", "claimed"}, {"runtime.publication.finalize", "refresh_returned_nil"}, {"runtime.publication.finalize", "refresh_returned_error"}} {
+		t.Run(pair.outcome, func(t *testing.T) {
+			value := strings.Replace(raw, `"claimed"`, `"`+pair.outcome+`"`, 1)
+			event := row
+			event.Action = pair.action
+			event.DetailsJSON = &value
+			record := auditRecord(event)
+			want := `{"kind":"runtime_publication","command_request_id":"` + requestID + `","reason":"Reviewed publication 原因","outcome":"` + pair.outcome + `"}`
+			if string(record.Changes) != want || record.Result != "committed" || record.RequestID != nil || record.Source != nil || record.IP != nil {
+				t.Fatalf("incorrect historical projection: %s", record.Changes)
+			}
+		})
+	}
+	invalid := []string{
+		raw + `{}`, `{broken`, `[]`, `null`,
+		strings.Replace(raw, `"outcome":"claimed"`, `"outcome":"refresh_returned_nil"`, 1),
+		strings.Replace(raw, `"outcome":"claimed"`, `"outcome":"pending"`, 1),
+		strings.Replace(raw, `"outcome":"claimed"`, `"outcome":null`, 1),
+		strings.Replace(raw, `"outcome":"claimed"`, `"outcome":true`, 1),
+		strings.Replace(raw, `"reason":"Reviewed publication 原因"`, `"reason":""`, 1),
+		strings.Replace(raw, `"reason":"Reviewed publication 原因"`, `"reason":" leading"`, 1),
+		strings.Replace(raw, `"reason":"Reviewed publication 原因"`, `"reason":"trailing "`, 1),
+		strings.Replace(raw, `"reason":"Reviewed publication 原因"`, `"reason":"bad\nreason"`, 1),
+		strings.Replace(raw, `"reason":"Reviewed publication 原因"`, `"reason":"\ud800"`, 1),
+		strings.Replace(raw, `"reason":"Reviewed publication 原因"`, `"reason":42`, 1),
+		strings.Replace(raw, `"reason":"Reviewed publication 原因"`, `"reason":"`+strings.Repeat("界", 1001)+`"`, 1),
+		strings.Replace(raw, requestID, strings.ToUpper(requestID), 1),
+		strings.Replace(raw, requestID, "6f739b12-12ce-5a20-8da7-000000000001", 1),
+		strings.Replace(raw, `"request_id":"`+requestID+`"`, `"request_id":null`, 1),
+		strings.Replace(raw, `"outcome":"claimed"`, `"outcome":"claimed","secret":"do-not-leak"`, 1),
+		strings.Replace(raw, `"outcome":"claimed"`, `"outcome":"claimed","outcome":"claimed"`, 1),
+		strings.Replace(raw, `"reason"`, `"Reason"`, 1),
+		strings.Replace(raw, `"reason":"Reviewed publication 原因",`, "", 1),
+		strings.Replace(raw, "Reviewed publication 原因", string([]byte{255}), 1),
+		strings.Repeat(" ", 64*1024) + raw,
+	}
+	for i, value := range invalid {
+		event := row
+		event.DetailsJSON = &value
+		if got := auditRecord(event); got.Changes != nil || got.RequestID != nil {
+			t.Fatalf("exposed invalid publication detail %d", i)
+		}
+	}
+	for _, mutate := range []func(*entity.AuditEvent){
+		func(e *entity.AuditEvent) { e.Action = "runtime.publication.finalize" },
+		func(e *entity.AuditEvent) { e.Action = "runtime.publication.unknown" },
+		func(e *entity.AuditEvent) { e.ResourceType = "model" },
+		func(e *entity.AuditEvent) { e.ResourceID = "ins_invalid" },
+		func(e *entity.AuditEvent) { e.ActorID = "usr_invalid space" },
+	} {
+		event := row
+		mutate(&event)
+		if auditRecord(event).Changes != nil {
+			t.Fatal("exposed wrongly attributed publication detail")
+		}
+	}
+	// Preserve the writer's complete 1000-rune bound without byte truncation.
+	boundary := strings.Replace(raw, "Reviewed publication 原因", strings.Repeat("界", 1000), 1)
+	row.DetailsJSON = &boundary
+	if auditRecord(row).Changes == nil {
+		t.Fatal("redacted valid bounded Unicode reason")
+	}
+}

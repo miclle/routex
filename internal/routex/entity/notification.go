@@ -6,50 +6,56 @@ import "time"
 // failures. Source occurrences are stored separately so retries cannot inflate
 // the count or create duplicate recipient notifications.
 type OperationalAlert struct {
-	ID              string    `gorm:"primaryKey;size:30"`
-	GroupKey        string    `gorm:"size:120;not null;uniqueIndex"`
-	Kind            string    `gorm:"size:40;not null"`
-	Severity        string    `gorm:"size:10;not null;index:idx_operational_alerts_severity_state,priority:1"`
-	DetailCode      string    `gorm:"size:40;not null"`
-	SubjectType     string    `gorm:"size:20;not null;default:''"`
-	SubjectID       string    `gorm:"size:64;not null;default:''"`
-	SubjectName     string    `gorm:"size:128;not null;default:''"`
-	State           string    `gorm:"size:12;not null;index:idx_operational_alerts_severity_state,priority:2"`
-	OccurrenceCount int       `gorm:"not null"`
-	FirstSeenAt     time.Time `gorm:"precision:6;not null"`
-	LastSeenAt      time.Time `gorm:"precision:6;not null;index:idx_operational_alerts_last_seen"`
-	ETag            string    `gorm:"size:30;not null"`
-	UpdatedAt       time.Time `gorm:"precision:6;not null"`
+	CredentialID            string    `gorm:"size:30;not null;default:''"`
+	FirstRecordedModelCount int       `gorm:"not null;default:0"`
+	ID                      string    `gorm:"primaryKey;size:30"`
+	GroupKey                string    `gorm:"size:120;not null;uniqueIndex"`
+	Kind                    string    `gorm:"size:40;not null"`
+	Severity                string    `gorm:"size:10;not null;index:idx_operational_alerts_severity_state,priority:1"`
+	DetailCode              string    `gorm:"size:40;not null"`
+	SubjectType             string    `gorm:"size:20;not null;default:''"`
+	SubjectID               string    `gorm:"size:64;not null;default:''"`
+	SubjectName             string    `gorm:"size:128;not null;default:''"`
+	State                   string    `gorm:"size:12;not null;index:idx_operational_alerts_severity_state,priority:2"`
+	OccurrenceCount         int       `gorm:"not null"`
+	FirstSeenAt             time.Time `gorm:"precision:6;not null"`
+	LastSeenAt              time.Time `gorm:"precision:6;not null;index:idx_operational_alerts_last_seen"`
+	ETag                    string    `gorm:"size:30;not null"`
+	UpdatedAt               time.Time `gorm:"precision:6;not null"`
 }
 
 type OperationalAlertOccurrence struct {
-	ID          string    `gorm:"primaryKey;size:30"`
-	AlertID     string    `gorm:"size:30;not null;index"`
-	SourceType  string    `gorm:"size:32;not null;uniqueIndex:idx_alert_occurrence_source,priority:1"`
-	SourceID    string    `gorm:"size:80;not null;uniqueIndex:idx_alert_occurrence_source,priority:2"`
-	DetailCode  string    `gorm:"size:40;not null"`
-	SubjectType string    `gorm:"size:20;not null;default:''"`
-	SubjectID   string    `gorm:"size:64;not null;default:''"`
-	SubjectName string    `gorm:"size:128;not null;default:''"`
-	OccurredAt  time.Time `gorm:"precision:6;not null"`
+	CredentialID            string    `gorm:"size:30;not null;default:''"`
+	FirstRecordedModelCount int       `gorm:"not null;default:0"`
+	ID                      string    `gorm:"primaryKey;size:30"`
+	AlertID                 string    `gorm:"size:30;not null;index"`
+	SourceType              string    `gorm:"size:32;not null;uniqueIndex:idx_alert_occurrence_source,priority:1"`
+	SourceID                string    `gorm:"size:80;not null;uniqueIndex:idx_alert_occurrence_source,priority:2"`
+	DetailCode              string    `gorm:"size:40;not null"`
+	SubjectType             string    `gorm:"size:20;not null;default:''"`
+	SubjectID               string    `gorm:"size:64;not null;default:''"`
+	SubjectName             string    `gorm:"size:128;not null;default:''"`
+	OccurredAt              time.Time `gorm:"precision:6;not null"`
 }
 
 type Notification struct {
-	ID                 string     `gorm:"primaryKey;size:30"`
-	RecipientID        string     `gorm:"size:30;not null;uniqueIndex:idx_notifications_recipient_alert,priority:1;index:idx_notifications_recipient_last_seen,priority:1"`
-	AlertID            string     `gorm:"size:30;not null;uniqueIndex:idx_notifications_recipient_alert,priority:2"`
-	LatestOccurrenceID string     `gorm:"size:30;not null"`
-	Kind               string     `gorm:"size:40;not null"`
-	Severity           string     `gorm:"size:10;not null"`
-	DetailCode         string     `gorm:"size:40;not null"`
-	SubjectType        string     `gorm:"size:20;not null;default:''"`
-	SubjectID          string     `gorm:"size:64;not null;default:''"`
-	SubjectName        string     `gorm:"size:128;not null;default:''"`
-	OccurrenceCount    int        `gorm:"not null"`
-	Read               bool       `gorm:"not null;index:idx_notifications_recipient_read,priority:2"`
-	FirstSeenAt        time.Time  `gorm:"precision:6;not null"`
-	LastSeenAt         time.Time  `gorm:"precision:6;not null;index:idx_notifications_recipient_last_seen,priority:2"`
-	ReadAt             *time.Time `gorm:"precision:6"`
+	CredentialID            string     `gorm:"size:30;not null;default:''"`
+	FirstRecordedModelCount int        `gorm:"not null;default:0"`
+	ID                      string     `gorm:"primaryKey;size:30"`
+	RecipientID             string     `gorm:"size:30;not null;uniqueIndex:idx_notifications_recipient_alert,priority:1;index:idx_notifications_recipient_last_seen,priority:1"`
+	AlertID                 string     `gorm:"size:30;not null;uniqueIndex:idx_notifications_recipient_alert,priority:2"`
+	LatestOccurrenceID      string     `gorm:"size:30;not null"`
+	Kind                    string     `gorm:"size:40;not null"`
+	Severity                string     `gorm:"size:10;not null"`
+	DetailCode              string     `gorm:"size:40;not null"`
+	SubjectType             string     `gorm:"size:20;not null;default:''"`
+	SubjectID               string     `gorm:"size:64;not null;default:''"`
+	SubjectName             string     `gorm:"size:128;not null;default:''"`
+	OccurrenceCount         int        `gorm:"not null"`
+	Read                    bool       `gorm:"not null;index:idx_notifications_recipient_read,priority:2"`
+	FirstSeenAt             time.Time  `gorm:"precision:6;not null"`
+	LastSeenAt              time.Time  `gorm:"precision:6;not null;index:idx_notifications_recipient_last_seen,priority:2"`
+	ReadAt                  *time.Time `gorm:"precision:6"`
 }
 
 type NotificationSetting struct {
@@ -62,6 +68,7 @@ type NotificationSetting struct {
 }
 
 type NotificationDeliveryIntent struct {
+	CredentialID   string     `gorm:"size:30;not null;default:''"`
 	ID             string     `gorm:"primaryKey;size:30"`
 	OccurrenceID   string     `gorm:"size:30;not null;uniqueIndex:idx_notification_delivery_occurrence_recipient,priority:1"`
 	RecipientID    string     `gorm:"size:30;not null;uniqueIndex:idx_notification_delivery_occurrence_recipient,priority:2"`

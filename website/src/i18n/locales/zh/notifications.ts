@@ -56,10 +56,14 @@ export default {
     unknownTime: '时间未知',
   },
   subject: {
+    credential: '凭证：{{id}}',
     provider: '供应商：{{name}}',
     model: '模型：{{name}}',
   },
   categories: {
+    credential_inference_failure: '凭证推理',
+    models_first_recorded: '模型发现',
+    offboarding_completed: '离职交接',
     system_job_failure: '系统任务',
     credential_verification_failure: '凭证验证',
     provider_quality_degraded: '供应商质量',
@@ -80,6 +84,20 @@ export default {
     unknown: '邮件投递结果未知',
   },
   items: {
+    credential_inference_failure: {
+      default: '已记录的凭证推理提醒',
+      five_consecutive_recorded_failures:
+        '凭证 {{id}} 已连续记录五次推理失败。记录到成功推理后会解除本轮告警，并允许新一轮提醒；此记录不代表当前健康状态。',
+    },
+    models_first_recorded: {
+      default: '显式发现成功，已首次记录上游模型。',
+      first_recorded_one: '最近一次显式发现首次记录了 {{count}} 个上游模型。',
+      first_recorded_other: '最近一次显式发现首次记录了 {{count}} 个上游模型。',
+    },
+    offboarding_completed: {
+      default: '离职交接已完成。此通知仅发送给执行管理员或实际承接职责的成员。',
+      completed: '离职交接已完成。此通知仅发送给执行管理员或实际承接职责的成员。',
+    },
     personal_rolling_quota_warning: {
       default: '已记录个人滚动 Token 配额提醒。',
       tokens_5h_near: '已记录个人滚动五小时 Token 配额提醒。',
@@ -164,6 +182,7 @@ export default {
       money_month_exhausted: '月度金额已达到上限。',
     },
     system_job_failure: {
+      rotation_blocked: '根密钥轮换批次在完成前被阻塞。',
       default: '系统任务执行失败。',
       runtime_publication: '运行时发布失败。',
       call_record_delivery: '调用记录投递失败。',
