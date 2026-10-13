@@ -1,5 +1,22 @@
 # RouteX Implementation and Acceptance Index
 
+## Provider observations delivery (2026-10-13)
+
+Provider observations are delivered in
+`adf3363527743627a8a89ff375a95e4269201224`, with exact local/remote main
+readback. The existing report now explains captured rate-limited/server-error
+attempts, unknown attribution and unknown eligible duration. English/Chinese
+copy keeps overlapping attempts, empty captures and unavailable evidence
+separate. It introduces no live-health conclusion, alert or AI data expansion.
+
+Fresh focused frontend qualification passed 78 tests in five files. Composed
+primary formatting and mandatory checking passed before the seven-path commit.
+Browser acceptance remains open; the current desktop connection timed out and
+does not block independent work. Confirmed questions, real local S3/SMTP
+acceptance, publication interruption and the quota candidate remain separate
+packages. The complete goal remains active; totals stay 16 Completed / 14 Partial
+/ 0 Not started. Older preparation statements below describe prior checkpoints.
+
 ## Provider mean phase (2026-10-13)
 
 Provider quality now includes the nullable arithmetic mean of recorded eligible
