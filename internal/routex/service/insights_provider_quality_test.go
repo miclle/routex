@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
+	"math"
 	"reflect"
 	"strings"
 	"testing"
@@ -148,5 +149,104 @@ func TestInsightsProviderQualitySubMicrosecondStoredBoundaries(t *testing.T) {
 				t.Fatal("stored boundary mismatch", delta, row)
 			}
 		}
+	}
+}
+
+func TestInsightsProviderQualityMeanUsesKnownEligibleFullAttempts(t *testing.T) {
+	duration := func(value int64) *int64 { return &value }
+	rows := []entity.CallAttempt{
+		{ProviderID: "prv_A", Status: "success", DurationMS: duration(1), NativeCompletionEvidence: "handoff"},
+		{ProviderID: "prv_A", Status: "error", DurationMS: duration(2), HTTPStatus: 503},
+		{ProviderID: "prv_A", Status: "success", DurationMS: duration(2)},
+		{ProviderID: "prv_B", Status: "success", DurationMS: duration(100)},
+		{ProviderID: "prv_A", Status: "error"},
+		{ProviderID: "prv_A", Status: "error", DurationMS: duration(-1)},
+		{ProviderID: "prv_A", Status: "canceled", DurationMS: duration(999999)},
+		{ProviderID: "prv_A", Status: "error", WorkEvidence: "not_sent", DurationMS: duration(999999)},
+		{ProviderID: "prv_A", Status: "error", FailureClass: "credential_rejected", DurationMS: duration(999999)},
+		{Status: "success", DurationMS: duration(999999)},
+	}
+	report, err := aggregateInsightsProviderQuality(context.Background(), rows, InsightsProviderQualityInput{}, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Summary.AverageDurationMS == nil || *report.Summary.AverageDurationMS != 26.25 || report.Summary.KnownDuration != 4 || report.Summary.UnknownDuration != 2 || *report.Summary.P95DurationMS != 100 || report.UnknownAttribution != 1 {
+		t.Fatal("mean denominator or eligible coverage changed", report.Summary)
+	}
+	if report.Providers[0].AverageDurationMS == nil || *report.Providers[0].AverageDurationMS != 5.0/3 || *report.Providers[0].P95DurationMS != 2 || report.Providers[0].KnownDuration != 3 {
+		t.Fatal("noninteger Provider mean truncated", report.Providers)
+	}
+	if *report.Providers[1].AverageDurationMS != 100 {
+		t.Fatal("Provider isolation lost")
+	}
+	// The global mean is sample-weighted, never an equal-weight Provider mean.
+	wrong := (*report.Providers[0].AverageDurationMS + *report.Providers[1].AverageDurationMS) / 2
+	if *report.Summary.AverageDurationMS == wrong {
+		t.Fatal("Provider averages incorrectly re-averaged")
+	}
+	encoded, err := encodeInsightsProviderQualityCSV(context.Background(), report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	records, err := csv.NewReader(strings.NewReader(string(encoded))).ReadAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+	column := -1
+	for i, name := range records[0] {
+		if name == "average_duration_ms" {
+			column = i
+		}
+	}
+	if column < 0 || records[1][column] != "26.25" || records[2][column] != "1.6666666666666667" || records[3][column] != "100" {
+		t.Fatal("mean CSV value lost", records)
+	}
+}
+
+func TestInsightsProviderQualityMeanZeroUnknownAndOverflow(t *testing.T) {
+	duration := func(value int64) *int64 { return &value }
+	for _, test := range []struct {
+		name string
+		rows []entity.CallAttempt
+		want *float64
+	}{
+		{name: "empty"},
+		{name: "unknown_only", rows: []entity.CallAttempt{{ProviderID: "prv_A", Status: "success"}}},
+		{name: "zero_observed", rows: []entity.CallAttempt{{ProviderID: "prv_A", Status: "error", DurationMS: duration(0)}}, want: func() *float64 { v := float64(0); return &v }()},
+		{name: "exact_sum_exceeds_int64", rows: []entity.CallAttempt{{ProviderID: "prv_A", Status: "success", DurationMS: duration(math.MaxInt64)}, {ProviderID: "prv_A", Status: "error", DurationMS: duration(math.MaxInt64)}}, want: func() *float64 { v := float64(math.MaxInt64); return &v }()},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			report, err := aggregateInsightsProviderQuality(context.Background(), test.rows, InsightsProviderQualityInput{}, time.Now())
+			if err != nil {
+				t.Fatal(err)
+			}
+			mean := report.Summary.AverageDurationMS
+			if (mean == nil) != (test.want == nil) || mean != nil && *mean != *test.want {
+				t.Fatal("unknown/zero/overflow mean changed", mean, test.want)
+			}
+			if mean != nil && (math.IsNaN(*mean) || math.IsInf(*mean, 0) || *mean < 0) {
+				t.Fatal("invalid mean numeric result", *mean)
+			}
+			for _, row := range report.Providers {
+				if (row.AverageDurationMS == nil) != (test.want == nil) {
+					t.Fatal("Provider nullability differs from eligible samples")
+				}
+			}
+			encoded, err := encodeInsightsProviderQualityCSV(context.Background(), report)
+			if err != nil {
+				t.Fatal(err)
+			}
+			records, err := csv.NewReader(strings.NewReader(string(encoded))).ReadAll()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if test.want == nil {
+				for _, row := range records[1:] {
+					if row[22] != "" {
+						t.Fatal("unknown mean became zero CSV", row)
+					}
+				}
+			}
+		})
 	}
 }

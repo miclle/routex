@@ -57,8 +57,15 @@ capture/aggregation deadline. Overflow fails the complete query rather than trun
 Counts are attempts, not logical calls: failover may contribute to multiple Providers.
 Canceled and not-sent attempts are excluded; Credential rejection is separate. Eligible
 success rates use attributed attempts only and do not prove native completion.
-Duration coverage is explicit; P95 uses known full-attempt durations, not first-token
-latency. A Provider name is the latest selected immutable recorded label (attempt ID
+Duration coverage is explicit. The prepared mean-duration extension adds
+`average_duration_ms` from eligible recorded nonnegative full-attempt samples,
+weighted by known sample counts across Providers. Unknown samples are excluded;
+recorded zero remains zero and no known sample returns null. Finite float64 means
+may exceed JavaScript safe integers because duration is a measurement, not an
+exact counter. P95 remains a separate nearest-rank full-attempt statistic. Neither
+measurement represents first-token latency. The extension awaits composed phase
+qualification; earlier delivered acceptance does not cover these added fields.
+A Provider name is the latest selected immutable recorded label (attempt ID
 breaks an equal-time tie); it does not come from the current catalog. Attempts with
 no Provider ID remain a separate global unknown count, outside every group and rate.
 The final logical Call's Provider never fills missing attempt attribution. Persisted

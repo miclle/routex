@@ -5,6 +5,9 @@ export default {
   qualityProvider: 'Recorded Provider',
   qualityDurationCounts: '{{known}} known / {{unknown}} unknown',
   qualityDurationCoverage: 'Eligible duration coverage',
+  qualityMean: 'Mean full-attempt duration',
+  qualityMeanDefinition:
+    'The mean uses only eligible attempts with recorded nonnegative full-attempt durations. Unknown samples are excluded, zero durations remain zero, and the aggregate is weighted by known samples across Providers. This is not first-token latency.',
   qualityP95: 'P95 full-attempt duration',
   quality5xx: 'Server-error attempts',
   quality429: 'Rate-limited attempts',

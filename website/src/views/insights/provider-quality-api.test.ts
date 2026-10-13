@@ -71,6 +71,7 @@ it('requires exact selected range and closed complete attempt aggregate shapes',
     known_duration: 0,
     unknown_duration: 0,
     p95_duration_ms: null,
+    average_duration_ms: null,
   }
   expect(parseProviderQuality(unknown, qualityRange).summary.success_rate_bps).toBeNull()
 })
@@ -130,4 +131,57 @@ it('accepts equivalent offset normalization but refuses a one-nanosecond drift',
     parseProviderQuality({ ...value, from: '2026-09-01T00:00:00.123456788Z' }, input),
   ).toThrow()
   expect(() => parseProviderQuality({ ...value, latest_completed_at: value.to }, input)).toThrow()
+})
+
+it('requires the nullable finite mean with exact known eligible sample coverage and preserves fractional or zero values', () => {
+  for (const average of [0, 0.5, 100.125, Number.MAX_SAFE_INTEGER, 2 ** 63]) {
+    const value = qualityFixture()
+    value.summary.average_duration_ms = value.providers[0].average_duration_ms = average
+    expect(parseProviderQuality(value, qualityRange).summary.average_duration_ms).toBe(average)
+  }
+  // A large upper tail can make the mean exceed P95; this is not an invalid report.
+  const upperTail = qualityFixture()
+  upperTail.summary.average_duration_ms = upperTail.providers[0].average_duration_ms = 200
+  expect(parseProviderQuality(upperTail, qualityRange).summary.average_duration_ms).toBe(200)
+  for (const average of [undefined, null, -1, NaN, Infinity, '1.5', 2 ** 63 + 4096]) {
+    const value = qualityFixture()
+    Object.assign(value.summary, { average_duration_ms: average })
+    expect(() => parseProviderQuality(value, qualityRange)).toThrow()
+    const row = qualityFixture()
+    Object.assign(row.providers[0], { average_duration_ms: average })
+    expect(() => parseProviderQuality(row, qualityRange)).toThrow()
+  }
+  const unknown = qualityFixture()
+  for (const row of [unknown.summary, ...unknown.providers]) {
+    row.known_duration = 0
+    row.unknown_duration = row.eligible
+    row.p95_duration_ms = row.average_duration_ms = null
+  }
+  expect(parseProviderQuality(unknown, qualityRange).summary.average_duration_ms).toBeNull()
+  unknown.providers[0].average_duration_ms = 0
+  expect(() => parseProviderQuality(unknown, qualityRange)).toThrow()
+})
+
+it('accepts a valid int64-duration upper tail whose mean exceeds the safe-integer bound while P95 stays zero', () => {
+  const value = qualityFixture()
+  value.total_attempts = 100
+  value.unknown_attribution = 0
+  for (const row of [value.summary, ...value.providers]) {
+    Object.assign(row, {
+      attempts: 100,
+      eligible: 100,
+      excluded: 0,
+      credential_rejected: 0,
+      successes: 100,
+      success_rate_bps: 10000,
+      rate_limited: 0,
+      server_errors: 0,
+      known_duration: 100,
+      unknown_duration: 0,
+      p95_duration_ms: 0,
+      average_duration_ms: 2 ** 63 / 100,
+    })
+  }
+  expect(value.summary.average_duration_ms).toBeGreaterThan(Number.MAX_SAFE_INTEGER)
+  expect(parseProviderQuality(value, qualityRange).summary.average_duration_ms).toBe(2 ** 63 / 100)
 })

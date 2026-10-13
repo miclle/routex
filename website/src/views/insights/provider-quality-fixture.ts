@@ -17,6 +17,7 @@ export function qualityFixture(): ProviderQualityReport {
     known_duration: 1,
     unknown_duration: 1,
     p95_duration_ms: 150,
+    average_duration_ms: 150,
   }
   return {
     ...qualityRange,

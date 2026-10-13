@@ -44,6 +44,7 @@ export interface ProviderQualityCounts {
   known_duration: number
   unknown_duration: number
   p95_duration_ms: number | null
+  average_duration_ms: number | null
 }
 export interface ProviderQualityReport extends ProviderQualityRange {
   source: 'persisted_call_attempts'

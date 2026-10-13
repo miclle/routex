@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/csv"
+	"math/big"
 	"sort"
 	"strconv"
 	"time"
@@ -20,17 +21,18 @@ import (
 type InsightsProviderQualityInput struct{ From, To, Timezone string }
 
 type InsightsProviderQualityCounts struct {
-	Attempts           int64  `json:"attempts"`
-	Eligible           int64  `json:"eligible"`
-	Excluded           int64  `json:"excluded"`
-	CredentialRejected int64  `json:"credential_rejected"`
-	Successes          int64  `json:"successes"`
-	SuccessRateBPS     *int   `json:"success_rate_bps"`
-	RateLimited        int64  `json:"rate_limited"`
-	ServerErrors       int64  `json:"server_errors"`
-	KnownDuration      int64  `json:"known_duration"`
-	UnknownDuration    int64  `json:"unknown_duration"`
-	P95DurationMS      *int64 `json:"p95_duration_ms"`
+	Attempts           int64    `json:"attempts"`
+	Eligible           int64    `json:"eligible"`
+	Excluded           int64    `json:"excluded"`
+	CredentialRejected int64    `json:"credential_rejected"`
+	Successes          int64    `json:"successes"`
+	SuccessRateBPS     *int     `json:"success_rate_bps"`
+	RateLimited        int64    `json:"rate_limited"`
+	ServerErrors       int64    `json:"server_errors"`
+	KnownDuration      int64    `json:"known_duration"`
+	UnknownDuration    int64    `json:"unknown_duration"`
+	P95DurationMS      *int64   `json:"p95_duration_ms"`
+	AverageDurationMS  *float64 `json:"average_duration_ms"`
 }
 type InsightsProviderQualityRow struct {
 	ProviderID string `json:"provider_id"`
@@ -166,6 +168,15 @@ func (a *insightsQualityAccumulator) finish() InsightsProviderQualityCounts {
 	}
 	if len(a.durations) > 0 {
 		sort.Slice(a.durations, func(i, j int) bool { return a.durations[i] < a.durations[j] })
+		// At most 100,000 retained int64 durations bound the exact sum to 80 bits.
+		// Sum before dividing once; an int64 total or incremental float sum
+		// would overflow or lose fractional mean precision for valid inputs.
+		var sum, value big.Int
+		for _, duration := range a.durations {
+			sum.Add(&sum, value.SetInt64(duration))
+		}
+		mean, _ := new(big.Rat).SetFrac(&sum, big.NewInt(result.KnownDuration)).Float64()
+		result.AverageDurationMS = &mean
 		p95 := a.durations[providerQualityP95Offset(int64(len(a.durations)))]
 		result.P95DurationMS = &p95
 	}
@@ -239,7 +250,7 @@ func (s *Service) ExportInsightsProviderQuality(ctx context.Context, actor strin
 func encodeInsightsProviderQualityCSV(ctx context.Context, report *InsightsProviderQualityReport) ([]byte, error) {
 	var buffer bytes.Buffer
 	writer := csv.NewWriter(&buffer)
-	if err := writeSafeCSVRecord(writer, []string{"row_type", "source", "from", "to", "timezone", "queried_at", "may_lag", "total_attempts", "unknown_attribution", "provider_id", "recorded_name", "attempts", "eligible", "excluded", "credential_rejected", "successes", "success_rate_bps", "rate_limited", "server_errors", "known_duration", "unknown_duration", "p95_duration_ms", "latest_selected_attempt_end"}); err != nil {
+	if err := writeSafeCSVRecord(writer, []string{"row_type", "source", "from", "to", "timezone", "queried_at", "may_lag", "total_attempts", "unknown_attribution", "provider_id", "recorded_name", "attempts", "eligible", "excluded", "credential_rejected", "successes", "success_rate_bps", "rate_limited", "server_errors", "known_duration", "unknown_duration", "p95_duration_ms", "average_duration_ms", "latest_selected_attempt_end"}); err != nil {
 		return nil, err
 	}
 	for _, row := range append([]InsightsProviderQualityRow{{InsightsProviderQualityCounts: report.Summary}}, report.Providers...) {
@@ -247,12 +258,15 @@ func encodeInsightsProviderQualityCSV(ctx context.Context, report *InsightsProvi
 			return nil, usageExportUnavailable
 		}
 		number := func(value int64) string { return strconv.FormatInt(value, 10) }
-		rate, p95 := "", ""
+		rate, p95, mean := "", "", ""
 		if row.SuccessRateBPS != nil {
 			rate = strconv.Itoa(*row.SuccessRateBPS)
 		}
 		if row.P95DurationMS != nil {
 			p95 = number(*row.P95DurationMS)
+		}
+		if row.AverageDurationMS != nil {
+			mean = strconv.FormatFloat(*row.AverageDurationMS, 'f', -1, 64)
 		}
 		latest := ""
 		if report.LatestCompletedAt != nil {
@@ -262,7 +276,7 @@ func encodeInsightsProviderQualityCSV(ctx context.Context, report *InsightsProvi
 		if row.ProviderID == "" {
 			rowType = "summary"
 		}
-		err := writeSafeCSVRecord(writer, []string{rowType, report.Source, report.From, report.To, report.Timezone, report.QueriedAt.Format(time.RFC3339Nano), strconv.FormatBool(report.MayLag), number(report.TotalAttempts), number(report.UnknownAttribution), row.ProviderID, row.Name, number(row.Attempts), number(row.Eligible), number(row.Excluded), number(row.CredentialRejected), number(row.Successes), rate, number(row.RateLimited), number(row.ServerErrors), number(row.KnownDuration), number(row.UnknownDuration), p95, latest})
+		err := writeSafeCSVRecord(writer, []string{rowType, report.Source, report.From, report.To, report.Timezone, report.QueriedAt.Format(time.RFC3339Nano), strconv.FormatBool(report.MayLag), number(report.TotalAttempts), number(report.UnknownAttribution), row.ProviderID, row.Name, number(row.Attempts), number(row.Eligible), number(row.Excluded), number(row.CredentialRejected), number(row.Successes), rate, number(row.RateLimited), number(row.ServerErrors), number(row.KnownDuration), number(row.UnknownDuration), p95, mean, latest})
 		if err != nil {
 			return nil, err
 		}

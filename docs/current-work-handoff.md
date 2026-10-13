@@ -1,13 +1,26 @@
 # Current implementation handoff
 
-Updated: 2026-10-13. Status: active by explicit user resumption on this machine.
-The next phases finish attachment expiry and quota report definitions. Attachment
-source is adopted into primary for independent qualification; quota backend,
-frontend and historical migration fixtures continue in the detached worktree.
-The historical handoff snapshot below retains its earlier source scope and does
-not override this active continuation. No new product delivery is claimed.
+## Provider mean phase (2026-10-13)
 
-## Current repository and transfer snapshot
+Provider quality now includes the nullable arithmetic mean of recorded eligible
+full-attempt durations, with sample-weighted summaries, JSON/CSV output and
+English/Chinese controls. Unknown samples remain distinct from zero. Exact
+bounded accumulation prevents overflow; this metric does not change routing.
+
+Independent phase qualification passed mandatory checking, complete ordinary
+checks (including Go race and 7,237 frontend tests), and all seven selected
+PostgreSQL and MySQL projection/constraint scenarios per driver. Source review
+found no additional blockers. This increment does not complete the broader
+Insights capability; quota definitions and later analysis work remain separate.
+
+Updated: 2026-10-13. Status: active on this machine.
+Immutable attachment expiry was delivered as `1272233`. The verified Provider
+mean increment is described above. Quota definitions, later analysis features
+and local-service acceptance remain independent, undelivered work packages.
+The earlier transfer snapshot below is historical; it does not describe the
+current primary workspace or supersede the latest phase evidence.
+
+## Historical repository and transfer snapshot
 
 | Field | Verified state |
 | --- | --- |

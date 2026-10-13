@@ -2,8 +2,10 @@ package handler
 
 import (
 	"context"
+	"encoding/csv"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -87,6 +89,9 @@ func testProviderQualityHTTPLifecycle(t *testing.T, db *gorm.DB) {
 	if report.TotalAttempts != 9 || report.UnknownAttribution != 1 || report.Summary.Attempts != 8 || report.Summary.SuccessRateBPS == nil || *report.Summary.SuccessRateBPS != 6000 || len(report.Providers) != 1 || report.Providers[0].ProviderID != provider.ID || report.Source != "persisted_call_attempts" {
 		t.Fatalf("selected-range report = %+v", report)
 	}
+	if report.Summary.AverageDurationMS == nil || *report.Summary.AverageDurationMS != 300 || report.Summary.KnownDuration != 5 || report.Providers[0].AverageDurationMS == nil || *report.Providers[0].AverageDurationMS != 300 {
+		t.Fatal("mean must use recorded eligible full-attempt samples", report)
+	}
 	exportPath := "/api/v1/admin/insights/provider-quality/export.csv?" + reportQuery
 	expectStatus(t, callsRequest(http.MethodGet, exportPath, nil), http.StatusForbidden)
 	expectStatus(t, providerRequest(http.MethodGet, exportPath, nil), http.StatusForbidden)
@@ -94,6 +99,19 @@ func testProviderQualityHTTPLifecycle(t *testing.T, db *gorm.DB) {
 	expectStatus(t, exported, http.StatusOK)
 	if exported.Header().Get("Cache-Control") != "private, no-store" || exported.Header().Get("Content-Type") != "text/csv; charset=utf-8" || exported.Header().Get("Content-Disposition") != `attachment; filename="routex-provider-quality.csv"` {
 		t.Fatal("CSV private capture headers", exported.Header())
+	}
+	records, err := csv.NewReader(strings.NewReader(exported.Body.String())).ReadAll()
+	if err != nil || len(records) != 3 {
+		t.Fatal("mean CSV complete capture", err)
+	}
+	meanColumn := -1
+	for i, name := range records[0] {
+		if name == "average_duration_ms" {
+			meanColumn = i
+		}
+	}
+	if meanColumn < 0 || records[1][meanColumn] != "300" || records[2][meanColumn] != "300" {
+		t.Fatal("mean CSV cells", records)
 	}
 	expectStatus(t, bothRequest(http.MethodGet, reportPath+"&provider_id="+provider.ID, nil), http.StatusBadRequest)
 	narrowQuery := url.Values{"from": {now.Add(-30 * time.Minute).Format(time.RFC3339Nano)}, "to": {now.Add(-7 * time.Minute).Format(time.RFC3339Nano)}, "timezone": {"UTC"}}.Encode()
@@ -119,6 +137,9 @@ func testProviderQualityHTTPLifecycle(t *testing.T, db *gorm.DB) {
 	future := decodeCatalogResponse[service.InsightsProviderQualityReport](t, bothRequest(http.MethodGet, "/api/v1/admin/insights/provider-quality?"+futureQuery, nil), http.StatusOK)
 	if future.From != "2090-01-01T00:00:00.123456789Z" || future.To != "2090-01-01T00:00:00.12345679Z" || future.TotalAttempts != 0 || future.LatestCompletedAt != nil {
 		t.Fatalf("query bounds clamped or rounded: %+v", future)
+	}
+	if future.Summary.AverageDurationMS != nil {
+		t.Fatal("empty query fabricated zero mean")
 	}
 	var reportRole entity.UserRole
 	if err := db.First(&reportRole, "user_id = ?", bothMember.User.ID).Error; err != nil {

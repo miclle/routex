@@ -1,5 +1,18 @@
 # RouteX Implementation and Acceptance Index
 
+## Provider mean phase (2026-10-13)
+
+Provider quality now includes the nullable arithmetic mean of recorded eligible
+full-attempt durations, with sample-weighted summaries, JSON/CSV output and
+English/Chinese controls. Unknown samples remain distinct from zero. Exact
+bounded accumulation prevents overflow; this metric does not change routing.
+
+Independent phase qualification passed mandatory checking, complete ordinary
+checks (including Go race and 7,237 frontend tests), and all seven selected
+PostgreSQL and MySQL projection/constraint scenarios per driver. Source review
+found no additional blockers. This increment does not complete the broader
+Insights capability; quota definitions and later analysis work remain separate.
+
 Updated: 2026-10-13. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery. The user resumed the complete goal on this machine. Active continuation distinguishes delivered main from current candidates and requires fresh acceptance before each staged delivery.
 
 ## Active continuation (2026-10-13)

@@ -35,11 +35,15 @@ const counts = [
   'known_duration',
   'unknown_duration',
   'p95_duration_ms',
+  'average_duration_ms',
 ] as const
 function validCounts(value: Record<string, unknown>) {
   if (
     !counts
-      .filter((key) => key !== 'success_rate_bps' && key !== 'p95_duration_ms')
+      .filter(
+        (key) =>
+          key !== 'success_rate_bps' && key !== 'p95_duration_ms' && key !== 'average_duration_ms',
+      )
       .every((key) => bounded(value[key]))
   )
     return false
@@ -54,8 +58,14 @@ function validCounts(value: Record<string, unknown>) {
       ? c.success_rate_bps === null
       : c.success_rate_bps === Math.floor((c.successes * 10000) / c.eligible)) &&
     (c.known_duration === 0
-      ? c.p95_duration_ms === null
-      : bounded(c.p95_duration_ms, Number.MAX_SAFE_INTEGER))
+      ? c.p95_duration_ms === null && c.average_duration_ms === null
+      : bounded(c.p95_duration_ms, Number.MAX_SAFE_INTEGER) &&
+        typeof c.average_duration_ms === 'number' &&
+        Number.isFinite(c.average_duration_ms) &&
+        c.average_duration_ms >= 0 &&
+        // Means are approximate floats; the backend rounds its int64 maximum
+        // to 2^63. Safe-integer bounds apply to counts, not this metric.
+        c.average_duration_ms <= 2 ** 63)
   )
 }
 function validateRange(input: ProviderQualityRange) {

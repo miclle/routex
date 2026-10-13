@@ -4,6 +4,9 @@ export default {
   qualityProvider: '历史供应商',
   qualityDurationCounts: '已知 {{known}} / 未知 {{unknown}}',
   qualityDurationCoverage: '符合条件的尝试耗时覆盖',
+  qualityMean: '平均完整尝试耗时',
+  qualityMeanDefinition:
+    '平均值仅使用符合条件且已记录非负完整耗时的尝试。未知样本不计入，零耗时仍为零；总平均值按各 Provider 的已知样本数加权。此数值不是首 Token 延迟。',
   qualityP95: 'P95 完整尝试耗时',
   quality5xx: '服务器错误尝试',
   quality429: '限流尝试',

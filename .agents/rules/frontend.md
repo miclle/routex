@@ -1709,6 +1709,12 @@ permission renewal/error, actor/parameter changes and stale replies; abort obsol
 work and require current authority before report/export dispatch. Do not add
 implicit model-call grants, inference credentials or new permissions.
 
+Provider quality summaries and rows keep the arithmetic mean separate from P95.
+Use only server-recorded eligible nonnegative full-attempt samples, expose known/
+unknown duration coverage, preserve null versus zero and accept finite nonnegative
+float64 measurements without applying exact-counter safe-integer limits. The
+summary mean is weighted by known samples, not averaged across Provider means.
+
 Saved report definitions remain creator-private in the existing Operations analysis
 Save action and four-column table. Persist only the supported report kind and exact
 absolute range/time-zone parameters; never persist statistics, AI output, model

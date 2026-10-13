@@ -7,6 +7,12 @@ export default function ProviderQualityResult({ report }: { report: ProviderQual
   const { t, i18n } = useTranslation('insights')
   const locale = i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US'
   const number = (value: number) => exactNumber(String(value), locale)
+  const duration = (value: number | null) =>
+    value === null
+      ? t('qualityUnknown')
+      : t('qualityMilliseconds', {
+          value: new Intl.NumberFormat(locale, { maximumFractionDigits: 3 }).format(value),
+        })
   const time = (value: string) => usageTime(value, locale, report.timezone)
   const rate = (value: number | null) =>
     value === null
@@ -17,7 +23,12 @@ export default function ProviderQualityResult({ report }: { report: ProviderQual
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">{t('qualityDefinition')}</p>
+      <p className="text-xs text-muted-foreground">{t('qualityMeanDefinition')}</p>
       <dl className="space-y-1 break-words text-xs text-muted-foreground">
+        <div>
+          <dt>{t('qualityAttempts')}</dt>
+          <dd>{number(report.total_attempts)}</dd>
+        </div>
         <div>
           <dt>{t('qualitySource')}</dt>
           <dd>
@@ -42,13 +53,21 @@ export default function ProviderQualityResult({ report }: { report: ProviderQual
       {report.may_lag && <p className="text-xs text-muted-foreground">{t('mayLag')}</p>}
       <div className="grid gap-3 sm:grid-cols-3">
         {[
-          ['qualityAttempts', number(report.total_attempts)],
           ['qualitySuccessRate', rate(report.summary.success_rate_bps)],
+          ['qualityMean', duration(report.summary.average_duration_ms)],
           ['qualityUnknownAttribution', number(report.unknown_attribution)],
         ].map(([key, value]) => (
           <div key={key} className="rounded-lg border p-4">
             <p className="text-sm text-muted-foreground">{t(key)}</p>
             <strong className="text-2xl tabular-nums">{value}</strong>
+            {key === 'qualityMean' && (
+              <p className="text-xs text-muted-foreground">
+                {t('qualityDurationCounts', {
+                  known: number(report.summary.known_duration),
+                  unknown: number(report.summary.unknown_duration),
+                })}
+              </p>
+            )}
           </div>
         ))}
       </div>
@@ -67,6 +86,7 @@ export default function ProviderQualityResult({ report }: { report: ProviderQual
                 'qualitySuccessRate',
                 'quality429',
                 'quality5xx',
+                'qualityMean',
                 'qualityP95',
                 'qualityDurationCoverage',
               ].map((key) => (
@@ -88,6 +108,7 @@ export default function ProviderQualityResult({ report }: { report: ProviderQual
                 <td>{rate(row.success_rate_bps)}</td>
                 <td>{number(row.rate_limited)}</td>
                 <td>{number(row.server_errors)}</td>
+                <td>{duration(row.average_duration_ms)}</td>
                 <td>
                   {row.p95_duration_ms === null
                     ? t('qualityUnknown')
