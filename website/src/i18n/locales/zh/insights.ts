@@ -48,7 +48,7 @@ export default {
     '需要平台调用读取权限。报表使用已记录调用、上游尝试及授权范围内的配额账本事实，不会更改配置或授予推理访问权限。',
   assistantTitle: '运营分析指引',
   introduction:
-    '选择固定报告，审阅日期或当前配额范围后手动运行。对于按模型统计 Token，可准备问题并单独确认个人模型 AI 分析。问题不能改变报告范围。可保存已审阅的报告参数，以便之后手动使用；问题与 AI 回答不会保存。',
+    '选择固定报告，审阅日期或当前配额范围后手动运行。对于按模型统计 Token，可准备问题并单独确认个人模型 AI 分析。问题不能改变报告范围。可保存已审阅的报告参数，以便之后手动使用；配额定义仅保留维度与有权读取的所有者范围。问题与 AI 回答不会保存。',
 
   shortcutTokens: '按模型统计 Token',
   shortcutTeam: '分析团队用量',
@@ -191,7 +191,6 @@ export default {
   quotaNextPage: '下一页账户',
   quotaExportReady: '新的范围内 CSV 已准备好下载；这不代表浏览器已保存文件。',
   quotaExportFailed: '无法生成范围内 CSV，请确认当前权限后手动重试。',
-  quotaSaveUnavailable: '暂不支持保存配额报告定义。',
   quotaTeamTitle: '可读 Team 配额分析',
   quotaKeyTitle: '所选范围 Key 配额分析',
   quotaUnknown: '未知／不可用',
@@ -255,7 +254,7 @@ export default {
   quotaEstimate_zero_rate: '基线已结算速率为零，不预测',
   quotaEstimate_after_reset: '预计重置后才达到上限，不提供日期',
   savedPrivacy:
-    '只有你可以查看或删除这些定义。报表类型、日期和时区会保留至你明确删除；统计数据、问题和 AI 回答不会保存。',
+    '只有你可以查看或删除这些定义。报表类型与日期、时区，或配额维度与所有者范围，会保留至你明确删除；统计数据、问题和 AI 回答不会保存。',
   savingReport: '正在保存定义…',
   retrySave: '重试原保存请求',
   savedConfirmed: '服务器已确认保存此定义。重新运行时仍需发起新的授权报表查询。',
@@ -286,9 +285,17 @@ export default {
   deleteUnknown:
     '删除尚未确认，结果可能未知。请明确重试此定义的删除；列表中缺少该定义不能证明本次请求成功。',
   deleteConfirmed: '服务器已确认删除所选定义。',
-  saveInvalid: '服务器拒绝了这些报表参数。请审阅类型、日期和时区；本次请求未保存定义。',
+  saveInvalid:
+    '服务器拒绝了这些报表参数。请审阅报表类型及其日期范围或配额范围；本次请求未保存定义。',
   saveEndpointUnavailable: '保存端点拒绝了此请求，当前不可用。本次响应未保存定义。',
   deleteMissing: '当前会话无法访问所选定义。此响应不能证明先前删除已成功。',
   deleteDenied: '需要当前所有者的会话权限。本次删除请求已被拒绝。',
+  savedQuotaParameters: '维度：{{dimension}}；范围：{{scope}}',
+  savedReadableTeams: '当前有权读取的团队',
+  savedKeyScope: '{{kind}}：{{id}}',
+  savedCurrentQuotaWindow: '显式运行时的当前月与此前 168 小时基准',
+  saveQuotaIntent: '原始保存：{{title}}；{{parameters}}。显式重试保留完全相同的定义。',
+  savedQuotaLoaded:
+    '已载入配额参数供复核，并清除之前的结果和 AI 建议。显式运行前需确认当前范围权限；不会恢复历史配额数据。',
   savedCreatedAt: '创建时间：{{time}}',
 }

@@ -22,7 +22,7 @@ func TestModelDiscoveryV108FrozenSchemaAndClosedEnvelope(t *testing.T) {
 	}
 	for _, driver := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(driver)
-		if len(steps) != 110 || reflect.ValueOf(steps[106]).Pointer() != reflect.ValueOf(offboardingNotificationMigration).Pointer() || reflect.ValueOf(steps[107]).Pointer() != reflect.ValueOf(modelDiscoveryNoticeMigration).Pointer() {
+		if len(steps) != 111 || reflect.ValueOf(steps[106]).Pointer() != reflect.ValueOf(offboardingNotificationMigration).Pointer() || reflect.ValueOf(steps[107]).Pointer() != reflect.ValueOf(modelDiscoveryNoticeMigration).Pointer() {
 			t.Fatal("discovery migration must append after V107")
 		}
 	}

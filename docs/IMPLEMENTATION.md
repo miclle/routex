@@ -100,23 +100,107 @@ Updated: 2026-10-13. This document records engineering contracts, work packages 
 
 ## Active continuation (2026-10-13)
 
-Main product source remains `6ab8e1e`; its CI, GolangCI-Lint and Actionlint all
-passed on fresh readback. The six-path attachment expiry correction is adopted into the primary checkout
-and passed focused race, mandatory check and complete ordinary tests. It is ready
-for its own staged commit; real database lifecycle and browser evidence remain
-open. Quota report source remains a separate detached candidate. The previous five implementation increments remain
-delivered; totals stay 16 Completed / 14 Partial / 0 Not started.
+The complete goal is active on this machine. Main and remote main were read back
+as `1272233b5d16ebdb65752ddcec3b9d97a22d83c3`, which delivers the immutable
+Personal/Project attachment expiry correction. Focused race tests, mandatory
+checking and complete ordinary tests passed before that commit. Its real-driver
+storage lifecycle is included in the next complete integration qualification;
+browser and external storage acceptance remain open.
 
-Two continuation packages began in the detached worktree based on
-`6ab8e1e`: fixed one-hour Personal/Project attachment eligibility and cleanup,
-and creator-private Team/Key quota report definitions (backend and frontend).
-The attachment package now has complete local source gates; quota still awaits
-V111 real-driver qualification.
-These are implementation drafts, not delivered capabilities. V111 registration,
-historical migration fixture compatibility, composed checks and real-driver
-acceptance remain pending. Their exact location and resume gate are recorded in
-[the current handoff](current-work-handoff.md). Previous test results do not
-qualify this changed source; browser and external-service gaps remain open.
+Creator-private Team/Key quota report definitions are now adopted into primary,
+including frozen V111, registration and historical fixture compatibility. Released
+V110 remains unchanged. Focused original 79682 directly returned zero: each real
+PostgreSQL/MySQL driver passed 24 named Insights tests without failures or skips.
+The database-only worker passed 3,150 names with one explicitly environment-gated
+skip. All owned workers joined and Compose teardown returned zero. Earlier runs
+remain failed: current-prefix fixtures needed V111 updates, and a PostgreSQL
+partial-DDL fixture reused a prepared result shape. The repair discards idle
+fixture connections around deliberate schema changes; it changes no production
+pool behavior or assertion budget.
+
+Mandatory checking passed on the final test-callback correction (original 86413,
+191.722 seconds). Complete ordinary qualification passed before that test-only
+correction, including Go race and 7,243 frontend cases in 269 files. The subsequent
+unfiltered original 81859 directly joined failure after 5,520.258 seconds:
+PostgreSQL passed 579/579 named tests; MySQL passed 576/579, with the sole failing
+leaf `team_model_requests` and two failing ancestors. That leaf stopped in the
+shared schema prelude at `migration 99: context deadline exceeded`, before its
+business assertions. This identifies the failure location, not its cause or the
+duration of V99. The ordinary Go portion passed 10,225 names with six expected
+environment skips. Independent readback confirms unchanged 2,637-path source,
+48 native application births, exact owned process/resource/port closure and
+preserved development; it explicitly rejects full-matrix acceptance.
+
+The private consecutive-scenario diagnostic original 93668 directly joined
+failure in 357.036 seconds. PostgreSQL passed all eight selected names; its
+Personal/Team preludes applied all 111 versions in 7,838/4,964 ms. MySQL failed
+in initial concurrent startup before either observed business prelude, reporting
+`migration lock unavailable`; the other concurrent caller outcome is not known.
+This is a different observed boundary and does not explain the retained V99
+failure. Independent readback confirms unchanged source, all exact owned
+processes/groups/resources closed, database ports refused and freshly bindable,
+zero native application births and preserved development. A subsequent private
+observer records both concurrent startup outcomes without changing deadlines,
+concurrency, migrations or assertions.
+
+Fresh concurrent-observer diagnostic R2 original 76797 directly joined zero
+in 257.110 seconds. Each driver passed eight selected names; ordinary Go passed
+10,225 names with six expected skips. Both initial callers succeeded: PostgreSQL
+applied 111 versions in 5,196 ms and completed the waiting caller in 5,284 ms;
+MySQL completed in 11,772/11,876 ms. Personal/Team preludes completed in
+5,013/5,773 ms on PostgreSQL and 11,133/12,109 ms on MySQL. Independent readback
+`2b3e92f5f208d190188f3df588e113fa2d924b3d190fed0fda8b84f24fbe9b06`
+confirms unchanged source and exact process/resource/port closure, zero native
+application births and preserved development. It does not explain or relabel
+retained failures, and is not complete unfiltered acceptance. No production
+migration or deadline change is justified by these observations.
+
+Provider mean is delivered as `3fa148c11532be8ab0d61ea19fa201bd54535534`, with local and remote main read back
+to the same revision. Independent mandatory checking, complete ordinary tests
+(7,237 frontend cases in 270 files) and all seven selected projection/constraint
+scenarios on each real driver passed. Composed primary checking also passed
+before commit. The quota candidate remains unstaged and undelivered. A separate clean local-service worktree
+combines corrected S3 R2 and reviewed SMTP R2 with one byte-exact shared
+supervisor; all 21 composed lightweight Node controls pass. Go compilation,
+production qualification and actual service runs remain pending. These isolated
+packages do not alter the uncommitted quota candidate or completion totals.
+
+Authentication original 75044 remains failed at MySQL readiness. A private
+diagnostic preserving every original assertion and timer subsequently passed;
+it does not explain or relabel that failure. Fresh official
+`go tool task test-auth-lifecycle` original 10914 directly joined zero in
+45.186 seconds on the same source, with all four PostgreSQL/MySQL summaries.
+Its owned outer group and exact Compose resources are absent; individual
+application births and database ports were not independently captured.
+Current quota delivery still requires fresh complete unfiltered integration
+qualification, followed by formatting and mandatory checking.
+Do not weaken the one-minute migration budget or edit released V99.
+
+Provider mean duration is delivered through the reviewed mean-only delta.
+Its independent branch passed focused race and 74 frontend checks, mandatory
+checking, complete ordinary tests and both real-driver projection scenarios. It uses known
+eligible full-attempt samples, weighted summary and nullable unknown coverage.
+Its real-driver assertions have only compiled. The frontend now accepts the
+server's finite nonnegative float64 duration range; 12 focused controls qualify
+that correction. Provider observations, confirmed questions, controlled
+publication-interruption tests, and actual local S3/SMTP acceptance harnesses
+remain separately prepared, uncommitted candidates. No actual S3 or SMTP
+acceptance run is claimed. SMTP R2 passed independent source review. S3 R2
+corrects strict asset admission, final executable identity checks and the exact
+persisted outage-deletion intent receipt; composed qualification remains pending. In-app browser
+automation still returns `Browser is not available: iab`. Computer Use can now
+operate Chrome: the real RouteX sign-in page rendered in English, with labeled
+email/password controls and no authenticated Chrome Session. Management-page
+acceptance remains separate; browser limitations do not pause independent work.
+
+The user also approved explicitly confirmed user questions with the existing
+Tokens-by-Model aggregate projection and personal-model/individual-quota flow.
+Questions do not plan database queries or broaden data access, and neither
+questions nor answers are retained. This is a subsequent implementation package,
+not delivered evidence. Capability totals remain 16 Completed / 14 Partial /
+0 Not started. See [the current handoff](current-work-handoff.md) for source and
+acceptance boundaries; historical pause statements below do not override this
+resumption.
 
 ## Historical delivery and pause boundary (2026-10-13)
 

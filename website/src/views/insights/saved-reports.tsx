@@ -32,11 +32,20 @@ import { Table } from '@/components/ui/table'
 
 interface Options {
   actor: string
-  authorized: (kind: InsightsReportKind) => boolean
+  authorized: (parameters: InsightsReportParameters) => boolean
+  loadAuthorized?: (kind: InsightsReportKind) => boolean
+  reviewStamp?: (parameters: InsightsReportParameters) => string | null
   capture?: () => InsightsReportParameters | null
   load?: (parameters: InsightsReportParameters) => void
 }
-export function useSavedInsightsReports({ actor, authorized, capture, load }: Options) {
+export function useSavedInsightsReports(options: Options) {
+  const { actor, authorized, capture, load, loadAuthorized } = options
+  const currentOptions = useRef(options)
+  useLayoutEffect(() => {
+    currentOptions.current = options
+  })
+  const canLoad = (parameters: InsightsReportParameters) =>
+    loadAuthorized ? loadAuthorized(parameters.kind) : authorized(parameters)
   const { t, i18n } = useTranslation('insights')
   const cache = useQueryClient()
   const sessionSnapshot = useCallback(() => {
@@ -136,13 +145,17 @@ export function useSavedInsightsReports({ actor, authorized, capture, load }: Op
     let input = intentRef.current
     if (!input) {
       const parameters = capture?.()
-      if (!parameters || !authorized(parameters.kind)) return
+      if (!parameters || !currentOptions.current.authorized(parameters)) return
       input = { request_id: crypto.randomUUID(), ...parameters }
       intentRef.current = input
       setIntent(input)
     }
-    if (!authorized(input.kind)) return
+    if (!currentOptions.current.authorized(input)) return
     const currentIntent = input
+    const reviewedStamp = currentOptions.current.reviewStamp?.(currentIntent)
+    if (reviewedStamp === null) return
+    const reviewCurrent = () =>
+      currentOptions.current.reviewStamp?.(currentIntent) === reviewedStamp
     const controller = new AbortController()
     controllers.current.add(controller)
     saveLock.current = true
@@ -152,7 +165,8 @@ export function useSavedInsightsReports({ actor, authorized, capture, load }: Op
       await saveInsightsReport(currentIntent, csrf(), controller.signal)
       if (
         !owner() ||
-        !authorized(currentIntent.kind) ||
+        !currentOptions.current.authorized(currentIntent) ||
+        !reviewCurrent() ||
         controller.signal.aborted ||
         intentRef.current !== currentIntent
       )
@@ -162,7 +176,13 @@ export function useSavedInsightsReports({ actor, authorized, capture, load }: Op
       setNotice('savedConfirmed')
       refresh()
     } catch (error) {
-      if (!owner() || !authorized(currentIntent.kind) || controller.signal.aborted) return
+      if (
+        !owner() ||
+        !currentOptions.current.authorized(currentIntent) ||
+        !reviewCurrent() ||
+        controller.signal.aborted
+      )
+        return
       const status = isAxiosError(error) ? error.response?.status : undefined
       setNotice(
         status === 409
@@ -222,16 +242,42 @@ export function useSavedInsightsReports({ actor, authorized, capture, load }: Op
       ? page.data
       : undefined
   const title = (kind: InsightsReportKind) =>
-    t(kind === 'provider_quality' ? 'providerReportTitle' : 'reportTitle')
+    t(
+      kind === 'provider_quality'
+        ? 'providerReportTitle'
+        : kind === 'team_quota'
+          ? 'quotaTeamTitle'
+          : kind === 'key_quota'
+            ? 'quotaKeyTitle'
+            : 'reportTitle',
+    )
+  const parametersText = (definition: InsightsReportParameters) =>
+    definition.kind === 'team_quota' || definition.kind === 'key_quota'
+      ? t('savedQuotaParameters', {
+          dimension: t(definition.dimension === 'tokens' ? 'quotaTokens' : 'quotaMoney'),
+          scope:
+            definition.kind === 'team_quota'
+              ? t('savedReadableTeams')
+              : t('savedKeyScope', {
+                  kind: t(
+                    definition.scope_kind === 'member' ? 'quotaMemberScope' : 'quotaProjectScope',
+                  ),
+                  id: definition.scope_id,
+                }),
+        })
+      : t('savedParameters', { timezone: definition.timezone })
+  const rangeText = (definition: InsightsReportParameters) =>
+    definition.kind === 'team_quota' || definition.kind === 'key_quota'
+      ? t('savedCurrentQuotaWindow')
+      : t('savedRange', { from: definition.from, to: definition.to })
   const createdAt = (definition: InsightsReportDefinition) =>
     new Date(definition.created_at).toLocaleString(
       i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US',
-      { timeZone: definition.timezone, timeZoneName: 'short' },
+      { timeZone: 'timezone' in definition ? definition.timezone : 'UTC', timeZoneName: 'short' },
     )
   const actorName = cache.getQueryData<Session>(sessionKey)?.user.name || actor
   const captured = currentOwner ? capture?.() : null
-  const canSave =
-    currentOwner && (intent ? authorized(intent.kind) : !!captured && authorized(captured.kind))
+  const canSave = currentOwner && (intent ? authorized(intent) : !!captured && authorized(captured))
   return {
     saveButton: (
       <Button variant="outline" disabled={!canSave || saving} onClick={() => void save()}>
@@ -253,12 +299,17 @@ export function useSavedInsightsReports({ actor, authorized, capture, load }: Op
           {intent && (
             <div className="space-y-2 px-6 pb-3 text-sm">
               <p>
-                {t('saveIntent', {
-                  title: title(intent.kind),
-                  from: intent.from,
-                  to: intent.to,
-                  timezone: intent.timezone,
-                })}
+                {intent.kind === 'team_quota' || intent.kind === 'key_quota'
+                  ? t('saveQuotaIntent', {
+                      title: title(intent.kind),
+                      parameters: parametersText(intent),
+                    })
+                  : t('saveIntent', {
+                      title: title(intent.kind),
+                      from: intent.from,
+                      to: intent.to,
+                      timezone: intent.timezone,
+                    })}
               </p>
               <Button
                 variant="outline"
@@ -308,14 +359,9 @@ export function useSavedInsightsReports({ actor, authorized, capture, load }: Op
                             popupClassName="min-w-48"
                           >
                             <MenuItem
-                              disabled={!load || !authorized(definition.kind) || saving}
+                              disabled={!load || !canLoad(definition) || saving}
                               onClick={() => {
-                                if (
-                                  owner() &&
-                                  !saveLock.current &&
-                                  load &&
-                                  authorized(definition.kind)
-                                )
+                                if (owner() && !saveLock.current && load && canLoad(definition))
                                   load(reportParameters(definition))
                               }}
                             >
@@ -335,8 +381,8 @@ export function useSavedInsightsReports({ actor, authorized, capture, load }: Op
                           </Menu>
                         </div>
                       </td>
-                      <td>{t('savedParameters', { timezone: definition.timezone })}</td>
-                      <td>{t('savedRange', { from: definition.from, to: definition.to })}</td>
+                      <td>{parametersText(definition)}</td>
+                      <td>{rangeText(definition)}</td>
                       <td>{actorName}</td>
                     </tr>
                   ))
@@ -410,8 +456,8 @@ export function useSavedInsightsReports({ actor, authorized, capture, load }: Op
               <p>{title(selected.kind)}</p>
               <code className="block text-xs">{selected.id}</code>
               <p className="text-sm">{t('savedCreatedAt', { time: createdAt(selected) })}</p>
-              <p className="text-sm">{t('savedRange', { from: selected.from, to: selected.to })}</p>
-              <p className="text-sm">{t('savedParameters', { timezone: selected.timezone })}</p>
+              <p className="text-sm">{rangeText(selected)}</p>
+              <p className="text-sm">{parametersText(selected)}</p>
               {deleteNotice && <p role="alert">{t(deleteNotice)}</p>}
               <div className="flex justify-end gap-2">
                 <Button

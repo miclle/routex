@@ -12,9 +12,10 @@ UTC offsets, review the time zone, and run the report. The range includes the st
 and excludes the end. UTC is the initial grouping time zone; no calendar week is
 silently selected. The separate **Provider quality** shortcut and scoped quota
 reports are described below. Only the quota reports provide covered settled-rate
-estimates. The question extension accepts explicitly confirmed caller
-text for Tokens-by-Model AI advice; it never plans a query from prose. Quota saved
-definitions remain a separate phase.
+estimates. Quota saved definitions are implemented in the current V111 candidate;
+complete qualification and main delivery remain pending. The question extension accepts
+explicitly confirmed caller text for Tokens-by-Model AI advice; it never plans
+a query from prose.
 Deterministic reports make no inference call. Optional AI advice requires a
 separate explicit confirmation and stores no report or conversation.
 
@@ -98,9 +99,12 @@ source and receipt provenance. Browser and real-provider acceptance remain open.
 ## Creator-private saved definitions
 
 The user-confirmed retention policy is creator-private visibility until explicit
-owner deletion. A definition contains only `tokens_by_model` or `provider_quality`,
-exact absolute `from`/`to` instants and an IANA `timezone`. Titles are localized
-from the kind. No statistics, historical model labels, AI answers, inference model
+owner deletion. Historical `tokens_by_model` and `provider_quality` definitions
+retain exact absolute `from`/`to` instants and an IANA `timezone`. The current
+quota candidate adds `team_quota` with a Tokens/Money dimension and `key_quota`
+with that dimension plus an exact authorized member/Project scope. Quota
+definitions contain no historical date range, pagination cursor, resource name,
+currency snapshot or result rows. Titles are localized from the kind. No statistics, historical model labels, AI answers, inference model
 selection, free-text question or result snapshot is persisted.
 
 The delivered implementation uses Session-authenticated
@@ -108,7 +112,11 @@ The delivered implementation uses Session-authenticated
 and deletion. The server derives the owner from the current enabled Session;
 administrator privileges never confer another creator's definitions. Saving also
 requires the existing current report-kind permissions: `calls.read_all`, plus
-`providers.read` for Provider quality. Owner listing and deletion read no aggregate
+`providers.read` for Provider quality. Quota creation requires the matching
+current resource authority without enumerating Keys or reading accounting. The
+Team definition represents the actor's dynamic readable-Team query, not a global
+Team grant. Loading never executes the query or restores former authority; an
+explicit Run freshly authorizes the saved scope. Owner listing and deletion read no aggregate
 statistics. Writes use CSRF and strict typed input. Stable creation intent supports
 explicit identical retries without accepting a changed body or resurrecting a
 deleted definition. Deletion removes the saved parameter payload; a minimal intent
@@ -264,9 +272,12 @@ visible. Active pending reservations and retained terminal reservations are
 disclosed separately.
 
 Quota reports do not submit identities or result rows to optional AI advice.
-Saving quota definitions remains a separate follow-up; current saved-definition
-kinds are unchanged. The composed source passes the selected report scenarios
+The current quota-definition candidate extends the same owner-private Save,
+Load and confirmed Delete workflow; frozen V111 preserves the released V110
+receipts and adds disjoint parameter constraints. This candidate passed focused real PostgreSQL/MySQL migration and lifecycle
+scenarios, but still requires complete qualification before delivery. The composed source passes the selected report scenarios
 on both real databases, including recorded settlements, root deduplication,
 scoped authority and CSV controls. Complete coherent qualification passed before
 main delivery in `bb542e9`; browser and real external-service acceptance remain
-separate. The complete goal is active; remaining Partial capabilities and acceptance gates continue.
+separate. The complete goal is active again by user instruction; earlier delivered
+qualification does not accept the changed quota-definition candidate.

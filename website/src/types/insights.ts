@@ -58,14 +58,19 @@ export interface ProviderQualityReport extends ProviderQualityRange {
   providers: (ProviderQualityCounts & { provider_id: string; name: string })[]
 }
 
-export type InsightsReportKind = 'tokens_by_model' | 'provider_quality'
-export interface InsightsReportParameters extends ProviderQualityRange {
-  kind: InsightsReportKind
-}
-export interface InsightsReportInput extends InsightsReportParameters {
-  request_id: string
-}
-export interface InsightsReportDefinition extends InsightsReportParameters {
+export type InsightsRangeReportKind = 'tokens_by_model' | 'provider_quality'
+export type InsightsReportKind = InsightsRangeReportKind | 'team_quota' | 'key_quota'
+export type InsightsReportParameters =
+  | (ProviderQualityRange & { kind: InsightsRangeReportKind })
+  | { kind: 'team_quota'; dimension: 'tokens' | 'money' }
+  | {
+      kind: 'key_quota'
+      dimension: 'tokens' | 'money'
+      scope_kind: 'member' | 'project'
+      scope_id: string
+    }
+export type InsightsReportInput = InsightsReportParameters & { request_id: string }
+export type InsightsReportDefinition = InsightsReportParameters & {
   id: string
   created_at: string
 }

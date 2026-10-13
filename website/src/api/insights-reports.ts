@@ -14,17 +14,31 @@ const exact = (value: Record<string, unknown>, keys: readonly string[]) =>
 const bytes = (value: string) => new TextEncoder().encode(value).length
 const reportID = (value: unknown): value is string =>
   typeof value === 'string' && /^isr_[0-7][0-9a-hjkmnp-tv-z]{25}$/.test(value)
-const kind = (value: unknown) => value === 'tokens_by_model' || value === 'provider_quality'
+const rangeKind = (value: unknown) => value === 'tokens_by_model' || value === 'provider_quality'
+function parameterKeys(value: Record<string, unknown>): string[] {
+  if (rangeKind(value.kind)) return ['kind', 'from', 'to', 'timezone']
+  if (value.kind === 'team_quota') return ['kind', 'dimension']
+  if (value.kind === 'key_quota') return ['kind', 'dimension', 'scope_kind', 'scope_id']
+  return []
+}
 const cursor = (value: unknown): value is string =>
   typeof value === 'string' &&
   bytes(value) <= 160 &&
   [...value].every((character) => character.charCodeAt(0) > 32 && character.charCodeAt(0) !== 127)
 
 const timestamp = (value: unknown): value is string => insightsInstant(value) !== null
-function validParameters(value: Record<string, unknown>) {
+function validParameters(value: Record<string, unknown>): boolean {
+  if (rangeKind(value.kind))
+    return isInsightsRange({ from: value.from, to: value.to, timezone: value.timezone })
+  if (value.dimension !== 'tokens' && value.dimension !== 'money') return false
+  if (value.kind === 'team_quota') return true
   return (
-    kind(value.kind) &&
-    isInsightsRange({ from: value.from, to: value.to, timezone: value.timezone })
+    value.kind === 'key_quota' &&
+    (value.scope_kind === 'member' || value.scope_kind === 'project') &&
+    typeof value.scope_id === 'string' &&
+    new RegExp(
+      `^${value.scope_kind === 'member' ? 'usr' : 'prj'}_[0-7][0-9a-hjkmnp-tv-z]{25}$`,
+    ).test(value.scope_id)
   )
 }
 
@@ -34,12 +48,11 @@ function canonicalUTC(value: unknown): value is string {
 export function parseInsightsReport(value: unknown): InsightsReportDefinition {
   if (
     !object(value) ||
-    !exact(value, ['id', 'kind', 'from', 'to', 'timezone', 'created_at']) ||
+    !exact(value, ['id', ...parameterKeys(value), 'created_at']) ||
     !reportID(value.id) ||
     !validParameters(value) ||
     !timestamp(value.created_at) ||
-    !canonicalUTC(value.from) ||
-    !canonicalUTC(value.to) ||
+    (rangeKind(value.kind) && (!canonicalUTC(value.from) || !canonicalUTC(value.to))) ||
     !value.created_at.endsWith('Z')
   )
     throw new Error('Invalid saved report definition')
@@ -78,23 +91,25 @@ export async function getInsightsReports(signal: AbortSignal, after = '', limit 
   if (response.status !== 200) throw new Error('Invalid saved report response')
   return parseInsightsReportPage(response.data, limit)
 }
+function validInput(value: unknown, csrf: string): boolean {
+  return !(
+    !object(value) ||
+    !exact(value, ['request_id', ...parameterKeys(value)]) ||
+    typeof value.request_id !== 'string' ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(
+      value.request_id,
+    ) ||
+    !validParameters(value) ||
+    bytes(JSON.stringify(value)) > 2048 ||
+    !csrf
+  )
+}
 export async function saveInsightsReport(
   input: InsightsReportInput,
   csrf: string,
   signal: AbortSignal,
 ) {
-  if (
-    !object(input) ||
-    !exact(input, ['request_id', 'kind', 'from', 'to', 'timezone']) ||
-    typeof input.request_id !== 'string' ||
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(
-      input.request_id,
-    ) ||
-    !validParameters(input) ||
-    bytes(JSON.stringify(input)) > 2048 ||
-    !csrf
-  )
-    throw new Error('Invalid saved report request')
+  if (!validInput(input, csrf)) throw new Error('Invalid saved report request')
   active(signal)
   const response = await client.post<unknown>('/insights/reports', input, {
     signal,
@@ -103,13 +118,21 @@ export async function saveInsightsReport(
   active(signal)
   if (![200, 201].includes(response.status)) throw new Error('Invalid saved report response')
   const definition = parseInsightsReport(response.data)
-  if (
-    definition.kind !== input.kind ||
-    definition.timezone !== input.timezone ||
-    insightsInstant(definition.from) !== insightsInstant(input.from) ||
-    insightsInstant(definition.to) !== insightsInstant(input.to)
-  )
-    throw new Error('Saved report does not match reviewed intent')
+  const saved = reportParameters(definition)
+  const matches =
+    input.kind === 'team_quota'
+      ? saved.kind === 'team_quota' && saved.dimension === input.dimension
+      : input.kind === 'key_quota'
+        ? saved.kind === 'key_quota' &&
+          saved.dimension === input.dimension &&
+          saved.scope_kind === input.scope_kind &&
+          saved.scope_id === input.scope_id
+        : (saved.kind === 'tokens_by_model' || saved.kind === 'provider_quality') &&
+          saved.kind === input.kind &&
+          saved.timezone === input.timezone &&
+          insightsInstant(saved.from) === insightsInstant(input.from) &&
+          insightsInstant(saved.to) === insightsInstant(input.to)
+  if (!matches) throw new Error('Saved report does not match reviewed intent')
   return definition
 }
 export async function deleteInsightsReport(id: string, csrf: string, signal: AbortSignal) {
@@ -123,5 +146,13 @@ export async function deleteInsightsReport(id: string, csrf: string, signal: Abo
   if (response.status !== 204) throw new Error('Invalid saved report deletion response')
 }
 export function reportParameters(value: InsightsReportDefinition): InsightsReportParameters {
+  if (value.kind === 'team_quota') return { kind: value.kind, dimension: value.dimension }
+  if (value.kind === 'key_quota')
+    return {
+      kind: value.kind,
+      dimension: value.dimension,
+      scope_kind: value.scope_kind,
+      scope_id: value.scope_id,
+    }
   return { kind: value.kind, from: value.from, to: value.to, timezone: value.timezone }
 }

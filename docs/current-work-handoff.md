@@ -90,137 +90,169 @@ PostgreSQL and MySQL projection/constraint scenarios per driver. Source review
 found no additional blockers. This increment does not complete the broader
 Insights capability; quota definitions and later analysis work remain separate.
 
-Updated: 2026-10-13. Status: active on this machine.
-Immutable attachment expiry was delivered as `1272233`. The verified Provider
-mean increment is described above. Quota definitions, later analysis features
-and local-service acceptance remain independent, undelivered work packages.
-The earlier transfer snapshot below is historical; it does not describe the
-current primary workspace or supersede the latest phase evidence.
+Updated: 2026-10-13. Status: active on this machine by explicit user instruction.
+The full F01–F30 / A01–A20 goal continues; no new pause is requested.
 
-## Historical repository and transfer snapshot
+## Current repository and work boundary
 
-| Field | Verified state |
-| --- | --- |
-| Repository / branch / upstream | `miclle/routex` / `main` / `origin/main` |
-| Main base and remote at capture | `6ab8e1e2a69ee7a778d44bb5b65ed96cadfa4453`; exact remote parity |
-| Primary edits | `docs/IMPLEMENTATION.md` and this handoff only; product source unchanged |
-| Local candidate | Detached `6ab8e1e` at `~/.codex/worktrees/5d46/routex` |
-| Candidate delivery | Uncommitted and local-only; no candidate source on remote main |
-| Coordination plan | `projects/routex/implementation-plan.md` in the separate dotfiles repository |
-| Dotfiles base at capture | `16b47f742dfe6f3077357044fee42b2925c2b50f`; exact remote parity |
-| Delivered coordination update | Dotfiles `d95bb756f15e21f38c7b6696b6fece87c0c52705`; pushed to main with exact remote readback |
-| Unrelated work | Preserve dotfiles `zsh/.zshrc`; exclude it from this delivery |
-| Next owner | Unassigned; verify this snapshot before resuming |
+- Repository: `miclle/routex`, branch `main`, upstream `origin/main`.
+- Last delivered source: `3fa148c11532be8ab0d61ea19fa201bd54535534`, read back
+  from local and remote main. Immutable attachment expiry is delivered; its focused,
+  mandatory and ordinary gates passed before commit.
+- Primary uncommitted candidate: creator-private Team/Key quota definitions,
+  frozen V111 registration, current registry ceilings, historical peel/upgrade
+  fixture adaptations, API/UI tests and paired rules/docs. No quota commit yet.
+- Detached local worktree: `~/.codex/worktrees/5d46/routex`, base `6ab8e1e`.
+  It contains separate Provider mean source and later Provider observations /
+  explicitly confirmed question work. Adopt only reviewed phase patches; primary
+  historical fixtures are newer. Never replace primary from the whole worktree.
+- Coordination source: dotfiles `projects/routex/implementation-plan.md`, separate
+  main at delivered `3286219dc7ef921fdec50fc4afe7840bcb9c2af6`, verified
+  against remote main. Preserve unrelated dotfiles `zsh/.zshrc`.
+- Delivered main is transferable. Dirty candidates and private receipts are
+  local-only and are not recoverable from remote main yet.
 
-Documentation and delivered source are transferable through their respective
-remote main branches after this documentation delivery. The uncommitted candidate,
-private logs, ignored dependency symlinks and machine configuration are not
-transported. Another computer cannot resume the candidate from main alone.
-Identify the documentation revision with
-`git log -1 --format='%H %s' -- docs/current-work-handoff.md` and verify upstream.
+## Current source and acceptance
 
-## Current partial implementation
-
-The complete objective still covers F01–F30 / A01–A20; the status matrix remains
-16 Completed / 14 Partial / 0 Not started. Previous five increments are delivered
-as recorded below. F24 and the wider attachment/enterprise acceptance remain
-Partial. Do not use draft code or prior-source tests to upgrade those statuses.
-
-| Local package | Source state | Acceptance still required |
+| Package | State | Remaining gate |
 | --- | --- | --- |
-| Fixed Personal/Project attachment expiry | Content eligibility uses immutable `CreatedAt + 1h`; ready cleanup no longer lets a mutable retry schedule extend retention eligibility | Focused 112/112 race, mandatory check and complete ordinary tests passed; PostgreSQL/MySQL storage lifecycle and browser remain open |
-| Team/Key saved quota definitions, backend | Current entity, service and HTTP drafts plus private frozen V111 schema; old V110 remains unchanged | Register V111, adapt historical fixtures, wire new scenarios and cover creation/upgrade/replay/concurrency on both drivers |
-| Team/Key saved quota definitions, frontend | Existing Save/table UI extended with kind, dimension and exact member/Project scope; load prepares parameters rather than executing | Focused UI/type result, composed source review/checks, paired rule/docs updates, ordinary and browser acceptance |
+| Immutable attachment expiry | Delivered in `1272233`; changed storage lifecycle passes on both real drivers within the failed broader matrix | Browser and actual local/external storage acceptance |
+| Team/Key quota report definitions | Primary V111 candidate; focused acceptance, mandatory check, ordinary qualification and fresh official authentication pass | Diagnose shared MySQL prelude timeout, fresh complete integration qualification, final format/check and commit/push |
+| Provider mean duration | Delivered in `3fa148c`; independent mandatory/full ordinary/dual-driver and composed primary checks pass | Broader Insights work remains separate |
+| Provider observations | Prepared isolated frontend patch; focused 71 tests pass | Adoption and composed phase qualification |
+| Confirmed question | Prepared user-approved Tokens-by-Model extension; strict backend and transient review UI controls pass | Adopt deltas while preserving primary quota guard, composed qualification and real-driver scenario |
+| Publication interruption | Isolated test-process proof passes 11 named tests per real driver | Adopt two-path delta, composed checks/docs and delivery; no fleet or production-binary claim |
+| Actual local S3 acceptance | Nine-path isolated harness; seven lightweight controls pass | Go compilation, exact production qualification and actual service execution |
+| Actual local SMTP acceptance | Corrected eight-path isolated harness; 16 lightweight controls pass | Corrected-source review, Go compilation, exact production qualification and actual capture execution |
 
-All candidate paths are relative to the detached worktree. Preserve:
+Quota source includes `entity/insights_report.go`, `service/insights_reports.go`
+and tests, `handler/insights_reports.go` and tests, new
+`database/insights_quota_report_migration.go` and tests, new
+`handler/insights_quota_reports_integration_test.go` and
+`insights_report_legacy_fixture_test.go`. The migration registry and historical
+fixture version ceilings now include V111 without editing released steps.
+Frontend changes are in `api/insights-reports.ts`, `types/insights.ts`, paired
+Insights catalogs and `views/insights/{index,quota,saved-reports}` with adjacent
+tests. Both frontend rule files are updated together.
 
-- Attachment files: `internal/routex/service/attachments.go`,
-  `attachments_test.go`, `gateway_attachment_resolution_test.go`, `service.go`,
-  `storage_cleanup.go`; `internal/routex/handler/storage_integration_test.go`.
-- Quota backend files: `internal/routex/entity/insights_report.go`;
-  `internal/routex/service/insights_reports.go` and `insights_reports_test.go`;
-  `internal/routex/handler/insights_reports.go` and `insights_reports_test.go`.
-- New untracked backend files: `internal/routex/database/insights_quota_report_migration.go`,
-  `insights_quota_report_migration_test.go` and
-  `internal/routex/handler/insights_quota_reports_integration_test.go`.
-- Quota frontend files: `website/src/api/insights-reports.ts`,
-  `website/src/types/insights.ts`, paired `website/src/i18n/locales/{en,zh}/insights.ts`,
-  and `website/src/views/insights/{index,quota,saved-reports}.tsx`,
-  `{insights,quota,saved-reports}.test.tsx` and `reports-api.test.ts`.
+Original focused supervisor 79682 directly joined zero. PostgreSQL and MySQL
+passed 24 named Insights tests each, without failures or skips; the database-only
+worker passed 3,150 names with one environment-gated skip. Status receipt records
+all workers joined/group-gone and successful owned Compose teardown. Private
+artifacts: `/private/tmp/routex-quota-v111-focused-primary-r3.cy6scwSj`.
+Earlier prefix-fixture and PostgreSQL prepared-result-shape failures are preserved;
+the fresh focus qualifies their narrow corrections, not the complete matrix.
+Development health at port 19000 still responds successfully. In-app browser
+automation remains unavailable. Computer Use now operates Chrome and confirms
+the real English-default sign-in page; Chrome has no authenticated Session.
+No management-page, upload or download browser acceptance is claimed.
 
-No candidate commit is staged or pushed at this checkpoint. Main documentation
-must not be replaced by stale copies from the detached worktree. Ignored
-`website/node_modules` and `bin/tools` symlinks point to the primary checkout;
-recreate dependencies on another machine and do not share mutable build output.
+Latest complete matrix original 81859 directly joined failure (chunk `53a0d8`)
+after 5,520.258 seconds. PostgreSQL passed 579/579 names. MySQL passed 576/579;
+the only failing leaf was `team_model_requests`, with two failing ancestors.
+Its shared prelude stopped at `migration 99: context deadline exceeded` before
+the leaf's business assertions. Cause remains unproven. Independent receipt
+`e4fba531f75335fdac905a500a42022f3c15e83642497d475d17c42952927e24`
+accepts physical cleanup, unchanged 2,637-path source, 48 native application
+births and preserved development, but rejects full-matrix acceptance. The same
+run's ordinary Go portion passed 10,225 names with six expected skips.
 
-## Current verification boundary
+The private consecutive-scenario diagnostic original 93668 directly joined
+failure in 357.036 seconds. PostgreSQL passed all eight selected names; its
+Personal/Team preludes applied all 111 versions in 7,838/4,964 ms. MySQL failed
+in initial concurrent startup before either observed business prelude, reporting
+`migration lock unavailable`; the other concurrent caller outcome is not known.
+This is a different observed boundary and does not explain the retained V99
+failure. Independent readback confirms unchanged source, all exact owned
+processes/groups/resources closed, database ports refused and freshly bindable,
+zero native application births and preserved development. A subsequent private
+observer records both concurrent startup outcomes without changing deadlines,
+concurrency, migrations or assertions.
 
-Main `6ab8e1e` has freshly verified successful
-[CI](https://github.com/miclle/routex/actions/runs/38337489531),
-[GolangCI-Lint](https://github.com/miclle/routex/actions/runs/38337489562) and
-[Actionlint](https://github.com/miclle/routex/actions/runs/38337489529).
-Those are main results, not acceptance of the dirty candidate or this later
-pure documentation commit.
+Fresh concurrent-observer diagnostic R2 original 76797 directly joined zero
+in 257.110 seconds. Each driver passed eight selected names; ordinary Go passed
+10,225 names with six expected skips. Both initial callers succeeded: PostgreSQL
+applied 111 versions in 5,196 ms and completed the waiting caller in 5,284 ms;
+MySQL completed in 11,772/11,876 ms. Personal/Team preludes completed in
+5,013/5,773 ms on PostgreSQL and 11,133/12,109 ms on MySQL. Independent readback
+`2b3e92f5f208d190188f3df588e113fa2d924b3d190fed0fda8b84f24fbe9b06`
+confirms unchanged source and exact process/resource/port closure, zero native
+application births and preserved development. It does not explain or relabel
+retained failures, and is not complete unfiltered acceptance. No production
+migration or deadline change is justified by these observations.
 
-The attachment-focused race run directly returned zero with 112 named passed
-test events, no failures or skips. Primary `go tool task check` and complete
-`go tool task test` also directly returned zero; the latter includes Go race,
-7,233 frontend tests, development lifecycle and production assets. Private JSON receipt:
-`/private/tmp/routex-attachment-expiry-focused-5d46-r1.jsonl`.
-It covers exact before/at/after expiry, future cleanup scheduling, Personal and
-Project scopes across four native protocols and expiry during a remote read.
-The modified handler storage integration has not run on either database.
-Backend focus directly returned zero for database, service and handler with:
+Provider mean is delivered as `3fa148c11532be8ab0d61ea19fa201bd54535534`, with local and remote main read back
+to the same revision. Independent mandatory checking, complete ordinary tests
+(7,237 frontend cases in 270 files) and all seven selected projection/constraint
+scenarios on each real driver passed. Composed primary checking also passed
+before commit. The quota candidate remains unstaged and undelivered. A separate clean local-service worktree
+combines corrected S3 R2 and reviewed SMTP R2 with one byte-exact shared
+supervisor; all 21 composed lightweight Node controls pass. Go compilation,
+production qualification and actual service runs remain pending. These isolated
+packages do not alter the uncommitted quota candidate or completion totals.
 
-```bash
-go test -count=1 -tags development ./internal/routex/database ./internal/routex/service ./internal/routex/handler -run '^(TestInsightsQuotaReportV111|TestInsightsReport(DefinitionGrammar|OwnerCursor|QuotaParameters|QuotaDTO|Strict|Stored))'
-```
+Mandatory original 86413 passed in 191.722 seconds. Complete ordinary original
+46149 passed before the final test-only callback correction, including 7,243
+frontend cases in 269 files; that correction is covered by the latest ordinary
+Go portion. Authentication original 75044 remains failed at MySQL readiness.
+Reviewed private diagnostic R2 original 43824 passed without changing any
+lifecycle assertion or timer. It intentionally adds a source-unchanged condition
+to its private supervisor; R1 and the failed original remain preserved.
+Diagnostic success does not identify the original cause or replace official
+acceptance. Fresh official original 10914 directly joined zero (chunk `959333`)
+in 45.186 seconds. Receipt
+`7e2dd2974181b3b344182b5c63fbfc1f5e40d93e586336786a947487e40005fc`
+confirms the four official summaries, unchanged source and exact outer/Compose
+closure. Individual application births and database ports were not captured.
 
-The earlier broader selector returned nonzero:
-`TestInsightsReportV110FrozenAppendAndPrivateReceipt` failed its historical
-current-entity ten-column comparison after the draft added three columns.
-The focused pass does not resolve or relabel that failure. Preserve frozen V110
-and adapt the comparison narrowly before complete qualification.
+Prepared later artifacts remain local-only. Primary quota changes remain
+unstaged, including their compatibility fixtures, tests and documentation.
+Provider and publication patches are retained privately; never replace the
+primary integration file wholesale. S3 uses a separate isolated worktree;
+SMTP R2 fixes the root's Base64 encoding, complete asset binding and bounded
+cleanup. Its capture proves the first SMTP recipient and headers, not the full
+RCPT set; the no-duplicate window proves elapsed observation, not worker ticks.
+Neither harness has compiled or started services. SMTP R2 has passed independent
+corrected-source review. S3 R2 corrects final executable rehashing, strict asset
+root/index admission and exact stopped-application `delete_pending` facts before
+storage recovery. The composed 19-path worktree passes 21 lightweight controls. Existing development
+remains running. In-app browser inventory/creation still fail; Computer Use
+confirms only the actual Chrome English sign-in page. Independent tasks continue.
 
-Primary `go tool task check` directly returned zero for this documentation-only
-submission; existing ESLint warnings remained warnings. Changed-document
-paths/links/commits, conflict markers and `git diff --check` passed. Private check
-log: `/private/tmp/routex-docs-handoff-20261013-r1/check.log`.
-This primary check does not check the dirty detached candidate. The final frontend focus returned zero: five files / 102 tests passed, including
-four Insights UI/API files and `website/src/i18n/insights.test.ts`. Earlier focus
-runs failed on a render-time Save gate, strict union typing and test expectations;
-a later 102-test run failed on a menu-query fixture race. Narrow corrections and
-the final pass do not relabel those original failures. Scoped ESLint and app
-TypeScript checks passed; no runtime/browser result is claimed.
+Saved quota definitions keep only dimension and exact member/Project scope where
+applicable. Load prepares controls and clears prior results/advice; it never runs,
+exports or invokes a model. Owner listing/deletion grant no analysis authority.
+Questions add explicitly reviewed user text to the unchanged server-derived
+aggregate projection; do not claim that user text contains only aggregates.
+Fixed query scope, temporary labels and fresh current authority remain mandatory.
 
-Full candidate checks, integration, authentication and browser gates have not run. All historical results below
-retain their original source scope.
+## First valid continuation action
 
-## First valid resume action
+Provider mean is committed and pushed as `3fa148c`. The isolated local-service
+worktree now owns the heavy compiler/database lane for helper, mandatory,
+ordinary and production qualification, followed by actual S3/SMTP drills.
+Provider observations and confirmed questions are prepared in parallel isolated
+worktrees without competing heavy checks. Preserve the primary quota candidate;
+its retained failed full matrix does not qualify it for commit.
 
-After user resumption, run `git status --short --branch`, `git rev-parse HEAD`
-and `git diff --check` in both the primary and detached worktree, and verify
-`git ls-remote origin refs/heads/main`. If the local candidate is unavailable,
-recover its source before claiming to resume it; remote main contains only the
-previously delivered implementation and documentation.
+Both private prelude diagnostics are closed. R2 passed with unchanged production
+source and timers; R1 and the original full matrix remain failed with unproven
+causes. After the independent mean phase, run a fresh complete unfiltered
+`go tool task test-integration` on the composed primary source. Join the original
+handle and inspect exact cleanup before accepting it. Final formatting and
+mandatory checks precede each implementation commit; update this document and
+the coordination plan, then push and read back remote parity.
 
-Start in `internal/routex/database/migrations.go`: register frozen V111 only
-once and preserve historical V110. Update current registry ceilings and genuine
-future-version negatives narrowly. Inspect
-`internal/routex/handler/insights_reports_integration_test.go` and its
-`insightsReportsPeelV110`/partial-migration helpers before changing fixtures;
-retain exact ledger timestamps, retained definitions/deletion receipts and
-partially applied MySQL controls. Wire the new quota integration child without
-claiming new complete coverage from the existing 572-test result.
-
-Then review backend/frontend wire compatibility, old intent-digest stability,
-creator isolation, exact scope authorization and uncertain retries. Update
-feature docs and both `AGENTS.md` and `.agents/rules/frontend.md` if the UI
-composition change is retained. Format, run focused tests, mandatory
-`go tool task check`, `go tool task test`, `go tool task test-integration` and
-any relevant authentication lifecycle before staged main delivery. Keep browser
-and real external-service acceptance separate. Do not start another package
-while the requested pause/handoff boundary remains in force.
+The independent mean worktree is
+`~/.codex/worktrees/routex-provider-mean-delivery-20261013`, branch
+`codex/provider-mean-delivery-20261013`. The combined S3/SMTP worktree is
+`~/.codex/worktrees/routex-local-service-acceptance-20261013`, branch
+`codex/local-service-acceptance-20261013`. Both start at `1272233`. Do not replace
+primary files wholesale or copy dirty quota docs into an independent commit.
+Qualify and execute the local-service controllers in their reserved heavy lane.
+Continue the preserved observations, confirmed-question and
+publication-interruption packages afterward. Browser login, external-service,
+capacity and distributed/fleet acceptance remain separate. The goal is active.
 
 ## Historical records
 

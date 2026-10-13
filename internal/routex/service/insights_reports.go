@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/miclle/routex/internal/routex/database"
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
 	"github.com/miclle/routex/pkg/id"
@@ -28,16 +29,22 @@ var insightsReportDeleted = &apperrors.Error{Code: 410, Message: "saved report w
 type CreateInsightsReportInput struct {
 	RequestID string `json:"request_id"`
 	Kind      string `json:"kind"`
-	From      string `json:"from"`
-	To        string `json:"to"`
-	Timezone  string `json:"timezone"`
+	From      string `json:"from,omitempty"`
+	To        string `json:"to,omitempty"`
+	Timezone  string `json:"timezone,omitempty"`
+	Dimension string `json:"dimension,omitempty"`
+	ScopeKind string `json:"scope_kind,omitempty"`
+	ScopeID   string `json:"scope_id,omitempty"`
 }
 type InsightsReportDefinition struct {
 	ID        string    `json:"id"`
 	Kind      string    `json:"kind"`
-	From      string    `json:"from"`
-	To        string    `json:"to"`
-	Timezone  string    `json:"timezone"`
+	From      string    `json:"from,omitempty"`
+	To        string    `json:"to,omitempty"`
+	Timezone  string    `json:"timezone,omitempty"`
+	Dimension string    `json:"dimension,omitempty"`
+	ScopeKind string    `json:"scope_kind,omitempty"`
+	ScopeID   string    `json:"scope_id,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 }
 type InsightsReportList struct {
@@ -46,14 +53,30 @@ type InsightsReportList struct {
 }
 
 func normalizeInsightsReport(input CreateInsightsReportInput) (CreateInsightsReportInput, error) {
-	if !insightsReportRequestID.MatchString(input.RequestID) || (input.Kind != "tokens_by_model" && input.Kind != "provider_quality") {
+	if !insightsReportRequestID.MatchString(input.RequestID) {
 		return input, apperrors.ErrBadRequest
 	}
-	plan, err := insightsProviderQualityRange(InsightsProviderQualityInput{From: input.From, To: input.To, Timezone: input.Timezone}, time.Now().UTC())
-	if err != nil {
-		return input, err
+	switch input.Kind {
+	case "tokens_by_model", "provider_quality":
+		if input.Dimension != "" || input.ScopeKind != "" || input.ScopeID != "" {
+			return input, apperrors.ErrBadRequest
+		}
+		plan, err := insightsProviderQualityRange(InsightsProviderQualityInput{From: input.From, To: input.To, Timezone: input.Timezone}, time.Now().UTC())
+		if err != nil {
+			return input, err
+		}
+		input.From, input.To, input.Timezone = plan.current.from.UTC().Format(time.RFC3339Nano), plan.current.to.UTC().Format(time.RFC3339Nano), plan.location.String()
+	case "team_quota", "key_quota":
+		if input.From != "" || input.To != "" || input.Timezone != "" {
+			return input, apperrors.ErrBadRequest
+		}
+		_, _, err := normalizeInsightsQuota("owner", InsightsQuotaInput{Dimension: input.Dimension, ScopeKind: input.ScopeKind, ScopeID: input.ScopeID}, input.Kind == "key_quota")
+		if err != nil {
+			return input, err
+		}
+	default:
+		return input, apperrors.ErrBadRequest
 	}
-	input.From, input.To, input.Timezone = plan.current.from.UTC().Format(time.RFC3339Nano), plan.current.to.UTC().Format(time.RFC3339Nano), plan.location.String()
 	return input, nil
 }
 func insightsReportOwner(actor entity.User) string {
@@ -64,7 +87,7 @@ func insightsReportIntent(input CreateInsightsReportInput) string {
 	return secret.SHA256Hex(string(raw))
 }
 func insightsReportDefinition(row entity.InsightsReport) InsightsReportDefinition {
-	return InsightsReportDefinition{ID: row.ID, Kind: row.Kind, From: row.From, To: row.To, Timezone: row.Timezone, CreatedAt: row.CreatedAt.UTC()}
+	return InsightsReportDefinition{ID: row.ID, Kind: row.Kind, From: row.From, To: row.To, Timezone: row.Timezone, Dimension: row.Dimension, ScopeKind: row.ScopeKind, ScopeID: row.ScopeID, CreatedAt: row.CreatedAt.UTC()}
 }
 
 // Governance then exact actor locking serializes writes with permission changes,
@@ -87,12 +110,7 @@ func (s *Service) CreateInsightsReport(ctx context.Context, actorID string, inpu
 		if err != nil {
 			return err
 		}
-		if input.Kind == "provider_quality" {
-			err = authorizeInsightsProviderQuality(tx.Session(&gorm.Session{}), actorID)
-		} else {
-			err = authorizeUsage(tx.Session(&gorm.Session{}), actorID, "admin", "")
-		}
-		if err != nil {
+		if err := authorizeInsightsReportCreation(tx.Session(&gorm.Session{}), actorID, input); err != nil {
 			return err
 		}
 		owner, intent := insightsReportOwner(actor), insightsReportIntent(input)
@@ -115,7 +133,7 @@ func (s *Service) CreateInsightsReport(ctx context.Context, actorID string, inpu
 		if err != nil {
 			return err
 		}
-		row = entity.InsightsReport{ID: reportID, OwnerDigest: owner, RequestID: input.RequestID, IntentDigest: intent, Kind: input.Kind, From: input.From, To: input.To, Timezone: input.Timezone, CreatedAt: time.Now().UTC().Truncate(time.Microsecond)}
+		row = entity.InsightsReport{ID: reportID, OwnerDigest: owner, RequestID: input.RequestID, IntentDigest: intent, Kind: input.Kind, From: input.From, To: input.To, Timezone: input.Timezone, Dimension: input.Dimension, ScopeKind: input.ScopeKind, ScopeID: input.ScopeID, CreatedAt: time.Now().UTC().Truncate(time.Microsecond)}
 		if err := tx.Create(&row).Error; err != nil {
 			return err
 		}
@@ -212,6 +230,34 @@ func (s *Service) DeleteInsightsReport(ctx context.Context, actorID, reportID st
 			return err
 		}
 		// A minimal receipt survives; none of the saved definition parameters does.
-		return tx.Model(&row).Updates(map[string]any{"kind": "", "range_from": "", "range_to": "", "timezone": "", "deleted_at": time.Now().UTC()}).Error
+		return tx.Model(&row).Updates(map[string]any{"kind": "", "range_from": "", "range_to": "", "timezone": "", "dimension": "", "scope_kind": "", "scope_id": "", "deleted_at": time.Now().UTC()}).Error
 	}))
+}
+
+// Saving a query definition never enumerates Keys or reads quota accounting.
+func authorizeInsightsReportCreation(tx *gorm.DB, actorID string, input CreateInsightsReportInput) error {
+	if input.Kind == "provider_quality" {
+		return authorizeInsightsProviderQuality(tx, actorID)
+	}
+	if err := authorizeUsage(tx, actorID, "admin", ""); err != nil {
+		return err
+	}
+	if input.Kind != "key_quota" {
+		return nil
+	}
+	if input.ScopeKind == "member" {
+		_, _, err := memberKeyPeople(tx, actorID, input.ScopeID, "members.read")
+		return err
+	}
+	if err := projectKeyAccess(tx, actorID, input.ScopeID); err != nil {
+		return err
+	}
+	var project entity.Project
+	if err := tx.Select("id").Where(database.ExactText(tx, clause.Column{Name: "id"}, input.ScopeID)).Take(&project).Error; err != nil {
+		return err
+	}
+	if project.ID != input.ScopeID {
+		return apperrors.ErrNotFound
+	}
+	return nil
 }

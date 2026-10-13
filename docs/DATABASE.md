@@ -36,7 +36,7 @@ Prefer targeted `Migrator` operations. The `migrateTables` helper creates only t
 
 MySQL can commit DDL implicitly. Design retryable steps and advance the migration ledger only after a complete version succeeds. Both supported databases must pass fresh installation, upgrades preserving data, repeated execution, concurrent startup, and constraint/index acceptance. Existing version 1–4 SQL is preserved unchanged because it has shipped; new migrations follow this policy.
 
-## Creator-private report definitions (version 110, in progress)
+## Creator-private report definitions (versions 110 and 111)
 
 V110 adds only the frozen `insights_reports` table through GORM Migrator APIs.
 Creator ownership uses a digest of the exact User ID and original creation time,
@@ -56,9 +56,22 @@ or AI output. Explicit deletion clears kind, range and time-zone payload while
 retaining a minimal creation-intent receipt to reject obsolete creation replay.
 Receipt retention is not retention of the deleted report definition.
 
-The new version does not evolve current entities at startup or change released
-steps. Real PostgreSQL/MySQL installation, upgrade, repeat, partial-DDL, retained
-row, index/constraint and ownership qualification is pending for this package.
+V110 is delivered with complete controlled PostgreSQL/MySQL qualification.
+V111 extends the frozen receipt schema with non-null empty-default dimension,
+scope kind and scope ID through targeted GORM column operations. Its new
+case-exact discriminated CHECK preserves old range definitions and minimal
+tombstones while accepting Team/Key quota parameters. Install the new guard
+before dropping the released two-kind guard; retained invalid data blocks receipt
+advancement. Released V110 remains unchanged, and old creation-intent hashes
+remain stable. No result data, query execution or Key enumeration is added.
+
+Focused real PostgreSQL/MySQL qualification covers retained V110 data and
+receipts, repeated/concurrent startup, partial new columns, malformed metadata,
+ordered indexes, constraints, exact retries and scope authority. Complete
+current-source regression remains pending before V111 delivery. The fixture
+that deliberately changes result columns discards idle connections during DDL
+so PostgreSQL cannot reuse a prepared result shape; production pooling is
+unchanged.
 
 ## Integration fixture lifecycle
 

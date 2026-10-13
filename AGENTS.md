@@ -1857,5 +1857,13 @@ and a positive rate, and stop at monthly reset; retained terminal reservations
 also prove incomplete actual usage even if an unknown counter is zero. Keep them
 separate from active pending reservations. Forecasts do not predict parent limits
 or actual request blocking. Preserve actor/Session/permission/target freshness and
-abort stale reads/exports. Do not save unsupported quota definitions or send quota
-identities and rows to optional AI advice.
+abort stale reads/exports. Keep quota identities and result rows out of optional AI advice.
+
+Saved quota report definitions extend the existing Save action and four-column
+owner table. Persist only the reviewed kind/dimension and exact member/Project
+scope for Key reports, never results, names, currencies, cursors or AI output.
+Load clears prior results/advice and restores controls without running, exporting
+or invoking inference; explicit Run reauthorizes current scope. Preserve creator
+listing/deletion after analysis authority loss, exact uncertain creation intent
+and actor/Session/permission/control-sequence guards. Controls changing away and
+back never authorize an obsolete save completion.

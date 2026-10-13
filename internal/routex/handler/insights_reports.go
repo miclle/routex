@@ -24,7 +24,7 @@ func decodeInsightsReportInput(raw []byte) (service.CreateInsightsReportInput, e
 	if err != nil || start != json.Delim('{') {
 		return input, apperrors.ErrBadRequest
 	}
-	fields := map[string]bool{"request_id": true, "kind": true, "from": true, "to": true, "timezone": true}
+	fields := map[string]bool{"request_id": true, "kind": true, "from": true, "to": true, "timezone": true, "dimension": true, "scope_kind": true, "scope_id": true}
 	seen := map[string]bool{}
 	for decoder.More() {
 		token, err := decoder.Token()
@@ -43,8 +43,27 @@ func decodeInsightsReportInput(raw []byte) (service.CreateInsightsReportInput, e
 		}
 	}
 	end, err := decoder.Token()
-	if err != nil || end != json.Delim('}') || len(seen) != len(fields) || decoder.Decode(new(any)) != io.EOF || json.Unmarshal(raw, &input) != nil {
+	if err != nil || end != json.Delim('}') || decoder.Decode(new(any)) != io.EOF || json.Unmarshal(raw, &input) != nil {
 		return input, apperrors.ErrBadRequest
+	}
+	required := []string{"request_id", "kind"}
+	switch input.Kind {
+	case "tokens_by_model", "provider_quality":
+		required = append(required, "from", "to", "timezone")
+	case "team_quota":
+		required = append(required, "dimension")
+	case "key_quota":
+		required = append(required, "dimension", "scope_kind", "scope_id")
+	default:
+		return input, apperrors.ErrBadRequest
+	}
+	if len(seen) != len(required) {
+		return input, apperrors.ErrBadRequest
+	}
+	for _, name := range required {
+		if !seen[name] {
+			return input, apperrors.ErrBadRequest
+		}
 	}
 	return input, nil
 }

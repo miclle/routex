@@ -36,6 +36,9 @@ func testInsightsAIIntegration(t *testing.T, db *gorm.DB) {
 	if !t.Run("saved_report_migration", func(t *testing.T) { testInsightsReportMigration(t, db) }) {
 		return
 	}
+	if !t.Run("quota_saved_report_migration", func(t *testing.T) { testInsightsQuotaReportMigration(t, db) }) {
+		return
+	}
 	// The prelude intentionally rebuilds and alters this table. Retire idle
 	// physical connections so driver plans cannot span those fixture schemas.
 	pool, err := db.DB()
@@ -111,6 +114,7 @@ func testInsightsAIIntegration(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer installInsightsSavedQuotaReadGuard(t, db)()
 	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)

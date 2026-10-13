@@ -52,7 +52,7 @@ export default {
     'Requires platform call-read permission. Reports use recorded calls, upstream attempts and scoped quota-journal facts; they do not change configuration or grant inference access.',
   assistantTitle: 'Operations analysis guide',
   introduction:
-    'Select a fixed report, review dates or the current quota scope, then run explicitly. For Tokens by Model, you may prepare a question and separately confirm personal-model AI analysis. Questions cannot change the report scope. Save reviewed report parameters for later explicit use; questions and AI answers are not saved.',
+    'Select a fixed report, review dates or the current quota scope, then run explicitly. For Tokens by Model, you may prepare a question and separately confirm personal-model AI analysis. Questions cannot change the report scope. Save reviewed report parameters for later explicit use; quota definitions retain only the dimension and authorized owner scope. Questions and AI answers are not saved.',
 
   shortcutTokens: 'Tokens by model',
   shortcutTeam: 'Analyze team usage',
@@ -217,7 +217,6 @@ export default {
     'A fresh scoped CSV is ready for download. This does not confirm that the browser saved it.',
   quotaExportFailed:
     'The scoped CSV could not be prepared. Retry explicitly after reviewing current access.',
-  quotaSaveUnavailable: 'Saving quota report definitions is not available.',
   quotaTeamTitle: 'Readable Team quota analysis',
   quotaKeyTitle: 'Selected scope Key quota analysis',
   quotaUnknown: 'Unknown / unavailable',
@@ -283,7 +282,7 @@ export default {
   quotaEstimate_zero_rate: 'Zero settled baseline rate; no estimate',
   quotaEstimate_after_reset: 'Projected cap is after reset; no date',
   savedPrivacy:
-    'Only you can read or delete these definitions. They retain report kind, dates and time zone until you explicitly delete them; statistics, questions and AI answers are never saved.',
+    'Only you can read or delete these definitions. They retain report kind with dates and time zone, or quota dimension and owner scope, until you explicitly delete them; statistics, questions and AI answers are never saved.',
   savingReport: 'Saving definition…',
   retrySave: 'Retry original save',
   savedConfirmed:
@@ -320,11 +319,19 @@ export default {
     'Deletion was not confirmed. The outcome may be unknown; retry this exact deletion explicitly. List absence does not prove that this request succeeded.',
   deleteConfirmed: 'The server confirmed deletion of the selected definition.',
   saveInvalid:
-    'The server rejected these report parameters. Review the kind, dates and time zone; this request did not save a definition.',
+    'The server rejected these report parameters. Review the report kind and its date range or quota scope; this request did not save a definition.',
   saveEndpointUnavailable:
     'The save endpoint rejected this request as unavailable. No definition was saved by this response.',
   deleteMissing:
     'The selected definition is currently unavailable to this Session. This response does not confirm that an earlier deletion succeeded.',
   deleteDenied: 'Current owner Session authority is required. This deletion request was rejected.',
+  savedQuotaParameters: 'Dimension: {{dimension}}; scope: {{scope}}',
+  savedReadableTeams: 'Currently readable Teams',
+  savedKeyScope: '{{kind}}: {{id}}',
+  savedCurrentQuotaWindow: 'Current month and trailing 168-hour baseline on explicit run',
+  saveQuotaIntent:
+    'Original save: {{title}}; {{parameters}}. Explicit retry preserves this exact definition.',
+  savedQuotaLoaded:
+    'Saved quota controls loaded for review. Previous results and AI answers were cleared. Current scope authority must be confirmed before an explicit run; no saved quota facts are restored.',
   savedCreatedAt: 'Created: {{time}}',
 }

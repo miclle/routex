@@ -277,7 +277,7 @@ func testSAMLMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	assertDefault()
-	for _, bound := range []int{0, -1, 96, 111} {
+	for _, bound := range []int{0, -1, 96, 112} {
 		before := personalKeyBehaviorLedger(t, db)
 		if database.MigrateThrough(ctx, db, bound) == nil || !reflect.DeepEqual(before, personalKeyBehaviorLedger(t, db)) {
 			t.Fatal("invalid/newer bound admitted", bound)
@@ -623,7 +623,7 @@ func testSAMLMigration(t *testing.T, db *gorm.DB) {
 	// Current-head reads also verify the five newly added fields remain empty.
 	historicalPrimary = func(tx *gorm.DB) *gorm.DB { return tx }
 	final := personalKeyBehaviorLedger(t, db)
-	if len(final) != 110 || final[109].Version != 110 || final[108].Version != 109 || final[107].Version != 108 || final[106].Version != 107 || final[105].Version != 106 || final[104].Version != 105 || final[103].Version != 104 || final[102].Version != 103 || final[100].Version != 101 || final[101].Version != 102 || final[99].Version != 100 || final[98].Version != 99 || final[97].Version != 98 || !reflect.DeepEqual(beforeSuccessor, final[:97]) {
+	if len(final) != 111 || final[110].Version != 111 || final[109].Version != 110 || final[108].Version != 109 || final[107].Version != 108 || final[106].Version != 107 || final[105].Version != 106 || final[104].Version != 105 || final[103].Version != 104 || final[102].Version != 103 || final[100].Version != 101 || final[101].Version != 102 || final[99].Version != 100 || final[98].Version != 99 || final[97].Version != 98 || !reflect.DeepEqual(beforeSuccessor, final[:97]) {
 		t.Fatal("historical V97 closure lost original rows or V98 suffix")
 	}
 	retained("current_head")

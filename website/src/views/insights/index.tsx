@@ -332,9 +332,19 @@ function InsightsContent({
   }
   const saved = useSavedInsightsReports({
     actor,
-    authorized: (kind) => authorized() && (kind !== 'provider_quality' || providerAuthorized()),
+    authorized: (parameters) =>
+      authorized() &&
+      (parameters.kind !== 'provider_quality' || providerAuthorized()) &&
+      ((parameters.kind !== 'team_quota' && parameters.kind !== 'key_quota') ||
+        quota.definitionStamp(parameters) !== null),
+    loadAuthorized: (kind) => authorized() && (kind !== 'provider_quality' || providerAuthorized()),
+    reviewStamp: (parameters) =>
+      parameters.kind === 'team_quota' || parameters.kind === 'key_quota'
+        ? quota.definitionStamp(parameters)
+        : authorityStamp,
     capture: () => {
-      if (quotaKind || !currentExportAuthority() || !currentReport) return null
+      if (quotaKind) return quota.captureDefinition()
+      if (!currentExportAuthority() || !currentReport) return null
       return currentReport.kind === 'provider'
         ? {
             kind: 'provider_quality',
@@ -360,6 +370,16 @@ function InsightsContent({
       )
         return
       clearReport()
+      if (parameters.kind === 'team_quota' || parameters.kind === 'key_quota') {
+        quota.loadDefinition(parameters)
+        setProviderReport(false)
+        setQuotaKind(parameters.kind)
+        setQuestion({ key: parameters.kind === 'team_quota' ? 'shortcutTeam' : 'shortcutKey' })
+        setSupported(true)
+        setInput('')
+        setMessage('savedQuotaLoaded')
+        return
+      }
       const provider = parameters.kind === 'provider_quality'
       setProviderReport(provider)
       setQuotaKind(null)
@@ -628,13 +648,7 @@ function InsightsContent({
                     {t('cancel')}
                   </Button>
                 )}
-                {quotaKind ? (
-                  <Button variant="outline" disabled title={t('quotaSaveUnavailable')}>
-                    {t('saveReport')}
-                  </Button>
-                ) : (
-                  saved.saveButton
-                )}
+                {saved.saveButton}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">

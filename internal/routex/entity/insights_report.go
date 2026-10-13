@@ -13,6 +13,9 @@ type InsightsReport struct {
 	From         string     `gorm:"column:range_from;size:30;not null"`
 	To           string     `gorm:"column:range_to;size:30;not null"`
 	Timezone     string     `gorm:"size:100;not null"`
+	Dimension    string     `gorm:"size:6;not null;default:''"`
+	ScopeKind    string     `gorm:"size:7;not null;default:''"`
+	ScopeID      string     `gorm:"size:30;not null;default:''"`
 	CreatedAt    time.Time  `gorm:"precision:6;not null;autoCreateTime:false"`
 	DeletedAt    *time.Time `gorm:"precision:6"`
 }

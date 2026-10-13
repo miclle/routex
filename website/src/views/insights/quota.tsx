@@ -26,6 +26,7 @@ import { FormField } from '@/components/app/CatalogUI'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import QuotaInsightsResult from './quota-result'
+import type { InsightsReportParameters } from '@/types/insights'
 
 export function useQuotaInsights({
   kind,
@@ -337,9 +338,60 @@ export function useQuotaInsights({
       if (live()) setExporting(false)
     }
   }
+  function definitionStamp(parameters: InsightsReportParameters) {
+    if (!live()) return null
+    if (parameters.kind === 'team_quota')
+      return kind === parameters.kind && dimension === parameters.dimension
+        ? JSON.stringify([authorityStamp, sequence.current])
+        : null
+    if (
+      parameters.kind !== 'key_quota' ||
+      kind !== parameters.kind ||
+      parameters.dimension !== dimension ||
+      parameters.scope_kind !== scopeKind ||
+      parameters.scope_id !== scopeID ||
+      ![targetKey, pickerKey].every((key) => {
+        const state = cache.getQueryState(key)
+        return state?.status === 'success' && state.fetchStatus === 'idle' && !state.isInvalidated
+      }) ||
+      (scopeKind === 'member' && !canMembers)
+    )
+      return null
+    return JSON.stringify([
+      authorityStamp,
+      sequence.current,
+      kind,
+      dimension,
+      scopeKind,
+      scopeID,
+      cache.getQueryState(targetKey)?.dataUpdateCount,
+      cache.getQueryState(pickerKey)?.dataUpdateCount,
+    ])
+  }
+  function captureDefinition(): InsightsReportParameters | null {
+    if (!kind || !live() || lock.current || exportLock.current) return null
+    const parameters: InsightsReportParameters =
+      kind === 'team_quota'
+        ? { kind, dimension }
+        : { kind, dimension, scope_kind: scopeKind, scope_id: scopeID }
+    return definitionStamp(parameters) === null ? null : parameters
+  }
+  function loadDefinition(parameters: InsightsReportParameters) {
+    if (!live() || (parameters.kind !== 'team_quota' && parameters.kind !== 'key_quota')) return
+    clear()
+    setDimension(parameters.dimension)
+    setQ('')
+    if (parameters.kind === 'key_quota') {
+      setScopeKind(parameters.scope_kind)
+      setScopeID(parameters.scope_id)
+    } else setScopeID('')
+  }
   const status = isAxiosError(report.error) ? report.error.response?.status : undefined
   return {
     clear,
+    captureDefinition,
+    definitionStamp,
+    loadDefinition,
     busy: !!request && report.isFetching,
     exporting,
     exportCSV,
@@ -423,7 +475,7 @@ export function useQuotaInsights({
                 )}
                 {candidates.map((item) => (
                   <option key={item.id} value={item.id}>
-                    {item.name || item.id}
+                    {item.id === scopeID && !targetReady ? item.id : item.name || item.id}
                   </option>
                 ))}
               </select>

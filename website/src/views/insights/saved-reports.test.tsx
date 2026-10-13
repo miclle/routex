@@ -17,7 +17,10 @@ const original = client.defaults.adapter
 const id = 'isr_01arz3ndektsv4rrffq69g5fav'
 const from = '2026-09-01T00:00:00Z',
   to = '2026-09-02T00:00:00Z'
-const definition = (): InsightsReportDefinition => ({
+const definition = (): Extract<
+  InsightsReportDefinition,
+  { kind: 'tokens_by_model' | 'provider_quality' }
+> => ({
   id,
   kind: 'tokens_by_model',
   from,

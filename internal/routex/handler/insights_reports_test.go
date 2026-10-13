@@ -57,3 +57,29 @@ func TestInsightsReportStoredTimestampRepresentation(t *testing.T) {
 		}
 	}
 }
+
+func TestInsightsReportStrictQuotaBodyDiscriminators(t *testing.T) {
+	const team = `{"request_id":"d52b7d9c-6e5d-44b2-b697-c55bd6a77974","kind":"team_quota","dimension":"tokens"}`
+	const key = `{"request_id":"d52b7d9c-6e5d-44b2-b697-c55bd6a77974","kind":"key_quota","dimension":"money","scope_kind":"project","scope_id":"prj_fixture"}`
+	for _, body := range []string{team, key} {
+		if _, err := decodeInsightsReportInput([]byte(body)); err != nil {
+			t.Fatal("valid discriminated body", err)
+		}
+	}
+	for _, body := range []string{
+		strings.Replace(team, `,"dimension":"tokens"`, "", 1),
+		strings.Replace(team, `"dimension":"tokens"`, `"dimension":null`, 1),
+		strings.Replace(team, `"dimension":"tokens"`, `"dimension":true`, 1),
+		strings.Replace(team, `"dimension":"tokens"`, `"dimension":"tokens","dimension":"tokens"`, 1),
+		strings.TrimSuffix(team, "}") + `,"from":""}`,
+		strings.TrimSuffix(team, "}") + `,"scope_kind":"","scope_id":""}`,
+		strings.Replace(key, `,"scope_id":"prj_fixture"`, "", 1),
+		strings.Replace(key, `"scope_id":"prj_fixture"`, `"scope_id":null`, 1),
+		strings.Replace(key, `"kind":"key_quota"`, `"kind":"team_quota"`, 1),
+		strings.TrimSuffix(insightsReportValidBody, "}") + `,"dimension":""}`,
+	} {
+		if _, err := decodeInsightsReportInput([]byte(body)); err == nil {
+			t.Fatal("invalid discriminator body admitted", body)
+		}
+	}
+}

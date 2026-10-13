@@ -25,7 +25,7 @@ func (providerEnabledBadV91Fixture) TableName() string { return "providers" }
 func testProviderEnablementMigration(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 110 || before[109].Version != 110 || before[108].Version != 109 || before[107].Version != 108 || before[106].Version != 107 || before[105].Version != 106 || before[104].Version != 105 || before[103].Version != 104 || before[102].Version != 103 || before[100].Version != 101 || before[101].Version != 102 || before[99].Version != 100 || before[98].Version != 99 || before[97].Version != 98 || before[96].Version != 97 || before[95].Version != 96 || before[94].Version != 95 || before[93].Version != 94 || before[92].Version != 93 || before[91].Version != 92 || before[90].Version != 91 || before[89].Version != 90 {
+	if len(before) != 111 || before[110].Version != 111 || before[109].Version != 110 || before[108].Version != 109 || before[107].Version != 108 || before[106].Version != 107 || before[105].Version != 106 || before[104].Version != 105 || before[103].Version != 104 || before[102].Version != 103 || before[100].Version != 101 || before[101].Version != 102 || before[99].Version != 100 || before[98].Version != 99 || before[97].Version != 98 || before[96].Version != 97 || before[95].Version != 96 || before[94].Version != 95 || before[93].Version != 94 || before[92].Version != 93 || before[91].Version != 92 || before[90].Version != 91 || before[89].Version != 90 {
 		t.Fatal("exact current V91 ledger")
 	}
 	for i, row := range before {

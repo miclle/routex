@@ -175,3 +175,94 @@ it.each([409, 410, 404])(
     expect(calls).toBe(1)
   },
 )
+
+it.each([
+  { kind: 'team_quota', dimension: 'tokens' },
+  { kind: 'team_quota', dimension: 'money' },
+  {
+    kind: 'key_quota',
+    dimension: 'tokens',
+    scope_kind: 'member',
+    scope_id: 'usr_01arz3ndektsv4rrffq69g5fav',
+  },
+  {
+    kind: 'key_quota',
+    dimension: 'money',
+    scope_kind: 'project',
+    scope_id: 'prj_01arz3ndektsv4rrffq69g5fav',
+  },
+] as const)(
+  'saves and matches the exact discriminated quota definition %j without result fields',
+  async (parameters) => {
+    const quota = { ...parameters, id, created_at: '2026-10-02T00:00:00Z' }
+    expect(parseInsightsReport(quota)).toEqual(quota)
+    const request = { ...parameters, request_id: input.request_id }
+    const sent: unknown[] = []
+    client.defaults.adapter = async (config) => {
+      sent.push(JSON.parse(config.data))
+      return response(config, quota, 201)
+    }
+    await expect(saveInsightsReport(request, 'csrf', signal())).resolves.toEqual(quota)
+    expect(sent).toEqual([request])
+    client.defaults.adapter = async (config) =>
+      response(
+        config,
+        { ...quota, dimension: parameters.dimension === 'tokens' ? 'money' : 'tokens' },
+        201,
+      )
+    await expect(saveInsightsReport(request, 'csrf', signal())).rejects.toThrow('reviewed intent')
+    for (const extra of [
+      { from: input.from },
+      { timezone: 'UTC' },
+      { cursor: 'private' },
+      { currency: 'USD' },
+      { statistics: {} },
+      {
+        scope_id:
+          parameters.kind === 'key_quota' ? 'usr_foreign' : 'usr_01arz3ndektsv4rrffq69g5fav',
+      },
+    ]) {
+      expect(() => parseInsightsReport({ ...quota, ...extra })).toThrow()
+    }
+  },
+)
+it('rejects mixed, incomplete, invalid and private quota requests before dispatch', async () => {
+  let calls = 0
+  client.defaults.adapter = async (config) => {
+    calls++
+    return response(config, {}, 201)
+  }
+  const quota = {
+    kind: 'key_quota',
+    dimension: 'tokens',
+    scope_kind: 'member',
+    scope_id: 'usr_01arz3ndektsv4rrffq69g5fav',
+    request_id: input.request_id,
+  }
+  for (const change of [
+    { dimension: null },
+    { dimension: 'cost' },
+    { scope_kind: 'readable_teams' },
+    { scope_id: quota.scope_id.toUpperCase() },
+    { scope_id: 'prj_01arz3ndektsv4rrffq69g5fav' },
+    { scope_id: null },
+    { from: input.from },
+    { reason: 'extra' },
+    { name: 'private' },
+    { forecast: {} },
+  ])
+    await expect(
+      saveInsightsReport({ ...quota, ...change } as InsightsReportInput, 'csrf', signal()),
+    ).rejects.toThrow()
+  await expect(
+    saveInsightsReport(
+      { request_id: input.request_id, kind: 'team_quota' } as InsightsReportInput,
+      'csrf',
+      signal(),
+    ),
+  ).rejects.toThrow()
+  await expect(
+    saveInsightsReport({ ...input, dimension: 'tokens' } as InsightsReportInput, 'csrf', signal()),
+  ).rejects.toThrow()
+  expect(calls).toBe(0)
+})

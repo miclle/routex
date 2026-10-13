@@ -1,7 +1,9 @@
 package service
 
 import (
+	"encoding/json"
 	"github.com/miclle/routex/internal/routex/entity"
+	"github.com/miclle/routex/pkg/secret"
 	"strings"
 	"testing"
 	"time"
@@ -71,6 +73,88 @@ func TestInsightsReportOwnerCursorAndReceiptScope(t *testing.T) {
 	for _, value := range []string{cursor + "=", strings.Repeat("x", 161), insightsReportCursor(insightsReportOwner(alias), last), insightsReportCursor(owner, strings.ToUpper(last)), insightsReportCursor(owner, "isr_81k7g000000000000000000000")} {
 		if _, err := parseInsightsReportCursor(value, owner); err == nil {
 			t.Fatal("invalid owner cursor", value)
+		}
+	}
+}
+
+func TestInsightsReportQuotaParametersAndLegacyIntent(t *testing.T) {
+	const request = "d52b7d9c-6e5d-44b2-b697-c55bd6a77974"
+	for _, input := range []CreateInsightsReportInput{
+		{RequestID: request, Kind: "team_quota", Dimension: "tokens"},
+		{RequestID: request, Kind: "team_quota", Dimension: "money"},
+		{RequestID: request, Kind: "key_quota", Dimension: "tokens", ScopeKind: "member", ScopeID: "usr_01k7g000000000000000000000"},
+		{RequestID: request, Kind: "key_quota", Dimension: "money", ScopeKind: "project", ScopeID: "prj_fixture"},
+	} {
+		normalized, err := normalizeInsightsReport(input)
+		if err != nil || normalized != input {
+			t.Fatal("valid quota parameters changed", input, err)
+		}
+		changed := input
+		changed.Dimension = "money"
+		if input.Dimension == "money" {
+			changed.Dimension = "tokens"
+		}
+		if insightsReportIntent(input) == insightsReportIntent(changed) {
+			t.Fatal("dimension omitted from intent")
+		}
+	}
+	valid := CreateInsightsReportInput{RequestID: request, Kind: "key_quota", Dimension: "tokens", ScopeKind: "project", ScopeID: "prj_fixture"}
+	for _, mutate := range []func(*CreateInsightsReportInput){
+		func(v *CreateInsightsReportInput) { v.Dimension = "" },
+		func(v *CreateInsightsReportInput) { v.Dimension = "TOKENS" },
+		func(v *CreateInsightsReportInput) { v.ScopeKind = "Project" },
+		func(v *CreateInsightsReportInput) { v.ScopeID = "" },
+		func(v *CreateInsightsReportInput) { v.ScopeID = strings.Repeat("x", 31) },
+		func(v *CreateInsightsReportInput) { v.ScopeID = "prj_private\x00" },
+		func(v *CreateInsightsReportInput) { v.From = "2026-10-01T00:00:00Z" },
+		func(v *CreateInsightsReportInput) { v.Timezone = "UTC" },
+		func(v *CreateInsightsReportInput) { v.Kind = "team_quota" },
+	} {
+		input := valid
+		mutate(&input)
+		if _, err := normalizeInsightsReport(input); err == nil {
+			t.Fatal("mixed/invalid quota definition accepted", input)
+		}
+	}
+	legacy := CreateInsightsReportInput{RequestID: request, Kind: "tokens_by_model", From: "2026-10-01T00:00:00Z", To: "2026-10-02T00:00:00Z", Timezone: "UTC"}
+	// Released V110 intent bytes must survive new fields and upgraded schemas.
+	raw := `{"request_id":"d52b7d9c-6e5d-44b2-b697-c55bd6a77974","kind":"tokens_by_model","from":"2026-10-01T00:00:00Z","to":"2026-10-02T00:00:00Z","timezone":"UTC"}`
+	if insightsReportIntent(legacy) != secret.SHA256Hex(raw) {
+		t.Fatal("released intent digest changed")
+	}
+	legacy.Dimension = "tokens"
+	if _, err := normalizeInsightsReport(legacy); err == nil {
+		t.Fatal("legacy definition admitted quota fields")
+	}
+}
+
+func TestInsightsReportQuotaDTOOmitsHistoricalAndInapplicableFields(t *testing.T) {
+	for _, row := range []entity.InsightsReport{
+		{Kind: "team_quota", Dimension: "money"},
+		{Kind: "key_quota", Dimension: "tokens", ScopeKind: "project", ScopeID: "prj_fixture"},
+		{Kind: "tokens_by_model", From: "from", To: "to", Timezone: "UTC"},
+	} {
+		raw, err := json.Marshal(insightsReportDefinition(row))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var fields map[string]json.RawMessage
+		if err = json.Unmarshal(raw, &fields); err != nil {
+			t.Fatal(err)
+		}
+		quota := row.Kind == "team_quota" || row.Kind == "key_quota"
+		for _, name := range []string{"from", "to", "timezone"} {
+			if _, has := fields[name]; has == quota {
+				t.Fatal("inapplicable range field", name, string(raw))
+			}
+		}
+		if _, has := fields["dimension"]; has != quota {
+			t.Fatal("dimension discriminator", string(raw))
+		}
+		for _, name := range []string{"scope_kind", "scope_id"} {
+			if _, has := fields[name]; has != (row.Kind == "key_quota") {
+				t.Fatal("inapplicable scope field", name, string(raw))
+			}
 		}
 	}
 }

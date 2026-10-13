@@ -268,13 +268,14 @@ func testInsightsReportDefinitions(t *testing.T, db *gorm.DB, svc *service.Servi
 			t.Fatal("deleted intent replay resurrected after race")
 		}
 	})
+	t.Run("quota_saved_definition_scope_replay_and_deletion", func(t *testing.T) { testInsightsQuotaReportDefinitions(t, db, svc, router, admin, cookie) })
 }
 
 func testInsightsReportMigration(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 110 {
-		t.Fatal("saved report requires current V110 head")
+	if len(before) != 111 || before[110].Version != 111 {
+		t.Fatal("saved report requires current V111 head")
 	}
 	// Genuine V109 upgrade retains unrelated existing data and exact receipts.
 	example := entity.Example{Title: "saved report predecessor retained data"}
@@ -311,6 +312,9 @@ func testInsightsReportMigration(t *testing.T, db *gorm.DB) {
 	}
 	replay := func() {
 		t.Helper()
+		if err := insightsReportsPeelV111(db, personalKeyBehaviorLedger(t, db)); err != nil {
+			t.Fatal("restore exact retained V110 schema", err)
+		}
 		removed := db.Table("schema_migrations").Where("version = ? AND applied_at = ?", 110, personalKeyBehaviorLedger(t, db)[109].AppliedAt).Delete(&struct{}{})
 		if removed.Error != nil || removed.RowsAffected != 1 {
 			t.Fatal("remove exact V110 receipt", removed.Error)
@@ -324,7 +328,7 @@ func testInsightsReportMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	after := personalKeyBehaviorLedger(t, db)
-	if len(after) != 110 || !reflect.DeepEqual(before[:109], after[:109]) {
+	if len(after) != 111 || after[110].Version != 111 || !reflect.DeepEqual(before[:109], after[:109]) {
 		t.Fatal("V110 replay changed immutable prefix")
 	}
 	var retained entity.InsightsReport
@@ -392,7 +396,7 @@ func insightsReportSameStoredDefinition(a, b entity.InsightsReport) bool {
 // A historical fixture may remove V110 only after validating the full receipt
 // and proving no definition or minimal deleted-intent receipt would be lost.
 func insightsReportsPeelV110(db *gorm.DB, expected []personalKeyBehaviorMigrationEntry) error {
-	if len(expected) < 1 || len(expected) > 110 {
+	if len(expected) < 1 || len(expected) > 111 {
 		return errors.New("unsupported saved report fixture head")
 	}
 	for i, row := range expected {
@@ -414,9 +418,11 @@ func insightsReportsPeelV110(db *gorm.DB, expected []personalKeyBehaviorMigratio
 	if err := db.Migrator().DropTable(&entity.InsightsReport{}); err != nil {
 		return err
 	}
-	removed := db.Table("schema_migrations").Where("version = ? AND applied_at = ?", 110, expected[109].AppliedAt).Delete(&struct{}{})
-	if removed.Error != nil || removed.RowsAffected != 1 {
-		return errors.New("exact saved report receipt removal failed")
+	for index := len(expected) - 1; index >= 109; index-- {
+		removed := db.Table("schema_migrations").Where("version = ? AND applied_at = ?", index+1, expected[index].AppliedAt).Delete(&struct{}{})
+		if removed.Error != nil || removed.RowsAffected != 1 {
+			return errors.New("exact saved report receipt removal failed")
+		}
 	}
 	actual = nil
 	if err := db.Table("schema_migrations").Order("version").Find(&actual).Error; err != nil || !reflect.DeepEqual(actual, expected[:109]) {
@@ -474,6 +480,9 @@ func testInsightsReportPartialMigration(t *testing.T, db *gorm.DB, row entity.In
 	model := &entity.InsightsReport{}
 	deleteReceipt := func() {
 		t.Helper()
+		if err := insightsReportsPeelV111(db, personalKeyBehaviorLedger(t, db)); err != nil {
+			t.Fatal("restore exact V110 partial fixture", err)
+		}
 		ledger := personalKeyBehaviorLedger(t, db)
 		if len(ledger) != 110 {
 			t.Fatal("exact V110 replay precondition")
@@ -552,20 +561,23 @@ func testInsightsReportPartialMigration(t *testing.T, db *gorm.DB, row entity.In
 	restore()
 	// A same-name weakened CHECK cannot bless retained invalid data or survive
 	// a successful replay when every retained row satisfies the frozen predicate.
+	if err := insightsReportsPeelV111(db, personalKeyBehaviorLedger(t, db)); err != nil {
+		t.Fatal("restore exact V110 weak-check fixture", err)
+	}
 	if err := db.Migrator().DropConstraint(model, "ck_insights_report_definition"); err != nil {
 		t.Fatal(err)
 	}
 	if err := db.Migrator().CreateConstraint(&insightsReportWeakCheckV110{}, "ck_insights_report_definition"); err != nil {
 		t.Fatal(err)
 	}
-	if err := db.Create(&row).Error; err != nil {
+	if err := db.Omit("Dimension", "ScopeKind", "ScopeID").Create(&row).Error; err != nil {
 		t.Fatal("valid retained partial baseline", err)
 	}
 	invalid := row
 	invalid.ID = "isr_00000000000000000000000008"
 	invalid.RequestID = "d52b7d98-6e5d-44b2-b697-c55bd6a77974"
 	invalid.Kind = "TOKENS_BY_MODEL"
-	if err := db.Create(&invalid).Error; err != nil {
+	if err := db.Omit("Dimension", "ScopeKind", "ScopeID").Create(&invalid).Error; err != nil {
 		t.Fatal("weak CHECK negative fixture must actually insert", err)
 	}
 	deleteReceipt()
@@ -578,7 +590,7 @@ func testInsightsReportPartialMigration(t *testing.T, db *gorm.DB, row entity.In
 		t.Fatal(err)
 	}
 	restore()
-	if err := db.Create(&invalid).Error; err == nil {
+	if err := db.Omit("Dimension", "ScopeKind", "ScopeID").Create(&invalid).Error; err == nil {
 		t.Fatal("weak same-name CHECK survived replay")
 	}
 	if err := db.Where("id = ?", row.ID).Delete(model).Error; err != nil {

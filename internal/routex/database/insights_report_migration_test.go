@@ -10,7 +10,7 @@ import (
 func TestInsightsReportV110FrozenAppendAndPrivateReceipt(t *testing.T) {
 	frozen := oidcV94Schema(t, &insightsReportV110{})
 	current := oidcV94Schema(t, &entity.InsightsReport{})
-	if frozen.Table != "insights_reports" || current.Table != frozen.Table || len(frozen.DBNames) != 10 || len(current.DBNames) != 10 {
+	if frozen.Table != "insights_reports" || current.Table != frozen.Table || len(frozen.DBNames) != 10 || len(current.DBNames) != 13 {
 		t.Fatal("bounded saved report schema")
 	}
 	for _, name := range frozen.DBNames {
@@ -19,9 +19,14 @@ func TestInsightsReportV110FrozenAppendAndPrivateReceipt(t *testing.T) {
 			t.Fatal("frozen saved report mismatch", name)
 		}
 	}
+	for _, name := range []string{"dimension", "scope_kind", "scope_id"} {
+		if frozen.FieldsByDBName[name] != nil || current.FieldsByDBName[name] == nil {
+			t.Fatal("only explicit quota fields may extend current schema", name)
+		}
+	}
 	for _, driver := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(driver)
-		if len(steps) != 110 || reflect.ValueOf(steps[108]).Pointer() != reflect.ValueOf(credentialInferenceFailureMigration).Pointer() || reflect.ValueOf(steps[109]).Pointer() != reflect.ValueOf(insightsReportMigration).Pointer() {
+		if len(steps) != 111 || reflect.ValueOf(steps[108]).Pointer() != reflect.ValueOf(credentialInferenceFailureMigration).Pointer() || reflect.ValueOf(steps[109]).Pointer() != reflect.ValueOf(insightsReportMigration).Pointer() {
 			t.Fatal("V110 must append")
 		}
 	}

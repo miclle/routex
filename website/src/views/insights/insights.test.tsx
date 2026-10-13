@@ -606,7 +606,7 @@ it.each(['shortcutTeam', 'shortcutKey'])(
         ),
       ).not.toBeNull(),
     )
-    expect(button(text('saveReport')).disabled).toBe(true)
+    expect(button(text('saveReport')).disabled).toBe(shortcut !== 'shortcutTeam')
     const menu = host.querySelector<HTMLButtonElement>(
       '[aria-label="' +
         i18n.t('insights:savedActions', {
@@ -624,7 +624,7 @@ it.each(['shortcutTeam', 'shortcutKey'])(
     expect(host.textContent).toContain(text('savedLoaded'))
     expect(host.querySelector('[aria-label="' + text('quotaReview') + '"]')).toBeNull()
     expect(host.querySelector<HTMLInputElement>('[name="from"]')!.value).toBe(
-      savedDefinitions[0].from,
+      'from' in savedDefinitions[0] ? savedDefinitions[0].from : '',
     )
     expect(reports()).toHaveLength(0)
     expect(requests.some((item) => item.url?.startsWith('/admin/insights/quota/'))).toBe(false)

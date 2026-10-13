@@ -14,6 +14,7 @@ import {
   quotaProject,
   teamQuotaInput,
 } from './quota-fixture'
+import type { InsightsReportDefinition } from '@/types/insights'
 import type { QuotaInsightsReport } from '@/types/insights-quota'
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 interface DeferredGate {
@@ -31,6 +32,8 @@ let actor: string,
   targetGate: DeferredGate | undefined,
   permissionGate: DeferredGate | undefined,
   sessionGate: DeferredGate | undefined
+let definitions: InsightsReportDefinition[], saveStatus: number, saveGate: DeferredGate | undefined
+const savedID = 'isr_01arz3ndektsv4rrffq69g5fav'
 let reportStatus: number, targetStatus: number, mutation: (r: QuotaInsightsReport) => void
 const original = client.defaults.adapter
 const text = (key: string) => i18n.t('insights:' + key)
@@ -60,6 +63,9 @@ beforeEach(async () => {
   downloads = []
   gates = []
   reportGate = csvGate = targetGate = permissionGate = sessionGate = undefined
+  definitions = []
+  saveStatus = 0
+  saveGate = undefined
   reportStatus = targetStatus = 0
   mutation = () => {}
   host = document.createElement('div')
@@ -76,8 +82,19 @@ beforeEach(async () => {
     requests.push(config)
     let data: unknown,
       mime = 'application/json'
-    if (config.url === '/insights/reports') data = { items: [], next_cursor: '' }
-    else if (config.url === '/auth/session') {
+    if (config.url === '/insights/reports' && config.method === 'post') {
+      const parameters = { ...JSON.parse(config.data) }
+      delete parameters.request_id
+      data = { ...parameters, id: savedID, created_at: '2026-10-01T00:00:00Z' }
+      if (saveGate) await saveGate.promise
+      if (saveStatus) throw failure(config, saveStatus)
+      definitions = [data as InsightsReportDefinition]
+    } else if (config.url === '/insights/reports')
+      data = { items: [...definitions], next_cursor: '' }
+    else if (config.url === '/insights/reports/' + savedID && config.method === 'delete') {
+      definitions = []
+      return { config, data: '', status: 204, statusText: '', headers: new AxiosHeaders() }
+    } else if (config.url === '/auth/session') {
       data = { user: { id: actor, role: 'member' }, csrf_token: 'csrf' }
       if (sessionGate) await sessionGate.promise
     } else if (config.url === '/auth/permissions') {
@@ -147,7 +164,7 @@ async function until(assertion: () => void) {
   assertion()
 }
 function button(key: string) {
-  const found = [...host.querySelectorAll<HTMLButtonElement>('button')].find(
+  const found = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
     (b) => b.textContent?.trim() === text(key),
   )
   if (!found) throw new Error('Missing ' + key)
@@ -199,8 +216,7 @@ it('keeps the Mockup layout, requires explicit Team run and displays only bounde
   expect(requests.some((r) => r.url === '/admin/members' || r.url === '/projects')).toBe(false)
   await click('shortcutTeam')
   expect(reports()).toHaveLength(0)
-  expect(button('saveReport').disabled).toBe(true)
-  expect(button('saveReport').title).toBe(text('quotaSaveUnavailable'))
+  expect(button('saveReport').disabled).toBe(false)
   expect(host.textContent).not.toContain(text('aiTitle'))
   await click('quotaRun')
   await ready()
@@ -528,4 +544,148 @@ it('counts only the authoritative seven-day forecast flag, independently of the 
   })
   expect(count()).toBe('0')
   expect(reports()).toHaveLength(2)
+})
+
+const saves = () => requests.filter((r) => r.url === '/insights/reports' && r.method === 'post')
+async function savedAction(key: string) {
+  const row = definitions[0]
+  const title = text(row.kind === 'team_quota' ? 'quotaTeamTitle' : 'quotaKeyTitle')
+  let trigger: HTMLButtonElement | undefined
+  await until(() => {
+    trigger = [...host.querySelectorAll<HTMLButtonElement>('button')].find(
+      (b) =>
+        b.getAttribute('aria-label') === i18n.t('insights:savedActions', { id: row.id, title }),
+    )
+    expect(trigger).toBeDefined()
+  })
+  await act(async () => trigger!.click())
+  await until(() => expect(document.querySelector('[role="menuitem"]')).not.toBeNull())
+  const item = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
+    (node) => node.textContent?.trim() === text(key),
+  )!
+  await act(async () => item.click())
+}
+it('saves reviewed Team money controls without querying statistics and loads only for explicit review', async () => {
+  await mount()
+  await click('shortcutTeam')
+  await select('quotaDimension', 'money')
+  await click('saveReport')
+  await until(() => expect(host.textContent).toContain(text('savedConfirmed')))
+  const body = JSON.parse(saves()[0].data)
+  expect(body).toEqual({ request_id: expect.any(String), kind: 'team_quota', dimension: 'money' })
+  expect(reports()).toHaveLength(0)
+  await click('quotaRun')
+  await ready()
+  await savedAction('loadSaved')
+  expect(host.textContent).not.toContain('Reviewed quota account')
+  expect(host.textContent).toContain(text('savedQuotaLoaded'))
+  expect(reports()).toHaveLength(1)
+  expect(
+    host.querySelector<HTMLSelectElement>('select[aria-label="' + text('quotaDimension') + '"]')!
+      .value,
+  ).toBe('money')
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(host.textContent).toContain(text('savedQuotaLoaded'))
+  expect(host.textContent).not.toContain('savedQuotaParameters')
+  await click('quotaRun')
+  await ready()
+  expect(reports()).toHaveLength(2)
+})
+it('saves exact Key scope and blocks an unreadable loaded target without restoring facts or disclosing names', async () => {
+  definitions = [
+    {
+      id: savedID,
+      kind: 'key_quota',
+      dimension: 'money',
+      scope_kind: 'member',
+      scope_id: quotaActor,
+      created_at: '2026-10-01T00:00:00Z',
+    },
+  ]
+  targetStatus = 403
+  await mount()
+  await savedAction('loadSaved')
+  await until(() => expect(host.textContent).toContain(text('quotaDenied')))
+  expect(
+    host.querySelector<HTMLSelectElement>(
+      'select[aria-label="' + text('quotaSelectedScope') + '"]',
+    )!.selectedOptions[0].textContent,
+  ).toBe(quotaActor)
+  expect(button('quotaRun').disabled).toBe(true)
+  expect(button('saveReport').disabled).toBe(true)
+  expect(reports()).toHaveLength(0)
+  targetStatus = 0
+  await act(async () => {
+    await cache.invalidateQueries({ queryKey: targetKey() })
+  })
+  await until(() => expect(button('quotaRun').disabled).toBe(false))
+  await click('saveReport')
+  await until(() => expect(host.textContent).toContain(text('savedConfirmed')))
+  expect(JSON.parse(saves()[0].data)).toEqual({
+    request_id: expect.any(String),
+    kind: 'key_quota',
+    dimension: 'money',
+    scope_kind: 'member',
+    scope_id: quotaActor,
+  })
+})
+it('preserves the original uncertain quota intent while dimension controls change and retries identical bytes', async () => {
+  await mount()
+  await member()
+  saveStatus = 503
+  await click('saveReport')
+  await until(() => expect(host.textContent).toContain(text('saveUnknown')))
+  const originalBody = saves()[0].data
+  await select('quotaDimension', 'money')
+  expect(button('retrySave').disabled).toBe(true)
+  await select('quotaDimension', 'tokens')
+  await until(() => expect(button('retrySave').disabled).toBe(false))
+  saveStatus = 0
+  await click('retrySave')
+  await until(() => expect(host.textContent).toContain(text('savedConfirmed')))
+  expect(saves()[1].data).toBe(originalBody)
+  expect(reports()).toHaveLength(0)
+})
+it('rejects a stale scope-generation save completion and retains owner deletion after report permission loss', async () => {
+  await mount()
+  await member()
+  saveGate = deferred()
+  await click('saveReport')
+  await until(() => expect(saves()).toHaveLength(1))
+  await act(async () => cache.invalidateQueries({ queryKey: targetKey(), refetchType: 'none' }))
+  await act(async () => saveGate!.release())
+  expect(host.textContent).not.toContain(text('savedConfirmed'))
+  permissions = []
+  const permissionKey = cache
+    .getQueryCache()
+    .getAll()
+    .find((q) => q.queryKey[0] === 'permissions')!.queryKey
+  await act(async () => {
+    await cache.invalidateQueries({ queryKey: permissionKey })
+  })
+  await until(() => expect(host.textContent).toContain(text('denied')))
+  await until(() => expect(host.textContent).not.toContain(text('savedLoading')))
+  await savedAction('deleteSaved')
+  await click('confirmDeleteSaved')
+  await until(() => expect(host.textContent).toContain(text('deleteConfirmed')))
+  expect(requests.filter((r) => r.method === 'delete')).toHaveLength(1)
+})
+
+it('rejects an obsolete pending Team save even after controls return to the original reviewed dimension', async () => {
+  await mount()
+  await click('shortcutTeam')
+  saveGate = deferred()
+  await click('saveReport')
+  await until(() => expect(saves()).toHaveLength(1))
+  const originalBody = saves()[0].data
+  await select('quotaDimension', 'money')
+  await select('quotaDimension', 'tokens')
+  await act(async () => saveGate!.release())
+  await until(() => expect(button('retrySave').disabled).toBe(false))
+  expect(host.textContent).not.toContain(text('savedConfirmed'))
+  saveGate = undefined
+  await click('retrySave')
+  await until(() => expect(host.textContent).toContain(text('savedConfirmed')))
+  expect(saves()[1].data).toBe(originalBody)
+  expect(reports()).toHaveLength(0)
 })
