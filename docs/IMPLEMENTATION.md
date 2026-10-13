@@ -41,7 +41,7 @@ does not close the broader acceptance gaps.
   preserves one dispatch and settlement while denying the revoked private answer.
   Its primary mandatory check passed before delivery.
 - **Offboarding notification restart:** delivered in `b36dc3f`, preserving original recipient
-  Sessions and verifies exact executor/successor notices, deduplication, denied
+  Sessions and verifying exact executor/successor notices, deduplication, denied
   stranger/departing reads, retained read timestamps and successor relationships
   across the existing executable restart. All 20 Node controls and candidate
   mandatory checking passed. Official `go tool task test-auth-lifecycle` passed
@@ -52,6 +52,12 @@ does not close the broader acceptance gaps.
   a separate successful observer does not explain or replace that failure.
   Primary composed mandatory checking passed before commit. Browser, external mailbox
   and multi-node acceptance remain open; F10 stays Partial.
+- **Provider Model row entry:** delivered in `e6b50ad`. Freshly confirmed unbound
+  rows expose the existing guided Model review with exact encoded Connection ID.
+  Independent Provider/Model read permissions, administrator Session, complete
+  empty binding projection and actor/target/renewal/unmount fences are covered by
+  158 focused frontend tests, TypeScript and ESLint. Navigation performs no write,
+  discovery or implicit grant; browser acceptance remains open.
 
 Browser inventory currently times out; direct Chrome Computer Use reports
 `cgWindowNotFound`. Browser acceptance remains open and does not block independent
