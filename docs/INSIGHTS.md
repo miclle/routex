@@ -304,5 +304,7 @@ Independent source/cleanup readback accepted unchanged source and owned resource
 closure, SHA-256
 `a8b17bbd834518ec55131fdec8a80922fc17ecb81281cb163001ec74e407484e`.
 This is selected controlled acceptance, not an unfiltered matrix, browser proof
-or external-model acceptance. A subsequent held-response exact personal-Model
-grant revocation case remains separately prepared and unqualified.
+or external-model acceptance. A follow-up held-response exact personal-Model-grant
+revocation leaf passed 30 named tests on each PostgreSQL and MySQL driver with no
+failures or skips, preserving one dispatch and settlement while denying the revoked
+private answer.

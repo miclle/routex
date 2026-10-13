@@ -465,6 +465,59 @@ func testInsightsAIIntegration(t *testing.T, db *gorm.DB) {
 		restorePermission(t)
 		recorded(t, response, "success")
 	})
+	t.Run("late_personal_model_grant_revocation", func(t *testing.T) {
+		previous := input
+		input.Report = "provider_quality"
+		defer func() { input = previous }()
+		review, err := svc.MemberModelsWorkspace(ctx, admin.User.ID, admin.User.ID)
+		if err != nil || review == nil || review.UserID != admin.User.ID || !review.CanEdit || len(review.PersonalModels) != 1 || review.PersonalModels[0].ID != input.ModelID {
+			t.Fatal("held grant revocation lacks exact selected personal Model review", review, err)
+		}
+		// Restore through the same real complete-set operation. Never restore an
+		// old grant revision or revive the captured in-flight authorization proof.
+		defer func() {
+			current, err := svc.MemberModelsWorkspace(ctx, admin.User.ID, admin.User.ID)
+			if err != nil || current == nil {
+				t.Error("read current personal grant restoration review", err)
+				return
+			}
+			restored, err := svc.SetMemberModels(ctx, admin.User.ID, admin.User.ID, current.ETag, service.MemberModelsWriteInput{ModelIDs: []string{personal.Model.ID}, Reason: "Restore controlled personal analysis grant"})
+			if err != nil || restored == nil || restored.UserID != admin.User.ID || len(restored.ModelIDs) != 1 || restored.ModelIDs[0] != personal.Model.ID || !restored.RuntimeApplied || restored.Confirmation != "current_model_grants" {
+				t.Error("restore exact controlled personal analysis grant", restored, err)
+			}
+		}()
+		before := dispatches.Load()
+		response := runHeld(t, func(t *testing.T) {
+			revoked, err := svc.SetMemberModels(ctx, admin.User.ID, admin.User.ID, review.ETag, service.MemberModelsWriteInput{ModelIDs: []string{}, Reason: "Revoke selected personal Model while native analysis is held"})
+			if err != nil || revoked == nil || revoked.UserID != admin.User.ID || revoked.ModelIDs == nil || len(revoked.ModelIDs) != 0 || !revoked.RuntimeApplied || revoked.Confirmation != "current_model_grants" {
+				t.Fatal("selected personal grant revocation was not confirmed", revoked, err)
+			}
+			var personalGrants, teamGrants int64
+			if err := db.Model(&entity.UserModelGrant{}).Where("user_id = ? AND model_id = ?", admin.User.ID, input.ModelID).Count(&personalGrants).Error; err != nil || personalGrants != 0 {
+				t.Fatal("exact selected personal grant was retained", personalGrants, err)
+			}
+			if err := db.Model(&entity.TeamModelGrant{}).Where("team_id = ? AND model_id = ?", "tem_insights_only", teamOnly.Model.ID).Count(&teamGrants).Error; err != nil || teamGrants != 1 {
+				t.Fatal("personal revocation changed the separate Team grant", teamGrants, err)
+			}
+		}, http.StatusForbidden)
+		if dispatches.Load() != before+1 {
+			t.Fatal("late grant denial repeated or erased dispatched native work")
+		}
+		var failure ErrorResponse
+		var fields map[string]json.RawMessage
+		if json.Unmarshal(response.Body.Bytes(), &failure) != nil || failure.Code != http.StatusForbidden || json.Unmarshal(response.Body.Bytes(), &fields) != nil || len(fields) != 2 || fields["code"] == nil || fields["message"] == nil {
+			t.Fatal("late grant denial disclosed an analysis response envelope", response.Body.String())
+		}
+		for _, private := range []string{"recorded tokens", personal.Model.ID, provider.Provider.ID, "Private Insights Provider", credentialID, pm.ID, provider.Connections[0].Connection.ID} {
+			if strings.Contains(response.Body.String(), private) {
+				t.Fatal("late personal grant denial exposed private answer or identities", private)
+			}
+		}
+		// Publication denial cannot rewrite the already completed attempt or
+		// replace its actual ten input/four output tokens with unknown or zero.
+		recorded(t, response, "success")
+		denyBeforeDispatch(t, analyze(input, admin.CSRFToken), http.StatusNotFound, before+1)
+	})
 	t.Run("late_session_revocation", func(t *testing.T) {
 		response := runHeld(t, func(t *testing.T) {
 			expectStatus(t, do(http.MethodPost, "/api/v1/auth/logout", "", admin.CSRFToken), 204)

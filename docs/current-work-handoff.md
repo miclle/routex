@@ -36,8 +36,10 @@ does not close the broader acceptance gaps.
   `a8b17bbd834518ec55131fdec8a80922fc17ecb81281cb163001ec74e407484e`.
   Candidate and primary composed mandatory checking passed before the phase
   commit. Browser and external-model acceptance remain open.
-  A separate held-response exact personal-Model-grant revocation test is prepared
-  for subsequent qualification; it is not covered by this receipt.
+  A follow-up held-response exact personal-Model-grant revocation leaf passed 30
+  named tests on each PostgreSQL and MySQL driver with no failures or skips; it
+  preserves one dispatch and settlement while denying the revoked private answer.
+  Its primary mandatory check passed before delivery.
 - **Offboarding notification restart:** delivered in `b36dc3f`, preserving original recipient
   Sessions and verifies exact executor/successor notices, deduplication, denied
   stranger/departing reads, retained read timestamps and successor relationships
