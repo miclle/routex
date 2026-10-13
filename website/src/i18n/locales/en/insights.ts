@@ -1,4 +1,19 @@
 export default {
+  qualityObservationsTitle: 'Operational observations',
+  qualityObservationsDefinition:
+    'These read-only observations use this capture only. Rate-limited and server-error counts concern attributed eligible attempts, can overlap, and are not distinct calls. Missing attribution is separate; duration coverage concerns eligible attributed attempts. They do not establish anomalies, live health, root causes or native completion.',
+  qualityObservationRateLimited:
+    'Recorded rate-limited attempts: {{value}}. Consider reviewing upstream rate limits and the workload for the reviewed range.',
+  qualityObservationServerErrors:
+    'Recorded server-error attempts: {{value}}. Consider reviewing upstream service diagnostics for the reviewed range.',
+  qualityObservationAttribution:
+    'Attempts with unknown Provider attribution: {{value}}. These attempts are outside Provider groups and success rates; consider reviewing recording coverage.',
+  qualityObservationDuration:
+    'Eligible attributed attempts with unknown duration: {{value}}. Mean and P95 exclude these samples; consider reviewing duration coverage before comparing Providers.',
+  qualityObservationsEmpty:
+    'This capture contains no recorded attempts; no operational observations are available.',
+  qualityObservationsNone:
+    'This capture records no rate-limited or server-error attempts, unknown Provider attribution or unknown eligible duration. This does not establish that services are healthy.',
   qualityEmpty:
     'No attributed Provider attempts in this range. Unknown attribution remains separate.',
   qualityMilliseconds: '{{value}} ms',

@@ -1747,6 +1747,11 @@ unknown duration coverage, preserve null versus zero and accept finite nonnegati
 float64 measurements without applying exact-counter safe-integer limits. The
 summary mean is weighted by known samples, not averaged across Provider means.
 
+Provider quality observations derive only from the captured report counts. Keep
+recorded rate-limited and server-error eligible attempts, unknown attribution,
+and unknown duration coverage separate; never infer a live anomaly, Provider identity, forecast or alert from
+these explanations, and never send Provider facts to the optional AI endpoint.
+
 Saved report definitions remain creator-private in the existing Operations analysis
 Save action and four-column table. Persist only the supported report kind and exact
 absolute range/time-zone parameters; never persist statistics, AI output, model

@@ -1,4 +1,18 @@
 export default {
+  qualityObservationsTitle: '运营观察',
+  qualityObservationsDefinition:
+    '这些只读观察仅依据本次查询。限流和服务器错误计数针对已归属且符合条件的尝试，可能重叠，不代表去重调用数。未知归属单独统计；耗时覆盖针对已归属且符合条件的尝试。这些记录不能证明异常、实时健康状况、根因或原生完成。',
+  qualityObservationRateLimited:
+    '已记录的限流尝试：{{value}}。建议结合已审阅时间范围，检查上游限流设置和工作负载。',
+  qualityObservationServerErrors:
+    '已记录的服务器错误尝试：{{value}}。建议检查已审阅时间范围内的上游服务诊断信息。',
+  qualityObservationAttribution:
+    '供应商归属未知的尝试：{{value}}。这些尝试不计入供应商分组和成功率，建议检查记录覆盖情况。',
+  qualityObservationDuration:
+    '已归属且符合条件但耗时未知的尝试：{{value}}。平均耗时和 P95 不包含这些样本，建议先检查耗时覆盖情况，再比较供应商。',
+  qualityObservationsEmpty: '本次查询没有已记录的尝试，暂无可用的运营观察。',
+  qualityObservationsNone:
+    '本次查询未记录限流尝试、服务器错误尝试、未知供应商归属或符合条件但耗时未知的尝试。这不能证明服务健康。',
   qualityEmpty: '此范围内没有归属已知的供应商尝试。未知归属单独保留。',
   qualityMilliseconds: '{{value}} 毫秒',
   qualityProvider: '历史供应商',

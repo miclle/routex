@@ -79,6 +79,13 @@ attribution remains explicit in capture metadata. Report, export and late replie
 share the existing actor/Session/permission and parameter lifetime fences. Provider
 facts are never sent to the optional AI endpoint, which remains Tokens-by-Model only.
 This report does not add a forecast, alert threshold or routing policy.
+Operational observations reuse the existing result composition to explain
+recorded rate-limited and server-error eligible attempts, unknown attribution
+and unknown duration coverage. They derive only from the captured report,
+remain separate from AI advice and create no alert or inferred anomaly.
+Complete/empty captures remain distinct from unavailable evidence. Focused
+frontend qualification passed 78 tests in five files; composed primary
+formatting and mandatory checking also passed. Browser acceptance remains open.
 
 Focused source tests cover attribution, exclusions, range precision, complete bounds,
 CSV safety, strict wire parsing, authority loss and bilingual rendering. The

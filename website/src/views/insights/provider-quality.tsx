@@ -20,6 +20,12 @@ export default function ProviderQualityResult({ report }: { report: ProviderQual
       : new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 2 }).format(
           value / 10000,
         )
+  const observations = [
+    ['qualityObservationRateLimited', report.summary.rate_limited],
+    ['qualityObservationServerErrors', report.summary.server_errors],
+    ['qualityObservationAttribution', report.unknown_attribution],
+    ['qualityObservationDuration', report.summary.unknown_duration],
+  ] as const
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">{t('qualityDefinition')}</p>
@@ -125,6 +131,24 @@ export default function ProviderQualityResult({ report }: { report: ProviderQual
           </tbody>
         </Table>
       </div>
+      <section
+        className="space-y-2 rounded-lg border p-4"
+        aria-label={t('qualityObservationsTitle')}
+      >
+        <h3 className="font-medium">{t('qualityObservationsTitle')}</h3>
+        <p className="text-xs text-muted-foreground">{t('qualityObservationsDefinition')}</p>
+        {report.total_attempts === 0 ? (
+          <p className="text-sm">{t('qualityObservationsEmpty')}</p>
+        ) : observations.some(([, count]) => count > 0) ? (
+          <ul className="list-disc space-y-2 pl-5 text-sm">
+            {observations.map(([key, count]) =>
+              count > 0 ? <li key={key}>{t(key, { value: number(count) })}</li> : null,
+            )}
+          </ul>
+        ) : (
+          <p className="text-sm">{t('qualityObservationsNone')}</p>
+        )}
+      </section>
     </div>
   )
 }
