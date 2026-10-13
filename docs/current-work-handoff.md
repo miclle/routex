@@ -1,40 +1,119 @@
 # Current implementation handoff
 
-Updated: 2026-10-13. Status: current packages complete; pause after verified main delivery. [Implementation](IMPLEMENTATION.md) records engineering contracts and historical acceptance evidence. Earlier checkpoints below remain historical.
+Updated: 2026-10-13. Status: current packages complete; overall goal paused by
+explicit user request. No feature work is active. This refresh reconciles the
+already delivered implementation; it does not resume the goal.
 
-## Delivery and pause boundary (2026-10-13)
+## Repository and transfer snapshot
 
-The current five increments are complete in this main delivery. No additional
-feature package starts. The overall goal pauses after this commit is pushed and
-remote-main parity is verified; it is not complete. The first four phases have
-already been committed, pushed and read back from the remote:
+| Field | Verified state |
+| --- | --- |
+| Repository | `miclle/routex` |
+| Branch / base / upstream | `main` / `main` / `origin/main` |
+| Implementation HEAD and last pushed source | `bb542e9e4f8a0a5ca51e7527535de50d31bb0509` |
+| Upstream at capture | Local and remote main matched; 0 ahead / 0 behind |
+| Current owner / next owner | Current maintainer / unassigned |
+| Transfer | Implementation is transferable through remote `main`; this refreshed document travels in its documentation-only follow-up commit |
+| Receiver access | Source and documentation are in the repository; local test receipts, retained worktrees and machine configuration are not transported |
 
-| Phase | Commit | Focused verification |
+The documentation revision can be identified with
+`git log -1 --format='%H %s' -- docs/current-work-handoff.md`. The implementation
+SHA above identifies the tested product source, rather than claiming that a later
+documentation commit has the same SHA. Verify remote parity before transfer.
+
+## Objective and current state
+
+Implement the complete F01–F30 / A01–A20 scope in stages. The current five
+increments are complete and delivered; the larger goal remains paused with
+16 Completed / 14 Partial / 0 Not started. F10 and F24 remain Partial. No feature
+package is active and no further implementation starts without user resumption.
+
+| Phase | Implementation commit | Focused verification |
 | --- | --- | --- |
 | Provider quality reports | `4b0b89597bd3d0fa8b0db6c6758e723213a8c4e0` | 6 Go / 38 UI; mandatory check passed |
 | Durable notices and audit details | `af1288f933f22c3fd2def1a666f4185421955b5b` | 314 Go / 220 UI; mandatory check passed |
-| System-status localization | `84df844eac7f9dfb6e15c84f90b0f5ee69da4287` | 0 Go / 9 UI; mandatory check passed |
+| System-status localization | `84df844eac7f9dfb6e15c84f90b0f5ee69da4287` | 9 UI; mandatory check passed |
 | Creator-private report definitions | `4ee39097290921abca4fd90a2f7b9c5fd6fbe649` | 5 Go / 91 UI; mandatory check passed |
+| Scoped Team/Key quota analysis | `bb542e9e4f8a0a5ca51e7527535de50d31bb0509` | 20 Go / 67 UI; mandatory check passed |
 
-The scoped quota-analysis increment is delivered by this commit. Every phase
-requires formatting, its focused tests and `go tool task check` before commit.
-The composed final product code passed the complete qualification below; only
-delivery documentation changed after that qualification.
+Saved definitions are creator-private parameters for Tokens by Model and Provider
+quality, retained until owner deletion. Loading only prepares a reviewed query;
+execution and export separately reauthorize. No results, AI answers or free-text
+questions are saved. Quota reports require readable Teams or explicitly selected
+authorized member/Project Key scope. Forecasts use complete trailing 168-hour
+settled-admission usage for an account's own local monthly cap, stop before the
+monthly reset and suppress unknown, incomplete or zero-rate estimates. They do
+not predict parent limits or actual blocking. Offboarding notices reach the
+executor and actual successors, with immutable recipient birth isolation.
 
-Repository: `miclle/routex`; branch and base: `main`; upstream: `origin/main`.
-The final delivery commit is obtained with `git rev-parse HEAD`. Transfer uses
-the remote main branch, after confirmed push and parity. No product edits or
-additional packages remain active at this pause boundary. Temporary qualification
-artifacts and retained worktrees are local evidence, not required source for
-continuing the delivered implementation. Existing development is preserved.
+## Working-tree and environment boundary
 
-Before any authorized continuation, run `git status --short --branch`,
-`git rev-parse HEAD` and `git ls-remote origin refs/heads/main`. Confirm a clean
-checkout and matching remote before reading this document and
-`docs/IMPLEMENTATION.md`. The broader roadmap remains the coordination entry;
-select subsequent work only after the user resumes it. Browser acceptance and
-real external-service activation remain open, and quota report definitions are
-unsupported. F24 and F10 remain Partial; totals remain 16 Completed / 14 Partial.
+At capture, the primary checkout had no staged, modified or untracked files and
+no unpushed commits. This refresh changes only `README.md`, `docs/INSIGHTS.md`,
+`docs/OFFBOARDING.md`, `docs/IMPLEMENTATION.md` and this handoff. The linked
+coordination plan is also refreshed separately; it is outside this repository's
+commit. No product file, local configuration or running service is changed.
+Preserve unrelated edits, retained worktrees, credential-root material and the
+configured durable call journal. Historical private receipts are evidence, not
+source dependencies for continuation.
+
+Development requires the versions and Compose instructions in
+[Development](DEVELOPMENT.md) and [README](../README.md). Use `go tool task`
+commands and the pinned checkout-local linter; do not rely on global tool versions.
+Recreate machine-local configuration from documented examples without copying
+secrets into the handoff. No external integration credentials are transferred.
+
+## Verification and open acceptance
+
+The composed implementation passed `go tool task check`, `go tool task test`,
+`go tool task test-integration` and `go tool task test-auth-lifecycle` on its
+recorded source. Ordinary coverage includes Go race tests, 7,233 frontend cases
+in 269 files, scripts, development lifecycle and production assets. PostgreSQL
+and MySQL each passed 572 named tests with no failures or skips. Authentication
+observed eight applications and four official summaries. Detailed source and
+receipt provenance is preserved below and in [Implementation](IMPLEMENTATION.md).
+Those results are prior implementation evidence, not new test runs for this
+pure documentation refresh.
+
+Remote workflow snapshot for implementation commit
+`bb542e9e4f8a0a5ca51e7527535de50d31bb0509`, checked on 2026-10-13:
+[Actionlint](https://github.com/miclle/routex/actions/runs/38336232385) and
+[GolangCI-Lint](https://github.com/miclle/routex/actions/runs/38336232206) passed;
+[CI](https://github.com/miclle/routex/actions/runs/38336232203) was still running.
+This snapshot does not claim that pending workflow or later documentation
+commits passed. No automatic follow-up is scheduled during the requested pause.
+
+Browser acceptance, real external-model and external-mail activation, quota saved
+definitions, broader analysis/evaluation and enterprise continuity remain open.
+WeChat remains deferred because no service or wire contract exists. Earlier
+failed runs remain failed at their original source; later passing qualification
+does not relabel them. Authentication cleanup did not capture individual database
+ports, so it carries no separate database-port bind claim.
+
+## Resume gate
+
+There is no active feature task to resume at this pause boundary. After an
+explicit user instruction to continue, first run:
+
+```bash
+git status --short --branch
+git rev-parse HEAD
+git ls-remote origin refs/heads/main
+git merge-base --is-ancestor bb542e9e4f8a0a5ca51e7527535de50d31bb0509 HEAD
+```
+
+Proceed only after accounting for all local changes, verifying remote parity and
+confirming that the delivered source is an ancestor. Read
+`docs/IMPLEMENTATION.md` and `docs/INSIGHTS.md`, then consult the existing external
+coordination plan to select a still-valid Partial package. Preserve current
+permissions, exact amounts, unknown coverage, explicit confirmations and English
+documentation. Browser or external-service acceptance must be recorded separately
+when its required environment is available; no such check is claimed here.
+
+## Earlier delivery evidence
+
+The sections below retain historical source and qualification records. They do
+not override the current paused state and verified implementation snapshot above.
 
 ## Current completion boundary (2026-10-12)
 
@@ -50,7 +129,7 @@ strictly before the monthly reset. See [Insights](INSIGHTS.md).
 
 The composed code passed focused, mandatory, ordinary, PostgreSQL/MySQL and
 relevant authentication qualification. The current packages are delivered through
-the staged main commits above and this final quota increment. Quota saved
+the five staged main commits listed above. Quota saved
 definitions, browser acceptance and real external-model activation remain
 pending. F24 stays Partial. Earlier results retain their recorded source scope.
 
@@ -109,8 +188,8 @@ submitted only after its own formatting and mandatory check pass. Browser and
 real external-service acceptance retain their separate scope.
 
 Focused repair remains recorded below as historical evidence. Current
-implementation is closed at this delivery boundary; verify the final push and
-pause. No additional feature package starts.
+implementation is closed at this delivery boundary; remote parity is verified
+and the overall goal is paused. No additional feature package starts.
 
 Earlier passing runs retain their original source scope. Failed full original
 46879 remains failed as recorded below; neither a diagnostic run nor resource

@@ -62,7 +62,13 @@ go test -race -tags development ./internal/routex/service ./internal/routex/hand
 go tool task test-integration
 ```
 
-This implementation revokes every RouteX browser Session for the departing member, including Sessions established through local authentication, OIDC, custom OAuth, LDAP, SAML, and native MFA. It also invalidates pending native-MFA completion through current member authority. A late verified OIDC, custom OAuth, LDAP or SAML proof cannot restore an offboarded member's RouteX access; explicit identity bindings and provider configuration remain retained. External identity-provider sessions, external credential access profiles, notification delivery, scheduled execution, and a durable notification outbox are not implemented by this workflow. The control-plane transaction and local runtime publication do not establish multi-node or external-identity revocation guarantees.
+This implementation revokes every RouteX browser Session for the departing member, including Sessions established through local authentication, OIDC, custom OAuth, LDAP, SAML, and native MFA. It also invalidates pending native-MFA completion through current member authority. A late verified OIDC, custom OAuth, LDAP or SAML proof cannot restore an offboarded member's RouteX access; explicit identity bindings and provider configuration remain retained.
+
+External identity-provider sessions, external credential access profiles and
+scheduled execution are outside this workflow. Transactional completion notices
+and durable email intents are implemented as described below; controlled SMTP
+acceptance does not establish real external-mail or recipient-inbox delivery. The control-plane transaction and local runtime publication do not
+establish multi-node or external-identity revocation guarantees.
 
 ## Web workflow
 

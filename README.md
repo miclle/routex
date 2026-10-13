@@ -309,12 +309,22 @@ proof; native MFA202 is a challenge, not a Session. Telegram does not satisfy th
 verified enterprise OIDC/LDAP-only forced-SSO allowlist. Live registered-client
 and bilingual browser acceptance remain separate.
 
-[Operations analysis](docs/INSIGHTS.md) provides authorized recorded Tokens by
-Model and a separate fresh CSV capture. Optional AI advice requires explicit
-confirmation of the current user's callable personal Chat model and personal
-quota; only bounded aggregates and temporary Model labels reach the model.
-Answers remain transient plain text. Free-text questions, forecasts and saved
-definitions remain unavailable.
+[Operations analysis](docs/INSIGHTS.md) provides authorized Tokens-by-Model and
+Provider quality reports, creator-private parameter definitions retained until
+owner deletion, and scoped Team/Key quota reports with covered trailing-168-hour
+settled-rate estimates. Exports capture a separate freshly authorized CSV.
+Optional AI advice requires explicit confirmation of the current user's callable
+personal Chat model and personal quota; only bounded aggregates and temporary
+Model labels reach the model. Answers remain transient plain text. Free-text
+questions, quota saved definitions and broader evaluation remain unavailable;
+browser and real external-service acceptance are tracked separately.
+
+[Offboarding completion notices](docs/OFFBOARDING.md) reach the executor and
+actual successors through recipient-isolated history and existing email settings.
+[Operational notifications](docs/NOTIFICATIONS.md) also reconcile model discovery
+changes and a Credential's five consecutive recorded inference failures; a known
+successful inference rearms that failure alert. Manual checks remain separate,
+and SMTP acceptance does not prove inbox delivery.
 
 [Model management](docs/CATALOG.md) exposes independently authorized configured
 image/PDF inputs and reviewed active/disabled lifecycle changes, plus terminal

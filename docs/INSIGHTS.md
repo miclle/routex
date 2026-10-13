@@ -1,18 +1,20 @@
 # Operations analysis
 
 Operations analysis at `/admin/insights` provides deterministic, read-only
-Tokens-by-Model and selected-range Provider quality reports. The page retains the question/result composition,
-report actions and saved-report area. It requires current `calls.read_all`
+Tokens-by-Model, selected-range Provider quality and scoped Team/Key quota reports.
+The page retains the question/result composition, report actions and saved-report
+area. It requires current `calls.read_all`
 authority; administrator status and unrelated catalogue permissions do not replace
 that permission or grant inference access.
 
 Select **Tokens by model**, enter absolute start and end timestamps with explicit
 UTC offsets, review the time zone, and run the report. The range includes the start
 and excludes the end. UTC is the initial grouping time zone; no calendar week is
-silently selected. Free-text analysis, Team usage and Key forecasts are explicitly unsupported.
-The separate **Provider quality** shortcut is described below. Forecasts remain unavailable. The deterministic
-report makes no inference call. Optional AI advice requires a separate explicit
-confirmation and stores no report or conversation.
+silently selected. The separate **Provider quality** shortcut and scoped quota
+reports are described below. Only the quota reports provide covered settled-rate
+estimates. Free-text analysis and quota saved definitions remain unsupported.
+Deterministic reports make no inference call. Optional AI advice requires a
+separate explicit confirmation and stores no report or conversation.
 
 The existing `GET /api/v1/admin/usage` endpoint supplies persisted call facts.
 Results expose the captured source, filters, range, grouping, query time, latest
@@ -72,9 +74,10 @@ facts are never sent to the optional AI endpoint, which remains Tokens-by-Model 
 This report does not add a forecast, alert threshold or routing policy.
 
 Focused source tests cover attribution, exclusions, range precision, complete bounds,
-CSV safety, strict wire parsing, authority loss and bilingual rendering. Real-driver
-qualification of the extended existing Provider-quality scenario and browser acceptance
-must be recorded separately; implementation alone does not establish them.
+CSV safety, strict wire parsing, authority loss and bilingual rendering. The
+composed implementation passed complete PostgreSQL/MySQL and authentication
+qualification before main delivery; see [Implementation](IMPLEMENTATION.md) for
+source and receipt provenance. Browser and real-provider acceptance remain open.
 
 ## Creator-private saved definitions
 
@@ -84,7 +87,7 @@ exact absolute `from`/`to` instants and an IANA `timezone`. Titles are localized
 from the kind. No statistics, historical model labels, AI answers, inference model
 selection, free-text question or result snapshot is persisted.
 
-The implementation in progress uses Session-authenticated
+The delivered implementation uses Session-authenticated
 `/api/v1/insights/reports` endpoints for bounded owner listing and explicit creation
 and deletion. The server derives the owner from the current enabled Session;
 administrator privileges never confer another creator's definitions. Saving also
@@ -103,10 +106,10 @@ requires local confirmation. Private lists and asynchronous write completions
 remain fenced by the current actor, Session and authority. Definitions and write
 intentions are never placed in browser storage.
 
-The composed source passes focused frontend and pure Go tests, plus all 17
-selected report nodes on each real PostgreSQL and MySQL database. Complete
-ordinary, unfiltered integration, authentication and final mandatory qualification
-remain pending; this is not delivery or browser acceptance.
+Creator-private definitions are delivered in `4ee3909` after focused tests and
+mandatory checking. The composed implementation also passed complete ordinary,
+unfiltered PostgreSQL/MySQL and authentication qualification. These controlled
+results do not establish browser or real external-service acceptance.
 
 ## Optional personal-model AI advice
 
@@ -188,14 +191,15 @@ Analysis remains limited to the explicitly selected current user's callable
 personal Chat model and personal quota, with bounded authorized aggregates and
 temporary Model labels only. No free-text questions, conversation history, raw
 calls, borrowed Key/Team/Project authority or persisted answer is added. Browser
-and real external-model acceptance remain deferred. Creator-private saved
-definitions and scoped forecasts are composed below for fresh qualification;
-broader evaluation remains unimplemented scope.
+and real external-model acceptance remain deferred. Creator-private definitions
+and scoped quota forecasts are delivered in `4ee3909` and `bb542e9`, with coherent
+mandatory, ordinary, dual-database and authentication qualification recorded in
+the implementation index. Broader evaluation remains unimplemented scope.
 
-## Scoped Team and Key quota analysis (in progress)
+## Scoped Team and Key quota analysis
 
-The existing operations-analysis layout is being extended with Team and Key
-quota shortcuts. The page and endpoints retain `calls.read_all`; each server
+The existing operations-analysis layout includes Team and Key quota shortcuts.
+The page and endpoints retain `calls.read_all`; each server
 read also checks current Team authority or the explicitly selected member or
 Project Key authority. No platform-wide Key directory or new permission is
 introduced. Lists are bounded to 20 accounts by default and 50 at most; Key
@@ -229,5 +233,6 @@ Quota reports do not submit identities or result rows to optional AI advice.
 Saving quota definitions remains a separate follow-up; current saved-definition
 kinds are unchanged. The composed source passes the selected report scenarios
 on both real databases, including recorded settlements, root deduplication,
-scoped authority and CSV controls. Complete coherent qualification and delivery
-remain pending; browser acceptance is separate.
+scoped authority and CSV controls. Complete coherent qualification passed before
+main delivery in `bb542e9`; browser and real external-service acceptance remain
+separate. The current feature packages are complete and the overall goal is paused.
