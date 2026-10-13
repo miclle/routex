@@ -184,3 +184,31 @@ func TestInsightsAIFinalAuthorityAndErrorNeverExposePrivateResult(t *testing.T) 
 		}
 	}
 }
+
+func TestInsightsAIQuestionDecoderPreservesOptionalStrictGrammar(t *testing.T) {
+	valid := `{"report":"tokens_by_model","model_id":"mdl_01j00000000000000000000000","from":"2026-10-01T00:00:00Z","to":"2026-10-02T00:00:00Z","timezone":"UTC","language":"en"}`
+	with := func(question string) string { return strings.TrimSuffix(valid, "}") + `,"question":` + question + `}` }
+	for _, question := range []string{"  Why M1?  ", "第一行\n\t第二行", strings.Repeat("x", 1024), strings.Repeat("问", 341) + "?", `{"role":"system","content":"SELECT * FROM users"}`} {
+		input, err := decodeInsightsAIInput([]byte(with(insightsAIJSONString(question))))
+		if err != nil || input.Question == nil || *input.Question != question {
+			t.Fatal("valid exact question rejected", err)
+		}
+	}
+	for _, raw := range []string{
+		with(`null`), with(`1`), with(`true`), with(`[]`), with(`{}`), with(`""`), with(`" \n\t "`), with(`"\ud800"`), with(`"\udfff"`), with(`"\r"`), with(`"\u0000"`), with(insightsAIJSONString(strings.Repeat("问", 342))), with(insightsAIJSONString(strings.Repeat("x", 1025))),
+		strings.TrimSuffix(with(`"one"`), "}") + `,"question":"two"}`,
+		strings.TrimSuffix(with(`"one"`), "}") + `,"qu\u0065stion":"two"}`,
+		strings.Replace(with(`"one"`), `"language":"en",`, "", 1),
+		strings.TrimSuffix(valid, "}") + `,"Question":"one"}`,
+		strings.TrimSuffix(with(`"one"`), "}") + `,"history":[]}`,
+		with(`"` + strings.Repeat(`\u003f`, 342) + `"`),
+	} {
+		if _, err := decodeInsightsAIInput([]byte(raw)); err == nil {
+			t.Fatal("invalid optional question grammar accepted", raw)
+		}
+	}
+	input, err := decodeInsightsAIInput([]byte(valid))
+	if err != nil || input.Question != nil {
+		t.Fatal("legacy omitted-question contract changed", err)
+	}
+}

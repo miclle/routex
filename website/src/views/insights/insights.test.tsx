@@ -251,7 +251,7 @@ it('preserves layout slots and localizes an existing result without replay or cl
   expect(host.querySelector('textarea')!.rows).toBe(3)
   expect(host.querySelectorAll('thead th')).toHaveLength(4)
 })
-it('reviews quota shortcuts without automatic reports and rejects hostile questions', async () => {
+it('reviews quota shortcuts and prepares hostile question text without automatic queries or inference', async () => {
   await mount()
   for (const key of ['shortcutTeam', 'shortcutKey']) {
     await click(text(key))
@@ -260,6 +260,8 @@ it('reviews quota shortcuts without automatic reports and rejects hostile questi
   await input('question', '<img src=x onerror=alert(1)>; SELECT secrets; https://outside.test')
   await click(text('send'))
   expect(host.textContent).toContain('SELECT secrets')
+  expect(host.textContent).toContain(text('questionPrepared'))
+  expect(requests.some((item) => item.url === '/admin/insights/analyze')).toBe(false)
   expect(host.querySelector('img')).toBeNull()
   expect(reports()).toHaveLength(0)
   expect(

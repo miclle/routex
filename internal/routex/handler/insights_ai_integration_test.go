@@ -47,6 +47,8 @@ func testInsightsAIIntegration(t *testing.T, db *gorm.DB) {
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 	db = db.WithContext(ctx)
+	var capturedContent atomic.Value
+	capturedContent.Store("")
 	var dispatches atomic.Int64
 	var mode atomic.Value
 	mode.Store("completed")
@@ -76,6 +78,7 @@ func testInsightsAIIntegration(t *testing.T, db *gorm.DB) {
 			w.WriteHeader(400)
 			return
 		}
+		capturedContent.Store(messages[1].Content)
 		for _, private := range forbidden.Load().([]string) {
 			if strings.Contains(messages[1].Content, private) {
 				t.Error("private identity entered aggregate projection", private)
@@ -173,7 +176,8 @@ func testInsightsAIIntegration(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.StartCallRecorder(ctx, filepath.Join(t.TempDir(), "insights-call-buffer.db")); err != nil {
+	journalPath := filepath.Join(t.TempDir(), "insights-call-buffer.db")
+	if err := svc.StartCallRecorder(ctx, journalPath); err != nil {
 		t.Fatal(err)
 	}
 	forbidden.Store([]string{admin.User.ID, personal.Model.ID, teamOnly.Model.ID, "private-analysis-model", "team-only-analysis-model", "Private Insights Provider", "Private Insights Connection", "insights-provider-secret"})
@@ -321,6 +325,14 @@ func testInsightsAIIntegration(t *testing.T, db *gorm.DB) {
 			t.Fatal("fixed empty capture response changed", response.Body.String())
 		}
 		recorded(t, response, "success")
+	})
+	t.Run("confirmed_question", func(t *testing.T) {
+		testInsightsAIQuestionIntegration(t, insightsAIQuestionFixture{
+			db: db, journalPath: journalPath, input: input, csrf: admin.CSRFToken, analyze: analyze,
+			capture:    func() string { return capturedContent.Load().(string) },
+			dispatches: dispatches.Load, mode: mode.Store, recorded: recorded,
+			revoke: revokePermission, restore: restorePermission,
+		})
 	})
 	t.Run("malformed_content_retains_observed_usage", func(t *testing.T) {
 		mode.Store("invalid_content")

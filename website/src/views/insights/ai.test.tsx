@@ -226,48 +226,51 @@ it.each(['unknown', 'handoff', 'blocked', 'incomplete'] as const)(
     expect(posts()).toHaveLength(1)
   },
 )
-it.each([
-  'model',
-  'range',
-  'model list',
-  'actor',
-  'Session renewal',
-  'permission',
-  'cancel',
-] as const)('aborts and rejects late AI after %s changes', async (change) => {
-  await mount()
-  aiGate = deferred()
-  await launch()
-  const old = aiGate,
-    signal = posts()[0].signal!
-  if (change === 'model') await select(second)
-  else if (change === 'range') await input('to', '2026-09-04T00:00:00Z')
-  else if (change === 'model list') {
-    modelGate = deferred()
-    await act(async () => {
-      void cache.refetchQueries({ queryKey: ['insights-models'] })
-    })
-  } else if (change === 'actor') {
-    actor = 'usr_two'
-    await act(async () => {
-      cache.setQueryData(sessionKey, session())
-    })
-  } else if (change === 'Session renewal') {
-    sessionGate = deferred()
-    await act(async () => {
-      void cache.refetchQueries({ queryKey: sessionKey })
-    })
-  } else if (change === 'permission') {
-    allowed = false
-    await act(async () => {
-      void cache.refetchQueries({ queryKey: ['permissions'] })
-    })
-  } else await click('aiCancel')
-  expect(signal.aborted).toBe(true)
-  await act(async () => old.release())
-  expect(host.textContent).not.toContain('M1 advisory')
-  expect(posts()).toHaveLength(1)
-})
+it.each(
+  (
+    ['model', 'range', 'model list', 'actor', 'Session renewal', 'permission', 'cancel'] as const
+  ).flatMap((change) => [false, true].map((withQuestion) => ({ change, withQuestion }))),
+)(
+  'aborts and rejects late AI after $change changes (question: $withQuestion)',
+  async ({ change, withQuestion }) => {
+    await mount()
+    if (withQuestion) {
+      await questionInput('Transient question on authorized aggregates')
+      await click('send')
+    }
+    aiGate = deferred()
+    await launch()
+    const old = aiGate,
+      signal = posts()[0].signal!
+    if (change === 'model') await select(second)
+    else if (change === 'range') await input('to', '2026-09-04T00:00:00Z')
+    else if (change === 'model list') {
+      modelGate = deferred()
+      await act(async () => {
+        void cache.refetchQueries({ queryKey: ['insights-models'] })
+      })
+    } else if (change === 'actor') {
+      actor = 'usr_two'
+      await act(async () => {
+        cache.setQueryData(sessionKey, session())
+      })
+    } else if (change === 'Session renewal') {
+      sessionGate = deferred()
+      await act(async () => {
+        void cache.refetchQueries({ queryKey: sessionKey })
+      })
+    } else if (change === 'permission') {
+      allowed = false
+      await act(async () => {
+        void cache.refetchQueries({ queryKey: ['permissions'] })
+      })
+    } else await click('aiCancel')
+    expect(signal.aborted).toBe(true)
+    await act(async () => old.release())
+    expect(host.textContent).not.toContain('M1 advisory')
+    expect(posts()).toHaveLength(1)
+  },
+)
 it.each([403, 404, 422, 429, 502, 503])(
   'sanitizes HTTP%i and never automatically replays paid inference',
   async (status) => {
@@ -287,19 +290,132 @@ it('revokes a prepared confirmation on model change before any inference dispatc
   await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
   expect(posts()).toHaveLength(0)
 })
-it('keeps unsupported free text out of both inference and query planning', async () => {
-  await mount()
+async function questionInput(value: string) {
   const field = host.querySelector<HTMLTextAreaElement>('[name="question"]')!
   await act(async () => {
-    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
-      field,
-      'SELECT secrets; use Project Key',
-    )
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(field, value)
     field.dispatchEvent(new Event('input', { bubbles: true }))
   })
+}
+
+it('prepares exact free text without inference or database planning until personal-model confirmation', async () => {
+  await mount()
+  const question = '  SELECT secrets; <img src=x>\nExplain M1\tplease  '
+  await questionInput(question)
+  expect(button(text('aiReview')).disabled).toBe(true)
   await click('send')
   expect(posts()).toHaveLength(0)
-  expect(button(text('aiReview')).disabled).toBe(true)
+  expect(host.textContent).toContain(text('questionPrepared'))
+  expect(host.querySelector('img')).toBeNull()
+  expect(host.querySelector<HTMLTextAreaElement>('[name="question"]')!.value).toBe('')
+  await click('aiReview')
+  const dialog = document.querySelector('[role="dialog"]')!
+  expect(dialog.textContent).toContain(question)
+  expect(dialog.textContent).toContain('Personal Chat')
+  expect(dialog.textContent).toContain(text('aiQuestionBoundary'))
+  expect(dialog.textContent).toContain(text('aiConfirmDescription'))
+  expect(posts()).toHaveLength(0)
+  await click('aiConfirm')
+  await until(() => expect(host.textContent).toContain('M1 advisory'))
+  expect(JSON.parse(posts()[0].data)).toEqual({
+    report: 'tokens_by_model',
+    model_id: first,
+    question,
+    from: '2026-09-01T00:00:00Z',
+    to: '2026-09-02T00:00:00Z',
+    timezone: 'UTC',
+    language: 'en',
+  })
+  expect(
+    requests.every((request) =>
+      [
+        '/auth/session',
+        '/auth/permissions',
+        '/insights/reports',
+        '/admin/insights/models',
+        '/admin/insights/analyze',
+      ].includes(request.url!),
+    ),
+  ).toBe(true)
+  expect(cache.getMutationCache().getAll()).toHaveLength(0)
+  expect(
+    cache
+      .getQueryCache()
+      .getAll()
+      .some((q) => JSON.stringify(q.state.data)?.includes('SELECT secrets')),
+  ).toBe(false)
+  expect(Object.values(localStorage).some((value) => String(value).includes(question))).toBe(false)
+})
+
+it('retains exact question across language changes while keeping reviewed request language fixed', async () => {
+  await mount()
+  const question = '  为什么 M1 高？\n请说明  '
+  await questionInput(question)
+  await click('send')
+  await click('aiReview')
+  await act(async () => {
+    await i18n.changeLanguage('zh')
+  })
+  expect(document.querySelector('[role="dialog"]')!.textContent).toContain(question)
+  await click('aiConfirm')
+  await until(() => expect(host.textContent).toContain('M1 advisory'))
+  expect(JSON.parse(posts()[0].data)).toMatchObject({ question, language: 'en' })
+  expect(posts()).toHaveLength(1)
+})
+
+it('invalidates question review when editing away and back without silently confirming an old draft', async () => {
+  await mount()
+  await questionInput('Explain the aggregate')
+  await click('send')
+  await click('aiReview')
+  const oldConfirm = button(text('aiConfirm'))
+  await questionInput('Different unsubmitted question')
+  await questionInput('')
+  await act(async () => oldConfirm.click())
+  expect(document.querySelector('[role="dialog"]')).toBeNull()
+  expect(posts()).toHaveLength(0)
+  await launch()
+  await until(() => expect(host.textContent).toContain('M1 advisory'))
+  expect(JSON.parse(posts()[0].data).question).toBe('Explain the aggregate')
+})
+
+it('aborts a pending question and rejects its late answer even when the same question is submitted again', async () => {
+  await mount()
+  await questionInput('First question')
+  await click('send')
+  aiGate = deferred()
+  await launch()
+  const gate = aiGate
+  const signal = posts()[0].signal!
+  await questionInput('First question')
+  await click('send')
+  expect(signal.aborted).toBe(true)
+  await act(async () => gate.release())
+  expect(host.textContent).not.toContain('M1 advisory')
+  expect(posts()).toHaveLength(1)
+})
+
+it.each([
+  ['界'.repeat(342), 'questionTooLong'],
+  ['a\u007fb', 'questionInvalid'],
+  ['a\u0085b', 'questionInvalid'],
+  ['a\ud800b', 'questionInvalid'],
+])('rejects invalid question before preparing a model request', async (question, key) => {
+  await mount()
+  await questionInput(question)
+  await click('send')
+  expect(host.textContent).toContain(text(key))
+  expect(posts()).toHaveLength(0)
+})
+
+it('checks the encoded envelope before confirmation without changing valid question bytes', async () => {
+  await mount()
+  await questionInput('"'.repeat(1024))
+  await click('send')
+  await click('aiReview')
+  expect(host.textContent).toContain(text('questionEnvelopeTooLarge'))
+  expect(document.querySelector('[role="dialog"]')).toBeNull()
+  expect(posts()).toHaveLength(0)
 })
 
 it('keeps the reviewed language fixed when UI language changes before confirmation', async () => {
@@ -386,3 +502,56 @@ it('formats confirmation and answer dates in the selected language and captured 
   )
   expect(posts()).toHaveLength(1)
 })
+
+it('keeps a failed question transient and requires another reviewed confirmation instead of replaying inference', async () => {
+  await mount()
+  const question = '  Explain known aggregate usage only  '
+  await questionInput(question)
+  await click('send')
+  errorStatus = 502
+  await launch()
+  await until(() => expect(host.querySelector('[role="alert"]')).not.toBeNull())
+  expect(host.textContent).not.toContain('private-provider-secret')
+  expect(posts()).toHaveLength(1)
+  errorStatus = 0
+  await click('aiReview')
+  expect(document.querySelector('[role="dialog"]')!.textContent).toContain(question)
+  expect(posts()).toHaveLength(1)
+  await click('aiConfirm')
+  await until(() => expect(host.textContent).toContain('M1 advisory'))
+  expect(posts()).toHaveLength(2)
+  expect(JSON.parse(posts()[1].data)).toEqual(JSON.parse(posts()[0].data))
+})
+
+it.each(['shortcutProvider', 'shortcutTeam'] as const)(
+  'prepares only Tokens by Model from %s without treating the question as a scope planner',
+  async (shortcut) => {
+    await mount()
+    await click(shortcut)
+    await questionInput('Please explain Provider errors and private Team Keys')
+    const before = requests.length
+    await click('send')
+    expect(posts()).toHaveLength(0)
+    expect(requests).toHaveLength(before)
+    expect(host.textContent).toContain(text('questionPrepared'))
+    await click('aiReview')
+    const dialog = document.querySelector('[role="dialog"]')!
+    expect(dialog.textContent).toContain(text('shortcutTokens'))
+    expect(dialog.textContent).toContain(text('aiQuestionBoundary'))
+    expect(dialog.textContent).toContain('Personal Chat')
+    expect(dialog.textContent).toContain(
+      i18n.t('insights:range', {
+        from: usageTime('2026-09-01T00:00:00Z', 'en-US', 'UTC'),
+        to: usageTime('2026-09-02T00:00:00Z', 'en-US', 'UTC'),
+        timezone: 'UTC',
+      }),
+    )
+    expect(posts()).toHaveLength(0)
+    await click('aiConfirm')
+    await until(() => expect(host.textContent).toContain('M1 advisory'))
+    expect(JSON.parse(posts()[0].data)).toMatchObject({
+      report: 'tokens_by_model',
+      question: 'Please explain Provider errors and private Team Keys',
+    })
+  },
+)

@@ -4,6 +4,7 @@ export interface InsightsModel {
 }
 export interface InsightsAnalysisInput {
   report: 'tokens_by_model'
+  question?: string
   model_id: string
   from: string
   to: string

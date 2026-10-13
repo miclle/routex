@@ -15,6 +15,15 @@ const stamp = (value: unknown): value is string =>
   /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,9})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/.test(value) &&
   Number.isFinite(Date.parse(value))
 
+export function isInsightsQuestion(value: unknown): value is string {
+  return (
+    string(value, 1024) &&
+    !!value.trim() &&
+    !/[\p{Cc}]/u.test(value.replace(/[\n\t]/g, '')) &&
+    !/[\uD800-\uDFFF]/u.test(value)
+  )
+}
+
 export async function getInsightsModels(signal: AbortSignal): Promise<InsightsModel[]> {
   const response = await client.get('/admin/insights/models', { signal })
   if (response.status !== 200) throw new Error('Invalid Insights models status')
@@ -52,7 +61,9 @@ export async function analyzeInsights(
       'to',
       'timezone',
       'language',
+      ...(Object.hasOwn(input, 'question') ? ['question'] : []),
     ]) ||
+    (Object.hasOwn(input, 'question') && !isInsightsQuestion(input.question)) ||
     input.report !== 'tokens_by_model' ||
     !modelID.test(input.model_id) ||
     !stamp(input.from) ||

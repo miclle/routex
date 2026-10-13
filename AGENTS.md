@@ -1724,15 +1724,21 @@ Tokens-by-Model report from the existing platform usage API for explicit absolut
 dates/timezone; show captured source, definitions, range, filters, freshness and
 known/unknown coverage. Preserve exact integer strings and historical labels;
 never fetch an unauthorized live catalogue or infer quotas, forecasts or native
-completion. Free text and unsupported shortcuts remain explicitly
-unavailable. Optional AI advice uses only an explicitly selected current-user
+completion. Arbitrary free-text query planning remains unavailable. Optional AI
+advice uses only an explicitly selected current-user
 callable personal Chat model and personal quota, after a separate bounded-inference
 confirmation. The server reruns the authorized fixed aggregate report and sends
-only counts, capture metadata and temporary Model labels, never questions, raw
-calls, member identities, historical names or secrets. Keep the answer/capture/label
+only counts, capture metadata and temporary Model labels as server-derived facts,
+never raw calls, member identities, historical names or secrets. Optional caller
+questions are separately transmitted as explicitly reviewed untrusted UTF-8 text
+(up to 1,024 bytes), not aggregate-only content or a query grammar. Typing and
+preparing a question never invokes inference; confirm the exact question/model/
+range/language before one explicit fresh request. Preserve the fixed authorized
+Tokens-by-Model capture and personal-model/quota path, without native roles, tools,
+extra data sources or conversation history. Keep the question/review/answer/capture/label
 map transient and outside query/mutation caches and storage. Render only plain-text
 advice and exact native completion states, with no executable output actions.
-Model, range, actor, Session, permission or model-list generation changes revoke
+Question, model, range, actor, Session, permission or model-list generation changes revoke
 confirmation and obsolete responses; cancellation and duplicate guards remain
 synchronous. Submitted language stays immutable while UI copy switches live. Each CSV export is a separate fresh authorized capture,
 with its own metadata and existing safe server encoding, rather than a claim to

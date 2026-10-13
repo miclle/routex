@@ -48,18 +48,28 @@ export default {
     '需要平台调用读取权限。报表使用已记录调用、上游尝试及授权范围内的配额账本事实，不会更改配置或授予推理访问权限。',
   assistantTitle: '运营分析指引',
   introduction:
-    '选择固定报告，审阅日期或当前配额范围后手动运行。AI 建议仅适用于按模型统计 Token，且需单独确认个人模型调用。可保存成功的 Token 或 Provider 质量报告中已审阅的参数，以便之后手动使用；配额报告暂不能保存定义。',
+    '选择固定报告，审阅日期或当前配额范围后手动运行。对于按模型统计 Token，可准备问题并单独确认个人模型 AI 分析。问题不能改变报告范围。可保存已审阅的报告参数，以便之后手动使用；问题与 AI 回答不会保存。',
 
   shortcutTokens: '按模型统计 Token',
   shortcutTeam: '分析团队用量',
   shortcutKey: '预测 Key 配额',
   shortcutProvider: '解释 Provider 质量',
   questionLabel: '分析问题',
-  questionPlaceholder: '选择按模型统计 Token 以使用当前支持的报表。',
+  questionPlaceholder: '询问已审阅的按模型统计 Token 聚合数据…',
   questionHelp:
-    '选择按模型统计 Token、Provider 质量、Team 配额或指定范围的 Key 配额报告。暂不支持自由文本分析。',
+    '问题仅适用于按模型统计 Token，需单独确认个人模型调用。确认的问题原文会发送至上游，请勿粘贴凭证、私人身份信息或敏感内容。问题不能改变已审阅的查询范围。',
+  questionPrepared:
+    '问题已准备好。请审阅按模型统计已记录 Token 的范围，并选择个人模型后确认 AI 分析。',
+  questionTooLong: '问题不能超过 1,024 个 UTF-8 字节。',
+  questionInvalid: '问题必须包含文本，允许换行符和制表符，不支持其他控制字符。',
+  questionEnvelopeTooLarge: '编码后的问题与已审阅分析参数超出 2 KiB 请求限制，请缩短问题。',
+  aiReviewedQuestion: '已审阅问题',
+  aiQuestionBoundary:
+    '确认的问题与有权读取的按模型统计 Token 聚合数据会发送至所选模型。问题不能改变数据库查询范围或请求原始记录。',
+  aiStateless: '每次分析相互独立，问题与 AI 回答不会保存。',
   send: '发送',
-  unsupported: '请选择固定报告快捷入口，审阅参数后运行。',
+  unsupported:
+    '问题仅适用于按模型统计 Token。Provider 质量和配额报告使用固定快捷入口及已审阅参数。',
   from: '开始时间（包含）',
   to: '结束时间（不包含）',
   timezone: '时区',
@@ -119,7 +129,7 @@ export default {
     'Token 为已记录的输入和输出数量。已知小计不包含未知覆盖。HTTP 成功或 Token 用量不证明原生完成。',
   aiTitle: 'AI 建议分析',
   aiDisclosure:
-    '使用你明确选择且个人可调用的 Chat 模型，并计入个人配额。仅向上游发送已授权的聚合数量与临时模型标签，不发送问题、原始调用、成员身份、历史模型名称或秘密。',
+    '使用你明确选择且个人可调用的 Chat 模型，并计入个人配额。服务器发送授权聚合计数与临时模型标签，不包含原始调用、成员身份、历史模型名称或密钥。如果提供问题，确认的问题原文也会发送至上游，请勿粘贴私人或敏感内容。',
   aiModel: '个人 Chat 模型',
   aiSelectModel: '选择可调用模型',
   aiModelsLoading: '正在读取个人可调用的 Chat 模型…',

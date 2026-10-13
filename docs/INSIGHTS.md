@@ -12,7 +12,9 @@ UTC offsets, review the time zone, and run the report. The range includes the st
 and excludes the end. UTC is the initial grouping time zone; no calendar week is
 silently selected. The separate **Provider quality** shortcut and scoped quota
 reports are described below. Only the quota reports provide covered settled-rate
-estimates. Free-text analysis and quota saved definitions remain unsupported.
+estimates. The question extension accepts explicitly confirmed caller
+text for Tokens-by-Model AI advice; it never plans a query from prose. Quota saved
+definitions remain a separate phase.
 Deterministic reports make no inference call. Optional AI advice requires a
 separate explicit confirmation and stores no report or conversation.
 
@@ -135,13 +137,21 @@ quota/cost disclosure before confirming one explicit analysis request. The page
 never starts or retries paid inference automatically.
 
 `POST /api/v1/admin/insights/analyze` accepts only `report: tokens_by_model`,
-`model_id`, `from`, `to`, `timezone` and `language: en | zh`, with the current
+`model_id`, `from`, `to`, `timezone` and `language: en | zh`, plus an optional
+explicitly reviewed `question`, with the current
 Session's CSRF token. The server captures the authorized aggregate report again;
-this is not the displayed report or CSV snapshot. Only recorded aggregate counts,
-coverage, capture metadata and temporary labels such as `M1` are sent upstream.
-Raw calls, member identities, historical model names/IDs, credentials, questions
-and history are excluded. The selected inference model still uses its ordinary
-personal authorization, metering and quota path.
+this is not the displayed report or CSV snapshot. Server-derived data sent upstream
+contains only recorded aggregate counts, coverage, capture metadata and temporary
+labels such as `M1`.
+Raw calls, member identities, historical model names/IDs, credentials and history
+are excluded from the server-added projection. When selected, the exact reviewed
+question is separately sent as untrusted text beside those aggregates. Caller
+prose may itself contain private information; it is never claimed to contain only
+aggregate data. The UTF-8 question is bounded to 1,024 bytes, is nonblank and has
+no control characters except newline/tab. It cannot choose SQL, native roles,
+tools, report kinds, extra data sources or broader authorization. The same fixed
+report is freshly captured; the selected model uses its ordinary personal
+authorization, metering and quota path.
 
 The response contains `request_id`, the exact native `completion`, nullable
 `text`, independent `capture` metadata and a temporary historical Model-label map.
@@ -155,9 +165,10 @@ report, browser download, deployment or policy change.
 The strict wire boundary limits models and labels to 500, input JSON to 2 KiB,
 aggregate projection to 64 KiB, answer text to 16 KiB UTF-8 and the complete response
 to 1 MiB; no truncation is accepted. Overflow requires a narrower reviewed query.
-The answer, capture and temporary labels remain in component state only, outside
-query/mutation caches and browser storage. Model/range changes, renewed or failed
-Session/permission/model reads, actor changes and unmount hide prior answers,
+The question, review, answer, capture and temporary labels remain in component
+state only, outside query/mutation caches and browser storage. Question/model/range
+changes, renewed or failed Session/permission/model reads, actor changes and
+unmount hide prior answers,
 revoke prepared confirmation, abort obsolete work and reject late replies. Each
 submit reads current CSRF. Cancellation does not prove dispatched inference or
 charges were undone. Requested answer language is captured with the confirmed
@@ -203,8 +214,17 @@ original source and failures; they are not transferred to the delivered source.
 
 Analysis remains limited to the explicitly selected current user's callable
 personal Chat model and personal quota, with bounded authorized aggregates and
-temporary Model labels only. No free-text questions, conversation history, raw
-calls, borrowed Key/Team/Project authority or persisted answer is added. Browser
+temporary Model labels. The question extension adds explicitly reviewed
+transient caller text to that unchanged aggregate scope, not query planning or
+conversation history. Question typing/submission prepares review only; Confirm
+starts one fresh request and cancellation never automatically retries it. No raw
+calls, borrowed Key/Team/Project authority or persisted question/answer is added.
+The mean duration is delivered in `3fa148c` and captured observations in
+`adf3363`. Question qualification passed focused Go race tests, mandatory checking,
+and complete ordinary tests including 7,274 frontend cases in 270 files.
+PostgreSQL and MySQL each passed all 25 selected analysis/constraint names, with
+unchanged source and owned cleanup. Primary composed mandatory checking also passed before commit. Quota definitions remain a separate candidate. Earlier delivered
+receipts remain unchanged. Browser
 and real external-model acceptance remain deferred. Creator-private definitions
 and scoped quota forecasts are delivered in `4ee3909` and `bb542e9`, with coherent
 mandatory, ordinary, dual-database and authentication qualification recorded in
@@ -249,4 +269,4 @@ kinds are unchanged. The composed source passes the selected report scenarios
 on both real databases, including recorded settlements, root deduplication,
 scoped authority and CSV controls. Complete coherent qualification passed before
 main delivery in `bb542e9`; browser and real external-service acceptance remain
-separate. The current feature packages are complete and the overall goal is paused.
+separate. The complete goal is active; remaining Partial capabilities and acceptance gates continue.

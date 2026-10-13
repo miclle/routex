@@ -9,7 +9,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { useTranslation } from 'react-i18next'
-import { getInsightsModels, analyzeInsights } from '@/api/insights'
+import { getInsightsModels, analyzeInsights, isInsightsQuestion } from '@/api/insights'
 import { sessionKey } from '@/hooks/use-auth'
 import type { Session } from '@/types/auth'
 import type { InsightsAnalysis, InsightsAnalysisInput } from '@/types/insights'
@@ -25,12 +25,14 @@ export function useInsightsAI({
   authorityStamp,
   authorized,
   range,
+  question,
   supported,
 }: {
   actor: string
   authorityStamp: string
   authorized: () => boolean
   range: InsightsRange
+  question?: string
   supported: boolean
 }) {
   const { t, i18n } = useTranslation('insights')
@@ -59,6 +61,7 @@ export function useInsightsAI({
   const [response, setResponse] = useState<{
     context: string
     language: 'en' | 'zh'
+    question?: string
     value: InsightsAnalysis
   } | null>(null)
   const [error, setError] = useState<{ context: string; key: string } | null>(null)
@@ -98,7 +101,7 @@ export function useInsightsAI({
     [cache, key],
   )
   const modelStamp = useSyncExternalStore(subscribe, modelSnapshot, modelSnapshot)
-  const context = JSON.stringify([authorityStamp, modelStamp, model, range, supported])
+  const context = JSON.stringify([authorityStamp, modelStamp, model, range, question, supported])
   const modelState = cache.getQueryState(key)
   const optionsReady =
     models.isSuccess &&
@@ -157,19 +160,25 @@ export function useInsightsAI({
       setError({ context, key: filters })
       return
     }
+    const input: InsightsAnalysisInput = {
+      report: 'tokens_by_model',
+      ...(question === undefined ? {} : { question }),
+      model_id: selected.model_id,
+      from: filters.from!,
+      to: filters.to!,
+      timezone: filters.timezone,
+      language: i18n.resolvedLanguage === 'zh' ? 'zh' : 'en',
+    }
+    if (question !== undefined && !isInsightsQuestion(question)) {
+      setError({ context, key: 'questionInvalid' })
+      return
+    }
+    if (new TextEncoder().encode(JSON.stringify(input)).length > 2048) {
+      setError({ context, key: 'questionEnvelopeTooLarge' })
+      return
+    }
     invalidate()
-    setReview({
-      context,
-      epoch: epoch.current,
-      input: {
-        report: 'tokens_by_model',
-        model_id: selected.model_id,
-        from: filters.from!,
-        to: filters.to!,
-        timezone: filters.timezone,
-        language: i18n.resolvedLanguage === 'zh' ? 'zh' : 'en',
-      },
-    })
+    setReview({ context, epoch: epoch.current, input })
   }
   async function submit() {
     if (
@@ -196,7 +205,12 @@ export function useInsightsAI({
     try {
       const value = await analyzeInsights({ ...captured.input }, session.csrf_token, abort.signal)
       if (abort.signal.aborted || epoch.current !== capturedEpoch || !current()) return
-      setResponse({ context: captured.context, language: captured.input.language, value })
+      setResponse({
+        context: captured.context,
+        language: captured.input.language,
+        ...(captured.input.question === undefined ? {} : { question: captured.input.question }),
+        value,
+      })
     } catch (caught) {
       if (abort.signal.aborted || epoch.current !== capturedEpoch || !current()) return
       const status = isAxiosError(caught) ? caught.response?.status : undefined
@@ -225,6 +239,7 @@ export function useInsightsAI({
       <div className="space-y-3 border-t pt-3">
         <h3 className="font-medium">{t('aiTitle')}</h3>
         <p className="text-xs text-muted-foreground">{t('aiDisclosure')}</p>
+        <p className="text-xs text-muted-foreground">{t('aiStateless')}</p>
         <FormField label={t('aiModel')}>
           <select
             aria-label={t('aiModel')}
@@ -293,7 +308,17 @@ export function useInsightsAI({
         >
           {review && (
             <div className="space-y-4 text-sm">
+              <p className="font-medium">{t('shortcutTokens')}</p>
               <p>{selected?.name || review.input.model_id}</p>
+              {review.input.question !== undefined && (
+                <div>
+                  <p className="font-medium">{t('aiReviewedQuestion')}</p>
+                  <p className="whitespace-pre-wrap break-words">{review.input.question}</p>
+                </div>
+              )}
+              {review.input.question !== undefined && (
+                <p className="text-muted-foreground">{t('aiQuestionBoundary')}</p>
+              )}
               <p>
                 {t('range', {
                   from: usageTime(review.input.from, locale, review.input.timezone),
@@ -323,6 +348,12 @@ export function useInsightsAI({
         {!pending && !answer && <p className="text-sm text-muted-foreground">{t('aiAwaiting')}</p>}
         {answer && (
           <>
+            {answer.question !== undefined && (
+              <div>
+                <p className="font-medium">{t('aiReviewedQuestion')}</p>
+                <p className="whitespace-pre-wrap break-words text-sm">{answer.question}</p>
+              </div>
+            )}
             <p role="status">{completionText(answer.value.completion)}</p>
             <p className="text-xs text-muted-foreground">
               {t('aiLanguage', {

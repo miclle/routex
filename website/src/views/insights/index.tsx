@@ -27,6 +27,7 @@ import type { Session } from '@/types/auth'
 import type { UsageFilters } from '@/types/usage'
 import { readInsightsRange, type InsightsRange } from './range'
 import InsightsResult from './result'
+import { isInsightsQuestion } from '@/api/insights'
 import { useInsightsAI } from './ai'
 import { useQuotaInsights } from './quota'
 import type { QuotaInsightsKind } from '@/types/insights-quota'
@@ -238,7 +239,8 @@ function InsightsContent({
     authorityStamp,
     authorized,
     range: draft,
-    supported: supported && !providerReport && !quotaKind,
+    question: 'text' in question ? question.text : undefined,
+    supported: supported && !providerReport && !quotaKind && !input.trim(),
   })
   useLayoutEffect(() => {
     alive.current = true
@@ -545,22 +547,37 @@ function InsightsContent({
                     quota.exporting
                   )
                     return
+                  const reviewedQuestion = input
+                  if (new TextEncoder().encode(reviewedQuestion).length > 1024) {
+                    clearReport()
+                    setMessage('questionTooLong')
+                    return
+                  }
+                  if (!isInsightsQuestion(reviewedQuestion)) {
+                    clearReport()
+                    setMessage('questionInvalid')
+                    return
+                  }
                   clearReport()
-                  setQuestion({ text: input.trim() })
+                  setQuestion({ text: reviewedQuestion })
                   setInput('')
-                  setSupported(false)
+                  setSupported(true)
+                  setProviderReport(false)
                   setQuotaKind(null)
-                  setMessage('unsupported')
+                  setMessage('questionPrepared')
                 }}
               >
                 <FormField label={t('questionLabel')}>
                   <Textarea
                     name="question"
                     rows={3}
-                    maxLength={2000}
+                    maxLength={1024}
                     placeholder={t('questionPlaceholder')}
                     value={input}
-                    onChange={(event) => setInput(event.target.value)}
+                    onChange={(event) => {
+                      ai.invalidate()
+                      setInput(event.target.value)
+                    }}
                     disabled={busy || overallExporting}
                   />
                 </FormField>

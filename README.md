@@ -314,10 +314,13 @@ Provider quality reports, creator-private parameter definitions retained until
 owner deletion, and scoped Team/Key quota reports with covered trailing-168-hour
 settled-rate estimates. Exports capture a separate freshly authorized CSV.
 Optional AI advice requires explicit confirmation of the current user's callable
-personal Chat model and personal quota; only bounded aggregates and temporary
-Model labels reach the model. Answers remain transient plain text. Free-text
-questions, quota saved definitions and broader evaluation remain unavailable;
-browser and real external-service acceptance are tracked separately.
+personal Chat model and personal quota. Server-derived data contains only bounded
+aggregates and temporary Model labels. The prepared question extension also sends
+the exact explicitly reviewed caller question beside those aggregates; it cannot
+plan database queries or broaden report scope. Questions and plain-text answers
+remain transient. Quota saved definitions are a separate undelivered candidate,
+and broader evaluation remains unavailable. Browser and real external-service
+acceptance are tracked separately.
 
 [Offboarding completion notices](docs/OFFBOARDING.md) reach the executor and
 actual successors through recipient-isolated history and existing email settings.

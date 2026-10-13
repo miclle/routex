@@ -18,7 +18,8 @@ import (
 
 const insightsAIRequestLimit = 2048
 
-// Only the fixed report grammar crosses this boundary, never caller messages or facts.
+// The fixed report grammar accepts optional transient question text, never
+// caller-defined facts, query plans, native messages or conversation history.
 func decodeInsightsAIInput(raw []byte) (service.InsightsAIInput, error) {
 	var input service.InsightsAIInput
 	if len(raw) == 0 || len(raw) > insightsAIRequestLimit || !utf8.Valid(raw) {
@@ -29,7 +30,7 @@ func decodeInsightsAIInput(raw []byte) (service.InsightsAIInput, error) {
 	if err != nil || start != json.Delim('{') {
 		return input, apperrors.ErrBadRequest
 	}
-	fields := map[string]bool{"report": true, "model_id": true, "from": true, "to": true, "timezone": true, "language": true}
+	fields := map[string]bool{"report": true, "model_id": true, "from": true, "to": true, "timezone": true, "language": true, "question": true}
 	seen := map[string]bool{}
 	for decoder.More() {
 		token, err := decoder.Token()
@@ -42,14 +43,24 @@ func decodeInsightsAIInput(raw []byte) (service.InsightsAIInput, error) {
 		if decoder.Decode(&rawValue) != nil || bytes.Equal(bytes.TrimSpace(rawValue), []byte("null")) {
 			return input, apperrors.ErrBadRequest
 		}
+		if name == "question" {
+			if _, err := service.DecodeInsightsAIQuestion(rawValue); err != nil {
+				return input, err
+			}
+		}
 		var text string
 		if json.Unmarshal(rawValue, &text) != nil {
 			return input, apperrors.ErrBadRequest
 		}
 	}
 	end, err := decoder.Token()
-	if err != nil || end != json.Delim('}') || len(seen) != len(fields) || decoder.Decode(new(any)) != io.EOF {
+	if err != nil || end != json.Delim('}') || decoder.Decode(new(any)) != io.EOF {
 		return input, apperrors.ErrBadRequest
+	}
+	for _, field := range []string{"report", "model_id", "from", "to", "timezone", "language"} {
+		if !seen[field] {
+			return input, apperrors.ErrBadRequest
+		}
 	}
 	if json.Unmarshal(raw, &input) != nil {
 		return input, apperrors.ErrBadRequest

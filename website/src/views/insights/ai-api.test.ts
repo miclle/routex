@@ -191,3 +191,45 @@ it('rejects non-200 success statuses rather than treating HTTP success as native
   })
   await expect(analyzeInsights(input, 'csrf', new AbortController().signal)).rejects.toThrow()
 })
+
+it.each(['  exact question\nwith\ttabs  ', '界'.repeat(341) + 'a', '😀'.repeat(256)])(
+  'preserves the exact approved optional question bytes in the fixed request',
+  async (question) => {
+    let sent: unknown
+    client.defaults.adapter = async (config) => {
+      sent = JSON.parse(config.data)
+      return { config, data: result(), status: 200, statusText: '', headers: new AxiosHeaders() }
+    }
+    await analyzeInsights({ ...input, question }, 'csrf', new AbortController().signal)
+    expect(sent).toEqual({ ...input, question })
+  },
+)
+
+it.each([
+  undefined,
+  null,
+  '',
+  ' \t\n ',
+  '界'.repeat(342),
+  'a'.repeat(1025),
+  'a\rb',
+  'a\u0000b',
+  'a\u007fb',
+  'a\u0085b',
+  'a\ud800b',
+  '"'.repeat(1024),
+])('rejects present invalid or oversized question without dispatch', async (question) => {
+  let calls = 0
+  client.defaults.adapter = async () => {
+    calls++
+    throw Error('must not dispatch')
+  }
+  await expect(
+    analyzeInsights(
+      { ...input, question } as InsightsAnalysisInput,
+      'csrf',
+      new AbortController().signal,
+    ),
+  ).rejects.toThrow()
+  expect(calls).toBe(0)
+})

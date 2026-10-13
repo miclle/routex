@@ -52,18 +52,30 @@ export default {
     'Requires platform call-read permission. Reports use recorded calls, upstream attempts and scoped quota-journal facts; they do not change configuration or grant inference access.',
   assistantTitle: 'Operations analysis guide',
   introduction:
-    'Select a fixed report, review dates or the current quota scope, then run explicitly. Optional AI advice is available only for Tokens by model with separate personal-model confirmation. Save reviewed parameters from a successful Tokens or Provider quality report for later explicit use; quota definitions cannot be saved.',
+    'Select a fixed report, review dates or the current quota scope, then run explicitly. For Tokens by Model, you may prepare a question and separately confirm personal-model AI analysis. Questions cannot change the report scope. Save reviewed report parameters for later explicit use; questions and AI answers are not saved.',
 
   shortcutTokens: 'Tokens by model',
   shortcutTeam: 'Analyze team usage',
   shortcutKey: 'Forecast Key allowance',
   shortcutProvider: 'Explain Provider quality',
   questionLabel: 'Analysis question',
-  questionPlaceholder: 'Select Tokens by model to use the supported report.',
+  questionPlaceholder: 'Ask about the reviewed Tokens by Model aggregates…',
   questionHelp:
-    'Select a fixed Tokens, Provider quality, Team quota or scoped Key quota report. Free-text analysis is unavailable.',
+    'Questions are available only for Tokens by Model and require separate personal-model confirmation. Your exact confirmed question is sent upstream; do not paste credentials, private identities or sensitive content. Questions cannot change the reviewed query scope.',
+  questionPrepared:
+    'Question prepared. Review the recorded Tokens by Model range and select a personal model before confirming AI analysis.',
+  questionTooLong: 'Questions must contain at most 1,024 UTF-8 bytes.',
+  questionInvalid:
+    'Questions must contain text, with line breaks and tabs allowed; other control characters are unsupported.',
+  questionEnvelopeTooLarge:
+    'The encoded question and reviewed analysis parameters exceed the 2 KiB request limit. Shorten the question.',
+  aiReviewedQuestion: 'Reviewed question',
+  aiQuestionBoundary:
+    'The confirmed question and authorized Tokens by Model aggregates are sent to your selected model. Questions cannot change database scope or request raw records.',
+  aiStateless: 'Each analysis is independent. Questions and AI answers are not saved.',
   send: 'Send',
-  unsupported: 'Select a fixed report shortcut and review its parameters before running.',
+  unsupported:
+    'Questions are supported only for Tokens by Model. Provider quality and quota reports use their fixed shortcuts and reviewed parameters.',
   from: 'From (inclusive)',
   to: 'To (exclusive)',
   timezone: 'Time zone',
@@ -131,7 +143,7 @@ export default {
     'Tokens are recorded input and output counts. Known subtotals exclude unknown coverage. HTTP success or token usage does not prove native completion.',
   aiTitle: 'AI advisory analysis',
   aiDisclosure:
-    'Uses your explicitly selected callable personal Chat model and personal quota. Only authorized aggregate counts and temporary model labels are sent upstream; questions, raw calls, member identities, historical model names and secrets are not sent.',
+    'Uses your explicitly selected callable personal Chat model and personal quota. The server sends authorized aggregate counts and temporary model labels, without raw calls, member identities, historical model names or secrets. If included, your exact confirmed question is also sent upstream; do not paste private or sensitive content.',
   aiModel: 'Personal Chat model',
   aiSelectModel: 'Select a callable model',
   aiModelsLoading: 'Reading your callable personal Chat models…',
