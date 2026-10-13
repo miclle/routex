@@ -1,5 +1,27 @@
 # RouteX Implementation and Acceptance Index
 
+## Confirmed question delivery (2026-10-13)
+
+Explicitly confirmed Tokens-by-Model questions are delivered in
+`4f3d2324cfff2fb999d4743e586005c5ebeb27ce`, with exact local/remote main
+readback. The existing question input prepares a transient question; a separate
+review confirms its exact text, range, model and language before one personal
+model call. Questions cannot expand the fixed aggregate query or native roles,
+tools, history or data sources. Question/review/answer state remains transient;
+authority changes and cancellation invalidate obsolete work.
+
+Focused Go race and 157 frontend cases passed. Independent mandatory checking
+and complete ordinary tests passed, including 7,274 frontend cases in 270 files.
+PostgreSQL and MySQL each passed all 25 selected analysis/constraint names;
+nonmatrix Go checks passed with six explicit environment skips. Independent
+readback confirms unchanged source, owned cleanup and preserved development.
+Primary composed mandatory checking passed in 182.188 seconds before the
+19-path phase commit. The earlier low-memory typecheck and incomplete verifier
+inventory remain retained failures, not acceptance. Browser and real external
+model acceptance remain open. Publication interruption and actual local
+S3/SMTP are next; quota definitions still await the full unfiltered matrix.
+Capability totals remain 16 Completed / 14 Partial / 0 Not started.
+
 ## Provider observations delivery (2026-10-13)
 
 Provider observations are delivered in
