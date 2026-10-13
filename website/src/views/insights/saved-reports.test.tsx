@@ -391,6 +391,21 @@ it('requires independent Provider read authority for loading and saving Provider
   expect(reports()).toHaveLength(0)
   expect(saves()).toHaveLength(0)
 })
+it('loading a Provider definition only prepares controls and never captures or calls AI', async () => {
+  definitions = [{ ...definition(), kind: 'provider_quality' }]
+  await mount()
+  await run()
+  expect(host.textContent).toContain('Saved report test facts')
+  const count = requests.length
+  await menu()
+  await menuItem(text('loadSaved'))
+  expect(host.textContent).toContain(text('savedLoaded'))
+  expect(host.textContent).toContain(text('aiProviderDisclosure'))
+  expect(host.textContent).not.toContain('Saved report test facts')
+  expect(requests).toHaveLength(count)
+  expect(requests.some((request) => request.url === '/admin/insights/analyze')).toBe(false)
+  expect(button(text('aiReview')).disabled).toBe(true)
+})
 it('switches titles, privacy guidance and pending retry copy live between English and Chinese', async () => {
   definitions = [definition()]
   await mount()

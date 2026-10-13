@@ -85,7 +85,7 @@ func TestInsightsAIProjectionAliasesOnlyAndPreservesExactCoverage(t *testing.T) 
 	if json.Unmarshal(raw, &projected) != nil || projected.Summary.Tokens.Input.Known != "9007199254740993" || projected.Summary.Tokens.Total.UnknownCalls != 1 || len(projected.Models) != 2 || projected.Models[0].Label != "M1" || !projected.Models[0].Unknown || projected.Models[1].Label != "M2" {
 		t.Fatal("projection lost exact known/unknown aggregates", string(raw))
 	}
-	if view.Text != nil || view.Completion != "unknown" || len(view.Labels) != 2 || view.Labels[1].ModelID != "mdl_private_z" || view.Labels[1].Name != report.Current.Models[0].Name || view.Capture.From != input.From || view.Capture.To != input.To || view.Capture.Timezone != input.Timezone {
+	if view.Text != nil || view.Completion != "unknown" || len(view.Labels) != 2 || view.Labels[1].ModelID == nil || *view.Labels[1].ModelID != "mdl_private_z" || view.Labels[1].Name != report.Current.Models[0].Name || view.Capture.From != input.From || view.Capture.To != input.To || view.Capture.Timezone != input.Timezone {
 		t.Fatal("transient response label map or reviewed capture changed", view)
 	}
 	after, _ := json.Marshal(report)

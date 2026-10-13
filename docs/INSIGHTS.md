@@ -12,10 +12,9 @@ UTC offsets, review the time zone, and run the report. The range includes the st
 and excludes the end. UTC is the initial grouping time zone; no calendar week is
 silently selected. The separate **Provider quality** shortcut and scoped quota
 reports are described below. Only the quota reports provide covered settled-rate
-estimates. Quota saved definitions are implemented in the current V111 candidate;
-complete qualification and main delivery remain pending. The question extension accepts
-explicitly confirmed caller text for Tokens-by-Model AI advice; it never plans
-a query from prose.
+estimates. Quota saved definitions are implemented in V111. The question extension
+accepts explicitly confirmed caller text for Tokens-by-Model or Provider-quality AI
+advice; it never plans a query from prose.
 Deterministic reports make no inference call. Optional AI advice requires a
 separate explicit confirmation and stores no report or conversation.
 
@@ -60,14 +59,14 @@ capture/aggregation deadline. Overflow fails the complete query rather than trun
 Counts are attempts, not logical calls: failover may contribute to multiple Providers.
 Canceled and not-sent attempts are excluded; Credential rejection is separate. Eligible
 success rates use attributed attempts only and do not prove native completion.
-Duration coverage is explicit. The prepared mean-duration extension adds
+Duration coverage is explicit. The delivered mean-duration projection provides
 `average_duration_ms` from eligible recorded nonnegative full-attempt samples,
 weighted by known sample counts across Providers. Unknown samples are excluded;
 recorded zero remains zero and no known sample returns null. Finite float64 means
 may exceed JavaScript safe integers because duration is a measurement, not an
 exact counter. P95 remains a separate nearest-rank full-attempt statistic. Neither
-measurement represents first-token latency. The extension awaits composed phase
-qualification; earlier delivered acceptance does not cover these added fields.
+measurement represents first-token latency. The projection is delivered in
+`3fa148c` with focused, ordinary and dual-driver qualification.
 A Provider name is the latest selected immutable recorded label (attempt ID
 breaks an equal-time tie); it does not come from the current catalog. Attempts with
 no Provider ID remain a separate global unknown count, outside every group and rate.
@@ -80,7 +79,8 @@ encoder, private/no-store headers and 8 MiB transport limit. It does not seriali
 cached browser facts. Summary and Provider rows identify their scope; unknown
 attribution remains explicit in capture metadata. Report, export and late replies
 share the existing actor/Session/permission and parameter lifetime fences. Provider
-facts are never sent to the optional AI endpoint, which remains Tokens-by-Model only.
+identities and raw attempts are never sent to the upstream model. Explicitly
+confirmed Provider-quality advice uses a separate fixed anonymous aggregate capture.
 This report does not add a forecast, alert threshold or routing policy.
 Operational observations reuse the existing result composition to explain
 recorded rate-limited and server-error eligible attempts, unknown attribution
@@ -100,8 +100,7 @@ source and receipt provenance. Browser and real-provider acceptance remain open.
 
 The user-confirmed retention policy is creator-private visibility until explicit
 owner deletion. Historical `tokens_by_model` and `provider_quality` definitions
-retain exact absolute `from`/`to` instants and an IANA `timezone`. The current
-quota candidate adds `team_quota` with a Tokens/Money dimension and `key_quota`
+retain exact absolute `from`/`to` instants and an IANA `timezone`. V111 adds `team_quota` with a Tokens/Money dimension and `key_quota`
 with that dimension plus an exact authorized member/Project scope. Quota
 definitions contain no historical date range, pagination cursor, resource name,
 currency snapshot or result rows. Titles are localized from the kind. No statistics, historical model labels, AI answers, inference model
@@ -144,14 +143,22 @@ the selected model, absolute dates/time zone, requested answer language and pers
 quota/cost disclosure before confirming one explicit analysis request. The page
 never starts or retries paid inference automatically.
 
-`POST /api/v1/admin/insights/analyze` accepts only `report: tokens_by_model`,
+`POST /api/v1/admin/insights/analyze` accepts only
+`report: tokens_by_model | provider_quality`,
 `model_id`, `from`, `to`, `timezone` and `language: en | zh`, plus an optional
 explicitly reviewed `question`, with the current
 Session's CSRF token. The server captures the authorized aggregate report again;
 this is not the displayed report or CSV snapshot. Server-derived data sent upstream
 contains only recorded aggregate counts, coverage, capture metadata and temporary
-labels such as `M1`.
-Raw calls, member identities, historical model names/IDs, credentials and history
+labels such as `M1` for Models or `P1` for Providers. Provider advice requires
+independent current `calls.read_all` and `providers.read` before capture,
+native dispatch and private answer publication. It uses the existing immutable
+Provider-quality attempt capture, with unknown attribution outside the attributed
+summary, excluded and Credential-rejected attempts outside eligibility, and
+known/unknown full-attempt duration coverage. Rate-limited and server-error
+counts may overlap. Mean and P95 are not first-token latency; recorded success
+does not prove live health, fleet coverage or native completion.
+Raw calls/attempts, member identities, historical Provider/Model names/IDs, credentials and history
 are excluded from the server-added projection. When selected, the exact reviewed
 question is separately sent as untrusted text beside those aggregates. Caller
 prose may itself contain private information; it is never claimed to contain only
@@ -162,7 +169,11 @@ report is freshly captured; the selected model uses its ordinary personal
 authorization, metering and quota path.
 
 The response contains `request_id`, the exact native `completion`, nullable
-`text`, independent `capture` metadata and a temporary historical Model-label map.
+`text`, independent `capture` metadata and a temporary historical identity map.
+Tokens advice retains its `persisted_call_records` capture and `model_id` labels;
+Provider advice uses `persisted_call_attempts` and `provider_id` labels. Cross-kind
+sources and label shapes fail closed at the client wire boundary. The identity
+map remains private to the authorized caller and is excluded from upstream data.
 Only native `completed` may carry answer text. `unknown`, `handoff`, `blocked`
 and `incomplete` remain distinct and display no invented answer. The answer is
 untrusted plain text, with no HTML/Markdown execution, links, tools, query or
@@ -174,13 +185,16 @@ The strict wire boundary limits models and labels to 500, input JSON to 2 KiB,
 aggregate projection to 64 KiB, answer text to 16 KiB UTF-8 and the complete response
 to 1 MiB; no truncation is accepted. Overflow requires a narrower reviewed query.
 The question, review, answer, capture and temporary labels remain in component
-state only, outside query/mutation caches and browser storage. Question/model/range
+state only, outside query/mutation caches and browser storage. Question/model/range/report-kind
 changes, renewed or failed Session/permission/model reads, actor changes and
 unmount hide prior answers,
 revoke prepared confirmation, abort obsolete work and reject late replies. Each
 submit reads current CSRF. Cancellation does not prove dispatched inference or
 charges were undone. Requested answer language is captured with the confirmed
 request; switching UI language does not replay or translate an existing answer.
+Team and Key quota reports remain outside AI advice. Saved-definition loading
+only prepares the selected controls and clears previous reviews/results; it
+never invokes a model or restores a prior answer.
 
 ## Earlier isolated source checks (historical)
 
@@ -231,7 +245,7 @@ The mean duration is delivered in `3fa148c` and captured observations in
 `adf3363`. Question qualification passed focused Go race tests, mandatory checking,
 and complete ordinary tests including 7,274 frontend cases in 270 files.
 PostgreSQL and MySQL each passed all 25 selected analysis/constraint names, with
-unchanged source and owned cleanup. Primary composed mandatory checking also passed before commit. Quota definitions remain a separate candidate. Earlier delivered
+unchanged source and owned cleanup. Primary composed mandatory checking also passed before commit. Quota definitions are delivered in `d9af644`. Earlier delivered
 receipts remain unchanged. Browser
 and real external-model acceptance remain deferred. Creator-private definitions
 and scoped quota forecasts are delivered in `4ee3909` and `bb542e9`, with coherent
@@ -272,12 +286,23 @@ visible. Active pending reservations and retained terminal reservations are
 disclosed separately.
 
 Quota reports do not submit identities or result rows to optional AI advice.
-The current quota-definition candidate extends the same owner-private Save,
-Load and confirmed Delete workflow; frozen V111 preserves the released V110
-receipts and adds disjoint parameter constraints. This candidate passed focused real PostgreSQL/MySQL migration and lifecycle
-scenarios, but still requires complete qualification before delivery. The composed source passes the selected report scenarios
-on both real databases, including recorded settlements, root deduplication,
-scoped authority and CSV controls. Complete coherent qualification passed before
-main delivery in `bb542e9`; browser and real external-service acceptance remain
-separate. The complete goal is active again by user instruction; earlier delivered
-qualification does not accept the changed quota-definition candidate.
+Quota definitions extend the same owner-private Save, Load and confirmed Delete
+workflow in `d9af644`; frozen V111 preserves released V110 receipts and adds
+disjoint parameter constraints. The complete unfiltered PostgreSQL and MySQL
+matrix each passed all 583 names without failures or skips; nonmatrix Go passed
+10,235 names with seven explicit skips. Independent readback accepted unchanged
+source and owned cleanup. Earlier failed matrices remain failed. Browser and
+external-service acceptance remain separate, and the complete goal stays active.
+
+## Provider-quality AI phase acceptance (2026-10-14)
+
+The composed Provider-quality advice phase passed focused Go race tests and 203
+frontend cases, mandatory checking, and complete ordinary qualification with
+7,303 frontend cases in 270 files. Selected PostgreSQL and MySQL qualification
+each passed 29 names; nonmatrix Go passed 10,319 names with seven explicit skips.
+Independent source/cleanup readback accepted unchanged source and owned resource
+closure, SHA-256
+`a8b17bbd834518ec55131fdec8a80922fc17ecb81281cb163001ec74e407484e`.
+This is selected controlled acceptance, not an unfiltered matrix, browser proof
+or external-model acceptance. A subsequent held-response exact personal-Model
+grant revocation case remains separately prepared and unqualified.

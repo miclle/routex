@@ -3,7 +3,7 @@ export interface InsightsModel {
   name: string
 }
 export interface InsightsAnalysisInput {
-  report: 'tokens_by_model'
+  report: 'tokens_by_model' | 'provider_quality'
   question?: string
   model_id: string
   from: string
@@ -17,7 +17,7 @@ export interface InsightsAnalysis {
   completion: InsightsCompletion
   text: string | null
   capture: {
-    source: 'persisted_call_records'
+    source: 'persisted_call_records' | 'persisted_call_attempts'
     from: string
     to: string
     timezone: string
@@ -25,7 +25,10 @@ export interface InsightsAnalysis {
     latest_completed_at: string | null
     may_lag: boolean
   }
-  labels: { label: string; model_id: string; name: string; unknown: boolean }[]
+  labels: (
+    | { label: string; model_id: string; provider_id?: never; name: string; unknown: boolean }
+    | { label: string; provider_id: string; model_id?: never; name: string; unknown: false }
+  )[]
 }
 
 export interface ProviderQualityRange {

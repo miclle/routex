@@ -19,6 +19,7 @@ let root: Root,
   actor: string,
   csrf: string,
   allowed: boolean,
+  providerAllowed: boolean,
   errorStatus: number,
   completion: InsightsAnalysis['completion']
 let requests: InternalAxiosRequestConfig[], gates: ReturnType<typeof deferred>[]
@@ -43,6 +44,7 @@ beforeEach(async () => {
   actor = 'usr_one'
   csrf = 'fresh-csrf'
   allowed = true
+  providerAllowed = false
   errorStatus = 0
   completion = 'completed'
   requests = []
@@ -60,7 +62,11 @@ beforeEach(async () => {
       data = structuredClone(session())
       if (sessionGate) await sessionGate.promise
     } else if (config.url === '/auth/permissions')
-      data = { permissions: allowed ? ['calls.read_all'] : [] }
+      data = {
+        permissions: allowed
+          ? ['calls.read_all', ...(providerAllowed ? ['providers.read'] : [])]
+          : [],
+      }
     else if (config.url === '/admin/insights/models') {
       if (modelGate) await modelGate.promise
       data = {
@@ -83,9 +89,17 @@ beforeEach(async () => {
       data = {
         request_id: 'req_01arz3ndektsv4rrffq69g5fav',
         completion,
-        text: completion === 'completed' ? '<script>alert(1)</script> M1 advisory' : null,
+        text:
+          completion === 'completed'
+            ? '<script>alert(1)</script> ' +
+              (body.report === 'provider_quality' ? 'P1' : 'M1') +
+              ' advisory'
+            : null,
         capture: {
-          source: 'persisted_call_records',
+          source:
+            body.report === 'provider_quality'
+              ? 'persisted_call_attempts'
+              : 'persisted_call_records',
           from: body.from,
           to: body.to,
           timezone: body.timezone,
@@ -93,9 +107,17 @@ beforeEach(async () => {
           latest_completed_at: '2026-09-02T23:00:00Z',
           may_lag: true,
         },
-        labels: [
-          { label: 'M1', model_id: 'historical-model', name: '<img src=x>', unknown: false },
-        ],
+        labels:
+          body.report === 'provider_quality'
+            ? [
+                {
+                  label: 'P1',
+                  provider_id: 'historical-provider',
+                  name: '<img src=provider>',
+                  unknown: false,
+                },
+              ]
+            : [{ label: 'M1', model_id: 'historical-model', name: '<img src=x>', unknown: false }],
       }
     } else throw Error('Unexpected endpoint ' + config.url)
     return { config, data, status: 200, statusText: '', headers: new AxiosHeaders() }
@@ -297,6 +319,107 @@ async function questionInput(value: string) {
     field.dispatchEvent(new Event('input', { bubbles: true }))
   })
 }
+
+it('reviews Provider quality and exact continued question without changing the fixed report', async () => {
+  providerAllowed = true
+  await mount()
+  await click('shortcutProvider')
+  expect(host.textContent).toContain(text('aiProviderDisclosure'))
+  const question = '  Explain P1 failures\nwith unknown duration  '
+  await questionInput(question)
+  await click('send')
+  await click('aiReview')
+  const dialog = document.querySelector('[role="dialog"]')!
+  expect(dialog.textContent).toContain(text('shortcutProvider'))
+  expect(dialog.textContent).toContain(question)
+  expect(posts()).toHaveLength(0)
+  await click('aiConfirm')
+  await until(() => expect(host.textContent).toContain('P1 advisory'))
+  expect(JSON.parse(posts()[0].data)).toMatchObject({
+    report: 'provider_quality',
+    question,
+    model_id: first,
+    language: 'en',
+  })
+  expect(host.textContent).toContain(text('qualitySource'))
+  expect(host.textContent).toContain(text('aiRecordedProvider'))
+  expect(host.querySelector('img')).toBeNull()
+  expect(host.textContent).toContain('<img src=provider>')
+  await act(async () => {
+    await i18n.changeLanguage('zh')
+  })
+  expect(host.textContent).toContain(text('aiProviderLabels'))
+  expect(host.textContent).toContain(text('aiRecordedProvider'))
+  expect(host.textContent).toContain(question)
+  expect(cache.getMutationCache().getAll()).toHaveLength(0)
+})
+
+it('requires independent Provider read before preparing an advisory request', async () => {
+  await mount()
+  await click('shortcutProvider')
+  expect(host.textContent).toContain(text('providerReadDenied'))
+  expect(host.querySelector('[aria-label="' + text('aiModel') + '"]')).toBeNull()
+  await questionInput('Explain the selected Provider report')
+  await click('send')
+  expect(host.textContent).toContain(text('providerReadDenied'))
+  expect(posts()).toHaveLength(0)
+})
+
+it.each(['shortcutTeam', 'shortcutKey'])(
+  'keeps AI disabled for %s when a question is submitted',
+  async (shortcut) => {
+    await mount()
+    await click(shortcut)
+    await questionInput('Explain selected quota')
+    await click('send')
+    expect(host.textContent).toContain(text('unsupported'))
+    expect(host.querySelector('[aria-label="' + text('aiModel') + '"]')).toBeNull()
+    expect(host.querySelector<HTMLTextAreaElement>('[name="question"]')!.value).toBe(
+      'Explain selected quota',
+    )
+    expect(posts()).toHaveLength(0)
+  },
+)
+
+it.each(['review', 'pending', 'complete'] as const)(
+  'invalidates obsolete Provider advice on report-kind change during %s',
+  async (stage) => {
+    providerAllowed = true
+    await mount()
+    await click('shortcutProvider')
+    await click('aiReview')
+    const oldConfirm = button(text('aiConfirm'))
+    if (stage === 'pending') aiGate = deferred()
+    if (stage !== 'review') await click('aiConfirm')
+    if (stage === 'complete') await until(() => expect(host.textContent).toContain('P1 advisory'))
+    await click('shortcutTokens')
+    if (stage === 'review') await act(async () => oldConfirm.click())
+    else if (stage === 'pending') {
+      expect(posts()[0].signal!.aborted).toBe(true)
+      await act(async () => aiGate!.release())
+    }
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
+    expect(host.textContent).not.toContain('P1 advisory')
+    expect(posts()).toHaveLength(stage === 'review' ? 0 : 1)
+  },
+)
+
+it('aborts Provider advice when only Provider-read authority is renewed and revoked', async () => {
+  providerAllowed = true
+  await mount()
+  await click('shortcutProvider')
+  aiGate = deferred()
+  await launch()
+  const gate = aiGate
+  providerAllowed = false
+  await act(async () => {
+    await cache.refetchQueries({ queryKey: ['permissions'] })
+  })
+  expect(posts()[0].signal!.aborted).toBe(true)
+  await act(async () => gate.release())
+  expect(host.textContent).not.toContain('P1 advisory')
+  expect(posts()).toHaveLength(1)
+})
 
 it('prepares exact free text without inference or database planning until personal-model confirmation', async () => {
   await mount()
@@ -523,35 +646,33 @@ it('keeps a failed question transient and requires another reviewed confirmation
   expect(JSON.parse(posts()[1].data)).toEqual(JSON.parse(posts()[0].data))
 })
 
-it.each(['shortcutProvider', 'shortcutTeam'] as const)(
-  'prepares only Tokens by Model from %s without treating the question as a scope planner',
-  async (shortcut) => {
-    await mount()
-    await click(shortcut)
-    await questionInput('Please explain Provider errors and private Team Keys')
-    const before = requests.length
-    await click('send')
-    expect(posts()).toHaveLength(0)
-    expect(requests).toHaveLength(before)
-    expect(host.textContent).toContain(text('questionPrepared'))
-    await click('aiReview')
-    const dialog = document.querySelector('[role="dialog"]')!
-    expect(dialog.textContent).toContain(text('shortcutTokens'))
-    expect(dialog.textContent).toContain(text('aiQuestionBoundary'))
-    expect(dialog.textContent).toContain('Personal Chat')
-    expect(dialog.textContent).toContain(
-      i18n.t('insights:range', {
-        from: usageTime('2026-09-01T00:00:00Z', 'en-US', 'UTC'),
-        to: usageTime('2026-09-02T00:00:00Z', 'en-US', 'UTC'),
-        timezone: 'UTC',
-      }),
-    )
-    expect(posts()).toHaveLength(0)
-    await click('aiConfirm')
-    await until(() => expect(host.textContent).toContain('M1 advisory'))
-    expect(JSON.parse(posts()[0].data)).toMatchObject({
-      report: 'tokens_by_model',
-      question: 'Please explain Provider errors and private Team Keys',
-    })
-  },
-)
+it('keeps Provider quality fixed when question prose requests private Team data', async () => {
+  providerAllowed = true
+  await mount()
+  await click('shortcutProvider')
+  await questionInput('Please explain Provider errors and private Team Keys')
+  const before = requests.length
+  await click('send')
+  expect(posts()).toHaveLength(0)
+  expect(requests).toHaveLength(before)
+  expect(host.textContent).toContain(text('questionPrepared'))
+  await click('aiReview')
+  const dialog = document.querySelector('[role="dialog"]')!
+  expect(dialog.textContent).toContain(text('shortcutProvider'))
+  expect(dialog.textContent).toContain(text('aiQuestionBoundary'))
+  expect(dialog.textContent).toContain('Personal Chat')
+  expect(dialog.textContent).toContain(
+    i18n.t('insights:range', {
+      from: usageTime('2026-09-01T00:00:00Z', 'en-US', 'UTC'),
+      to: usageTime('2026-09-02T00:00:00Z', 'en-US', 'UTC'),
+      timezone: 'UTC',
+    }),
+  )
+  expect(posts()).toHaveLength(0)
+  await click('aiConfirm')
+  await until(() => expect(host.textContent).toContain('P1 advisory'))
+  expect(JSON.parse(posts()[0].data)).toMatchObject({
+    report: 'provider_quality',
+    question: 'Please explain Provider errors and private Team Keys',
+  })
+})

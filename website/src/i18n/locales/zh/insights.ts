@@ -48,28 +48,27 @@ export default {
     '需要平台调用读取权限。报表使用已记录调用、上游尝试及授权范围内的配额账本事实，不会更改配置或授予推理访问权限。',
   assistantTitle: '运营分析指引',
   introduction:
-    '选择固定报告，审阅日期或当前配额范围后手动运行。对于按模型统计 Token，可准备问题并单独确认个人模型 AI 分析。问题不能改变报告范围。可保存已审阅的报告参数，以便之后手动使用；配额定义仅保留维度与有权读取的所有者范围。问题与 AI 回答不会保存。',
+    '选择固定报告，审阅日期或当前配额范围后手动运行。对于按模型统计 Token 或 Provider 质量，可准备问题并单独确认个人模型 AI 分析。问题不能改变报告范围。可保存已审阅的报告参数，以便之后手动使用；配额定义仅保留维度与有权读取的所有者范围。问题与 AI 回答不会保存。',
 
   shortcutTokens: '按模型统计 Token',
   shortcutTeam: '分析团队用量',
   shortcutKey: '预测 Key 配额',
   shortcutProvider: '解释 Provider 质量',
   questionLabel: '分析问题',
-  questionPlaceholder: '询问已审阅的按模型统计 Token 聚合数据…',
+  questionPlaceholder: '针对已选择的聚合报告提问…',
   questionHelp:
-    '问题仅适用于按模型统计 Token，需单独确认个人模型调用。确认的问题原文会发送至上游，请勿粘贴凭证、私人身份信息或敏感内容。问题不能改变已审阅的查询范围。',
-  questionPrepared:
-    '问题已准备好。请审阅按模型统计已记录 Token 的范围，并选择个人模型后确认 AI 分析。',
+    '问题适用于已选择的按模型统计 Token 或 Provider 质量报告，需单独确认个人模型调用。确认的问题原文会发送至上游，请勿粘贴凭证、私人身份信息或敏感内容。问题不能改变已审阅的查询范围。',
+  questionPrepared: '问题已准备好。请审阅所选聚合报告的范围，并选择个人模型后确认 AI 分析。',
   questionTooLong: '问题不能超过 1,024 个 UTF-8 字节。',
   questionInvalid: '问题必须包含文本，允许换行符和制表符，不支持其他控制字符。',
   questionEnvelopeTooLarge: '编码后的问题与已审阅分析参数超出 2 KiB 请求限制，请缩短问题。',
   aiReviewedQuestion: '已审阅问题',
   aiQuestionBoundary:
-    '确认的问题与有权读取的按模型统计 Token 聚合数据会发送至所选模型。问题不能改变数据库查询范围或请求原始记录。',
+    '确认的问题与有权读取的所选报告聚合数据会发送至所选模型。问题不能改变数据库查询范围或请求原始记录。',
   aiStateless: '每次分析相互独立，问题与 AI 回答不会保存。',
   send: '发送',
   unsupported:
-    '问题仅适用于按模型统计 Token。Provider 质量和配额报告使用固定快捷入口及已审阅参数。',
+    '问题仅适用于按模型统计 Token 与 Provider 质量。配额报告使用固定快捷入口及已审阅参数。',
   from: '开始时间（包含）',
   to: '结束时间（不包含）',
   timezone: '时区',
@@ -161,6 +160,10 @@ export default {
   aiAdvisory:
     '仅为不可信的建议文本，不能授权查询、更改配置、运行工具或证明预测。取消不代表已发送的推理或费用已撤销。',
   aiLabels: '临时模型标签',
+  aiProviderDisclosure:
+    '使用你明确选择的个人可调用 Chat 模型与个人配额。服务端仅发送已授权的 Provider 质量尝试聚合统计与临时 Provider 标签，不发送原始尝试、Provider 或模型身份、成员或密钥。如填写问题，也会发送你明确确认的原文；请勿粘贴私人或敏感内容。已记录聚合统计不证明实时健康或原生完成。',
+  aiProviderLabels: '临时 Provider 标签',
+  aiRecordedProvider: '已记录 Provider 身份',
   aiLabel: '标签',
   aiRecordedModel: '已记录模型身份',
   quotaReview: '审阅配额分析',

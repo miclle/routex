@@ -8,7 +8,13 @@ type MutableAnalysisFixture = {
   [K in keyof Omit<InsightsAnalysis, 'capture' | 'labels'>]: unknown
 } & {
   capture: { [K in keyof InsightsAnalysis['capture']]: unknown }
-  labels: { [K in keyof InsightsAnalysis['labels'][number]]: unknown }[]
+  labels: {
+    label: unknown
+    model_id?: unknown
+    provider_id?: unknown
+    name: unknown
+    unknown: unknown
+  }[]
   secret?: unknown
 }
 
@@ -56,6 +62,66 @@ it('reads only a bounded unique exact personal-model DTO', async () => {
   expect(await getInsightsModels(new AbortController().signal)).toEqual([
     { model_id: model, name: 'Callable Chat' },
   ])
+})
+
+function providerResult(): InsightsAnalysis {
+  const value = result()
+  value.capture.source = 'persisted_call_attempts'
+  value.labels = [
+    { label: 'P1', provider_id: 'prv_historical', name: 'Historical Provider', unknown: false },
+  ]
+  value.text = 'P1 recorded quality is advisory.'
+  return value
+}
+
+it('binds Provider advice to attempt capture and a separate private P identity map', async () => {
+  respond(providerResult())
+  const request = { ...input, report: 'provider_quality' as const, question: '  Explain P1  ' }
+  expect(await analyzeInsights(request, 'csrf', new AbortController().signal)).toEqual(
+    providerResult(),
+  )
+})
+
+it.each([
+  (v: MutableAnalysisFixture) => {
+    v.capture.source = 'persisted_call_records'
+  },
+  (v: MutableAnalysisFixture) => {
+    v.labels[0].label = 'M1'
+  },
+  (v: MutableAnalysisFixture) => {
+    v.labels[0].model_id = 'historical_model'
+  },
+  (v: MutableAnalysisFixture) => {
+    v.labels[0].provider_id = ''
+  },
+  (v: MutableAnalysisFixture) => {
+    v.labels[0].provider_id = 'x'.repeat(129)
+  },
+  (v: MutableAnalysisFixture) => {
+    v.labels[0].provider_id = '\ud800'
+  },
+  (v: MutableAnalysisFixture) => {
+    v.labels[0].unknown = true
+  },
+  (v: MutableAnalysisFixture) => {
+    v.labels[0].label = 'P501'
+  },
+  (v: MutableAnalysisFixture) => {
+    v.labels.push({ ...v.labels[0], label: 'P2' })
+  },
+])('rejects cross-report and malformed Provider advice before publication', async (change) => {
+  const value: MutableAnalysisFixture = providerResult()
+  change(value)
+  respond(value)
+  await expect(
+    analyzeInsights({ ...input, report: 'provider_quality' }, 'csrf', new AbortController().signal),
+  ).rejects.toThrow()
+})
+
+it('rejects Provider sources and identity maps for existing Tokens advice', async () => {
+  respond(providerResult())
+  await expect(analyzeInsights(input, 'csrf', new AbortController().signal)).rejects.toThrow()
 })
 it.each([
   { items: [{ model_id: model, name: 'A', secret: 'x' }] },

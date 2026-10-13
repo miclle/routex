@@ -9,7 +9,7 @@ const object = (value: unknown): value is Record<string, unknown> =>
 const exact = (value: Record<string, unknown>, keys: string[]) =>
   Object.keys(value).length === keys.length && keys.every((key) => Object.hasOwn(value, key))
 const string = (value: unknown, maximum: number): value is string =>
-  typeof value === 'string' && bytes(value) <= maximum
+  typeof value === 'string' && bytes(value) <= maximum && !/[\uD800-\uDFFF]/u.test(value)
 const stamp = (value: unknown): value is string =>
   string(value, 64) &&
   /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,9})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/.test(value) &&
@@ -64,7 +64,7 @@ export async function analyzeInsights(
       ...(Object.hasOwn(input, 'question') ? ['question'] : []),
     ]) ||
     (Object.hasOwn(input, 'question') && !isInsightsQuestion(input.question)) ||
-    input.report !== 'tokens_by_model' ||
+    !['tokens_by_model', 'provider_quality'].includes(input.report) ||
     !modelID.test(input.model_id) ||
     !stamp(input.from) ||
     !stamp(input.to) ||
@@ -103,7 +103,10 @@ export async function analyzeInsights(
       'latest_completed_at',
       'may_lag',
     ]) ||
-    value.capture.source !== 'persisted_call_records' ||
+    value.capture.source !==
+      (input.report === 'provider_quality'
+        ? 'persisted_call_attempts'
+        : 'persisted_call_records') ||
     value.capture.from !== input.from ||
     value.capture.to !== input.to ||
     value.capture.timezone !== input.timezone ||
@@ -115,16 +118,29 @@ export async function analyzeInsights(
     !value.labels.every(
       (item) =>
         object(item) &&
-        exact(item, ['label', 'model_id', 'name', 'unknown']) &&
+        exact(item, [
+          'label',
+          input.report === 'provider_quality' ? 'provider_id' : 'model_id',
+          'name',
+          'unknown',
+        ]) &&
         typeof item.label === 'string' &&
-        /^M[1-9][0-9]{0,2}$/.test(item.label) &&
+        (input.report === 'provider_quality' ? /^P[1-9][0-9]{0,2}$/ : /^M[1-9][0-9]{0,2}$/).test(
+          item.label,
+        ) &&
         Number(item.label.slice(1)) <= 500 &&
-        string(item.model_id, 128) &&
+        (input.report === 'provider_quality'
+          ? string(item.provider_id, 128) && item.provider_id.length > 0 && item.unknown === false
+          : string(item.model_id, 128)) &&
         string(item.name, 1024) &&
         typeof item.unknown === 'boolean',
     ) ||
     new Set(value.labels.map((item) => item.label)).size !== value.labels.length ||
-    new Set(value.labels.map((item) => item.model_id)).size !== value.labels.length
+    new Set(
+      value.labels.map((item) =>
+        input.report === 'provider_quality' ? item.provider_id : item.model_id,
+      ),
+    ).size !== value.labels.length
   )
     throw new Error('Invalid Insights analysis response')
   return value as unknown as InsightsAnalysis

@@ -260,7 +260,7 @@ it('reviews quota shortcuts and prepares hostile question text without automatic
   await input('question', '<img src=x onerror=alert(1)>; SELECT secrets; https://outside.test')
   await click(text('send'))
   expect(host.textContent).toContain('SELECT secrets')
-  expect(host.textContent).toContain(text('questionPrepared'))
+  expect(host.textContent).toContain(text('unsupported'))
   expect(requests.some((item) => item.url === '/admin/insights/analyze')).toBe(false)
   expect(host.querySelector('img')).toBeNull()
   expect(reports()).toHaveLength(0)

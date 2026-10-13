@@ -154,9 +154,9 @@ func (ctrl *Ctrl) AnalyzeInsightsAI(c *fox.Context) {
 	ctx, cancel := context.WithTimeout(service.WithGatewayClientIP(c.Request.Context(), clientIP), 5*time.Minute)
 	defer cancel()
 	view, result, callErr := ctrl.service.AnalyzeInsightsAI(ctx, identity, input, requestID)
-	ctrl.finishInsightsAI(c, ctx, requestID, started, identity, input.ModelID, view, result, callErr)
+	ctrl.finishInsightsAI(c, ctx, requestID, started, identity, input.ModelID, input.Report, view, result, callErr)
 }
-func (ctrl *Ctrl) finishInsightsAI(c *fox.Context, ctx context.Context, requestID string, started time.Time, identity *service.PersonalSessionIdentity, modelID string, view *service.InsightsAIResponse, result *service.GatewayResult, callErr error) {
+func (ctrl *Ctrl) finishInsightsAI(c *fox.Context, ctx context.Context, requestID string, started time.Time, identity *service.PersonalSessionIdentity, modelID, report string, view *service.InsightsAIResponse, result *service.GatewayResult, callErr error) {
 	usage, text, responseErr := readInsightsAIResponse(result)
 	if callErr == nil {
 		callErr = responseErr
@@ -185,7 +185,7 @@ func (ctrl *Ctrl) finishInsightsAI(c *fox.Context, ctx context.Context, requestI
 	}
 	// Publication authority is fresh after native work. A denial discards private
 	// output without changing the actual call outcome recorded by the defer.
-	if err := ctrl.service.ReauthorizeInsightsAI(ctx, identity, modelID); err != nil {
+	if err := ctrl.service.ReauthorizeInsightsAIReport(ctx, identity, modelID, report); err != nil {
 		writeInsightsAIError(c, err)
 		return
 	}

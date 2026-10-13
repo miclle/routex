@@ -158,6 +158,7 @@ function InsightsContent({
     const state = authorityState(cache, actor, permissionKey)
     return alive.current && state.ready && state.stamp === authorityStamp
   }, [cache, actor, permissionKey, authorityStamp])
+  const providerPermissionReady = authorityState(cache, actor, permissionKey).providerReady
   const providerAuthorized = () =>
     authorized() && authorityState(cache, actor, permissionKey).providerReady
   const quota = useQuotaInsights({
@@ -237,10 +238,12 @@ function InsightsContent({
   const ai = useInsightsAI({
     actor,
     authorityStamp,
-    authorized,
+    authorized: providerReport ? providerAuthorized : authorized,
     range: draft,
     question: 'text' in question ? question.text : undefined,
-    supported: supported && !providerReport && !quotaKind && !input.trim(),
+    report: providerReport ? 'provider_quality' : 'tokens_by_model',
+    supported:
+      supported && !quotaKind && !input.trim() && (!providerReport || providerPermissionReady),
   })
   useLayoutEffect(() => {
     alive.current = true
@@ -552,7 +555,7 @@ function InsightsContent({
                   </form>
                 </>
               )}
-              {!providerReport && !quotaKind && ai.controls}
+              {!quotaKind && (!providerReport || providerPermissionReady) && ai.controls}
               <form
                 aria-label={t('questionLabel')}
                 className="space-y-3"
@@ -567,6 +570,11 @@ function InsightsContent({
                     quota.exporting
                   )
                     return
+                  if (quotaKind) {
+                    ai.invalidate()
+                    setMessage('unsupported')
+                    return
+                  }
                   const reviewedQuestion = input
                   if (new TextEncoder().encode(reviewedQuestion).length > 1024) {
                     clearReport()
@@ -581,10 +589,12 @@ function InsightsContent({
                   clearReport()
                   setQuestion({ text: reviewedQuestion })
                   setInput('')
-                  setSupported(true)
-                  setProviderReport(false)
-                  setQuotaKind(null)
-                  setMessage('questionPrepared')
+                  setSupported(!providerReport || providerAuthorized())
+                  setMessage(
+                    providerReport && !providerAuthorized()
+                      ? 'providerReadDenied'
+                      : 'questionPrepared',
+                  )
                 }}
               >
                 <FormField label={t('questionLabel')}>
@@ -677,7 +687,7 @@ function InsightsContent({
                   )}
                 </>
               )}
-              {!providerReport && !quotaKind && ai.answer}
+              {!quotaKind && (!providerReport || providerPermissionReady) && ai.answer}
             </CardContent>
           </Card>
         </div>

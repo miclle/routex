@@ -184,7 +184,7 @@ func testInsightsAIIntegration(t *testing.T, db *gorm.DB) {
 	if err := svc.StartCallRecorder(ctx, journalPath); err != nil {
 		t.Fatal(err)
 	}
-	forbidden.Store([]string{admin.User.ID, personal.Model.ID, teamOnly.Model.ID, "private-analysis-model", "team-only-analysis-model", "Private Insights Provider", "Private Insights Connection", "insights-provider-secret"})
+	forbidden.Store([]string{admin.User.ID, personal.Model.ID, teamOnly.Model.ID, provider.Provider.ID, credentialID, pm.ID, provider.Connections[0].Connection.ID, "private-analysis-model", "team-only-analysis-model", "Private Insights Provider", "Private Insights Connection", "insights-provider-secret"})
 	input := service.InsightsAIInput{Report: "tokens_by_model", ModelID: personal.Model.ID, From: time.Now().UTC().Add(-time.Hour).Format(time.RFC3339), To: time.Now().UTC().Add(time.Hour).Format(time.RFC3339), Timezone: "UTC", Language: "en"}
 	do := func(method, path, body string, csrf string, etag ...string) *httptest.ResponseRecorder {
 		req := httptest.NewRequest(method, "http://routex.test"+path, strings.NewReader(body)).WithContext(ctx)
@@ -337,6 +337,51 @@ func testInsightsAIIntegration(t *testing.T, db *gorm.DB) {
 			dispatches: dispatches.Load, mode: mode.Store, recorded: recorded,
 			revoke: revokePermission, restore: restorePermission,
 		})
+	})
+	t.Run("provider_quality_fixed_aggregate_and_independent_authority", func(t *testing.T) {
+		previous := input
+		input.Report = "provider_quality"
+		defer func() { input = previous }()
+		providerPermission := entity.RolePermission{RoleID: "rol_admin", Permission: "providers.read"}
+		revoke := func(t *testing.T) {
+			t.Helper()
+			result := db.Where("role_id = ? AND permission = ?", providerPermission.RoleID, providerPermission.Permission).Delete(&entity.RolePermission{})
+			if result.Error != nil || result.RowsAffected != 1 {
+				t.Fatal("failed exact Provider-read revocation", result.Error, result.RowsAffected)
+			}
+		}
+		restore := func() { create(t, &providerPermission) }
+		before := dispatches.Load()
+		revoke(t)
+		response := analyze(input, admin.CSRFToken)
+		restore()
+		denyBeforeDispatch(t, response, 403, before)
+		question := "  Explain P1 recorded failures and unknown duration  "
+		input.Question = &question
+		response = analyze(input, admin.CSRFToken)
+		expectStatus(t, response, 200)
+		var view service.InsightsAIResponse
+		if json.Unmarshal(response.Body.Bytes(), &view) != nil || view.Completion != "completed" || view.Text == nil || view.Capture.Source != "persisted_call_attempts" || view.Capture.From != input.From || len(view.Labels) != 1 || view.Labels[0].Label != "P1" || view.Labels[0].ProviderID == nil || *view.Labels[0].ProviderID != provider.Provider.ID || view.Labels[0].ModelID != nil {
+			t.Fatal("Provider capture lost independent label contract", response.Body.String())
+		}
+		var payload struct {
+			Aggregates json.RawMessage
+			Question   string
+		}
+		if json.Unmarshal([]byte(capturedContent.Load().(string)), &payload) != nil || payload.Question != question {
+			t.Fatal("Provider question changed exact confirmed bytes")
+		}
+		var projection map[string]json.RawMessage
+		if json.Unmarshal(payload.Aggregates, &projection) != nil || len(projection) != 5 || projection["providers"] == nil || projection["unknown_attribution"] == nil || projection["models"] != nil {
+			t.Fatal("Provider capture broadened fixed schema", string(payload.Aggregates))
+		}
+		recorded(t, response, "success")
+		response = runHeld(t, revoke, 403)
+		restore()
+		if strings.Contains(response.Body.String(), provider.Provider.ID) || strings.Contains(response.Body.String(), "Private Insights Provider") {
+			t.Fatal("late Provider-read denial exposed private label map")
+		}
+		recorded(t, response, "success")
 	})
 	t.Run("malformed_content_retains_observed_usage", func(t *testing.T) {
 		mode.Store("invalid_content")

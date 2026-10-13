@@ -159,11 +159,12 @@ func TestInsightsAIFinalAuthorityAndErrorNeverExposePrivateResult(t *testing.T) 
 				callErr = &service.GatewayError{Status: 502, Code: "upstream_error", Message: "private provider failure", NativeError: map[string]any{"private": "raw native secret"}}
 			}
 			body = &insightsAIReadCloser{Reader: strings.NewReader(chatCompletionFixture("stop", "{\"role\":\"assistant\",\"content\":\"Private analysis\"}", "{\"prompt_tokens\":10,\"completion_tokens\":4}", false, 0))}
-			view := &service.InsightsAIResponse{Labels: []service.InsightsAILabel{{Label: "M1", ModelID: "private_model", Name: "Private catalog name"}}}
+			modelID := "private_model"
+			view := &service.InsightsAIResponse{Labels: []service.InsightsAILabel{{Label: "M1", ModelID: &modelID, Name: "Private catalog name"}}}
 			// No attributed actor is fabricated in this presentation unit test. Actual
 			// native recording uses the production defer; runtime tests own attribution.
 			result := &service.GatewayResult{Response: &http.Response{StatusCode: 200, Body: body}}
-			ctrl.finishInsightsAI(c, ctx, "req_unit", time.Now(), nil, "mdl_unit", view, result, callErr)
+			ctrl.finishInsightsAI(c, ctx, "req_unit", time.Now(), nil, "mdl_unit", "tokens_by_model", view, result, callErr)
 		})
 		response := httptest.NewRecorder()
 		router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/finish", nil))

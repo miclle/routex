@@ -1780,8 +1780,14 @@ missing Provider IDs stay explicitly unknown outside every Provider and success 
 canceled/not-sent exclusions, Credential rejections, eligible success rate, and known/unknown
 full-attempt duration distinct. P95 is not first-token latency or native completion. Provider
 reports use deterministic server aggregates and a separate fresh bounded CSV capture; optional
-personal-model AI remains Tokens-by-Model only. Do not forward Provider data, raw attempts,
-member identities or free-text questions to a model, and do not add persistence or policy writes.
+personal-model AI may also capture the fixed provider_quality report with independent
+calls.read_all and providers.read checks before capture, dispatch and private answer publication.
+Send only bounded authorized aggregates and temporary P labels, keeping unknown attribution
+and duration coverage distinct. Never forward Provider/model identities, raw attempts, members
+or secrets. An optional exact question is reviewed untrusted text, not a report selector.
+Report-kind changes revoke reviews and obsolete answers; Team/Key quota reports remain
+outside AI advice. Loading saved definitions only prepares controls. Do not add persistence
+or policy writes, infer live health, or treat attempt success as native completion.
 
 Offboarding completion uses the existing recipient notification menu with a closed
 privacy-bounded completion envelope and paired localized copy. It carries no Case,

@@ -52,18 +52,18 @@ export default {
     'Requires platform call-read permission. Reports use recorded calls, upstream attempts and scoped quota-journal facts; they do not change configuration or grant inference access.',
   assistantTitle: 'Operations analysis guide',
   introduction:
-    'Select a fixed report, review dates or the current quota scope, then run explicitly. For Tokens by Model, you may prepare a question and separately confirm personal-model AI analysis. Questions cannot change the report scope. Save reviewed report parameters for later explicit use; quota definitions retain only the dimension and authorized owner scope. Questions and AI answers are not saved.',
+    'Select a fixed report, review dates or the current quota scope, then run explicitly. For Tokens by Model or Provider quality, you may prepare a question and separately confirm personal-model AI analysis. Questions cannot change the report scope. Save reviewed report parameters for later explicit use; quota definitions retain only the dimension and authorized owner scope. Questions and AI answers are not saved.',
 
   shortcutTokens: 'Tokens by model',
   shortcutTeam: 'Analyze team usage',
   shortcutKey: 'Forecast Key allowance',
   shortcutProvider: 'Explain Provider quality',
   questionLabel: 'Analysis question',
-  questionPlaceholder: 'Ask about the reviewed Tokens by Model aggregates…',
+  questionPlaceholder: 'Ask about the selected aggregate report…',
   questionHelp:
-    'Questions are available only for Tokens by Model and require separate personal-model confirmation. Your exact confirmed question is sent upstream; do not paste credentials, private identities or sensitive content. Questions cannot change the reviewed query scope.',
+    'Questions use the selected Tokens by Model or Provider quality report and require separate personal-model confirmation. Your exact confirmed question is sent upstream; do not paste credentials, private identities or sensitive content. Questions cannot change the reviewed query scope.',
   questionPrepared:
-    'Question prepared. Review the recorded Tokens by Model range and select a personal model before confirming AI analysis.',
+    'Question prepared. Review the selected aggregate report range and select a personal model before confirming AI analysis.',
   questionTooLong: 'Questions must contain at most 1,024 UTF-8 bytes.',
   questionInvalid:
     'Questions must contain text, with line breaks and tabs allowed; other control characters are unsupported.',
@@ -71,11 +71,11 @@ export default {
     'The encoded question and reviewed analysis parameters exceed the 2 KiB request limit. Shorten the question.',
   aiReviewedQuestion: 'Reviewed question',
   aiQuestionBoundary:
-    'The confirmed question and authorized Tokens by Model aggregates are sent to your selected model. Questions cannot change database scope or request raw records.',
+    'The confirmed question and authorized aggregates for the selected report are sent to your selected model. Questions cannot change database scope or request raw records.',
   aiStateless: 'Each analysis is independent. Questions and AI answers are not saved.',
   send: 'Send',
   unsupported:
-    'Questions are supported only for Tokens by Model. Provider quality and quota reports use their fixed shortcuts and reviewed parameters.',
+    'Questions support Tokens by Model and Provider quality only. Quota reports use their fixed shortcuts and reviewed parameters.',
   from: 'From (inclusive)',
   to: 'To (exclusive)',
   timezone: 'Time zone',
@@ -183,6 +183,10 @@ export default {
   aiAdvisory:
     'Untrusted advisory text only. It cannot authorize queries, change configuration, run tools or establish forecasts. Cancellation does not prove that dispatched inference or charges were undone.',
   aiLabels: 'Temporary model labels',
+  aiProviderDisclosure:
+    'Uses your explicitly selected callable personal Chat model and personal quota. The server sends authorized Provider-quality attempt aggregates and temporary Provider labels, without raw attempts, Provider or model identities, members or secrets. If included, your exact confirmed question is also sent upstream; do not paste private or sensitive content. Recorded aggregates do not prove live health or native completion.',
+  aiProviderLabels: 'Temporary Provider labels',
+  aiRecordedProvider: 'Recorded Provider identity',
   aiLabel: 'Label',
   aiRecordedModel: 'Recorded model identity',
   quotaReview: 'Review quota analysis',

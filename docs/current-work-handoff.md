@@ -24,11 +24,20 @@ does not close the broader acceptance gaps.
   See [the codec contract](RUNTIME_CONFIGURATION_CODEC.md). This groundwork adds
   no version archive, activation, rollback API or fleet acknowledgement; F30
   remains Partial.
-- **Provider-quality AI:** an isolated composed candidate retains the selected
-  report, anonymous attempt aggregates, independent Provider-read authority,
-  explicit question/model review and personal quota. Its 203 focused frontend
-  cases and focused Go race tests pass; selected dual-driver qualification and
-  final mandatory checks remain in progress. It is not delivered on main yet.
+- **Provider-quality AI:** this phase delivers the selected report, anonymous
+  immutable attempt aggregates, independent `calls.read_all`/`providers.read`
+  authority, explicit question/model review and personal quota. Loading a saved
+  definition only prepares controls; quota questions remain unsupported. Focused
+  Go race tests and 203 frontend cases passed. Complete ordinary qualification
+  passed, including 7,303 frontend tests in 270 files, script controls and
+  production assets. Selected PostgreSQL and MySQL qualification each passed
+  all 29 names; nonmatrix Go passed 10,319 names with seven explicit skips.
+  Independent readback accepted unchanged source and owned cleanup, SHA-256
+  `a8b17bbd834518ec55131fdec8a80922fc17ecb81281cb163001ec74e407484e`.
+  Candidate and primary composed mandatory checking passed before the phase
+  commit. Browser and external-model acceptance remain open.
+  A separate held-response exact personal-Model-grant revocation test is prepared
+  for subsequent qualification; it is not covered by this receipt.
 - **Offboarding notification restart:** an isolated F10 candidate preserves the
   original recipient Sessions and compares retained notices, read timestamps and
   successor relationships across the existing process restart. All 20 lightweight

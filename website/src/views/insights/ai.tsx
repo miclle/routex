@@ -26,6 +26,7 @@ export function useInsightsAI({
   authorized,
   range,
   question,
+  report,
   supported,
 }: {
   actor: string
@@ -33,6 +34,7 @@ export function useInsightsAI({
   authorized: () => boolean
   range: InsightsRange
   question?: string
+  report: InsightsAnalysisInput['report']
   supported: boolean
 }) {
   const { t, i18n } = useTranslation('insights')
@@ -101,7 +103,15 @@ export function useInsightsAI({
     [cache, key],
   )
   const modelStamp = useSyncExternalStore(subscribe, modelSnapshot, modelSnapshot)
-  const context = JSON.stringify([authorityStamp, modelStamp, model, range, question, supported])
+  const context = JSON.stringify([
+    authorityStamp,
+    modelStamp,
+    model,
+    range,
+    question,
+    report,
+    supported,
+  ])
   const modelState = cache.getQueryState(key)
   const optionsReady =
     models.isSuccess &&
@@ -161,7 +171,7 @@ export function useInsightsAI({
       return
     }
     const input: InsightsAnalysisInput = {
-      report: 'tokens_by_model',
+      report,
       ...(question === undefined ? {} : { question }),
       model_id: selected.model_id,
       from: filters.from!,
@@ -238,7 +248,9 @@ export function useInsightsAI({
     controls: (
       <div className="space-y-3 border-t pt-3">
         <h3 className="font-medium">{t('aiTitle')}</h3>
-        <p className="text-xs text-muted-foreground">{t('aiDisclosure')}</p>
+        <p className="text-xs text-muted-foreground">
+          {t(report === 'provider_quality' ? 'aiProviderDisclosure' : 'aiDisclosure')}
+        </p>
         <p className="text-xs text-muted-foreground">{t('aiStateless')}</p>
         <FormField label={t('aiModel')}>
           <select
@@ -308,7 +320,13 @@ export function useInsightsAI({
         >
           {review && (
             <div className="space-y-4 text-sm">
-              <p className="font-medium">{t('shortcutTokens')}</p>
+              <p className="font-medium">
+                {t(
+                  review.input.report === 'provider_quality'
+                    ? 'shortcutProvider'
+                    : 'shortcutTokens',
+                )}
+              </p>
               <p>{selected?.name || review.input.model_id}</p>
               {review.input.question !== undefined && (
                 <div>
@@ -363,7 +381,13 @@ export function useInsightsAI({
             <p className="text-xs text-muted-foreground">
               {t('aiRequestID', { id: answer.value.request_id })}
             </p>
-            <p className="text-xs text-muted-foreground">{t('source')}</p>
+            <p className="text-xs text-muted-foreground">
+              {t(
+                answer.value.capture.source === 'persisted_call_attempts'
+                  ? 'qualitySource'
+                  : 'source',
+              )}
+            </p>
             <p className="text-xs text-muted-foreground">
               {t('range', {
                 from: usageTime(answer.value.capture.from, locale, answer.value.capture.timezone),
@@ -399,11 +423,15 @@ export function useInsightsAI({
             )}
             <p className="text-xs text-muted-foreground">{t('aiAdvisory')}</p>
             {answer.value.labels.length > 0 && (
-              <Table aria-label={t('aiLabels')}>
+              <Table
+                aria-label={t(report === 'provider_quality' ? 'aiProviderLabels' : 'aiLabels')}
+              >
                 <thead>
                   <tr>
                     <th>{t('aiLabel')}</th>
-                    <th>{t('aiRecordedModel')}</th>
+                    <th>
+                      {t(report === 'provider_quality' ? 'aiRecordedProvider' : 'aiRecordedModel')}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -411,7 +439,9 @@ export function useInsightsAI({
                     <tr key={item.label}>
                       <td>{item.label}</td>
                       <td className="break-all">
-                        {item.unknown ? t('unknownModel') : item.name || item.model_id}
+                        {item.unknown
+                          ? t('unknownModel')
+                          : item.name || item.provider_id || item.model_id}
                       </td>
                     </tr>
                   ))}
