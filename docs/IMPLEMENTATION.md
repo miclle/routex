@@ -1,5 +1,28 @@
 # RouteX Implementation and Acceptance Index
 
+## Local storage and mail delivery (2026-10-13)
+
+The maintained local service drills and persisted SMTP receipt correction are
+now delivered in `d054ebc1b2920229802ca0f4f4bfbed313c0a40b`. The first SMTP response
+and identical retry return the same recorded receipt. Actual disposable
+PostgreSQL/MySQL SMTP drills passed across four application generations and
+four captured messages. Actual versioned S3 acceptance passed six native calls,
+three application generations and durable outage deletion recovery; later
+object versions remained intact.
+
+Independent source review found no blocker. Isolated mandatory, full ordinary,
+production-build and focused dual-driver SMTP checks passed. The composed
+primary mandatory check passed in 183.460 seconds with unchanged source; its
+23 script controls also passed. Independent cleanup confirmed exact owned
+processes, resources and ports closed while preserving development. Retained
+failed runs/readbacks remain separate from accepted successors. See
+[local SMTP acceptance](LOCAL_SMTP_ACCEPTANCE.md) and
+[storage acceptance](STORAGE_ACCEPTANCE.md) for the precise scope and limits.
+
+External mail/storage/provider and browser acceptance remain open. The full
+quota matrix is next; quota/V111 remains uncommitted. F01–F30 totals remain
+16 Completed / 14 Partial / 0 Not started, and the overall goal remains active.
+
 ## Publication interruption delivery (2026-10-13)
 
 Controlled publication-interruption coverage is delivered in

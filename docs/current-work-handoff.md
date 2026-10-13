@@ -1,5 +1,22 @@
 # Current implementation handoff
 
+## Local service phase delivered (2026-10-13)
+
+Main now includes `d054ebc1b2920229802ca0f4f4bfbed313c0a40b`: maintained real
+local S3/SMTP drills and the persisted SMTP first/retry receipt correction.
+Composed mandatory checking and all 23 script controls passed; isolated ordinary,
+production and selected dual-driver qualification plus actual SMTP/S3 drills
+and independent cleanup passed. Details and retained limitations are in
+[the acceptance index](IMPLEMENTATION.md#local-storage-and-mail-delivery-2026-10-13).
+
+Next: fresh complete unfiltered PostgreSQL/MySQL matrix on the composed primary
+before quota/V111 delivery. The earlier failed matrix remains failed. Separate
+F10 original-recipient notification restart coverage is being prepared in an
+isolated worktree without additional application generations. Browser inventory
+still times out and Chrome Computer Use returns `cgWindowNotFound`; these gates
+remain open without blocking independent work. Totals remain 16 Completed /
+14 Partial / 0 Not started. The complete goal is active; no pause is requested.
+
 ## Publication interruption delivery (2026-10-13)
 
 Controlled publication-interruption coverage is delivered in
