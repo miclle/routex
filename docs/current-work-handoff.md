@@ -1,5 +1,26 @@
 # Current implementation handoff
 
+## Publication interruption delivery (2026-10-13)
+
+Controlled publication-interruption coverage is delivered in
+`c348e9f3b84cd97e71641fb4dbaef8b1a69c31d0`, with exact local/remote main
+readback. The test interrupts an owned pending manual refresh, restarts the
+same test executable with the original Session, and verifies unknown receipt
+status and identical-intent retry without redispatch or altered command/audit
+facts. It changes no production runtime behavior.
+
+Corrected-source mandatory checking and selected PostgreSQL/MySQL qualification
+passed: 11 names per driver, plus 10,227 nonmatrix Go race passes and seven
+explicit environment/child skips. Four controlled child births/groups and
+recorded Instance identities were captured independently. Owned processes,
+fixtures and Compose resources closed with unchanged source. Raw MySQL listener
+bind failure remains retained; separate listener-absence/refused-connection and
+Go-compatible reuse checks passed without claiming its cause. Primary composed
+checking passed in 112.820 seconds before the three-path commit. This does not
+prove interrupted production binaries, Windows, fleet acknowledgement or full
+configuration rollback. F30 stays Partial; totals remain 16 Completed / 14 Partial
+/ 0 Not started. Actual S3/SMTP and complete quota-matrix acceptance continue.
+
 ## Confirmed question delivery (2026-10-13)
 
 Explicitly confirmed Tokens-by-Model questions are delivered in
