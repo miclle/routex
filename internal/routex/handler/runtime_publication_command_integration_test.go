@@ -825,6 +825,11 @@ func testRuntimePublicationCommandLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal("later publication rewrote or replayed original failure")
 		}
 	})
+
+	// Stop in-process workers before the controlled child owns a new generation.
+	stop()
+	svc = nil
+	testRuntimePublicationInterruption(t, db, admin)
 }
 
 func runtimePublicationAuditV105(t *testing.T, db *gorm.DB, row entity.RuntimePublicationCommand, wantFinal int) {

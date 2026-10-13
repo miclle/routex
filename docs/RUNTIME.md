@@ -108,10 +108,54 @@ runtime qualification below retains its original historical scope. This command'
 strict HTTP/body, idempotency, authority/birth, claim/finalization fault and portable
 migration checks pass in `54b4b3fb5c51725c4387837d1f24f111beeabc763dab1294584b9da16db4ab4f`. The existing
 same-binary two-process HTTP restart witness preserves terminal receipts and
-unchanged original command/audit rows; it does not exercise an interrupted
+unchanged original command/audit rows; that historical witness does not exercise an interrupted
 in-flight OS-process claim. The direct service load counter is separate evidence.
 Default production build acceptance is `502293c38322976fca690ca4d885bc1d92f731392e2cec3d8df2bdd0fb91b1ba`;
 the integration process witness does not itself prove a default production build.
+
+### Controlled interruption witness
+
+`runtime_publication_interruption_integration_test.go` extends the existing
+`runtime_publication_command` real-database scenario without adding a registry
+entry or changing production code. It launches two generations of the exact
+SHA-256-pinned Go test executable against the dedicated `routex_test` database
+and a private loopback listener. The first generation holds one original manual
+refresh inside its unchanged three-second context. Independent HTTP and GORM
+reads must prove the owned pending receipt, exact durable claim and claim-only
+audit before the context expires; the controller then sends SIGKILL to its
+positively owned process group and joins that exact child.
+
+The second generation retains the original Session and must return unknown for
+both an authorized receipt read and identical POST, without changing the
+original actor/birth/reason/claim fields, finalizing an outcome or dispatching a
+new refresh. A changed reason remains a conflict and an invalid current Session
+remains denied. The original command and claim-only audit must remain field-for-
+field equal; the new process's source-load count must remain at its startup value.
+Private stage files contain only identity and stage facts. Exclusive guards
+precede process dispatch and remain blocking when ownership or cleanup is
+uncertain; exact Wait, process-group disappearance and listener reuse are
+required before successful cleanup.
+
+The corrected clean candidate passed mandatory checking and a fresh selective
+real PostgreSQL/MySQL run: eleven named migration/lifecycle results per driver,
+plus 10,227 nonmatrix Go race passes and seven expected environment/child skips.
+The selective runner retained the official nonmatrix checks, migration prelude,
+constraints, timers and cleanup; only its two driver selectors changed. The
+original callback-registration lint failure remains retained, followed by the
+narrow returned-error assignment correction.
+
+Independent observation captured all four controlled child births, exact groups,
+recorded Instance identities and the same test-executable digest. Final readback
+confirmed child/group/fixture and Compose closure, unchanged tested source and
+preserved development listeners. All captured ports refused connections and
+passed Go-compatible reuse-address bind/listen checks; the preceding raw MySQL
+listener bind failures remain retained without a proven cause. Primary composed mandatory checking also passed before commit. This focused
+acceptance remains distinct from production-binary and fleet acceptance.
+
+The witness uses the existing POSIX restart guard on Linux/macOS; it does not
+prove interrupted production-binary behavior, Windows process behavior, fleet
+acknowledgement, rollback or absence of publication effects. Historical
+terminal-receipt acceptance remains separate.
 
 ## Verification and Remaining Acceptance
 
