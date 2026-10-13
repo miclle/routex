@@ -67,7 +67,8 @@ beforeEach(async () => {
     requests.push(config)
     let data: unknown,
       mime = 'application/json'
-    if (config.url === '/auth/session') {
+    if (config.url === '/insights/reports') data = { items: [], next_cursor: '' }
+    else if (config.url === '/auth/session') {
       data = structuredClone(session())
       if (sessionGate) await sessionGate.promise
     } else if (config.url === '/auth/permissions') {
@@ -258,7 +259,12 @@ it('rejects unsupported forecasts and hostile questions without dispatching any 
   expect(reports()).toHaveLength(0)
   expect(
     requests.every((item) =>
-      ['/auth/session', '/auth/permissions', '/admin/insights/models'].includes(item.url!),
+      [
+        '/auth/session',
+        '/auth/permissions',
+        '/admin/insights/models',
+        '/insights/reports',
+      ].includes(item.url!),
     ),
   ).toBe(true)
   await click(text('shortcutTokens'))

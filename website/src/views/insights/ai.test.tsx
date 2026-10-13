@@ -55,7 +55,8 @@ beforeEach(async () => {
   client.defaults.adapter = async (config) => {
     requests.push(config)
     let data: unknown
-    if (config.url === '/auth/session') {
+    if (config.url === '/insights/reports') data = { items: [], next_cursor: '' }
+    else if (config.url === '/auth/session') {
       data = structuredClone(session())
       if (sessionGate) await sessionGate.promise
     } else if (config.url === '/auth/permissions')

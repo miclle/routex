@@ -35,7 +35,7 @@ func (credentialHistoricalModelDiscoveryOccurrenceV108) TableName() string {
 }
 
 func credentialInferencePeelV109(db *gorm.DB, expected []personalKeyBehaviorMigrationEntry) error {
-	if len(expected) < 1 || len(expected) > 109 {
+	if len(expected) < 1 || len(expected) > 110 {
 		return errors.New("unsupported Credential fixture head")
 	}
 	for i, entry := range expected {
@@ -64,6 +64,12 @@ func credentialInferencePeelV109(db *gorm.DB, expected []personalKeyBehaviorMigr
 		if err := db.Table(table).Where("OCTET_LENGTH(credential_id) <> 0 OR "+discriminator+" = ?", value).Count(&count).Error; err != nil || count != 0 {
 			return errors.New("retained Credential projection prevents peel")
 		}
+	}
+	if len(expected) == 110 {
+		if err := insightsReportsPeelV110(db, expected); err != nil {
+			return err
+		}
+		expected = expected[:109]
 	}
 	for _, item := range []struct {
 		model any
@@ -170,7 +176,7 @@ func modelDiscoveryPartialCountControls(t *testing.T, db *gorm.DB) {
 	if err := database.Migrate(t.Context(), db); err != nil {
 		t.Fatal("valid empty partial count baseline rejected", err)
 	}
-	if got := personalKeyBehaviorLedger(t, db); len(got) != 109 || !reflect.DeepEqual(prefix, got[:107]) {
+	if got := personalKeyBehaviorLedger(t, db); len(got) != 110 || got[109].Version != 110 || !reflect.DeepEqual(prefix, got[:107]) {
 		t.Fatal("valid partial count upgrade changed prefix")
 	}
 	legacyModelDiscoveryBeforeV108(t, db)
@@ -210,8 +216,8 @@ func testCredentialInferenceFailureMigration(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	ctx := t.Context()
 	head := personalKeyBehaviorLedger(t, db)
-	if len(head) != 109 {
-		t.Fatal("exact V109 startup head required")
+	if len(head) != 110 || head[109].Version != 110 {
+		t.Fatal("exact V110 startup head required")
 	}
 	for _, change := range []func([]personalKeyBehaviorMigrationEntry){func(v []personalKeyBehaviorMigrationEntry) { v[108].Version = 110 }, func(v []personalKeyBehaviorMigrationEntry) { v[108].AppliedAt = "" }, func(v []personalKeyBehaviorMigrationEntry) { v[108].AppliedAt += "changed" }} {
 		invalid := append([]personalKeyBehaviorMigrationEntry(nil), head...)
@@ -246,7 +252,7 @@ func testCredentialInferenceFailureMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	after := personalKeyBehaviorLedger(t, db)
-	if len(after) != 109 || !reflect.DeepEqual(prefix, after[:108]) {
+	if len(after) != 110 || after[109].Version != 110 || !reflect.DeepEqual(prefix, after[:108]) {
 		t.Fatal("observer upgrade changed historical prefix")
 	}
 	// Missing CHECKs represent interrupted MySQL DDL, not a different version.

@@ -15,7 +15,7 @@ import { getUsage } from '@/api/usage'
 import { downloadReportCSV, downloadUsageCSV, exportUsage } from '@/api/usage-export'
 import { getProviderQualityReport, exportProviderQuality } from '@/api/insights-provider-quality'
 import ProviderQualityResult from './provider-quality'
-import type { ProviderQualityRange } from '@/types/insights'
+import type { InsightsReportParameters, ProviderQualityRange } from '@/types/insights'
 import { sessionKey, useSession } from '@/hooks/use-auth'
 import { useSessionGeneration } from '@/hooks/use-session-generation'
 import { Page, FormField } from '@/components/app/CatalogUI'
@@ -23,12 +23,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Table } from '@/components/ui/table'
 import type { Session } from '@/types/auth'
 import type { UsageFilters } from '@/types/usage'
 import { readInsightsRange, type InsightsRange } from './range'
 import InsightsResult from './result'
 import { useInsightsAI } from './ai'
+import { useSavedInsightsReports } from './saved-reports'
 
 type PermissionKey = readonly ['permissions', string, 'insights', number]
 function authorityState(cache: QueryClient, actor: string, key: PermissionKey) {
@@ -108,8 +108,18 @@ function InsightsAuthority({ actor, generation }: { actor: string; generation: n
   const stamp = useSyncExternalStore(subscribe, snapshot, snapshot)
   if (permissions.isPending || permissions.isFetching) return <p role="status">{t('loading')}</p>
   if (permissions.isError || !authorityState(cache, actor, key).ready)
-    return <p role="alert">{t('denied')}</p>
+    return (
+      <div className="space-y-4">
+        <p role="alert">{t('denied')}</p>
+        <OwnerSavedReports key={stamp} actor={actor} />
+      </div>
+    )
   return <InsightsContent key={stamp} actor={actor} permissionKey={key} authorityStamp={stamp} />
+}
+
+function OwnerSavedReports({ actor }: { actor: string }) {
+  const saved = useSavedInsightsReports({ actor, authorized: () => false })
+  return saved.table
 }
 
 function InsightsContent({
@@ -300,6 +310,43 @@ function InsightsContent({
       reportSnapshot() === reportStamp
     )
   }
+  const saved = useSavedInsightsReports({
+    actor,
+    authorized: (kind) => authorized() && (kind !== 'provider_quality' || providerAuthorized()),
+    capture: () => {
+      if (!currentExportAuthority() || !currentReport) return null
+      return currentReport.kind === 'provider'
+        ? {
+            kind: 'provider_quality',
+            from: currentReport.value.from,
+            to: currentReport.value.to,
+            timezone: currentReport.value.timezone,
+          }
+        : {
+            kind: 'tokens_by_model',
+            from: currentReport.value.current.from,
+            to: currentReport.value.current.to,
+            timezone: currentReport.value.timezone,
+          }
+    },
+    load: (parameters: InsightsReportParameters) => {
+      if (
+        !authorized() ||
+        (parameters.kind === 'provider_quality' && !providerAuthorized()) ||
+        requestLock.current ||
+        exportLock.current
+      )
+        return
+      clearReport()
+      const provider = parameters.kind === 'provider_quality'
+      setProviderReport(provider)
+      setQuestion({ key: provider ? 'shortcutProvider' : 'shortcutTokens' })
+      setSupported(true)
+      setInput('')
+      setDraft({ from: parameters.from, to: parameters.to, timezone: parameters.timezone })
+      setMessage('savedLoaded')
+    },
+  })
   async function exportCSV() {
     if (exportLock.current || !request || !currentExportAuthority()) return
     const controller = new AbortController()
@@ -517,9 +564,7 @@ function InsightsContent({
                     {t('cancel')}
                   </Button>
                 )}
-                <Button variant="outline" disabled title={t('saveUnavailable')}>
-                  {t('saveReport')}
-                </Button>
+                {saved.saveButton}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -544,27 +589,7 @@ function InsightsContent({
             </CardContent>
           </Card>
         </div>
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('savedTitle')}</CardTitle>
-          </CardHeader>
-          <Table aria-label={t('savedTitle')}>
-            <thead>
-              <tr>
-                {['reportColumn', 'parametersColumn', 'rangeColumn', 'creatorColumn'].map((key) => (
-                  <th key={key}>{t(key)}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td colSpan={4} className="text-muted-foreground">
-                  {t('savedUnavailable')}
-                </td>
-              </tr>
-            </tbody>
-          </Table>
-        </Card>
+        {saved.table}
       </div>
     </Page>
   )

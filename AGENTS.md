@@ -1724,7 +1724,7 @@ Tokens-by-Model report from the existing platform usage API for explicit absolut
 dates/timezone; show captured source, definitions, range, filters, freshness and
 known/unknown coverage. Preserve exact integer strings and historical labels;
 never fetch an unauthorized live catalogue or infer quotas, forecasts or native
-completion. Free text, unsupported shortcuts and saving remain explicitly
+completion. Free text and unsupported shortcuts remain explicitly
 unavailable. Optional AI advice uses only an explicitly selected current-user
 callable personal Chat model and personal quota, after a separate bounded-inference
 confirmation. The server reruns the authorized fixed aggregate report and sends
@@ -1739,7 +1739,20 @@ with its own metadata and existing safe server encoding, rather than a claim to
 export the displayed snapshot. Hide prior private results during Session or
 permission renewal/error, actor/parameter changes and stale replies; abort obsolete
 work and require current authority before report/export dispatch. Do not add
-implicit model-call grants, inference credentials, persistence or new permissions.
+implicit model-call grants, inference credentials or new permissions.
+
+Saved report definitions remain creator-private in the existing Operations analysis
+Save action and four-column table. Persist only the supported report kind and exact
+absolute range/time-zone parameters; never persist statistics, AI output, model
+selection, free-text questions or inference credentials. Retain definitions until
+explicit owner deletion; clear deleted parameters and prevent uncertain creation
+replay from recreating them. Owner listing/deletion requires a current enabled
+Session; saving additionally requires current report-kind authority. Loading fills
+parameters for explicit review and never starts a report, export or paid inference.
+Use local Menu/Dialog wrappers for row actions and deletion confirmation. Fence
+private lists, original save intents and late completions by actor, Session and
+current authority; use paired insights translations and transient state for writes.
+
 
 Administrative Model configured input cells use only the independently Provider-authorized
 configured_input_capabilities projection, with per-native-protocol image/PDF intersections.

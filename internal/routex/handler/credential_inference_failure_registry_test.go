@@ -21,7 +21,7 @@ func TestCredentialInferenceRegistry224ExactPrefixAndSuffix(t *testing.T) {
 	for i, m := range matches {
 		names[i] = m[1] + ":" + m[2]
 	}
-	if !credentialInferenceRegistry224Current(names) || !strings.Contains(string(raw), "versions != 109") {
+	if !credentialInferenceRegistry224Current(names) || !strings.Contains(string(raw), "versions != 110") {
 		t.Fatal("exact V109/224 Credential registry required")
 	}
 	if !insightsRegistry222Current(names[:222]) || credentialInferenceRegistry224Current(names[:222]) || insightsRegistry222Current(names) {

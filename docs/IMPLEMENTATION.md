@@ -1,27 +1,25 @@
 # RouteX Implementation and Acceptance Index
 
-## Delivery checkpoint: durable notices and audit (2026-10-12)
+## Delivery checkpoint: creator-private report definitions (2026-10-12)
 
-This phase retains the Provider quality reports and adds the bounded notification
-and audit increment. V107–V109 preserve durable offboarding receipts, first-model
-discovery sources and exact-Credential inference-failure episodes. Five
-consecutive recorded inference failures trigger one medium-severity notice;
-recorded success resolves that alert and rearms the counter. Unknown and canceled
-Attempts do not invent success or failure. Manual verification remains separate.
-Immutable inbox, read and delivery history survives alert recovery.
+This phase retains Provider quality reports, the durable notification/audit
+increment and the preceding system-status localization. Known status codes use
+paired English/Chinese copy in the existing layout; unknown codes retain a safe
+generic fallback and do not become inferred health or job outcomes.
 
-Offboarding completion reaches the executing administrator and actual applied
-successors under their existing preferences. Failed root-secret rotation batches
-use the existing high-severity system-job pipeline for `rotation_blocked` and
-`executor_lost`; unrelated root blocking is not reclassified as a failed batch.
-The existing bounded SMTP worker retains terminal and uncertain outcomes without
-replaying unknown delivery. Audit filtering and navigation preserve their
-independent authority checks. No notification automatically disables a Credential
-or claims current Provider health.
+V110 adds creator-private saved definitions for Tokens by Model and Provider
+quality. Definitions retain the exact absolute date range and time zone until
+explicit creator deletion. They store no statistics, AI output or arbitrary
+question. Current enabled Sessions may list and delete only their own definitions;
+creation independently requires the report kind's current permissions. Loading
+reviews parameters without executing a report. Running or exporting again
+requires fresh current authority. Deletion clears the definition payload while a
+minimal creation receipt prevents an uncertain POST replay from resurrecting it.
 
-This phase does not deliver the later system-status localization, saved report
-definitions or quota analysis. Migration guards remain appropriate to V109 until
-the saved-definition phase adds V110 and its complete successor-fixture updates.
+The V110 schema, owner-scoped API, UI and updated historical migration fixtures
+land together. The preceding diagnostic fixes remain preserved. Team and Key
+quota analysis belongs to phase 5 and is still pending in this phase; this saved
+kind contract does not add quota definitions or forecasting.
 
 Final qualification for the composed delivery candidate passed on the unchanged
 2,633-path source `038d6b7397684830800338dcbfccf1a92ebf3f5d1be9b898cd55127ecc90c80e`:
@@ -63,30 +61,50 @@ historical checkpoint, not an additional feature delivered in this phase.
 
 Updated: 2026-10-12. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery and is resumed by the user's explicit instruction, prioritizing partially completed capabilities.
 
-## Latest bounded qualification checkpoint (2026-10-12)
+## Creator-private saved definitions in progress (2026-10-12)
 
-The containing candidate passed mandatory checking and complete ordinary tests,
-including 7,168 frontend cases, Go race tests, development lifecycle and
-production assets. Its separate authentication lifecycle passed all eight real
-applications and four official summaries, with independent physical closure.
-These successful runs retain their exact prior source scope.
+The user confirmed that saved report definitions are creator-private and retained
+until explicit owner deletion. Backend and frontend implementation proceed in a
+separate worktree while the containing Provider/notifications/audit candidate
+remains frozen for complete dual-database qualification. Definitions persist only
+the supported report kind and reviewed absolute range/time-zone parameters, with
+no statistics or AI output. Loading requires fresh authorized execution after
+explicit review; deletion clears the saved parameter payload. See
+[Operations analysis](INSIGHTS.md#creator-private-saved-definitions).
 
-The next complete integration run failed. PostgreSQL completed 566 named nodes
-with 561 passes and five failures: runtime publication unavailable and a Telegram
-departure-login HTTP 503, plus their ancestors. MySQL was deliberately cancelled
-after the confirmed PostgreSQL failure; its 345 started names have no accepted
-terminal result. This run does not qualify delivery.
+Initial focused feedback passes 144 frontend cases in nine files, five pure Go
+tests across database/service/handler packages, and frontend TypeScript checking.
+The initial scoped ESLint invocation rejected two render-time mounted-ref
+reads. A one-file repair derives rendering from subscribed Session state and
+preserves mounted/abort/late-response guards. The scoped lint successor passes,
+and all 81 related interaction cases in three files pass on the repair. These are
+separate results, not complete qualification. Mandatory checking, complete
+ordinary tests and real PostgreSQL/MySQL migration/owner-isolation qualification
+remain pending after the ongoing database run closes. No delivery is claimed;
+the overall F24/A18 status remains Partial.
 
-The original was directly joined, and independent physical closure confirmed all
-nine workers, 24 recorded PostgreSQL applications, exact Compose resources,
-ports and helpers absent; source and development services remained preserved.
-Receipt: `6024d1a556848a19d2ae50074459fb74a505c2fefa64e5c897581aca91b90e96`.
+## Containing candidate qualification (2026-10-12)
 
-Only two test paths now add safe phase timings and portable query-error classes.
-No product behavior, assertion, retry or timeout changed. A focused real-driver
-reproduction is next; the cause remains unproven. Earlier failed originals are
-not relabeled. Complete integration, browser and delivery remain pending;
-totals remain **16 Completed / 14 Partial / 0 Not started**.
+The separate Provider/notifications/audit candidate passes mandatory checking and
+the complete ordinary Task: Go race, 7,168 frontend cases, Node and development
+lifecycle checks, production build and embedded assets. Authentication lifecycle
+also passes on PostgreSQL and MySQL, including eight real application processes
+and restart/session checks. These results bind the unchanged 2,605-path source
+`4d5d1e56f2c170c965e8022c25c78ff09f41297bbcde3e88873c72c89ff27a01`.
+
+Its unfiltered `go tool task test-integration` is still running. Both drivers are
+progressing; complete dual-database acceptance and phased delivery remain pending.
+The preceding failed full run, failed frontend timing fixture and failed external
+authentication collector remain historical failures. Narrow repairs preserve the
+strict assertions; focused regressions and the separate successful successors do
+not relabel those failures. The Team lease failure did not reproduce in the focus;
+its cause remains unknown.
+
+The saved-definition source in this worktree extends that candidate and is not
+covered by its frozen-source results. It requires its own focused, mandatory,
+complete ordinary and real-driver qualification before delivery. Browser and real
+external integration acceptance remain separate. Totals remain
+**16 Completed / 14 Partial / 0 Not started**.
 
 ## Selected-range Provider quality reports (2026-10-12)
 

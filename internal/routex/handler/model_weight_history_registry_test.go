@@ -201,7 +201,7 @@ func TestModelWeightHistoryExact174RegistryPrefix(t *testing.T) {
 	for _, pair := range pairs {
 		currentIdentities = append(currentIdentities, pair[1]+":"+pair[2])
 	}
-	if !credentialInferenceRegistry224Current(currentIdentities) || !strings.Contains(string(raw), "versions != 109") {
+	if !credentialInferenceRegistry224Current(currentIdentities) || !strings.Contains(string(raw), "versions != 110") {
 		t.Fatal("exact V109/224 Credential registry required before historical checks")
 	}
 	currentIdentities = currentIdentities[:222]

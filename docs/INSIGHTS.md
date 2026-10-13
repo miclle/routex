@@ -10,7 +10,7 @@ Select **Tokens by model**, enter absolute start and end timestamps with explici
 UTC offsets, review the time zone, and run the report. The range includes the start
 and excludes the end. UTC is the initial grouping time zone; no calendar week is
 silently selected. Free-text analysis, Team usage and Key forecasts are explicitly unsupported.
-The separate **Provider quality** shortcut is described below. Forecasts and saved report definitions remain unavailable. The deterministic
+The separate **Provider quality** shortcut is described below. Forecasts remain unavailable. The deterministic
 report makes no inference call. Optional AI advice requires a separate explicit
 confirmation and stores no report or conversation.
 
@@ -35,8 +35,8 @@ each require fresh authority.
 authorized capture with the existing safe CSV encoding and 8 MiB response bound.
 Its metadata may differ from the displayed report. Preparing a download does not
 prove the browser saved a file. Exported data and report inputs are not stored in
-browser storage. **Save report** and the saved-report table explain that persistence
-is unavailable.
+browser storage. The creator-private saved-definition workflow is specified below; its current
+implementation and verification status are tracked in the handoff.
 
 ## Selected-range Provider quality
 
@@ -69,12 +69,43 @@ cached browser facts. Summary and Provider rows identify their scope; unknown
 attribution remains explicit in capture metadata. Report, export and late replies
 share the existing actor/Session/permission and parameter lifetime fences. Provider
 facts are never sent to the optional AI endpoint, which remains Tokens-by-Model only.
-No saved definition, forecast, alert threshold or routing policy is added.
+This report does not add a forecast, alert threshold or routing policy.
 
 Focused source tests cover attribution, exclusions, range precision, complete bounds,
 CSV safety, strict wire parsing, authority loss and bilingual rendering. Real-driver
 qualification of the extended existing Provider-quality scenario and browser acceptance
 must be recorded separately; implementation alone does not establish them.
+
+## Creator-private saved definitions
+
+The user-confirmed retention policy is creator-private visibility until explicit
+owner deletion. A definition contains only `tokens_by_model` or `provider_quality`,
+exact absolute `from`/`to` instants and an IANA `timezone`. Titles are localized
+from the kind. No statistics, historical model labels, AI answers, inference model
+selection, free-text question or result snapshot is persisted.
+
+The implementation in progress uses Session-authenticated
+`/api/v1/insights/reports` endpoints for bounded owner listing and explicit creation
+and deletion. The server derives the owner from the current enabled Session;
+administrator privileges never confer another creator's definitions. Saving also
+requires the existing current report-kind permissions: `calls.read_all`, plus
+`providers.read` for Provider quality. Owner listing and deletion read no aggregate
+statistics. Writes use CSRF and strict typed input. Stable creation intent supports
+explicit identical retries without accepting a changed body or resurrecting a
+deleted definition. Deletion removes the saved parameter payload; a minimal intent
+receipt may remain solely to reject obsolete creation replay.
+
+The existing Save action and saved-report table retain their composition. Loading
+a definition only fills parameters for review, clears prior results/advice and
+requires a separate explicit run through the existing currently authorized report
+endpoint. It does not restore old access or make a paid inference call. Delete
+requires local confirmation. Private lists and asynchronous write completions
+remain fenced by the current actor, Session and authority. Definitions and write
+intentions are never placed in browser storage.
+
+This is a specification for the isolated work in progress, not delivered or tested
+behavior. Formatting, unit/UI tests, mandatory checks, real PostgreSQL/MySQL
+migration and ownership tests, and browser acceptance must be recorded separately.
 
 ## Optional personal-model AI advice
 
@@ -127,7 +158,7 @@ retained as a failed invocation, not acceptance. These checks bind the current
 isolated draft only; qualification must be renewed on the phase's rebased source.
 Full checks, real-database, native model/runtime and browser acceptance remain
 pending. No new implementation is delivered by these draft checks. Saved-definition
-audience and retention still require a separate product decision.
+audience and retention were undecided at that historical checkpoint.
 
 ## Earlier isolated qualification checkpoint (historical, 2026-10-12)
 
@@ -156,5 +187,5 @@ Analysis remains limited to the explicitly selected current user's callable
 personal Chat model and personal quota, with bounded authorized aggregates and
 temporary Model labels only. No free-text questions, conversation history, raw
 calls, borrowed Key/Team/Project authority or persisted answer is added. Browser
-and real external-model acceptance remain deferred. Saved-definition audience and
-retention, forecasts and broader evaluation remain separate unimplemented scope.
+and real external-model acceptance remain deferred. Creator-private saved definitions are now a separately specified implementation
+package. Forecasts and broader evaluation remain unimplemented scope.

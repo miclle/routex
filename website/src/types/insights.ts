@@ -55,3 +55,19 @@ export interface ProviderQualityReport extends ProviderQualityRange {
   summary: ProviderQualityCounts
   providers: (ProviderQualityCounts & { provider_id: string; name: string })[]
 }
+
+export type InsightsReportKind = 'tokens_by_model' | 'provider_quality'
+export interface InsightsReportParameters extends ProviderQualityRange {
+  kind: InsightsReportKind
+}
+export interface InsightsReportInput extends InsightsReportParameters {
+  request_id: string
+}
+export interface InsightsReportDefinition extends InsightsReportParameters {
+  id: string
+  created_at: string
+}
+export interface InsightsReportPage {
+  items: InsightsReportDefinition[]
+  next_cursor: string
+}

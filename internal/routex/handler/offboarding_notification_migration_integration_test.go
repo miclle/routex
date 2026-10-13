@@ -23,7 +23,7 @@ func legacyOffboardingNotificationsBeforeV107(t *testing.T, db *gorm.DB) {
 	}
 }
 func offboardingNotificationsPeelV107(db *gorm.DB, expected []personalKeyBehaviorMigrationEntry) error {
-	if len(expected) < 1 || len(expected) > 109 {
+	if len(expected) < 1 || len(expected) > 110 {
 		return errors.New("unsupported offboarding notification fixture head")
 	}
 	for i, row := range expected {

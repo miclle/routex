@@ -1,5 +1,5 @@
 import type { UsageFilters } from '@/types/usage'
-import { readUsageFilters } from '@/views/usage/filter-state'
+import { insightsTimezone, isInsightsRange } from '@/lib/insights-range'
 
 export interface InsightsRange {
   from: string
@@ -11,14 +11,13 @@ export interface InsightsRange {
 export function readInsightsRange(
   draft: InsightsRange,
 ): UsageFilters | 'invalidRange' | 'invalidTimezone' {
-  if (!draft.timezone.trim()) return 'invalidTimezone'
-  const form = new FormData()
-  form.set('period', 'custom')
-  form.set('from', draft.from)
-  form.set('to', draft.to)
-  form.set('timezone', draft.timezone)
-  form.set('granularity', 'auto')
-  const result = readUsageFilters(form, true)
-  if (typeof result === 'string') return result === 'invalidTimezone' ? result : 'invalidRange'
-  return result
+  if (!insightsTimezone(draft.timezone)) return 'invalidTimezone'
+  if (!isInsightsRange(draft)) return 'invalidRange'
+  return {
+    from: draft.from,
+    to: draft.to,
+    timezone: draft.timezone,
+    granularity: 'auto',
+    compare: false,
+  }
 }

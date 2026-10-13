@@ -34,7 +34,7 @@ export default {
     'Requires platform call-read permission. Reports use recorded call and upstream-attempt facts only; they do not change configuration or grant inference access.',
   assistantTitle: 'Operations analysis guide',
   introduction:
-    'Select Tokens by model or Provider quality, review explicit dates, then run the recorded report. Optional AI advice remains available only for Tokens by model with separate personal-model confirmation. Saving reports is unavailable.',
+    'Select Tokens by model or Provider quality, review explicit dates, then run the recorded report. Optional AI advice remains available only for Tokens by model with separate personal-model confirmation. Save only a successful report’s reviewed parameters for a later explicit query.',
   shortcutTokens: 'Tokens by model',
   shortcutTeam: 'Analyze team usage',
   shortcutKey: 'Forecast Key allowance',
@@ -68,13 +68,14 @@ export default {
   exportOverflow:
     'The selected range exceeds the complete-query export bounds. Narrow the range and retry.',
   saveReport: 'Save report',
-  saveUnavailable: 'Saving report definitions is not available.',
+  saveUnavailable: 'Run a supported report successfully before saving its parameters.',
   savedTitle: 'Saved reports',
   reportColumn: 'Report',
   parametersColumn: 'Parameters',
   rangeColumn: 'Range',
   creatorColumn: 'Creator',
-  savedUnavailable: 'Saved reports are not available. No report definition is stored.',
+  savedUnavailable:
+    'Your saved definitions could not be read. Refresh explicitly to review current facts.',
   awaitingReview: 'Select the supported report and review its explicit dates before running.',
   loading: 'Reading recorded usage…',
   cancel: 'Cancel',
@@ -153,4 +154,49 @@ export default {
   aiLabels: 'Temporary model labels',
   aiLabel: 'Label',
   aiRecordedModel: 'Recorded model identity',
+  savedPrivacy:
+    'Only you can read or delete these definitions. They retain report kind, dates and time zone until you explicitly delete them; statistics, questions and AI answers are never saved.',
+  savingReport: 'Saving definition…',
+  retrySave: 'Retry original save',
+  savedConfirmed:
+    'The server confirmed this saved definition. Rerunning it requires a new authorized report query.',
+  saveUnknown:
+    'The save outcome is unknown. Retry the same original definition explicitly or discard this local retry intent; discarding does not undo a server save.',
+  saveConflict:
+    'This request identifier belongs to a different definition. Review the original intent; no save is confirmed.',
+  saveDeleted:
+    'This original definition was explicitly deleted and cannot be recreated with the same request. Discard the local intent before making a new save.',
+  saveDenied:
+    'Current report permissions are required to save this definition. No save is confirmed.',
+  saveIntent:
+    'Original save: {{title}}; {{from}} to {{to}} (end excluded); time zone: {{timezone}}.',
+  discardSave: 'Discard local save intent',
+  savedEmpty: 'No saved report definitions.',
+  savedLoading: 'Reading your saved definitions…',
+  refreshSaved: 'Refresh saved reports',
+  previousSaved: 'Previous page',
+  nextSaved: 'Next page',
+  savedActions: 'Actions for {{title}} ({{id}})',
+  loadSaved: 'Load for review',
+  deleteSaved: 'Delete definition',
+  savedParameters: 'Time zone: {{timezone}}',
+  savedRange: '{{from}} to {{to}} (end excluded)',
+  savedLoaded:
+    'Saved parameters loaded for review. Previous results and AI answers were cleared. Review dates and run explicitly to query current records.',
+  deleteSavedTitle: 'Delete this saved definition?',
+  deleteSavedDescription:
+    'This deletes only your saved report parameters. It does not delete call records or cancel inference. No automatic retry is performed.',
+  confirmDeleteSaved: 'Confirm deletion',
+  deletingSaved: 'Deleting definition…',
+  deleteUnknown:
+    'Deletion was not confirmed. The outcome may be unknown; retry this exact deletion explicitly. List absence does not prove that this request succeeded.',
+  deleteConfirmed: 'The server confirmed deletion of the selected definition.',
+  saveInvalid:
+    'The server rejected these report parameters. Review the kind, dates and time zone; this request did not save a definition.',
+  saveEndpointUnavailable:
+    'The save endpoint rejected this request as unavailable. No definition was saved by this response.',
+  deleteMissing:
+    'The selected definition is currently unavailable to this Session. This response does not confirm that an earlier deletion succeeded.',
+  deleteDenied: 'Current owner Session authority is required. This deletion request was rejected.',
+  savedCreatedAt: 'Created: {{time}}',
 }

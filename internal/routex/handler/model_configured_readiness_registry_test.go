@@ -35,7 +35,7 @@ func TestAdminModelConfiguredReadinessRegistry182Preserves181AndRejectsSuffixDri
 		t.Fatal("exact210 ordered delivery restart successor required")
 	}
 	names = names[:182]
-	if !adminModelConfiguredReadinessRegistry182Current(names) || !strings.Contains(string(raw), "versions != 109") {
+	if !adminModelConfiguredReadinessRegistry182Current(names) || !strings.Contains(string(raw), "versions != 110") {
 		t.Fatal("exact182 and unchanged migration93 required")
 	}
 	if adminModelConfiguredReadinessRegistry182Current(names[:181]) || !credentialAttemptStatisticsRegistry181Current(names[:181]) {

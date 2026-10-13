@@ -71,7 +71,7 @@ func TestCredentialInferenceFailureV109FrozenSourceAndState(t *testing.T) {
 func TestCredentialInferenceV109AppendAndClosedProjection(t *testing.T) {
 	for _, driver := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(driver)
-		if len(steps) != 109 || reflect.ValueOf(steps[107]).Pointer() != reflect.ValueOf(modelDiscoveryNoticeMigration).Pointer() || reflect.ValueOf(steps[108]).Pointer() != reflect.ValueOf(credentialInferenceFailureMigration).Pointer() {
+		if len(steps) != 110 || reflect.ValueOf(steps[107]).Pointer() != reflect.ValueOf(modelDiscoveryNoticeMigration).Pointer() || reflect.ValueOf(steps[108]).Pointer() != reflect.ValueOf(credentialInferenceFailureMigration).Pointer() {
 			t.Fatal("observer must append after frozen discovery migration")
 		}
 	}

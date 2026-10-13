@@ -36,6 +36,30 @@ Prefer targeted `Migrator` operations. The `migrateTables` helper creates only t
 
 MySQL can commit DDL implicitly. Design retryable steps and advance the migration ledger only after a complete version succeeds. Both supported databases must pass fresh installation, upgrades preserving data, repeated execution, concurrent startup, and constraint/index acceptance. Existing version 1–4 SQL is preserved unchanged because it has shipped; new migrations follow this policy.
 
+## Creator-private report definitions (version 110, in progress)
+
+V110 adds only the frozen `insights_reports` table through GORM Migrator APIs.
+Creator ownership uses a digest of the exact User ID and original creation time,
+so reusing an identifier cannot inherit another account's definitions. A unique
+owner/request pair protects explicit creation retries. Keyset listing uses the
+owner/ID index; it has no global administrator directory.
+Physical index validation reuses the existing database-layer ordered metadata
+adapter: GORM PostgreSQL `GetIndexes` does not preserve key ordinals. Schema
+writes remain GORM operations; no new SQL or business-layer dialect branch is
+introduced. Real-driver controls reject both wrong columns and reversed valid
+columns under the same index name.
+
+Absolute range instants are UTC RFC3339Nano strings rather than database timestamp
+columns, preserving reviewed nanoseconds on both databases. The IANA time zone
+remains separate metadata. Definitions are immutable and contain no report data
+or AI output. Explicit deletion clears kind, range and time-zone payload while
+retaining a minimal creation-intent receipt to reject obsolete creation replay.
+Receipt retention is not retention of the deleted report definition.
+
+The new version does not evolve current entities at startup or change released
+steps. Real PostgreSQL/MySQL installation, upgrade, repeat, partial-DDL, retained
+row, index/constraint and ownership qualification is pending for this package.
+
 ## Integration fixture lifecycle
 
 Install GORM fault and observation callbacks before starting heartbeat, runtime

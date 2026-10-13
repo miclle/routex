@@ -33,6 +33,17 @@ func (b *insightsAIIntegrationBarrier) unblock() { b.releaseOnce.Do(func() { clo
 // All native work is performed by a local controlled provider, never a paid service.
 func testInsightsAIIntegration(t *testing.T, db *gorm.DB) {
 	t.Helper()
+	if !t.Run("saved_report_migration", func(t *testing.T) { testInsightsReportMigration(t, db) }) {
+		return
+	}
+	// The prelude intentionally rebuilds and alters this table. Retire idle
+	// physical connections so driver plans cannot span those fixture schemas.
+	pool, err := db.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pool.SetMaxIdleConns(0)
+	pool.SetMaxIdleConns(2)
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 	db = db.WithContext(ctx)
@@ -275,6 +286,7 @@ func testInsightsAIIntegration(t *testing.T, db *gorm.DB) {
 		}
 		return nil
 	}
+	testInsightsReportDefinitions(t, db, svc, router, admin, cookie)
 	t.Run("session_csrf_and_personal_picker", func(t *testing.T) {
 		before := dispatches.Load()
 		denyBeforeDispatch(t, analyze(input, ""), 403, before)
