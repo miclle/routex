@@ -1,8 +1,24 @@
 # RouteX Implementation and Acceptance Index
 
-Updated: 2026-10-13. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery. The user requested completion of current packages, required verification and staged delivery, followed by a pause; no new feature package starts.
+Updated: 2026-10-13. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery. This handoff checkpoint distinguishes delivered main from unqualified local continuation. No new package starts during the requested handoff.
 
-## Delivery and pause boundary (2026-10-13)
+## Current handoff checkpoint (2026-10-13)
+
+Main product source remains `6ab8e1e`; its CI, GolangCI-Lint and Actionlint all
+passed on fresh readback. Only this index and the handoff have pending edits in
+the primary checkout. The previous five implementation increments remain
+delivered; totals stay 16 Completed / 14 Partial / 0 Not started.
+
+Two continuation packages have uncommitted source in a detached worktree based
+on `6ab8e1e`: fixed one-hour Personal/Project attachment eligibility and cleanup,
+and creator-private Team/Key quota report definitions (backend and frontend).
+These are implementation drafts, not delivered capabilities. V111 registration,
+historical migration fixture compatibility, composed checks and real-driver
+acceptance remain pending. Their exact location and resume gate are recorded in
+[the current handoff](current-work-handoff.md). Previous test results do not
+qualify this changed source; browser and external-service gaps remain open.
+
+## Historical delivery and pause boundary (2026-10-13)
 
 All five current increments are committed and pushed to `main`. The implementation
 head is `bb542e9e4f8a0a5ca51e7527535de50d31bb0509`; local HEAD and remote main

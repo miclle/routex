@@ -1,10 +1,140 @@
 # Current implementation handoff
 
-Updated: 2026-10-13. Status: current packages complete; overall goal paused by
-explicit user request. No feature work is active. This refresh reconciles the
-already delivered implementation; it does not resume the goal.
+Updated: 2026-10-13. Status: paused at the requested handoff checkpoint; no new feature package starts.
+The delivered implementation remains on remote main. Two continuation packages
+have unqualified local drafts; all three parallel slices have stopped after
+their bounded focused checks for the requested pause. They are not completed roadmap capabilities.
 
-## Repository and transfer snapshot
+## Current repository and transfer snapshot
+
+| Field | Verified state |
+| --- | --- |
+| Repository / branch / upstream | `miclle/routex` / `main` / `origin/main` |
+| Main base and remote at capture | `6ab8e1e2a69ee7a778d44bb5b65ed96cadfa4453`; exact remote parity |
+| Primary edits | `docs/IMPLEMENTATION.md` and this handoff only; product source unchanged |
+| Local candidate | Detached `6ab8e1e` at `~/.codex/worktrees/5d46/routex` |
+| Candidate delivery | Uncommitted and local-only; no candidate source on remote main |
+| Coordination plan | `projects/routex/implementation-plan.md` in the separate dotfiles repository |
+| Dotfiles base at capture | `16b47f742dfe6f3077357044fee42b2925c2b50f`; exact remote parity |
+| Delivered coordination update | Dotfiles `d95bb756f15e21f38c7b6696b6fece87c0c52705`; pushed to main with exact remote readback |
+| Unrelated work | Preserve dotfiles `zsh/.zshrc`; exclude it from this delivery |
+| Next owner | Unassigned; verify this snapshot before resuming |
+
+Documentation and delivered source are transferable through their respective
+remote main branches after this documentation delivery. The uncommitted candidate,
+private logs, ignored dependency symlinks and machine configuration are not
+transported. Another computer cannot resume the candidate from main alone.
+Identify the documentation revision with
+`git log -1 --format='%H %s' -- docs/current-work-handoff.md` and verify upstream.
+
+## Current partial implementation
+
+The complete objective still covers F01–F30 / A01–A20; the status matrix remains
+16 Completed / 14 Partial / 0 Not started. Previous five increments are delivered
+as recorded below. F24 and the wider attachment/enterprise acceptance remain
+Partial. Do not use draft code or prior-source tests to upgrade those statuses.
+
+| Local package | Source state | Acceptance still required |
+| --- | --- | --- |
+| Fixed Personal/Project attachment expiry | Content eligibility uses immutable `CreatedAt + 1h`; ready cleanup no longer lets a mutable retry schedule extend retention eligibility | Review; mandatory and complete checks; PostgreSQL/MySQL storage lifecycle; browser where applicable |
+| Team/Key saved quota definitions, backend | Current entity, service and HTTP drafts plus private frozen V111 schema; old V110 remains unchanged | Register V111, adapt historical fixtures, wire new scenarios and cover creation/upgrade/replay/concurrency on both drivers |
+| Team/Key saved quota definitions, frontend | Existing Save/table UI extended with kind, dimension and exact member/Project scope; load prepares parameters rather than executing | Focused UI/type result, composed source review/checks, paired rule/docs updates, ordinary and browser acceptance |
+
+All candidate paths are relative to the detached worktree. Preserve:
+
+- Attachment files: `internal/routex/service/attachments.go`,
+  `attachments_test.go`, `gateway_attachment_resolution_test.go`, `service.go`,
+  `storage_cleanup.go`; `internal/routex/handler/storage_integration_test.go`.
+- Quota backend files: `internal/routex/entity/insights_report.go`;
+  `internal/routex/service/insights_reports.go` and `insights_reports_test.go`;
+  `internal/routex/handler/insights_reports.go` and `insights_reports_test.go`.
+- New untracked backend files: `internal/routex/database/insights_quota_report_migration.go`,
+  `insights_quota_report_migration_test.go` and
+  `internal/routex/handler/insights_quota_reports_integration_test.go`.
+- Quota frontend files: `website/src/api/insights-reports.ts`,
+  `website/src/types/insights.ts`, paired `website/src/i18n/locales/{en,zh}/insights.ts`,
+  and `website/src/views/insights/{index,quota,saved-reports}.tsx`,
+  `{insights,quota,saved-reports}.test.tsx` and `reports-api.test.ts`.
+
+No candidate commit is staged or pushed at this checkpoint. Main documentation
+must not be replaced by stale copies from the detached worktree. Ignored
+`website/node_modules` and `bin/tools` symlinks point to the primary checkout;
+recreate dependencies on another machine and do not share mutable build output.
+
+## Current verification boundary
+
+Main `6ab8e1e` has freshly verified successful
+[CI](https://github.com/miclle/routex/actions/runs/38337489531),
+[GolangCI-Lint](https://github.com/miclle/routex/actions/runs/38337489562) and
+[Actionlint](https://github.com/miclle/routex/actions/runs/38337489529).
+Those are main results, not acceptance of the dirty candidate or this later
+pure documentation commit.
+
+The attachment-focused race run directly returned zero with 112 named passed
+test events, no failures or skips. Private JSON receipt:
+`/private/tmp/routex-attachment-expiry-focused-5d46-r1.jsonl`.
+It covers exact before/at/after expiry, future cleanup scheduling, Personal and
+Project scopes across four native protocols and expiry during a remote read.
+The modified handler storage integration has not run on either database.
+Backend focus directly returned zero for database, service and handler with:
+
+```bash
+go test -count=1 -tags development ./internal/routex/database ./internal/routex/service ./internal/routex/handler -run '^(TestInsightsQuotaReportV111|TestInsightsReport(DefinitionGrammar|OwnerCursor|QuotaParameters|QuotaDTO|Strict|Stored))'
+```
+
+The earlier broader selector returned nonzero:
+`TestInsightsReportV110FrozenAppendAndPrivateReceipt` failed its historical
+current-entity ten-column comparison after the draft added three columns.
+The focused pass does not resolve or relabel that failure. Preserve frozen V110
+and adapt the comparison narrowly before complete qualification.
+
+Primary `go tool task check` directly returned zero for this documentation-only
+submission; existing ESLint warnings remained warnings. Changed-document
+paths/links/commits, conflict markers and `git diff --check` passed. Private check
+log: `/private/tmp/routex-docs-handoff-20261013-r1/check.log`.
+This primary check does not check the dirty detached candidate. The final frontend focus returned zero: five files / 102 tests passed, including
+four Insights UI/API files and `website/src/i18n/insights.test.ts`. Earlier focus
+runs failed on a render-time Save gate, strict union typing and test expectations;
+a later 102-test run failed on a menu-query fixture race. Narrow corrections and
+the final pass do not relabel those original failures. Scoped ESLint and app
+TypeScript checks passed; no runtime/browser result is claimed.
+
+Full candidate checks, integration, authentication and browser gates have not run. All historical results below
+retain their original source scope.
+
+## First valid resume action
+
+After user resumption, run `git status --short --branch`, `git rev-parse HEAD`
+and `git diff --check` in both the primary and detached worktree, and verify
+`git ls-remote origin refs/heads/main`. If the local candidate is unavailable,
+recover its source before claiming to resume it; remote main contains only the
+previously delivered implementation and documentation.
+
+Start in `internal/routex/database/migrations.go`: register frozen V111 only
+once and preserve historical V110. Update current registry ceilings and genuine
+future-version negatives narrowly. Inspect
+`internal/routex/handler/insights_reports_integration_test.go` and its
+`insightsReportsPeelV110`/partial-migration helpers before changing fixtures;
+retain exact ledger timestamps, retained definitions/deletion receipts and
+partially applied MySQL controls. Wire the new quota integration child without
+claiming new complete coverage from the existing 572-test result.
+
+Then review backend/frontend wire compatibility, old intent-digest stability,
+creator isolation, exact scope authorization and uncertain retries. Update
+feature docs and both `AGENTS.md` and `.agents/rules/frontend.md` if the UI
+composition change is retained. Format, run focused tests, mandatory
+`go tool task check`, `go tool task test`, `go tool task test-integration` and
+any relevant authentication lifecycle before staged main delivery. Keep browser
+and real external-service acceptance separate. Do not start another package
+while the requested pause/handoff boundary remains in force.
+
+## Historical records
+
+Everything below retains its earlier capture date and source scope. Historical
+clean-tree, pause and pending-CI statements do not describe the current local
+candidate. The current snapshot above takes precedence.
+
+## Previous delivered repository and transfer snapshot
 
 | Field | Verified state |
 | --- | --- |
@@ -21,7 +151,7 @@ The documentation revision can be identified with
 SHA above identifies the tested product source, rather than claiming that a later
 documentation commit has the same SHA. Verify remote parity before transfer.
 
-## Objective and current state
+## Previous completion boundary
 
 Implement the complete F01–F30 / A01–A20 scope in stages. The current five
 increments are complete and delivered; the larger goal remains paused with
@@ -90,7 +220,7 @@ failed runs remain failed at their original source; later passing qualification
 does not relabel them. Authentication cleanup did not capture individual database
 ports, so it carries no separate database-port bind claim.
 
-## Resume gate
+## Historical resume gate
 
 There is no active feature task to resume at this pause boundary. After an
 explicit user instruction to continue, first run:
