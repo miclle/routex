@@ -24,7 +24,7 @@ does not close the broader acceptance gaps.
   See [the codec contract](RUNTIME_CONFIGURATION_CODEC.md). This groundwork adds
   no version archive, activation, rollback API or fleet acknowledgement; F30
   remains Partial.
-- **Provider-quality AI:** this phase delivers the selected report, anonymous
+- **Provider-quality AI:** delivered in `0d40dc2`, preserving the selected report, anonymous
   immutable attempt aggregates, independent `calls.read_all`/`providers.read`
   authority, explicit question/model review and personal quota. Loading a saved
   definition only prepares controls; quota questions remain unsupported. Focused
@@ -38,11 +38,18 @@ does not close the broader acceptance gaps.
   commit. Browser and external-model acceptance remain open.
   A separate held-response exact personal-Model-grant revocation test is prepared
   for subsequent qualification; it is not covered by this receipt.
-- **Offboarding notification restart:** an isolated F10 candidate preserves the
-  original recipient Sessions and compares retained notices, read timestamps and
-  successor relationships across the existing process restart. All 20 lightweight
-  controls and candidate mandatory checking pass; actual PostgreSQL/MySQL process
-  acceptance remains pending. No external mailbox delivery is inferred.
+- **Offboarding notification restart:** this phase preserves original recipient
+  Sessions and verifies exact executor/successor notices, deduplication, denied
+  stranger/departing reads, retained read timestamps and successor relationships
+  across the existing executable restart. All 20 Node controls and candidate
+  mandatory checking passed. Official `go tool task test-auth-lifecycle` passed
+  in 38.602 seconds with all four PostgreSQL/MySQL summaries. Independent cleanup
+  accepted unchanged source and owned process/resource closure, SHA-256
+  `64f9628d98eb00f41c0a26c8e05dff69b28ccabaffc9d6ef2576aeb729cd4c40`.
+  The earlier MySQL startup readiness failure remains failed with unproven cause;
+  a separate successful observer does not explain or replace that failure.
+  Primary composed mandatory checking passed before commit. Browser, external mailbox
+  and multi-node acceptance remain open; F10 stays Partial.
 
 Browser inventory currently times out; direct Chrome Computer Use reports
 `cgWindowNotFound`. Browser acceptance remains open and does not block independent

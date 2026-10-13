@@ -7,6 +7,7 @@ import { writeFile } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
+import { prepareOffboardingNoticeRestart } from './auth-lifecycle-offboarding.mjs'
 
 const [binary, fixture] = process.argv.slice(2)
 assert.ok(binary && fixture, 'A test binary and temporary directory are required')
@@ -236,6 +237,9 @@ try {
       assert.ok(initialized.user?.id && initialized.user.role === 'admin', `${driver}: initialization did not return an administrator`)
       const first = await (await request(origin, '/auth/session', 200, { cookie })).json()
       assert.equal(first.user.id, initialized.user.id, `${driver}: initial session has the wrong identity`)
+      const assertOffboardingNoticesRetained = await prepareOffboardingNoticeRestart({
+        origin, request, sessionCookie, administrator: { cookie, session: first },
+      })
 
       await stopServer()
       await startServer(config, origin, driver)
@@ -244,6 +248,7 @@ try {
       const restored = await (await request(origin, '/auth/session', 200, { cookie })).json()
       assert.equal(restored.user.id, initialized.user.id, `${driver}: session did not survive process restart`)
       assert.ok(restored.csrf_token, `${driver}: restored session has no CSRF token`)
+      await assertOffboardingNoticesRetained()
       await request(origin, '/auth/logout', 204, { method: 'POST', cookie, csrf: restored.csrf_token })
       await request(origin, '/auth/session', 401, { cookie })
       const login = await request(origin, '/auth/login', 200, { method: 'POST', body: credentials })

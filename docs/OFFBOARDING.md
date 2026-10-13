@@ -16,9 +16,7 @@ Create a plan with `POST /api/v1/admin/members/:user_id/offboarding/plans`:
   "inventory_version": "digest-from-the-current-inventory",
   "planned_at": "2026-10-01T09:00:00Z",
   "reason": "Planned departure",
-  "project_assignments": [
-    { "project_id": "prj_example", "manager_user_ids": ["usr_successor"] }
-  ],
+  "project_assignments": [{ "project_id": "prj_example", "manager_user_ids": ["usr_successor"] }],
   "team_assignments": [
     {
       "team_id": "tem_example",
@@ -103,3 +101,50 @@ worker retains captured SMTP revision, retry and unknown-result semantics; SMTP
 acceptance does not prove inbox delivery. No external email acceptance is claimed
 by controlled fixtures. V107 adds the frozen typed recipient receipt and the
 closed completion source without changing released migrations.
+
+### Original-recipient restart acceptance
+
+The authentication lifecycle controller now prepares a planned handover through
+normal authenticated HTTP APIs before its existing initial identity restart.
+One successor receives both the Project Manager and Team Owner responsibilities;
+the executor and actual successor each receive exactly one generic notice.
+The controller checks that planning produces none, unrelated members cannot mark
+another recipient's notice, and the departing Session is denied after completion.
+It marks the successor notice read, then captures canonical persisted list and
+Case facts before comparing them across the existing process restart. Exact
+timestamp strings retain database precision; mutation acknowledgments only need
+to confirm notice identity and read state.
+
+After restart, the controller reuses the original recipient Sessions and verifies
+retained notice identities, occurrence counts, read timestamps, applied successor
+relationships and identical completion replay. SMTP remains disabled and the
+generic DTO must expose no delivery or private source fields. The extension adds
+no process generation, restart, integration leaf or external service.
+
+On 2026-10-14, the official `go tool task test-auth-lifecycle` completed on
+PostgreSQL and MySQL with all four existing lifecycle summaries passing. It
+directly joined exit 0 in 38.602 seconds with no controller or timeout changes
+after the earlier failed attempt. The controlled notification and handover facts
+survived the existing identity restart using the original recipient Sessions.
+Independent readback confirmed unchanged frozen source, removal of all owned
+Compose resources and the fixture, absent owned processes and process group,
+and refused, bindable database ports. The 20 lightweight Node controls passed.
+Browser, external mailbox, external identity and multi-node revocation acceptance
+remain separate; F10 remains Partial.
+
+The first actual run on 2026-10-14 passed both PostgreSQL lifecycle summaries,
+including the notice checks at the existing identity restart. MySQL timed out
+during its first server-readiness wait before business assertions, so that run
+does not establish dual-driver acceptance. The configured wait was unchanged;
+the startup cause is unproven. The controller directly joined failure, all owned
+Compose resources and processes closed, the fixture was removed, and both
+database ports refused connections and were bindable afterward. Frozen source
+readback found no changes. The later official success retains this failed result;
+it does not prove the original startup cause.
+
+A subsequent private startup observer completed with the original timers,
+assertions and migrations unchanged. It measured first readiness at 5.582 seconds
+for PostgreSQL and 10.014 seconds for MySQL; all eight observed application births
+exited normally. The private output stayed in owner-only files, and independent
+readback confirmed unchanged source and owned cleanup. This diagnostic success
+does not explain the earlier startup timeout or replace official acceptance.
