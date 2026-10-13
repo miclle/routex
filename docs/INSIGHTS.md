@@ -103,9 +103,10 @@ requires local confirmation. Private lists and asynchronous write completions
 remain fenced by the current actor, Session and authority. Definitions and write
 intentions are never placed in browser storage.
 
-This is a specification for the isolated work in progress, not delivered or tested
-behavior. Formatting, unit/UI tests, mandatory checks, real PostgreSQL/MySQL
-migration and ownership tests, and browser acceptance must be recorded separately.
+The composed source passes focused frontend and pure Go tests, plus all 17
+selected report nodes on each real PostgreSQL and MySQL database. Complete
+ordinary, unfiltered integration, authentication and final mandatory qualification
+remain pending; this is not delivery or browser acceptance.
 
 ## Optional personal-model AI advice
 
@@ -187,5 +188,46 @@ Analysis remains limited to the explicitly selected current user's callable
 personal Chat model and personal quota, with bounded authorized aggregates and
 temporary Model labels only. No free-text questions, conversation history, raw
 calls, borrowed Key/Team/Project authority or persisted answer is added. Browser
-and real external-model acceptance remain deferred. Creator-private saved definitions are now a separately specified implementation
-package. Forecasts and broader evaluation remain unimplemented scope.
+and real external-model acceptance remain deferred. Creator-private saved
+definitions and scoped forecasts are composed below for fresh qualification;
+broader evaluation remains unimplemented scope.
+
+## Scoped Team and Key quota analysis (in progress)
+
+The existing operations-analysis layout is being extended with Team and Key
+quota shortcuts. The page and endpoints retain `calls.read_all`; each server
+read also checks current Team authority or the explicitly selected member or
+Project Key authority. No platform-wide Key directory or new permission is
+introduced. Lists are bounded to 20 accounts by default and 50 at most; Key
+rotation successors share one deduplicated root account. Cards and exports
+describe the selected page rather than implying complete platform totals.
+
+`GET /api/v1/admin/insights/quota/teams` and
+`GET /api/v1/admin/insights/quota/keys` use the selected Tokens or Money dimension.
+Key reads require an explicit member or Project scope. Their `/export.csv`
+counterparts independently reauthorize and produce a fresh coherent server
+batch. All result reads preserve actor, Session, permission and target freshness.
+
+Percentages concern an account's own stored monthly cap, separately from parent
+constraints and stop/alert-only behavior. Explicit zero, no own cap, unknown
+usage, incomplete coverage and unavailable accounting remain distinct. Money
+uses exact decimal strings and matching currency; reservations and unknown
+amounts are shown separately from settled usage.
+
+Exhaustion estimates use settled usage for requests admitted in the preceding
+168 hours at a constant rate. Both the complete journal coverage and the current
+account incarnation must cover that window. Unknown usage, incomplete coverage
+or a zero rate yields no forecast. Estimates stop at the account's calendar
+monthly reset; they do not predict parent constraints, future workload or actual
+request blocking. Pending reservations are excluded from the rate. Retained terminal reservations
+represent incomplete actual usage even when an unbounded-unknown counter is zero;
+they suppress utilization percentages and forecasts while settled subtotals remain
+visible. Active pending reservations and retained terminal reservations are
+disclosed separately.
+
+Quota reports do not submit identities or result rows to optional AI advice.
+Saving quota definitions remains a separate follow-up; current saved-definition
+kinds are unchanged. The composed source passes the selected report scenarios
+on both real databases, including recorded settlements, root deduplication,
+scoped authority and CSV controls. Complete coherent qualification and delivery
+remain pending; browser acceptance is separate.

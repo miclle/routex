@@ -499,4 +499,5 @@ func testInsightsAIIntegration(t *testing.T, db *gorm.DB) {
 			t.Fatal("cancelled actual work became zero usage or retained an active hold", usage, err)
 		}
 	})
+	testInsightsQuotaIntegration(t, ctx, db, svc, router, admin.User.ID, personal.Model.ID)
 }

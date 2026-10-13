@@ -9,10 +9,12 @@ import i18n from '@/i18n'
 import { sessionKey } from '@/hooks/use-auth'
 import { usageFixture } from '@/views/usage/fixture'
 import InsightsPage from './index'
+import type { InsightsReportDefinition } from '@/types/insights'
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root, host: HTMLDivElement, cache: QueryClient
 let providerPermitted = false
+let savedDefinitions: InsightsReportDefinition[]
 let actor: string, permitted: boolean, reportError: number, csvError: number, empty: boolean
 let requests: InternalAxiosRequestConfig[], downloads: string[]
 let reportGate: ReturnType<typeof deferred> | undefined,
@@ -46,6 +48,7 @@ beforeEach(async () => {
   await i18n.changeLanguage('en')
   actor = 'usr_one'
   providerPermitted = false
+  savedDefinitions = []
   permitted = true
   reportError = csvError = 0
   empty = false
@@ -67,7 +70,7 @@ beforeEach(async () => {
     requests.push(config)
     let data: unknown,
       mime = 'application/json'
-    if (config.url === '/insights/reports') data = { items: [], next_cursor: '' }
+    if (config.url === '/insights/reports') data = { items: savedDefinitions, next_cursor: '' }
     else if (config.url === '/auth/session') {
       data = structuredClone(session())
       if (sessionGate) await sessionGate.promise
@@ -79,6 +82,8 @@ beforeEach(async () => {
         ],
       }
       if (permissionGate) await permissionGate.promise
+    } else if (config.url === '/projects') {
+      data = { items: [], next_cursor: null }
     } else if (config.url === '/admin/insights/models') {
       data = { items: [] }
     } else if (config.url === '/admin/insights/provider-quality') {
@@ -246,11 +251,11 @@ it('preserves layout slots and localizes an existing result without replay or cl
   expect(host.querySelector('textarea')!.rows).toBe(3)
   expect(host.querySelectorAll('thead th')).toHaveLength(4)
 })
-it('rejects unsupported forecasts and hostile questions without dispatching any report or model request', async () => {
+it('reviews quota shortcuts without automatic reports and rejects hostile questions', async () => {
   await mount()
   for (const key of ['shortcutTeam', 'shortcutKey']) {
     await click(text(key))
-    expect(host.textContent).toContain(text('unsupported'))
+    expect(host.textContent).toContain(text('quotaAwaitingReview'))
   }
   await input('question', '<img src=x onerror=alert(1)>; SELECT secrets; https://outside.test')
   await click(text('send'))
@@ -263,6 +268,7 @@ it('rejects unsupported forecasts and hostile questions without dispatching any 
         '/auth/session',
         '/auth/permissions',
         '/admin/insights/models',
+        '/projects',
         '/insights/reports',
       ].includes(item.url!),
     ),
@@ -569,5 +575,60 @@ it.each([400, 403, 422, 503])(
     expect(host.textContent).not.toContain('private-upstream-secret')
     expect(button(text('exportCSV')).disabled).toBe(true)
     if (status === 403) expect(host.textContent).toContain(text('providerReadDenied'))
+  },
+)
+it.each(['shortcutTeam', 'shortcutKey'])(
+  'loads a private saved definition from %s without running quota, reports or inference',
+  async (shortcut) => {
+    savedDefinitions = [
+      {
+        id: 'isr_01arz3ndektsv4rrffq69g5fav',
+        kind: 'tokens_by_model',
+        from: '2026-09-01T00:00:00Z',
+        to: '2026-09-02T00:00:00Z',
+        timezone: 'UTC',
+        created_at: '2026-09-03T00:00:00Z',
+      },
+    ]
+    await mount()
+    await click(text(shortcut))
+    await until(() =>
+      expect(
+        host.querySelector<HTMLButtonElement>(
+          '[aria-label="' +
+            i18n.t('insights:savedActions', {
+              id: savedDefinitions[0].id,
+              title: text('reportTitle'),
+            }) +
+            '"]',
+        ),
+      ).not.toBeNull(),
+    )
+    expect(button(text('saveReport')).disabled).toBe(true)
+    const menu = host.querySelector<HTMLButtonElement>(
+      '[aria-label="' +
+        i18n.t('insights:savedActions', {
+          id: savedDefinitions[0].id,
+          title: text('reportTitle'),
+        }) +
+        '"]',
+    )!
+    await act(async () => menu.click())
+    await until(() => expect(document.querySelector('[role="menuitem"]')).not.toBeNull())
+    const load = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
+      (item) => item.textContent?.trim() === text('loadSaved'),
+    )!
+    await act(async () => load.click())
+    expect(host.textContent).toContain(text('savedLoaded'))
+    expect(host.querySelector('[aria-label="' + text('quotaReview') + '"]')).toBeNull()
+    expect(host.querySelector<HTMLInputElement>('[name="from"]')!.value).toBe(
+      savedDefinitions[0].from,
+    )
+    expect(reports()).toHaveLength(0)
+    expect(requests.some((item) => item.url?.startsWith('/admin/insights/quota/'))).toBe(false)
+    expect(requests.some((item) => item.method === 'post')).toBe(false)
+    await click(text('reviewRun'))
+    await ready()
+    expect(reports()).toHaveLength(1)
   },
 )

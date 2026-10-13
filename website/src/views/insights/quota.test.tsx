@@ -1,0 +1,531 @@
+import { act } from 'react'
+import { createRoot, type Root } from 'react-dom/client'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import client from '@/api/client'
+import i18n from '@/i18n'
+import { sessionKey } from '@/hooks/use-auth'
+import InsightsPage from './index'
+import {
+  keyQuotaInput,
+  quotaActor,
+  quotaFixture,
+  quotaProject,
+  teamQuotaInput,
+} from './quota-fixture'
+import type { QuotaInsightsReport } from '@/types/insights-quota'
+Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
+interface DeferredGate {
+  promise: Promise<void>
+  release: () => void
+}
+let root: Root, host: HTMLDivElement, cache: QueryClient
+let actor: string,
+  permissions: string[],
+  requests: InternalAxiosRequestConfig[],
+  downloads: string[],
+  gates: DeferredGate[],
+  reportGate: DeferredGate | undefined,
+  csvGate: DeferredGate | undefined,
+  targetGate: DeferredGate | undefined,
+  permissionGate: DeferredGate | undefined,
+  sessionGate: DeferredGate | undefined
+let reportStatus: number, targetStatus: number, mutation: (r: QuotaInsightsReport) => void
+const original = client.defaults.adapter
+const text = (key: string) => i18n.t('insights:' + key)
+function deferred(): DeferredGate {
+  let release!: () => void
+  const promise = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  const gate = { promise, release }
+  gates.push(gate)
+  return gate
+}
+function failure(config: InternalAxiosRequestConfig, status: number) {
+  return new AxiosError('private-secret', '', config, undefined, {
+    config,
+    status,
+    statusText: '',
+    headers: new AxiosHeaders(),
+    data: { message: 'private-secret' },
+  })
+}
+beforeEach(async () => {
+  await i18n.changeLanguage('en')
+  actor = quotaActor
+  permissions = ['calls.read_all', 'members.read']
+  requests = []
+  downloads = []
+  gates = []
+  reportGate = csvGate = targetGate = permissionGate = sessionGate = undefined
+  reportStatus = targetStatus = 0
+  mutation = () => {}
+  host = document.createElement('div')
+  document.body.append(host)
+  root = createRoot(host)
+  cache = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:quota'), revokeObjectURL: vi.fn() })
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+    this: HTMLAnchorElement,
+  ) {
+    downloads.push(this.download)
+  })
+  client.defaults.adapter = async (config) => {
+    requests.push(config)
+    let data: unknown,
+      mime = 'application/json'
+    if (config.url === '/insights/reports') data = { items: [], next_cursor: '' }
+    else if (config.url === '/auth/session') {
+      data = { user: { id: actor, role: 'member' }, csrf_token: 'csrf' }
+      if (sessionGate) await sessionGate.promise
+    } else if (config.url === '/auth/permissions') {
+      data = { permissions: [...permissions] }
+      if (permissionGate) await permissionGate.promise
+    } else if (config.url === '/admin/insights/models') data = { items: [] }
+    else if (config.url === '/admin/members')
+      data = { items: [{ id: quotaActor, name: 'Reviewed member' }], next_cursor: null }
+    else if (config.url === '/projects' || config.url === '/admin/projects')
+      data = { items: [{ id: quotaProject, name: 'Reviewed Project' }], next_cursor: null }
+    else if (
+      config.url === '/admin/members/' + quotaActor ||
+      config.url === '/projects/' + quotaProject
+    ) {
+      if (targetGate) await targetGate.promise
+      if (targetStatus) throw failure(config, targetStatus)
+      data = {
+        id: config.url.includes('members') ? quotaActor : quotaProject,
+        managers: [{ user_id: actor }],
+      }
+    } else if (config.url?.endsWith('/export.csv')) {
+      if (csvGate) await csvGate.promise
+      data = new Blob(['id,local_cap\nreviewed,100'])
+      mime = 'text/csv; charset=utf-8'
+    } else if (config.url?.startsWith('/admin/insights/quota/')) {
+      const input = config.url.endsWith('teams')
+        ? { ...teamQuotaInput, dimension: config.params.dimension }
+        : {
+            ...keyQuotaInput,
+            dimension: config.params.dimension,
+            scope: { kind: config.params.scope_kind, id: config.params.scope_id },
+          }
+      const report = quotaFixture(input)
+      mutation(report)
+      if (reportGate) await reportGate.promise
+      if (reportStatus) throw failure(config, reportStatus)
+      data = report
+    } else throw new Error('Unexpected request ' + config.url)
+    return {
+      config,
+      data,
+      status: 200,
+      statusText: '',
+      headers: new AxiosHeaders({ 'content-type': mime }),
+    }
+  }
+})
+afterEach(async () => {
+  gates.forEach((g) => g.release())
+  await act(async () => root.unmount())
+  cache.clear()
+  host.remove()
+  client.defaults.adapter = original
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+  await i18n.changeLanguage('en')
+})
+async function until(assertion: () => void) {
+  for (let n = 0; n < 100; n++) {
+    try {
+      assertion()
+      return
+    } catch {
+      await act(async () => new Promise((resolve) => setTimeout(resolve, 5)))
+    }
+  }
+  assertion()
+}
+function button(key: string) {
+  const found = [...host.querySelectorAll<HTMLButtonElement>('button')].find(
+    (b) => b.textContent?.trim() === text(key),
+  )
+  if (!found) throw new Error('Missing ' + key)
+  return found
+}
+async function click(key: string) {
+  await act(async () => button(key).click())
+}
+async function select(key: string, value: string) {
+  const field = host.querySelector<HTMLSelectElement>('select[aria-label="' + text(key) + '"]')!
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(field, value)
+    field.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+}
+async function mount() {
+  await act(async () =>
+    root.render(
+      <QueryClientProvider client={cache}>
+        <InsightsPage />
+      </QueryClientProvider>,
+    ),
+  )
+  await until(() => expect(host.textContent).toContain(text('assistantTitle')))
+}
+const reports = () =>
+  requests.filter(
+    (r) => r.url?.startsWith('/admin/insights/quota/') && !r.url.endsWith('/export.csv'),
+  )
+async function ready() {
+  await until(() => expect(host.textContent).toContain('Reviewed quota account'))
+}
+async function member() {
+  await click('shortcutKey')
+  await until(() => expect(host.textContent).toContain('Reviewed member'))
+  await select('quotaSelectedScope', quotaActor)
+  await until(() => expect(button('quotaRun').disabled).toBe(false))
+}
+function targetKey() {
+  return cache
+    .getQueryCache()
+    .getAll()
+    .find((q) => q.queryKey[0] === 'insights-quota-target' && q.queryKey[4] === quotaActor)!
+    .queryKey
+}
+it('keeps the Mockup layout, requires explicit Team run and displays only bounded server facts', async () => {
+  await mount()
+  expect(reports()).toHaveLength(0)
+  expect(requests.some((r) => r.url === '/admin/members' || r.url === '/projects')).toBe(false)
+  await click('shortcutTeam')
+  expect(reports()).toHaveLength(0)
+  expect(button('saveReport').disabled).toBe(true)
+  expect(button('saveReport').title).toBe(text('quotaSaveUnavailable'))
+  expect(host.textContent).not.toContain(text('aiTitle'))
+  await click('quotaRun')
+  await ready()
+  expect(reports()).toHaveLength(1)
+  expect(reports()[0].params).toEqual({ dimension: 'tokens', limit: 20 })
+  expect(host.querySelectorAll('thead th')).toHaveLength(4)
+  expect(host.textContent).toContain('80.00%')
+  expect(host.textContent).toContain(text('quotaPageScope'))
+  expect(host.textContent).toContain(text('quotaForecastDefinition'))
+  expect(host.textContent).toContain(text('quotaHolds'))
+  expect(host.querySelector('[role="img"]')?.getAttribute('aria-label')).toContain('80.00%')
+  expect(requests.some((r) => r.url?.includes('/ai'))).toBe(false)
+})
+it('preserves exact money and distinguishes zero, missing cap, unknown coverage and holds without fabricating forecasts', async () => {
+  mutation = (r) => {
+    r.items[0] = {
+      ...r.items[0],
+      local_cap: '0',
+      month_settled: '9007199254740993.123456789012345678',
+      active_held: null,
+      month_unknown: '1',
+      baseline_unknown: '1',
+      baseline_covered: false,
+      utilization_percent: null,
+      level: 'unknown',
+      estimate_at: null,
+      estimate_within_seven_days: false,
+      estimate_status: 'zero_cap',
+    }
+  }
+  await mount()
+  await click('shortcutTeam')
+  await select('quotaDimension', 'money')
+  await click('quotaRun')
+  await ready()
+  expect(host.textContent).toContain('9007199254740993.123456789012345678 USD')
+  expect(host.textContent).toContain(text('quotaEstimate_zero_cap'))
+  expect(host.textContent).toContain(text('quotaUnknown'))
+  expect(host.textContent).toContain('0 USD')
+  mutation = (r) => {
+    r.items[0] = {
+      ...r.items[0],
+      local_cap: null,
+      estimate_at: null,
+      estimate_within_seven_days: false,
+      estimate_status: 'no_local_cap',
+    }
+  }
+  await click('quotaRefresh')
+  await until(() => expect(host.textContent).toContain(text('quotaNoLocalCap')))
+  expect(host.textContent).not.toContain('9007199254740993.123456789012345678')
+})
+it('uses bounded Member scope, exact review and root accounts without a global Key directory', async () => {
+  await mount()
+  await member()
+  expect(reports()).toHaveLength(0)
+  await click('quotaRun')
+  await ready()
+  expect(reports()[0].params).toEqual({
+    dimension: 'tokens',
+    scope_kind: 'member',
+    scope_id: quotaActor,
+    limit: 20,
+  })
+  expect(
+    requests.filter((r) => r.url === '/admin/members/' + quotaActor).length,
+  ).toBeGreaterThanOrEqual(2)
+  expect(host.textContent).toContain(i18n.t('insights:quotaSharedKeys', { count: 2 }))
+  expect(requests.some((r) => r.url === '/keys' || r.url === '/admin/keys')).toBe(false)
+})
+it.each([false, true])(
+  'uses scoped Project options unless both global read and write authorize the directory (%s)',
+  async (admin) => {
+    permissions = ['calls.read_all', ...(admin ? ['projects.write', 'projects.read_all'] : [])]
+    await mount()
+    await click('shortcutKey')
+    await until(() => expect(host.textContent).toContain('Reviewed Project'))
+    expect(requests.some((r) => r.url === (admin ? '/admin/projects' : '/projects'))).toBe(true)
+    expect(requests.some((r) => r.url === '/admin/members')).toBe(false)
+    expect(host.querySelector<HTMLOptionElement>('option[value="member"]')!.disabled).toBe(true)
+    await select('quotaSelectedScope', quotaProject)
+    await until(() => expect(button('quotaRun').disabled).toBe(false))
+    await click('quotaRun')
+    await ready()
+    expect(reports()[0].params.scope_kind).toBe('project')
+    expect(reports()[0].params.scope_id).toBe(quotaProject)
+  },
+)
+it('localizes an existing result and controls without replaying or changing the reviewed dimension', async () => {
+  await mount()
+  await click('shortcutTeam')
+  await click('quotaRun')
+  await ready()
+  const count = reports().length
+  await act(async () => {
+    await i18n.changeLanguage('zh')
+  })
+  expect(host.textContent).toContain(text('quotaPageScope'))
+  expect(host.textContent).toContain(text('quotaEstimate_estimated'))
+  expect(host.querySelector<HTMLSelectElement>('select')!.value).toBe('tokens')
+  expect(reports()).toHaveLength(count)
+})
+it.each([403, 404, 422, 503])(
+  'shows sanitized failures %i and clears old facts',
+  async (status) => {
+    await mount()
+    await click('shortcutTeam')
+    await click('quotaRun')
+    await ready()
+    reportStatus = status
+    await click('quotaRefresh')
+    await until(() => expect(host.querySelector('[role="alert"]')).not.toBeNull())
+    expect(host.textContent).not.toContain('Reviewed quota account')
+    expect(host.textContent).not.toContain('private-secret')
+    expect(reports()).toHaveLength(2)
+  },
+)
+it('cancels duplicates and discards old Team replies after dimension changes', async () => {
+  await mount()
+  await click('shortcutTeam')
+  reportGate = deferred()
+  await click('quotaRun')
+  await until(() => expect(reports()).toHaveLength(1))
+  await click('quotaRun')
+  expect(reports()).toHaveLength(1)
+  await select('quotaDimension', 'money')
+  reportGate.release()
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 10)))
+  expect(host.textContent).not.toContain('Reviewed quota account')
+  expect(button('exportCSV').disabled).toBe(true)
+})
+it('hides Key facts and rejects late replies while exact scope authority renews or fails', async () => {
+  await mount()
+  await member()
+  await click('quotaRun')
+  await ready()
+  targetGate = deferred()
+  targetStatus = 403
+  let refresh!: Promise<unknown>
+  await act(async () => {
+    refresh = cache.refetchQueries({ queryKey: targetKey(), exact: true })
+  })
+  expect(host.textContent).not.toContain('Reviewed quota account')
+  expect(button('exportCSV').disabled).toBe(true)
+  targetGate.release()
+  await act(async () => {
+    await refresh
+  })
+  expect(host.textContent).toContain(text('quotaDenied'))
+  expect(host.textContent).not.toContain('Reviewed quota account')
+})
+it('does not restore a pending Key report after a newer successful target generation', async () => {
+  await mount()
+  await member()
+  reportGate = deferred()
+  await click('quotaRun')
+  await until(() => expect(reports()).toHaveLength(1))
+  await act(async () => {
+    await cache.refetchQueries({ queryKey: targetKey(), exact: true })
+  })
+  reportGate.release()
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 10)))
+  expect(host.textContent).not.toContain('Reviewed quota account')
+  expect(button('exportCSV').disabled).toBe(true)
+})
+it.each(['permissions', 'session', 'actor', 'unmount'])(
+  'blocks a stale private report after %s changes',
+  async (change) => {
+    await mount()
+    await click('shortcutTeam')
+    reportGate = deferred()
+    await click('quotaRun')
+    await until(() => expect(reports()).toHaveLength(1))
+    if (change === 'permissions') {
+      permissions = []
+      await act(async () => {
+        await cache.refetchQueries({ queryKey: ['permissions', quotaActor, 'insights'] })
+      })
+    } else if (change === 'session') {
+      sessionGate = deferred()
+      await act(async () => {
+        void cache.refetchQueries({ queryKey: sessionKey, exact: true })
+      })
+    } else if (change === 'actor') {
+      actor = 'usr_01arz3ndektsv4rrffq69g5faw'
+      await act(async () => {
+        await cache.refetchQueries({ queryKey: sessionKey, exact: true })
+      })
+    } else await act(async () => root.render(null))
+    reportGate.release()
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 10)))
+    expect(host.textContent).not.toContain('Reviewed quota account')
+    expect(
+      cache
+        .getQueryCache()
+        .getAll()
+        .some((q) => q.queryKey[0] === 'insights-quota-report' && q.state.data !== undefined),
+    ).toBe(false)
+  },
+)
+it('exports one fresh reviewed scope and exact filename without claiming browser persistence', async () => {
+  await mount()
+  await member()
+  await click('quotaRun')
+  await ready()
+  csvGate = deferred()
+  const exportButton = button('exportCSV')
+  await click('exportCSV')
+  await until(() => expect(requests.filter((r) => r.url?.endsWith('/export.csv'))).toHaveLength(1))
+  await act(async () => exportButton.click())
+  expect(requests.filter((r) => r.url?.endsWith('/export.csv'))).toHaveLength(1)
+  csvGate.release()
+  await until(() => expect(downloads).toEqual(['routex-key-quota.csv']))
+  expect(host.textContent).toContain(text('quotaExportReady'))
+  expect(requests.find((r) => r.url?.endsWith('/export.csv'))!.params).toEqual(reports()[0].params)
+})
+it.each(['target', 'permissions', 'cancel', 'unmount'])(
+  'aborts CSV and suppresses stale download after %s',
+  async (change) => {
+    await mount()
+    await member()
+    await click('quotaRun')
+    await ready()
+    csvGate = deferred()
+    await click('exportCSV')
+    await until(() =>
+      expect(requests.filter((r) => r.url?.endsWith('/export.csv'))).toHaveLength(1),
+    )
+    if (change === 'target') {
+      targetGate = deferred()
+      await act(async () => {
+        void cache.refetchQueries({ queryKey: targetKey(), exact: true })
+      })
+    } else if (change === 'permissions') {
+      permissions = []
+      await act(async () => {
+        await cache.refetchQueries({ queryKey: ['permissions', quotaActor, 'insights'] })
+      })
+    } else if (change === 'cancel') await click('cancel')
+    else await act(async () => root.render(null))
+    csvGate.release()
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 10)))
+    expect(downloads).toEqual([])
+    expect(host.textContent).not.toContain(text('quotaExportReady'))
+  },
+)
+it('keeps calls.read_all as independent page authority despite readable scope permissions', async () => {
+  permissions = ['members.read', 'projects.write', 'teams.read_all']
+  await mountDenied()
+  expect(
+    requests.every(
+      (r) =>
+        r.url === '/auth/session' || r.url === '/auth/permissions' || r.url === '/insights/reports',
+    ),
+  ).toBe(true)
+})
+async function mountDenied() {
+  await act(async () =>
+    root.render(
+      <QueryClientProvider client={cache}>
+        <InsightsPage />
+      </QueryClientProvider>,
+    ),
+  )
+  await until(() => expect(host.textContent).toContain(text('denied')))
+}
+it('pages distinct account roots with the server cursor and keeps cards page-scoped', async () => {
+  mutation = (r) => {
+    r.next_cursor = 'next-page'
+    r.items[0].name = 'First page account'
+  }
+  await mount()
+  await click('shortcutTeam')
+  await click('quotaRun')
+  await until(() => expect(host.textContent).toContain('First page account'))
+  mutation = (r) => {
+    r.items[0].name = 'Second page account'
+    r.items[0].id = 'tea_01arz3ndektsv4rrffq69g5faw'
+  }
+  await click('quotaNextPage')
+  await until(() => expect(host.textContent).toContain('Second page account'))
+  expect(host.textContent).not.toContain('First page account')
+  expect(reports()[1].params).toEqual({ dimension: 'tokens', limit: 20, cursor: 'next-page' })
+  expect(host.textContent).toContain(text('quotaPageAccounts'))
+})
+it('shows terminal held baseline separately and never presents it as a positive estimate', async () => {
+  mutation = (r) => {
+    r.items[0] = {
+      ...r.items[0],
+      baseline_held: '8',
+      estimate_at: null,
+      estimate_within_seven_days: false,
+      estimate_status: 'unknown_usage',
+    }
+  }
+  await mount()
+  await click('shortcutTeam')
+  await click('quotaRun')
+  await ready()
+  expect(host.textContent).toContain(
+    i18n.t('insights:quotaHeldValues', { month: '0', baseline: '8', active: '5' }),
+  )
+  expect(host.textContent).toContain(text('quotaEstimate_unknown_usage'))
+  expect(host.textContent).not.toContain(text('quotaEstimate_estimated'))
+})
+it('counts only the authoritative seven-day forecast flag, independently of the total before-reset estimates', async () => {
+  await mount()
+  await click('shortcutTeam')
+  await click('quotaRun')
+  await ready()
+  const count = () =>
+    [...host.querySelectorAll('p')]
+      .find((p) => p.textContent === text('quotaPageEstimates'))!
+      .parentElement!.querySelector('strong')!.textContent
+  expect(count()).toBe('1')
+  mutation = (r) => {
+    r.items[0].estimate_within_seven_days = false
+    r.items[0].estimate_at = '2026-10-25T12:00:00.123456789Z'
+  }
+  await click('quotaRefresh')
+  await until(() => expect(count()).toBe('0'))
+  expect(host.textContent).toContain(text('quotaEstimate_estimated'))
+  await act(async () => {
+    await i18n.changeLanguage('zh')
+  })
+  expect(count()).toBe('0')
+  expect(reports()).toHaveLength(2)
+})

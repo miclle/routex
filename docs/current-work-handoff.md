@@ -1,25 +1,91 @@
 # Current implementation handoff
 
-## Delivery checkpoint: creator-private report definitions (2026-10-12)
+Updated: 2026-10-13. Status: current packages complete; pause after verified main delivery. [Implementation](IMPLEMENTATION.md) records engineering contracts and historical acceptance evidence. Earlier checkpoints below remain historical.
 
-This phase retains Provider quality reports, the durable notification/audit
-increment and the preceding system-status localization. Known status codes use
-paired English/Chinese copy in the existing layout; unknown codes retain a safe
-generic fallback and do not become inferred health or job outcomes.
+## Delivery and pause boundary (2026-10-13)
 
-V110 adds creator-private saved definitions for Tokens by Model and Provider
-quality. Definitions retain the exact absolute date range and time zone until
-explicit creator deletion. They store no statistics, AI output or arbitrary
-question. Current enabled Sessions may list and delete only their own definitions;
-creation independently requires the report kind's current permissions. Loading
-reviews parameters without executing a report. Running or exporting again
-requires fresh current authority. Deletion clears the definition payload while a
-minimal creation receipt prevents an uncertain POST replay from resurrecting it.
+The current five increments are complete in this main delivery. No additional
+feature package starts. The overall goal pauses after this commit is pushed and
+remote-main parity is verified; it is not complete. The first four phases have
+already been committed, pushed and read back from the remote:
 
-The V110 schema, owner-scoped API, UI and updated historical migration fixtures
-land together. The preceding diagnostic fixes remain preserved. Team and Key
-quota analysis belongs to phase 5 and is still pending in this phase; this saved
-kind contract does not add quota definitions or forecasting.
+| Phase | Commit | Focused verification |
+| --- | --- | --- |
+| Provider quality reports | `4b0b89597bd3d0fa8b0db6c6758e723213a8c4e0` | 6 Go / 38 UI; mandatory check passed |
+| Durable notices and audit details | `af1288f933f22c3fd2def1a666f4185421955b5b` | 314 Go / 220 UI; mandatory check passed |
+| System-status localization | `84df844eac7f9dfb6e15c84f90b0f5ee69da4287` | 0 Go / 9 UI; mandatory check passed |
+| Creator-private report definitions | `4ee39097290921abca4fd90a2f7b9c5fd6fbe649` | 5 Go / 91 UI; mandatory check passed |
+
+The scoped quota-analysis increment is delivered by this commit. Every phase
+requires formatting, its focused tests and `go tool task check` before commit.
+The composed final product code passed the complete qualification below; only
+delivery documentation changed after that qualification.
+
+Repository: `miclle/routex`; branch and base: `main`; upstream: `origin/main`.
+The final delivery commit is obtained with `git rev-parse HEAD`. Transfer uses
+the remote main branch, after confirmed push and parity. No product edits or
+additional packages remain active at this pause boundary. Temporary qualification
+artifacts and retained worktrees are local evidence, not required source for
+continuing the delivered implementation. Existing development is preserved.
+
+Before any authorized continuation, run `git status --short --branch`,
+`git rev-parse HEAD` and `git ls-remote origin refs/heads/main`. Confirm a clean
+checkout and matching remote before reading this document and
+`docs/IMPLEMENTATION.md`. The broader roadmap remains the coordination entry;
+select subsequent work only after the user resumes it. Browser acceptance and
+real external-service activation remain open, and quota report definitions are
+unsupported. F24 and F10 remain Partial; totals remain 16 Completed / 14 Partial.
+
+## Current completion boundary (2026-10-12)
+
+The user requested finishing current tasks and then pausing. No new feature
+package will start. The composed candidate contains Provider quality, durable
+notices and audit details, system-status localization, creator-private saved
+report definitions and scoped Team/Key quota analysis. Saved definitions retain
+only reviewed parameters until owner deletion; quota analysis preserves current
+resource authority, local caps, exact amounts and fully covered trailing
+168-hour settled-admission-rate estimates. The seven-day card counts only
+server-confirmed estimates within 168 hours; account rows may show later estimates
+strictly before the monthly reset. See [Insights](INSIGHTS.md).
+
+The composed code passed focused, mandatory, ordinary, PostgreSQL/MySQL and
+relevant authentication qualification. The current packages are delivered through
+the staged main commits above and this final quota increment. Quota saved
+definitions, browser acceptance and real external-model activation remain
+pending. F24 stays Partial. Earlier results retain their recorded source scope.
+
+## Current F24 and F10 source checkpoint (2026-10-12)
+
+Capability totals remain **16 Completed / 14 Partial / 0 Not started**. F24 and
+F10 remain Partial. The current package is qualified and included in this
+staged main delivery; it is not a claim of complete Mockup parity.
+
+F24 includes creator-private saved definitions for Tokens by Model and Provider
+quality. Only the reviewed kind, absolute range and time zone are retained until
+explicit owner deletion; statistics, AI output and arbitrary questions are not
+stored. Loading fills parameters for review and clears previous results and
+advice. Running or exporting requires fresh current authority and a separate
+explicit action. Owner listing and deletion do not grant analysis permission.
+
+Scoped Team and Key quota analysis is implemented in the current package under
+`calls.read_all` plus current readable-Team or explicitly selected authorized
+member/Project Key scope. Rotation successors share their root account. Exact
+settled amounts, terminal holds, active reservations and unknown coverage remain
+separate. Forecasts use fully covered trailing 168-hour settled-admission usage,
+concern only the account's own local monthly cap, and stop before monthly reset.
+The seven-day card uses the server's exact seven-day indicator. Unknown or
+incomplete usage and a zero rate produce no forecast. Saving quota definitions
+is unsupported; broader analysis and evaluation remain open.
+
+F10's current package adds transactional completion notices for the executing
+administrator and actual Project/Team successors. Immutable recipient birth
+receipts prevent account replacement from inheriting history; replay creates no
+new notice. Recipient inbox authority is separate from operational-alert
+permissions, and email uses existing preferences and bounded accepted/unknown
+result handling. Current audit details and genuine departure/MFA checks remain
+part of the coherent qualification boundary. External identity-provider logout,
+external mail delivery, browser and broader enterprise continuity acceptance are
+not established by this implementation.
 
 Final qualification for the composed delivery candidate passed on the unchanged
 2,633-path source `038d6b7397684830800338dcbfccf1a92ebf3f5d1be9b898cd55127ecc90c80e`:
@@ -42,69 +108,111 @@ applicable. Delivery documentation is refreshed afterward. Each main phase is
 submitted only after its own formatting and mandatory check pass. Browser and
 real external-service acceptance retain their separate scope.
 
-Earlier successful focused checks do not qualify the final candidate. Failed and
-cancelled originals remain historical failures. Browser and real external-service
-acceptance retain their independently documented scope; no new acceptance is
-claimed here. Overall progress remains **16 Completed / 14 Partial / 0 Not
-started**; F24 remains Partial.
+Focused repair remains recorded below as historical evidence. Current
+implementation is closed at this delivery boundary; verify the final push and
+pause. No additional feature package starts.
 
-The user requested a pause after the currently active tasks are delivered.
-Complete this finite delivery and its required verification, then pause before
-starting another work package.
+Earlier passing runs retain their original source scope. Failed full original
+46879 remains failed as recorded below; neither a diagnostic run nor resource
+closure converts it into functional acceptance. Browser and real external-model
+acceptance remain separate open gates.
 
-## Historical checkpoints
+## Historical qualification checkpoints
 
-The remaining sections preserve earlier evidence and planning in their original
-chronological context. They do not override the delivery scope or
-qualification above. References to another candidate or worktree describe that
-historical checkpoint, not an additional feature delivered in this phase.
+The following checkpoints retain their original source, result and pending-work
+statements. They do not override the current delivery and qualification above.
 
-Updated: 2026-10-12. Status: resumed by explicit user instruction; prioritize partially completed capabilities. [Implementation](IMPLEMENTATION.md) records engineering contracts and historical acceptance evidence. Earlier checkpoints below remain historical.
+## Focused repair verification (2026-10-12)
 
-## Creator-private saved definitions in progress (2026-10-12)
+Original 66945 completed both real-driver selections: seven corrected migration
+future-version controls passed on each driver, while Project Key monthly warning
+verification failed. PostgreSQL's pre-observer refresh exceeded the original
+three-second budget; MySQL's observer outlived the five-second authorization
+lease. The fixture's one-second periodic publisher repeatedly injected failures
+and operational writes during the positive cardinality observation. Physical-only
+readback `2e1961db7d71af352fb46b43f8f9c4b046084621de46d4e38dd7e9b4e69e781a`
+closed all owned resources without accepting the failed warning scenario.
 
-The user confirmed that saved report definitions are creator-private and retained
-until explicit owner deletion. Backend and frontend implementation proceed in a
-separate worktree while the containing Provider/notifications/audit candidate
-remains frozen for complete dual-database qualification. Definitions persist only
-the supported report kind and reviewed absolute range/time-zone parameters, with
-no statistics or AI output. Loading requires fresh authorized execution after
-explicit review; deletion clears the saved parameter payload. See
-[Operations analysis](INSIGHTS.md#creator-private-saved-definitions).
+The fixture now uses the existing hourly refresh option. Its publisher stays
+live; eight explicit tagged fault controls, manual refreshes, all assertions,
+cleanup, three-second refresh budget, five-second lease and 10,000/10,001-row
+boundary remain unchanged. No production behavior, retry or timeout changed.
+Original 29033 then directly joined zero: the warning leaf and its two ancestors
+passed on each real driver, with no failures or skips. Refreshes took about
+1.1 seconds and observers about 2.3 seconds. Independent focused readback
+`c32f845e2141ed79694aff8abd8a28d312ba670ff64eadbd200d858a13e5ab3a`
+confirms eight workers, owners, exact Compose resources, helpers and ports closed,
+unchanged 2,633-path source and preserved development. This is focused acceptance;
+fresh complete checks, ordinary tests, full matrix, authentication lifecycle and
+staged delivery remain pending.
 
-Initial focused feedback passes 144 frontend cases in nine files, five pure Go
-tests across database/service/handler packages, and frontend TypeScript checking.
-The initial scoped ESLint invocation rejected two render-time mounted-ref
-reads. A one-file repair derives rendering from subscribed Session state and
-preserves mounted/abort/late-response guards. The scoped lint successor passes,
-and all 81 related interaction cases in three files pass on the repair. These are
-separate results, not complete qualification. Mandatory checking, complete
-ordinary tests and real PostgreSQL/MySQL migration/owner-isolation qualification
-remain pending after the ongoing database run closes. No delivery is claimed;
-the overall F24/A18 status remains Partial.
+## Full qualification repair checkpoint (2026-10-12)
 
-## Containing candidate qualification (2026-10-12)
+The current unfiltered full matrix did not qualify delivery. Original 46879
+joined nonzero after 3,512.362 seconds: PostgreSQL ran all 572 named nodes with
+562 passes and ten failures (eight leaves and their two ancestors). Seven legacy
+migration controls incorrectly treated the now-valid V110 as a future version;
+only those future-version negatives will advance to V111, preserving historical
+bounds and ledger assertions. The remaining failure occurred at the second
+runtime refresh in Project Key monthly-warning verification; its cause remains
+under investigation. Expected fault-injection errors do not establish that cause.
 
-The separate Provider/notifications/audit candidate passes mandatory checking and
-the complete ordinary Task: Go race, 7,168 frontend cases, Node and development
-lifecycle checks, production build and embedded assets. Authentication lifecycle
-also passes on PostgreSQL and MySQL, including eight real application processes
-and restart/session checks. These results bind the unchanged 2,605-path source
-`4d5d1e56f2c170c965e8022c25c78ff09f41297bbcde3e88873c72c89ff27a01`.
+MySQL was deliberately cancelled after this confirmed failure, with 347 started
+names and no accepted terminal result. Independent physical-only readback
+`07245c77e47ac3c54d570cf795b85d2d1ef01f7610dceed7194b39581aad0499`
+confirms nine workers, 24 PostgreSQL applications, owners, exact Compose
+resources, ports and helpers closed, unchanged source and preserved development.
+Root also rechecked owned owner/Task/runner absence and both ports. Functional
+acceptance remains false. Repair and fresh qualification are required before
+staged delivery, then pause by user request; no new feature package starts.
 
-Its unfiltered `go tool task test-integration` is still running. Both drivers are
-progressing; complete dual-database acceptance and phased delivery remain pending.
-The preceding failed full run, failed frontend timing fixture and failed external
-authentication collector remain historical failures. Narrow repairs preserve the
-strict assertions; focused regressions and the separate successful successors do
-not relabel those failures. The Team lease failure did not reproduce in the focus;
-its cause remains unknown.
+## Composed report qualification (2026-10-12)
 
-The saved-definition source in this worktree extends that candidate and is not
-covered by its frozen-source results. It requires its own focused, mandatory,
-complete ordinary and real-driver qualification before delivery. Browser and real
-external integration acceptance remain separate. Totals remain
-**16 Completed / 14 Partial / 0 Not started**.
+The composed report focus passed all 17 named nodes on each real PostgreSQL and
+MySQL database, with no failures or skips. Original 43894 directly joined zero;
+independent readback `1379f7664f6246465dc6292424ea2788780531f1378fc73b34db99919fa39fbc`
+confirms owned process/resource/port closure, unchanged source and preserved
+development. This qualifies the selected report scenarios, not the complete matrix.
+
+Earlier focused failures remain failed. The bounded repairs reuse the existing
+ordered-index metadata and DropIndex adapters, compare retained timestamps by
+canonical instant representation, use the existing reviewed Team partial-limit
+write, and retire fixture connections after deliberate DDL reconstruction. A
+reversed-index control and exact timestamp/parameter regressions preserve strict
+acceptance. The root fixture also clears the new report table between scenarios.
+No business permission, forecast formula, assertion or deadline was relaxed.
+
+Fresh mandatory, complete ordinary, unfiltered integration and authentication
+qualification remain required before delivery. Browser and external-service
+acceptance remain separate. Finish current work, then pause; no new feature work.
+
+## Latest bounded qualification checkpoint (2026-10-12)
+
+The containing candidate passed mandatory checking and complete ordinary tests,
+including 7,168 frontend cases, Go race tests, development lifecycle and
+production assets. Its separate authentication lifecycle passed all eight real
+applications and four official summaries, with independent physical closure.
+These successful runs retain their exact prior source scope.
+
+The next complete integration run failed. PostgreSQL completed 566 named nodes
+with 561 passes and five failures: runtime publication unavailable and a Telegram
+departure-login HTTP 503, plus their ancestors. MySQL was deliberately cancelled
+after the confirmed PostgreSQL failure; its 345 started names have no accepted
+terminal result. This run does not qualify delivery.
+
+The original was directly joined, and independent physical closure confirmed all
+nine workers, 24 recorded PostgreSQL applications, exact Compose resources,
+ports and helpers absent; source and development services remained preserved.
+Receipt: `6024d1a556848a19d2ae50074459fb74a505c2fefa64e5c897581aca91b90e96`.
+
+Only two test paths now add safe phase timings and portable query-error classes.
+No product behavior, assertion, retry or timeout changed. A focused real-driver
+reproduction passed all 14 named nodes on each database with no failures or skips;
+neither 503 reproduced and the cause remains unproven. Independent readback
+`5368fce92026459cac2ddaa6be4b971fa0849761167561ac27ca95cf39652a40`
+confirms physical closure, unchanged source and preserved development. Earlier failed originals are
+not relabeled. Complete integration, browser and delivery remain pending;
+totals remain **16 Completed / 14 Partial / 0 Not started**.
 
 ## Selected-range Provider quality reports (2026-10-12)
 
@@ -122,8 +230,10 @@ named passes per driver and no skips. Independent readback
 confirms all owned identities, resources, ports and helpers closed, unchanged
 2,576-path source and preserved development. Current main composition requires
 complete ordinary, mandatory and unfiltered dual-database qualification before
-commit. F24 remains Partial; saved reports, forecasts, browser and external
-acceptance remain open. Totals remain **16 Completed / 14 Partial / 0 Not started**.
+commit. At that earlier checkpoint, saved reports and forecasts were not yet
+implemented; their current source scope and pending delivery are described above.
+F24 remains Partial, and browser and external acceptance remain open. Totals remain
+**16 Completed / 14 Partial / 0 Not started**.
 
 Current-main ordinary tests passed 7,061 frontend cases and mandatory checking.
 Full dual-database original 78112 then failed: PostgreSQL passed all 564 named
@@ -401,11 +511,13 @@ the separately delivered rolling-warning fixture. Final main checking precedes
 commit and push. Earlier failed qualification and CI outcomes remain historical;
 the green ac04 CI result is not a CI result for this containing delivery.
 
-Current totals: **16 Completed / 14 Partial / 0 Not started**. F24 is Partial:
-scoped aggregate queries, CSV and optional AI advice are implemented; saved-report
-audience/retention, forecasts and wider evaluation remain open. F03, F12 and F29
-also remain Partial. Browser and live external-provider acceptance are deferred.
-Role management remains Completed under its separately recorded controlled scope.
+At this earlier checkpoint, totals were **16 Completed / 14 Partial / 0 Not started**.
+Scoped aggregate queries, CSV and optional AI advice were implemented; saved-report
+policy and forecasts were still open. The current F24 checkpoint above supersedes
+that implementation scope: creator-private retention is defined, and saved
+definitions and scoped quota forecasts are implemented pending final qualification
+and delivery. F03, F12 and F29 remain Partial. Browser and live external-provider
+acceptance remain separate. Role management retains its recorded Completed scope.
 
 The controlled cold PostgreSQL/MySQL restore drill has passed as recorded above;
 this phase adds its dedicated Task, drill and recovery runbook. Next bounded work
@@ -413,8 +525,9 @@ is the prepared Audit/offboarding and acknowledged-Vault-delete persistence-loss
 regressions, whose coherent verification and delivery remain pending.
 Qualified RSS helper controls and reviewed performance runners are preparation,
 not measured workload acceptance; hardware and goroutine qualification remain
-unknown. Saved-report policy, workload identities, notification recipients and
-broader configuration rollback still require their separate product decisions.
+unknown. Saved-report retention and offboarding notification recipients are now
+specified in the current checkpoint above; workload identities and broader
+configuration rollback retain their separate unresolved scope.
 
 ## Reviewed Model reference assistance (2026-10-12)
 

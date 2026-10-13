@@ -28,6 +28,8 @@ import type { UsageFilters } from '@/types/usage'
 import { readInsightsRange, type InsightsRange } from './range'
 import InsightsResult from './result'
 import { useInsightsAI } from './ai'
+import { useQuotaInsights } from './quota'
+import type { QuotaInsightsKind } from '@/types/insights-quota'
 import { useSavedInsightsReports } from './saved-reports'
 
 type PermissionKey = readonly ['permissions', string, 'insights', number]
@@ -139,6 +141,7 @@ function InsightsContent({
     key: 'shortcutTokens',
   })
   const [providerReport, setProviderReport] = useState(false)
+  const [quotaKind, setQuotaKind] = useState<QuotaInsightsKind | null>(null)
   const [supported, setSupported] = useState(true)
   const [message, setMessage] = useState('awaitingReview')
   const [request, setRequest] = useState<{ id: number; filters: UsageFilters } | null>(null)
@@ -156,6 +159,13 @@ function InsightsContent({
   }, [cache, actor, permissionKey, authorityStamp])
   const providerAuthorized = () =>
     authorized() && authorityState(cache, actor, permissionKey).providerReady
+  const quota = useQuotaInsights({
+    kind: quotaKind,
+    actor,
+    authorityStamp,
+    authorized,
+    permissions: cache.getQueryData<string[]>(permissionKey) ?? [],
+  })
   const reportKey = useMemo(
     () => ['insights-report', actor, authorityStamp, request],
     [actor, authorityStamp, request],
@@ -228,7 +238,7 @@ function InsightsContent({
     authorityStamp,
     authorized,
     range: draft,
-    supported: supported && !providerReport,
+    supported: supported && !providerReport && !quotaKind,
   })
   useLayoutEffect(() => {
     alive.current = true
@@ -251,6 +261,7 @@ function InsightsContent({
     }
   }, [cache, permissionKey, reportKey, authorized])
   function clearReport() {
+    quota.clear()
     ai.invalidate()
     sequence.current += 1
     exportController.current?.abort()
@@ -261,18 +272,25 @@ function InsightsContent({
     setExportMessage('')
   }
   function shortcut(key: string) {
-    if (!authorized() || requestLock.current || exportLock.current) return
+    if (!authorized() || requestLock.current || exportLock.current || quota.busy || quota.exporting)
+      return
     clearReport()
     setQuestion({ key })
     setProviderReport(key === 'shortcutProvider')
+    setQuotaKind(key === 'shortcutTeam' ? 'team_quota' : key === 'shortcutKey' ? 'key_quota' : null)
     const permitted = key !== 'shortcutProvider' || providerAuthorized()
-    setSupported((key === 'shortcutTokens' || key === 'shortcutProvider') && permitted)
+    setSupported(
+      ['shortcutTokens', 'shortcutProvider', 'shortcutTeam', 'shortcutKey'].includes(key) &&
+        permitted,
+    )
     setMessage(
       !permitted
         ? 'providerReadDenied'
-        : key === 'shortcutTokens' || key === 'shortcutProvider'
-          ? 'awaitingReview'
-          : 'unsupported',
+        : key === 'shortcutTeam' || key === 'shortcutKey'
+          ? 'quotaAwaitingReview'
+          : key === 'shortcutTokens' || key === 'shortcutProvider'
+            ? 'awaitingReview'
+            : 'unsupported',
     )
   }
   function run() {
@@ -314,7 +332,7 @@ function InsightsContent({
     actor,
     authorized: (kind) => authorized() && (kind !== 'provider_quality' || providerAuthorized()),
     capture: () => {
-      if (!currentExportAuthority() || !currentReport) return null
+      if (quotaKind || !currentExportAuthority() || !currentReport) return null
       return currentReport.kind === 'provider'
         ? {
             kind: 'provider_quality',
@@ -334,12 +352,15 @@ function InsightsContent({
         !authorized() ||
         (parameters.kind === 'provider_quality' && !providerAuthorized()) ||
         requestLock.current ||
-        exportLock.current
+        exportLock.current ||
+        quota.busy ||
+        quota.exporting
       )
         return
       clearReport()
       const provider = parameters.kind === 'provider_quality'
       setProviderReport(provider)
+      setQuotaKind(null)
       setQuestion({ key: provider ? 'shortcutProvider' : 'shortcutTokens' })
       setSupported(true)
       setInput('')
@@ -386,7 +407,8 @@ function InsightsContent({
       if (authorized()) setExporting(false)
     }
   }
-  const busy = !!request && report.isFetching
+  const busy = (!!request && report.isFetching) || quota.busy
+  const overallExporting = exporting || quota.exporting
   const status = isAxiosError(report.error) ? report.error.response?.status : undefined
   const errorKey = [401, 403, 404].includes(status ?? 0)
     ? providerReport
@@ -424,7 +446,7 @@ function InsightsContent({
                       key={key}
                       variant="outline"
                       size="sm"
-                      disabled={busy || exporting}
+                      disabled={busy || overallExporting}
                       onClick={() => shortcut(key)}
                     >
                       {t(key)}
@@ -441,79 +463,93 @@ function InsightsContent({
                   {t(message)}
                 </p>
               )}
-              <form
-                aria-label={t('reportTitle')}
-                className="space-y-3"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  run()
-                }}
-              >
-                <FormField label={t('from')}>
-                  <Input
-                    name="from"
-                    value={draft.from}
-                    onChange={(event) => {
-                      clearReport()
-                      setDraft({ ...draft, from: event.target.value })
-                      setMessage('awaitingReview')
-                    }}
-                    required
-                  />
-                </FormField>
-                <FormField label={t('to')}>
-                  <Input
-                    name="to"
-                    value={draft.to}
-                    onChange={(event) => {
-                      clearReport()
-                      setDraft({ ...draft, to: event.target.value })
-                      setMessage('awaitingReview')
-                    }}
-                    required
-                  />
-                </FormField>
-                <FormField label={t('timezone')}>
-                  <Input
-                    name="timezone"
-                    value={draft.timezone}
-                    onChange={(event) => {
-                      clearReport()
-                      setDraft({ ...draft, timezone: event.target.value })
-                      setMessage('awaitingReview')
-                    }}
-                    required
-                  />
-                </FormField>
-                <p className="text-xs text-muted-foreground">{t('rangeHelp')}</p>
-                <Button type="submit" disabled={busy || exporting || !supported}>
-                  {t('reviewRun')}
-                </Button>
-                {busy && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      clearReport()
-                      setMessage('awaitingReview')
+              {quotaKind ? (
+                quota.controls
+              ) : (
+                <>
+                  <form
+                    aria-label={t('reportTitle')}
+                    className="space-y-3"
+                    onSubmit={(event) => {
+                      event.preventDefault()
+                      run()
                     }}
                   >
-                    {t('cancel')}
-                  </Button>
-                )}
-              </form>
-              {!providerReport && ai.controls}
+                    <FormField label={t('from')}>
+                      <Input
+                        name="from"
+                        value={draft.from}
+                        onChange={(event) => {
+                          clearReport()
+                          setDraft({ ...draft, from: event.target.value })
+                          setMessage('awaitingReview')
+                        }}
+                        required
+                      />
+                    </FormField>
+                    <FormField label={t('to')}>
+                      <Input
+                        name="to"
+                        value={draft.to}
+                        onChange={(event) => {
+                          clearReport()
+                          setDraft({ ...draft, to: event.target.value })
+                          setMessage('awaitingReview')
+                        }}
+                        required
+                      />
+                    </FormField>
+                    <FormField label={t('timezone')}>
+                      <Input
+                        name="timezone"
+                        value={draft.timezone}
+                        onChange={(event) => {
+                          clearReport()
+                          setDraft({ ...draft, timezone: event.target.value })
+                          setMessage('awaitingReview')
+                        }}
+                        required
+                      />
+                    </FormField>
+                    <p className="text-xs text-muted-foreground">{t('rangeHelp')}</p>
+                    <Button type="submit" disabled={busy || exporting || !supported}>
+                      {t('reviewRun')}
+                    </Button>
+                    {busy && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          clearReport()
+                          setMessage('awaitingReview')
+                        }}
+                      >
+                        {t('cancel')}
+                      </Button>
+                    )}
+                  </form>
+                </>
+              )}
+              {!providerReport && !quotaKind && ai.controls}
               <form
                 aria-label={t('questionLabel')}
                 className="space-y-3"
                 onSubmit={(event) => {
                   event.preventDefault()
-                  if (!input.trim() || !authorized() || requestLock.current || exportLock.current)
+                  if (
+                    !input.trim() ||
+                    !authorized() ||
+                    requestLock.current ||
+                    exportLock.current ||
+                    quota.busy ||
+                    quota.exporting
+                  )
                     return
                   clearReport()
                   setQuestion({ text: input.trim() })
                   setInput('')
                   setSupported(false)
+                  setQuotaKind(null)
                   setMessage('unsupported')
                 }}
               >
@@ -525,12 +561,12 @@ function InsightsContent({
                     placeholder={t('questionPlaceholder')}
                     value={input}
                     onChange={(event) => setInput(event.target.value)}
-                    disabled={busy || exporting}
+                    disabled={busy || overallExporting}
                   />
                 </FormField>
                 <p className="text-xs text-muted-foreground">{t('questionHelp')}</p>
                 <div className="flex justify-end">
-                  <Button type="submit" disabled={!input.trim() || busy || exporting}>
+                  <Button type="submit" disabled={!input.trim() || busy || overallExporting}>
                     <Send className="size-4" aria-hidden />
                     {t('send')}
                   </Button>
@@ -542,50 +578,75 @@ function InsightsContent({
             <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">{t('resultLabel')}</p>
-                <CardTitle>{t(providerReport ? 'providerReportTitle' : 'reportTitle')}</CardTitle>
+                <CardTitle>
+                  {t(
+                    quotaKind === 'team_quota'
+                      ? 'quotaTeamTitle'
+                      : quotaKind === 'key_quota'
+                        ? 'quotaKeyTitle'
+                        : providerReport
+                          ? 'providerReportTitle'
+                          : 'reportTitle',
+                  )}
+                </CardTitle>
               </div>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  disabled={!currentReport || exporting}
-                  onClick={() => void exportCSV()}
+                  disabled={quotaKind ? !quota.canExport : !currentReport || exporting}
+                  onClick={() => void (quotaKind ? quota.exportCSV() : exportCSV())}
                 >
                   <Download className="size-4" aria-hidden />
-                  {t(exporting ? 'exporting' : 'exportCSV')}
+                  {t(overallExporting ? 'exporting' : 'exportCSV')}
                 </Button>
-                {exporting && (
+                {overallExporting && (
                   <Button
                     variant="outline"
                     onClick={() => {
-                      exportController.current?.abort()
+                      if (quotaKind) quota.cancelExport()
+                      else exportController.current?.abort()
                       setExportMessage('')
                     }}
                   >
                     {t('cancel')}
                   </Button>
                 )}
-                {saved.saveButton}
+                {quotaKind ? (
+                  <Button variant="outline" disabled title={t('quotaSaveUnavailable')}>
+                    {t('saveReport')}
+                  </Button>
+                ) : (
+                  saved.saveButton
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-xs text-muted-foreground">{t('exportHelp')}</p>
-              {exportMessage && (
-                <p role={exportMessage === 'exportReady' ? 'status' : 'alert'}>
-                  {t(exportMessage)}
-                </p>
+              {quotaKind ? (
+                quota.result
+              ) : (
+                <>
+                  {exportMessage && (
+                    <p role={exportMessage === 'exportReady' ? 'status' : 'alert'}>
+                      {t(exportMessage)}
+                    </p>
+                  )}
+                  {busy && <p role="status">{t('loading')}</p>}
+                  {request && report.isError && <p role="alert">{t(errorKey)}</p>}
+                  {!request && (
+                    <p className="py-8 text-center text-sm text-muted-foreground">
+                      {t('awaitingReview')}
+                    </p>
+                  )}
+                  {currentReport?.kind === 'tokens' && (
+                    <InsightsResult report={currentReport.value} />
+                  )}
+                  {currentReport?.kind === 'provider' && (
+                    <ProviderQualityResult report={currentReport.value} />
+                  )}
+                </>
               )}
-              {busy && <p role="status">{t('loading')}</p>}
-              {request && report.isError && <p role="alert">{t(errorKey)}</p>}
-              {!request && (
-                <p className="py-8 text-center text-sm text-muted-foreground">
-                  {t('awaitingReview')}
-                </p>
-              )}
-              {currentReport?.kind === 'tokens' && <InsightsResult report={currentReport.value} />}
-              {currentReport?.kind === 'provider' && (
-                <ProviderQualityResult report={currentReport.value} />
-              )}
-              {!providerReport && ai.answer}
+              {!providerReport && !quotaKind && ai.answer}
             </CardContent>
           </Card>
         </div>

@@ -1827,3 +1827,18 @@ operational read/write and recipient boundaries, source-based occurrence counts,
 existing medium email preferences and durable accepted/unknown delivery wording.
 Do not infer current health, current Credential names or automatic disablement,
 or issue extra catalog reads to identify an immutable triggering Attempt.
+
+Team and Key quota analysis stays inside the existing operations-analysis layout
+and `calls.read_all` page gate. Server reads also require current resource-specific
+authority: readable Teams or an explicitly selected authorized member/Project Key
+scope. Never enumerate a platform-wide Key directory. Deduplicate rotation-root
+accounts and distinguish each account's own stored monthly cap from inherited
+constraints. Render server-proven coverage, settled usage, reservations, unknown
+values and exact decimal money separately. Forecasts use settled usage of requests
+admitted in the preceding 168 hours at a constant rate, require complete coverage
+and a positive rate, and stop at monthly reset; retained terminal reservations
+also prove incomplete actual usage even if an unknown counter is zero. Keep them
+separate from active pending reservations. Forecasts do not predict parent limits
+or actual request blocking. Preserve actor/Session/permission/target freshness and
+abort stale reads/exports. Do not save unsupported quota definitions or send quota
+identities and rows to optional AI advice.
