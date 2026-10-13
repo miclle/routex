@@ -306,7 +306,9 @@ func TestRuntimeConfigurationV1BoundsAndCancellation(t *testing.T) {
 	if raw, digest, err := encodeRuntimeConfigurationV1(ctx, configurationFixtureV1(t)); err == nil || raw != nil || digest != "" {
 		t.Fatal("cancelled encoding succeeded")
 	}
-	if configurationJSONBoundV1(context.TODO(), raw) {
+	//lint:ignore SA1012 This deliberately verifies rejection of a nil context.
+	//nolint:staticcheck // Intentionally exercise nil-context rejection.
+	if configurationJSONBoundV1(nil, raw) {
 		t.Fatal("nil context accepted")
 	}
 	document := configurationFixtureV1(t)

@@ -1,5 +1,46 @@
 # Current implementation handoff
 
+## Current delivery and continuation (2026-10-14)
+
+The complete F01–F30 / A01–A20 goal remains active on this machine. Capability
+status remains **16 Completed / 14 Partial / 0 Not started**; incremental delivery
+does not close the broader acceptance gaps.
+
+- **Quota report definitions:** delivered on main in `d9af644`. Creator-private
+  Team and authorized member/Project Key definitions retain only the reviewed
+  dimension and owner scope. Loading prepares controls without executing a query.
+  Frozen V111 preserves released V110. The unfiltered PostgreSQL and MySQL matrix
+  each passed all 583 named tests with zero failures or skips; ordinary Go tests
+  passed 10,235 names with seven explicit environment/child skips. Independent
+  readback accepted the complete matrix and owned cleanup, with SHA-256
+  `8fd8f78b616d782b5521b39b181051354716cf867e17d25e6e978e7bcae24765`.
+  Earlier failed runs remain historical failures. Mandatory checking passed before
+  commit, and local/remote main parity was verified after push.
+- **Configuration codec:** the bounded frozen source DTO, canonical JSON codec
+  and detached cold reconstruction are delivered in `f45d999`. The subsequent
+  nil-context test correction restores the actual rejection assertion, with
+  narrow documented staticcheck exemptions. Corrected focused race qualification
+  passed all 79 named tests (12 top-level tests), without failures or skips.
+  See [the codec contract](RUNTIME_CONFIGURATION_CODEC.md). This groundwork adds
+  no version archive, activation, rollback API or fleet acknowledgement; F30
+  remains Partial.
+- **Provider-quality AI:** an isolated composed candidate retains the selected
+  report, anonymous attempt aggregates, independent Provider-read authority,
+  explicit question/model review and personal quota. Its 203 focused frontend
+  cases and focused Go race tests pass; selected dual-driver qualification and
+  final mandatory checks remain in progress. It is not delivered on main yet.
+- **Offboarding notification restart:** an isolated F10 candidate preserves the
+  original recipient Sessions and compares retained notices, read timestamps and
+  successor relationships across the existing process restart. All 20 lightweight
+  controls and candidate mandatory checking pass; actual PostgreSQL/MySQL process
+  acceptance remains pending. No external mailbox delivery is inferred.
+
+Browser inventory currently times out; direct Chrome Computer Use reports
+`cgWindowNotFound`. Browser acceptance remains open and does not block independent
+implementation or verification. Historical checkpoints below retain their original
+source, time, failures and acceptance boundaries; this section supersedes their
+older pending-delivery and pause statements.
+
 ## Local service phase delivered (2026-10-13)
 
 Main now includes `d054ebc1b2920229802ca0f4f4bfbed313c0a40b`: maintained real
@@ -93,7 +134,7 @@ Insights capability; quota definitions and later analysis work remain separate.
 Updated: 2026-10-13. Status: active on this machine by explicit user instruction.
 The full F01–F30 / A01–A20 goal continues; no new pause is requested.
 
-## Current repository and work boundary
+## Historical repository and work boundary (2026-10-13)
 
 - Repository: `miclle/routex`, branch `main`, upstream `origin/main`.
 - Last delivered source: `3fa148c11532be8ab0d61ea19fa201bd54535534`, read back
@@ -112,7 +153,7 @@ The full F01–F30 / A01–A20 goal continues; no new pause is requested.
 - Delivered main is transferable. Dirty candidates and private receipts are
   local-only and are not recoverable from remote main yet.
 
-## Current source and acceptance
+## Historical source and acceptance (2026-10-13)
 
 | Package | State | Remaining gate |
 | --- | --- | --- |

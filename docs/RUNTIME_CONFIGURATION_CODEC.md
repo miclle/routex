@@ -75,7 +75,10 @@ opaque Vault dependency fidelity, real denied/stale Session proof cold roundtrip
 recorded unavailable/dangling facts, forbidden secret material, exact null/zero and
 decimal/birth/generation fidelity, detached source adapters, canonical tampering,
 unknown codecs, invalid references, digest mismatch, bounds and cancellation.
-At source preparation time, formatting and whitespace checks have passed; focused
-compile/race/static analysis and mandatory repository checks remain pending while
-the complete integration matrix owns the execution lane. No runtime, database,
-archive, browser, fleet acknowledgement or rollback acceptance is claimed here.
+Corrected focused Go race qualification passes all 79 named tests across 12
+top-level tests, with zero failures or skips. Repository mandatory checking passed
+for the original source; the nil-context regression assertion was subsequently
+restored with narrow documented staticcheck exemptions; renewed mandatory checking
+also passed for that correction. This slice introduces no schema or database access.
+No runtime activation, database archive, browser, fleet acknowledgement or rollback
+acceptance is claimed here.
