@@ -194,6 +194,17 @@ func testSMTPLifecycle(t *testing.T, db *gorm.DB) {
 	if repeat.Status != "accepted" || messages.Load() != 1 {
 		t.Fatal("idempotent retry delivered twice")
 	}
+	firstWire, err := json.Marshal(result)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replayWire, err := json.Marshal(repeat)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(firstWire, replayWire) {
+		t.Fatal("SMTP first response and replay must return the same recorded receipt")
+	}
 	changed := test
 	changed.Recipient = "other@example.invalid"
 	expectStatus(t, request("POST", "/api/v1/admin/smtp/test", changed), 409)

@@ -124,6 +124,11 @@ func (s *Service) TestSMTP(ctx context.Context, actor string, input SMTPTestInpu
 	if err := s.authDB(persist).Model(&entity.SMTPTest{}).Where("id = ? AND status = ?", row.ID, "pending").Updates(map[string]any{"status": row.Status, "result_json": row.ResultJSON, "completed_at": completed}).Error; err != nil {
 		return nil, runtimeUnavailable
 	}
+	// Return the recorded receipt on the first response as well as a replay.
+	// Database timestamp precision and locations must not change its wire facts.
+	if err := s.authDB(persist).First(&row, "id = ?", row.ID).Error; err != nil {
+		return nil, runtimeUnavailable
+	}
 	view := smtpTestView(row)
 	return &view, nil
 }

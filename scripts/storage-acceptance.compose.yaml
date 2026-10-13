@@ -1,0 +1,44 @@
+# Disposable local acceptance fixture only; this alpha image is not a production recommendation.
+services:
+  objectstore:
+    image: rustfs/rustfs:1.0.0-alpha.83@sha256:1cfa82fb394a7c6a4ffc24f5333b52afee608d258503f94b37fcce5cc965c896
+    environment:
+      RUSTFS_ACCESS_KEY: ${ROUTEX_ACCEPTANCE_ACCESS_KEY:?Use new disposable credentials}
+      RUSTFS_SECRET_KEY: ${ROUTEX_ACCEPTANCE_SECRET_KEY:?Use new disposable credentials}
+      RUSTFS_CONSOLE_ENABLE: 'false'
+      RUSTFS_OBS_LOGGER_LEVEL: warn
+    ports:
+      - '127.0.0.1:${ROUTEX_ACCEPTANCE_S3_PORT:?Reserve an owned loopback port}:9000'
+    # Project-owned volumes retain versions across the deliberate stop/start outage.
+    # Docker initializes them from the image directories owned by UID/GID 10001.
+    volumes:
+      - object-data:/data
+      - object-logs:/logs
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: 'no'
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, --max-time, '2', http://127.0.0.1:9000/health]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  postgres:
+    image: postgres:16@sha256:95206741a5b214807675e14165369d05b93a9cf692223b616d07cca227e74b0b
+    environment:
+      POSTGRES_DB: routex_acceptance
+      POSTGRES_USER: routex_acceptance
+      POSTGRES_PASSWORD: ${ROUTEX_ACCEPTANCE_DB_PASSWORD:?Use a disposable database password}
+    ports:
+      - '127.0.0.1:${ROUTEX_ACCEPTANCE_POSTGRES_PORT:?Reserve an owned loopback port}:5432'
+    tmpfs:
+      - /var/lib/postgresql/data:size=256m
+    restart: 'no'
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U routex_acceptance -d routex_acceptance']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  object-data:
+  object-logs:

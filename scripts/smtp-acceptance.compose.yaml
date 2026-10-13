@@ -1,0 +1,56 @@
+# Disposable capture relay; no forwarding, user credentials or inbox-delivery claim.
+services:
+  mailpit:
+    image: axllent/mailpit:v1.31.5@sha256:94f6b70c1436defae6799d9ac7ff0eeff9540465b842026d5cdb018f1c0234ea
+    command: ['--ignore-duplicate-ids=false', '--max=16']
+    environment:
+      MP_DATABASE: /tmp/mailpit.db
+      MP_IGNORE_DUPLICATE_IDS: 'false'
+    ports:
+      - '127.0.0.1:${ROUTEX_SMTP_PORT:?Reserve an owned loopback port}:1025'
+      - '127.0.0.1:${ROUTEX_SMTP_HTTP_PORT:?Reserve an owned loopback port}:8025'
+    read_only: true
+    tmpfs: ['/tmp:size=32m']
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: 'no'
+    healthcheck:
+      test: [CMD, /mailpit, readyz]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  postgres:
+    image: postgres:16@sha256:95206741a5b214807675e14165369d05b93a9cf692223b616d07cca227e74b0b
+    environment:
+      POSTGRES_DB: routex_smtp_acceptance
+      POSTGRES_USER: routex_smtp_acceptance
+      POSTGRES_PASSWORD: ${ROUTEX_SMTP_DB_PASSWORD:?Use a disposable password}
+    ports:
+      - '127.0.0.1:${ROUTEX_SMTP_POSTGRES_PORT:?Reserve an owned loopback port}:5432'
+    tmpfs: ['/var/lib/postgresql/data:size=256m']
+    restart: 'no'
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U routex_smtp_acceptance -d routex_smtp_acceptance']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  mysql:
+    image: mysql:8.4@sha256:24989179f58856db763f418010c1169fecc944e3ec1ea7e921572d83eb070f70
+    environment:
+      MYSQL_DATABASE: routex_smtp_acceptance
+      MYSQL_USER: routex_smtp_acceptance
+      MYSQL_PASSWORD: ${ROUTEX_SMTP_DB_PASSWORD:?Use a disposable password}
+      MYSQL_ROOT_PASSWORD: ${ROUTEX_SMTP_DB_PASSWORD:?Use a disposable password}
+    ports:
+      - '127.0.0.1:${ROUTEX_SMTP_MYSQL_PORT:?Reserve an owned loopback port}:3306'
+    tmpfs: ['/var/lib/mysql:size=256m']
+    restart: 'no'
+    healthcheck:
+      test:
+        [
+          CMD-SHELL,
+          'MYSQL_PWD=$$MYSQL_PASSWORD mysql -h 127.0.0.1 -u routex_smtp_acceptance -D routex_smtp_acceptance -e "SELECT 1"',
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 45
