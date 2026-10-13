@@ -1,17 +1,21 @@
 # RouteX Implementation and Acceptance Index
 
-Updated: 2026-10-13. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery. This handoff checkpoint distinguishes delivered main from unqualified local continuation. No new package starts during the requested handoff.
+Updated: 2026-10-13. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery. The user resumed the complete goal on this machine. Active continuation distinguishes delivered main from current candidates and requires fresh acceptance before each staged delivery.
 
-## Current handoff checkpoint (2026-10-13)
+## Active continuation (2026-10-13)
 
 Main product source remains `6ab8e1e`; its CI, GolangCI-Lint and Actionlint all
-passed on fresh readback. Only this index and the handoff have pending edits in
-the primary checkout. The previous five implementation increments remain
+passed on fresh readback. The six-path attachment expiry correction is adopted into the primary checkout
+and passed focused race, mandatory check and complete ordinary tests. It is ready
+for its own staged commit; real database lifecycle and browser evidence remain
+open. Quota report source remains a separate detached candidate. The previous five implementation increments remain
 delivered; totals stay 16 Completed / 14 Partial / 0 Not started.
 
-Two continuation packages have uncommitted source in a detached worktree based
-on `6ab8e1e`: fixed one-hour Personal/Project attachment eligibility and cleanup,
+Two continuation packages began in the detached worktree based on
+`6ab8e1e`: fixed one-hour Personal/Project attachment eligibility and cleanup,
 and creator-private Team/Key quota report definitions (backend and frontend).
+The attachment package now has complete local source gates; quota still awaits
+V111 real-driver qualification.
 These are implementation drafts, not delivered capabilities. V111 registration,
 historical migration fixture compatibility, composed checks and real-driver
 acceptance remain pending. Their exact location and resume gate are recorded in

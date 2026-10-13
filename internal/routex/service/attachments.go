@@ -17,6 +17,13 @@ import (
 
 const attachmentReadyTTL = time.Hour
 
+func (s *Service) attachmentTime() time.Time {
+	if s.attachmentNow != nil {
+		return s.attachmentNow().UTC()
+	}
+	return time.Now().UTC()
+}
+
 type AttachmentView struct {
 	ID                     string     `json:"id"`
 	Name                   string     `json:"name"`
@@ -117,7 +124,7 @@ func (s *Service) uploadAttachment(ctx context.Context, actor string, owner atta
 		return nil, apperrors.ErrInternal
 	}
 	sum := sha256.Sum256(data)
-	createdAt := time.Now().UTC()
+	createdAt := s.attachmentTime()
 	if owner.Kind == entity.StorageOwnerTeam {
 		// Released MySQL storage timestamps have millisecond precision. Match
 		// that common precision before fixing an immutable one-hour deadline.
@@ -219,7 +226,10 @@ func (s *Service) uploadAttachment(ctx context.Context, actor string, owner atta
 		if err := authorize(tx); err != nil {
 			return err
 		}
-		if owner.Kind == entity.StorageOwnerTeam && (row.ExpiresAt == nil || !row.ExpiresAt.After(time.Now().UTC())) {
+		if !row.CreatedAt.Add(attachmentReadyTTL).After(s.attachmentTime()) {
+			return apperrors.ErrNotFound
+		}
+		if owner.Kind == entity.StorageOwnerTeam && (row.ExpiresAt == nil || !row.ExpiresAt.After(s.attachmentTime())) {
 			return apperrors.ErrNotFound
 		}
 		result := attachmentScopeQuery(tx.Model(&entity.StorageObject{}), owner, row.ID).Where("state = ?", "uploading").Updates(map[string]any{"state": "ready", "version_id": version})
@@ -306,7 +316,7 @@ func (s *Service) readScopedAttachment(ctx context.Context, owner attachmentOwne
 	if err != nil {
 		return entity.StorageObject{}, nil, err
 	}
-	if !attachmentReadableAt(row, time.Now().UTC()) {
+	if !attachmentReadableAt(row, s.attachmentTime()) {
 		return entity.StorageObject{}, nil, apperrors.ErrNotFound
 	}
 	var revision entity.StorageRevision
@@ -345,7 +355,7 @@ func (s *Service) readScopedAttachment(ctx context.Context, owner attachmentOwne
 	if err != nil {
 		return entity.StorageObject{}, nil, err
 	}
-	if !attachmentReadableAt(current, time.Now().UTC()) {
+	if !attachmentReadableAt(current, s.attachmentTime()) {
 		return entity.StorageObject{}, nil, apperrors.ErrNotFound
 	}
 	return current, object.Data, nil
@@ -358,7 +368,8 @@ func attachmentReadableAt(row entity.StorageObject, now time.Time) bool {
 	if row.OwnerKind == entity.StorageOwnerTeam {
 		return row.ExpiresAt != nil && row.ExpiresAt.Equal(row.CreatedAt.Add(attachmentReadyTTL)) && row.ExpiresAt.After(now)
 	}
-	return row.Purpose != "attachment" || row.NextCleanupAt.After(now) || row.CreatedAt.After(now.Add(-attachmentReadyTTL))
+	// Cleanup scheduling and retry backoff never extend content eligibility.
+	return row.Purpose != "attachment" || row.CreatedAt.Add(attachmentReadyTTL).After(now)
 }
 
 func storedAttachmentMatches(row entity.StorageObject, object objectstore.Object) bool {

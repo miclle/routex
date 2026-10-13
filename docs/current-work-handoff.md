@@ -1,9 +1,11 @@
 # Current implementation handoff
 
-Updated: 2026-10-13. Status: paused at the requested handoff checkpoint; no new feature package starts.
-The delivered implementation remains on remote main. Two continuation packages
-have unqualified local drafts; all three parallel slices have stopped after
-their bounded focused checks for the requested pause. They are not completed roadmap capabilities.
+Updated: 2026-10-13. Status: active by explicit user resumption on this machine.
+The next phases finish attachment expiry and quota report definitions. Attachment
+source is adopted into primary for independent qualification; quota backend,
+frontend and historical migration fixtures continue in the detached worktree.
+The historical handoff snapshot below retains its earlier source scope and does
+not override this active continuation. No new product delivery is claimed.
 
 ## Current repository and transfer snapshot
 
@@ -36,7 +38,7 @@ Partial. Do not use draft code or prior-source tests to upgrade those statuses.
 
 | Local package | Source state | Acceptance still required |
 | --- | --- | --- |
-| Fixed Personal/Project attachment expiry | Content eligibility uses immutable `CreatedAt + 1h`; ready cleanup no longer lets a mutable retry schedule extend retention eligibility | Review; mandatory and complete checks; PostgreSQL/MySQL storage lifecycle; browser where applicable |
+| Fixed Personal/Project attachment expiry | Content eligibility uses immutable `CreatedAt + 1h`; ready cleanup no longer lets a mutable retry schedule extend retention eligibility | Focused 112/112 race, mandatory check and complete ordinary tests passed; PostgreSQL/MySQL storage lifecycle and browser remain open |
 | Team/Key saved quota definitions, backend | Current entity, service and HTTP drafts plus private frozen V111 schema; old V110 remains unchanged | Register V111, adapt historical fixtures, wire new scenarios and cover creation/upgrade/replay/concurrency on both drivers |
 | Team/Key saved quota definitions, frontend | Existing Save/table UI extended with kind, dimension and exact member/Project scope; load prepares parameters rather than executing | Focused UI/type result, composed source review/checks, paired rule/docs updates, ordinary and browser acceptance |
 
@@ -71,7 +73,9 @@ Those are main results, not acceptance of the dirty candidate or this later
 pure documentation commit.
 
 The attachment-focused race run directly returned zero with 112 named passed
-test events, no failures or skips. Private JSON receipt:
+test events, no failures or skips. Primary `go tool task check` and complete
+`go tool task test` also directly returned zero; the latter includes Go race,
+7,233 frontend tests, development lifecycle and production assets. Private JSON receipt:
 `/private/tmp/routex-attachment-expiry-focused-5d46-r1.jsonl`.
 It covers exact before/at/after expiry, future cleanup scheduling, Personal and
 Project scopes across four native protocols and expiry during a remote read.

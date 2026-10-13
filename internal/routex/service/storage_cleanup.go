@@ -77,11 +77,13 @@ func (s *Service) FlushStorageCleanup(ctx context.Context, limit int) (runErr er
 			if err := lockGovernance(tx); err != nil {
 				return err
 			}
+			// Ready attachments expire from creation; NextCleanupAt only
+			// schedules already-recorded deletion retries, not a new deadline.
 			err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where(
-				"((state = ? AND next_cleanup_at <= ?) OR (state = ? AND created_at <= ?) OR (state = ? AND purpose = ? AND next_cleanup_at <= ? AND created_at <= ?))",
+				"((state = ? AND next_cleanup_at <= ?) OR (state = ? AND created_at <= ?) OR (state = ? AND purpose = ? AND created_at <= ?))",
 				"delete_pending", now,
 				"uploading", now.Add(-time.Minute),
-				"ready", "attachment", now, now.Add(-attachmentReadyTTL),
+				"ready", "attachment", s.attachmentTime().Add(-attachmentReadyTTL),
 			).Where("lease_until IS NULL OR lease_until <= ?", now).Order("next_cleanup_at, id").First(&row).Error
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil

@@ -4,10 +4,44 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"testing"
+	"time"
 
 	"github.com/miclle/routex/internal/routex/entity"
 	"github.com/miclle/routex/pkg/objectstore"
 )
+
+func TestPersonalAndProjectAttachmentDeadlineIgnoresCleanupSchedule(t *testing.T) {
+	created := time.Date(2026, time.October, 13, 1, 2, 3, 4000, time.UTC)
+	deadline := created.Add(attachmentReadyTTL)
+	for _, kind := range []string{entity.StorageOwnerUser, entity.StorageOwnerProject} {
+		t.Run(kind, func(t *testing.T) {
+			for _, scheduled := range []time.Time{created.Add(-time.Hour), deadline, deadline.Add(30 * 24 * time.Hour)} {
+				row := entity.StorageObject{OwnerKind: kind, Purpose: "attachment", State: "ready", CreatedAt: created, NextCleanupAt: scheduled}
+				for _, test := range []struct {
+					name     string
+					now      time.Time
+					readable bool
+				}{
+					{"before deadline", deadline.Add(-time.Nanosecond), true},
+					{"at deadline", deadline, false},
+					{"after deadline", deadline.Add(time.Nanosecond), false},
+				} {
+					if got := attachmentReadableAt(row, test.now); got != test.readable {
+						t.Fatalf("%s with cleanup %s: readable=%t, want %t", test.name, scheduled, got, test.readable)
+					}
+				}
+				row.State = "delete_pending"
+				if attachmentReadableAt(row, created) {
+					t.Fatal("pending deletion retained byte eligibility")
+				}
+				row.State, row.Purpose = "ready", "probe"
+				if !attachmentReadableAt(row, deadline.Add(time.Hour)) {
+					t.Fatal("attachment expiry changed unrelated probe behavior")
+				}
+			}
+		})
+	}
+}
 
 func TestStoredAttachmentMatchesImmutableMetadata(t *testing.T) {
 	data := []byte("verified attachment bytes")

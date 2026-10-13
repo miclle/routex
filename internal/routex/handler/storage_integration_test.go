@@ -276,6 +276,13 @@ func testStorageLifecycle(t *testing.T, db *gorm.DB) {
 	expectStatus(t, managerRequest("GET", "/api/v1/projects/"+project.ID+"/attachments/"+object.ID, nil), 404)
 	otherProject := decodeCatalogResponse[ProjectResponse](t, managerRequest("POST", "/api/v1/projects", map[string]any{"name": "Other Project attachment scope"}), 201)
 	expectStatus(t, managerRequest("GET", "/api/v1/projects/"+otherProject.ID+"/attachments/"+projectObject.ID, nil), 404)
+	projectExpiring := decodeCatalogResponse[service.AttachmentView](t, projectUpload(project.ID, "expired-project.pdf", body, managerCookie, managerAuth.CSRFToken), 201)
+	if err := db.Model(&entity.StorageObject{}).Where("id = ?", projectExpiring.ID).Updates(map[string]any{"next_cleanup_at": time.Now().Add(30 * 24 * time.Hour), "created_at": time.Now().Add(-2 * time.Hour)}).Error; err != nil {
+		t.Fatal(err)
+	}
+	expiringProjectPath := "/api/v1/projects/" + project.ID + "/attachments/" + projectExpiring.ID
+	expectStatus(t, managerRequest("GET", expiringProjectPath, nil), 200)
+	expectStatus(t, managerRequest("GET", expiringProjectPath+"/content", nil), 404)
 
 	fixture.mu.Lock()
 	fixture.blockGetStarted = make(chan struct{})
@@ -339,6 +346,10 @@ func testStorageLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.FlushStorageCleanup(ctx, 32); err != nil {
 		t.Fatal(err)
 	}
+	var cleanedProject entity.StorageObject
+	if err := db.First(&cleanedProject, "id = ?", projectExpiring.ID).Error; err != nil || cleanedProject.State != "deleted" {
+		t.Fatalf("future cleanup schedule extended ready Project retention: state=%q err=%v", cleanedProject.State, err)
+	}
 	// Changing the active prefix never changes the descriptor of old attachments.
 	input.ETag = enabled.ETag
 	input.Prefix = "second"
@@ -351,11 +362,15 @@ func testStorageLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("configuration change broke historical attachment")
 	}
 	expiring := decodeCatalogResponse[service.AttachmentView](t, upload(body, auth.CSRFToken), 201)
-	if err := db.Model(&entity.StorageObject{}).Where("id = ?", expiring.ID).Updates(map[string]any{"next_cleanup_at": time.Now().Add(-time.Minute), "created_at": time.Now().Add(-2 * time.Hour)}).Error; err != nil {
+	if err := db.Model(&entity.StorageObject{}).Where("id = ?", expiring.ID).Updates(map[string]any{"next_cleanup_at": time.Now().Add(30 * 24 * time.Hour), "created_at": time.Now().Add(-2 * time.Hour)}).Error; err != nil {
 		t.Fatal(err)
 	}
 	if _, _, err := svc.AttachmentContent(ctx, auth.User.ID, expiring.ID); err == nil {
 		t.Fatal("expired attachment remained readable before cleanup")
+	}
+	metadata := decodeCatalogResponse[service.AttachmentView](t, request("GET", "/api/v1/attachments/"+expiring.ID, nil), 200)
+	if metadata.State != "ready" {
+		t.Fatal("metadata no longer reports the recorded recovery state")
 	}
 	probe := entity.StorageObject{ID: "obj_ready_probe", OwnerID: auth.User.ID, RevisionID: enabled.Revision.ID, Purpose: "probe", State: "ready", UploadConfirmed: true, VersionID: "probe-version", NextCleanupAt: time.Now().Add(-time.Minute), CreatedAt: time.Now().Add(-2 * time.Hour)}
 	if err := db.Create(&probe).Error; err != nil {

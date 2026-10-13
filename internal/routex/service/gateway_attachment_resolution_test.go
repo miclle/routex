@@ -126,6 +126,68 @@ func TestGatewayProjectAttachmentRechecksProjectAfterStorage(t *testing.T) {
 	}
 }
 
+func TestGatewayAttachmentExpiryBeforeAndDuringStorage(t *testing.T) {
+	created := time.Date(2026, time.October, 13, 1, 2, 3, 0, time.UTC)
+	deadline := created.Add(attachmentReadyTTL)
+	for _, kind := range []string{entity.StorageOwnerUser, entity.StorageOwnerProject} {
+		t.Run(kind, func(t *testing.T) {
+			for _, test := range gatewayAttachmentQuotaCases() {
+				t.Run(test.name, func(t *testing.T) {
+					for _, duringRead := range []bool{false, true} {
+						t.Run(fmt.Sprintf("during_read_%t", duringRead), func(t *testing.T) {
+							var upstreamCalls atomic.Int32
+							upstream := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { upstreamCalls.Add(1) }))
+							defer upstream.Close()
+							var svc *Service
+							var data *runtimeData
+							var bearer string
+							ownerID := "usr_one"
+							if kind == entity.StorageOwnerProject {
+								svc, data, bearer, _ = projectRuntimeFixture(t)
+								data.Connections[0].BaseURL = upstream.URL + "/v1"
+								ownerID = "prj_one"
+							} else {
+								svc, data, bearer = runtimeFixture(t, upstream.URL+"/v1")
+							}
+							var clock atomic.Int64
+							clock.Store(deadline.UnixNano())
+							if duringRead {
+								clock.Store(deadline.Add(-time.Nanosecond).UnixNano())
+							}
+							svc.attachmentNow = func() time.Time { return time.Unix(0, clock.Load()) }
+							reads := configureGatewayAttachmentStorageScopeSettings(t, svc, kind, ownerID, nil, attachmentStorageTestSettings{
+								createdAt: created,
+								cleanupAt: deadline.Add(30 * 24 * time.Hour),
+								beforeGet: func(string) { clock.Store(deadline.UnixNano()) },
+							})
+							configureGatewayAttachmentQuota(t, svc, data, test.protocol, entity.ResourceLimit{ScopeKind: kind, ScopeID: ownerID, ETag: "policy_attachment_deadline", Tokens5H: limitNumber(500)})
+							const requestID = "req_attachment_fixed_deadline"
+							_, err := test.invoke(svc, bearer, []byte(test.body), requestID)
+							assertGatewayResolutionError(t, err, http.StatusNotFound, "attachment_not_found")
+							wantImageReads := 0
+							if duringRead {
+								wantImageReads = 1
+							}
+							if reads(testAttachmentImageID) != wantImageReads || reads(testAttachmentPDFID) != 0 {
+								t.Fatalf("expired storage reads image=%d PDF=%d, want %d/0", reads(testAttachmentImageID), reads(testAttachmentPDFID), wantImageReads)
+							}
+							if upstreamCalls.Load() != 0 {
+								t.Fatal("expired attachment reached upstream")
+							}
+							if depth, err := svc.recorder.queue.Depth(); err != nil || depth != 0 {
+								t.Fatalf("expired attachment created journal facts: depth=%d err=%v", depth, err)
+							}
+							if receipt, err := svc.recorder.queue.QuotaReceipt(requestID); !errors.Is(err, eventqueue.ErrMissing) || receipt != nil {
+								t.Fatalf("expired attachment retained quota receipt: %+v err=%v", receipt, err)
+							}
+						})
+					}
+				})
+			}
+		})
+	}
+}
+
 func TestGatewayAttachmentRequiresSelectedRouteCapability(t *testing.T) {
 	var upstreamCalls atomic.Int32
 	upstream := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
@@ -599,7 +661,25 @@ func configureGatewayAttachmentStorageScope(t *testing.T, svc *Service, ownerKin
 }
 
 func configureGatewayAttachmentStorageScopeStatuses(t *testing.T, svc *Service, ownerKind, ownerID string, projectStatus []string) func(string) int {
+	return configureGatewayAttachmentStorageScopeSettings(t, svc, ownerKind, ownerID, projectStatus, attachmentStorageTestSettings{})
+}
+
+type attachmentStorageTestSettings struct {
+	createdAt time.Time
+	cleanupAt time.Time
+	beforeGet func(string)
+}
+
+func configureGatewayAttachmentStorageScopeSettings(t *testing.T, svc *Service, ownerKind, ownerID string, projectStatus []string, settings attachmentStorageTestSettings) func(string) int {
 	t.Helper()
+	createdAt := settings.createdAt
+	if createdAt.IsZero() {
+		createdAt = time.Now()
+	}
+	cleanupAt := settings.cleanupAt
+	if cleanupAt.IsZero() {
+		cleanupAt = createdAt.Add(attachmentReadyTTL)
+	}
 	var mu sync.Mutex
 	reads := map[string]int{}
 	objects := map[string]attachmentStorageObject{}
@@ -624,8 +704,8 @@ func configureGatewayAttachmentStorageScopeStatuses(t *testing.T, svc *Service, 
 				Size:          int64(len(input.data)),
 				SHA256:        hex.EncodeToString(digest[:]),
 				VersionID:     "version-" + input.id,
-				NextCleanupAt: time.Now().Add(time.Hour),
-				CreatedAt:     time.Now(),
+				NextCleanupAt: cleanupAt,
+				CreatedAt:     createdAt,
 			},
 			data: input.data,
 		}
@@ -640,6 +720,9 @@ func configureGatewayAttachmentStorageScopeStatuses(t *testing.T, svc *Service, 
 				mu.Lock()
 				reads[objectID]++
 				mu.Unlock()
+				if settings.beforeGet != nil {
+					settings.beforeGet(objectID)
+				}
 				break
 			}
 		}

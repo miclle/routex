@@ -163,9 +163,14 @@ not supply guessed token costs. The single-model and comparison Playgrounds use
 the user or Project session upload API while keeping the API Key and object
 references transient. Known
 one-invocation objects are deleted when the draft is removed, its context changes,
-the workbench closes, or inference settles. Every ready attachment also expires
-after one hour through the existing durable cleanup worker, so a terminated client
-cannot leave a permanent ready object or consume the owner limit indefinitely.
+the workbench closes, or inference settles. Content access expires exactly one
+hour after immutable creation, independently of cleanup scheduling or retries.
+Expiry is checked before storage reads, after remote I/O and before upload
+publication; an expired object cannot become ready or reach inference dispatch.
+The durable worker claims expired ready objects even when their cleanup schedule
+has moved into the future. Recorded deletion retries still respect their backoff
+and leases. Authorized metadata and deletion recovery remain available after
+content expiry; physical deletion may complete later when storage is available.
 
 Focused tests use controlled loopback HTTP services only. They cover signed requests, conditional creation, version-aware deletion, foreign metadata protection, redirect rejection, bounded reads, cancellation, secret-envelope revision binding, configuration policy isolation, and accepted/rejected formats. The dual-database lifecycle helper covers personal and Project HTTP upload/download, CSRF, manager and owner isolation, manager-removal upload races, successor access, disabled/archived recovery, revision changes and rollback, failed verification preserving active state, and cleanup replay including a late accepted ambiguous upload. Migration coverage exercises empty creation, a V22 existing-row upgrade, partially applied DDL recovery, repeat execution, concurrent startup, constraints, and both owner indexes on PostgreSQL and MySQL.
 

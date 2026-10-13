@@ -47,6 +47,7 @@ type Service struct {
 	allowPrivateUpstream          bool
 	allowPrivateSMTP              bool
 	allowPrivateStorage           bool
+	attachmentNow                 func() time.Time
 	allowPrivateEgress            bool
 	egressMu                      sync.RWMutex
 	egressGeneration              atomic.Uint64
