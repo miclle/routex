@@ -344,6 +344,7 @@ export default {
     viewDetails: '查看模型详情',
     enable: '启用模型',
     disable: '停用模型',
+    addToModel: '添加到模型',
     manageModel: '管理 {{name}}',
     confirmEnable: '启用模型？',
     confirmDisable: '停用模型？',

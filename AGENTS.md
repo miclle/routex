@@ -1338,6 +1338,17 @@ renewal and dismissal, and reject obsolete callbacks. A confirmed exact response
 refreshes recorded tables and details without inferring routing health.
 Management links use the authorized scoped binding projection.
 
+Provider Models row menus offer Add to model only when the complete current scoped
+binding projection confirms an empty Model set for that exact Provider Model and
+Connection. Reuse the guided creation URL with the exact encoded Connection ID.
+Match its administrator Session gate and independent providers.read/models.read_all
+permissions; models.write remains the destination submission gate. Unknown,
+refreshing, invalidated or failed facts never establish an unbound source. Fence
+captured navigation across actor, Session, permission, catalogue/binding revisions,
+Provider/row changes, expiry and unmount. Disabled records may open review without
+implying eligibility. Navigation performs no mutation, discovery, verification or
+implicit grant. Preserve existing bound links and status actions, and pair copy.
+
 An unconfirmed status operation can be left unknown while starting a separate
 change: refresh recorded facts, explicitly confirm discarding only the local
 retry, then separately confirm the new current-revision change. A discarded

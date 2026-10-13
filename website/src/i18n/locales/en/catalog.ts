@@ -378,6 +378,7 @@ export default {
     viewDetails: 'View model details',
     enable: 'Enable model',
     disable: 'Disable model',
+    addToModel: 'Add to model',
     manageModel: 'Manage {{name}}',
     confirmEnable: 'Enable model?',
     confirmDisable: 'Disable model?',

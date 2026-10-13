@@ -21,6 +21,7 @@ export function ProviderModelRowMenu({
   bindings,
   bindingsFresh,
   onStatus,
+  onAddModel,
   triggerRef,
 }: {
   providerId: string
@@ -30,6 +31,7 @@ export function ProviderModelRowMenu({
   bindings?: { id: string; name: string | null }[]
   bindingsFresh: () => boolean
   onStatus: () => void
+  onAddModel?: () => void
   triggerRef: Ref<HTMLButtonElement>
 }) {
   const { t } = useTranslation('catalog')
@@ -61,6 +63,7 @@ export function ProviderModelRowMenu({
       >
         {t(model.enabled ? 'providerModels.disable' : 'providerModels.enable')}
       </MenuItem>
+      {onAddModel && <MenuItem onClick={onAddModel}>{t('providerModels.addToModel')}</MenuItem>}
       {bindings?.map((binding) => (
         <MenuItem
           key={binding.id}

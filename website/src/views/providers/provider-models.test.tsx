@@ -19,7 +19,7 @@ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const originalAdapter = client.defaults.adapter
 let root: Root, host: HTMLDivElement, cache: QueryClient
 let router: ReturnType<typeof createMemoryRouter>
-let requests: InternalAxiosRequestConfig[], permissions: string[], actor: string
+let requests: InternalAxiosRequestConfig[], permissions: string[], actor: string, role: string
 let permissionError: boolean, catalogueError: boolean, bindingError: boolean
 let bindingPages: Record<string, ProviderModelBindings>
 let cataloguePages: Provider[]
@@ -93,6 +93,7 @@ function Host() {
 beforeEach(async () => {
   await i18n.changeLanguage('en')
   actor = 'usr_first'
+  role = 'member'
   permissions = ['providers.read', 'providers.write']
   requests = []
   permissionError = catalogueError = bindingError = false
@@ -163,7 +164,7 @@ beforeEach(async () => {
     }
     if (config.url === '/auth/session')
       response.data = {
-        user: { id: actor, name: actor, role: 'member', email: 'actor@example.invalid' },
+        user: { id: actor, name: actor, role, email: 'actor@example.invalid' },
         csrf_token: 'current-csrf',
       }
     else if (config.url === '/auth/permissions') response.data = { permissions: [...permissions] }
@@ -234,7 +235,11 @@ async function until(assertion: () => void) {
 }
 async function mount(fullPage = false, ready = true) {
   router = createMemoryRouter(
-    [{ path: '/admin/providers/:providerId', element: fullPage ? <ProvidersPage /> : <Host /> }],
+    [
+      { path: '/admin/providers/:providerId', element: fullPage ? <ProvidersPage /> : <Host /> },
+      { path: '/admin/models/new', element: <p>Guided Model review</p> },
+      { path: '/other', element: <p>Other page</p> },
+    ],
     { initialEntries: ['/admin/providers/prv_first?tab=models'] },
   )
   await act(async () =>
@@ -897,7 +902,7 @@ it('blocks dispatch from obsolete confirmation DOM immediately upon Session inva
   await click('Cancel')
   await until(() => expect(document.activeElement).toBe(alphaActions()))
 })
-it('keeps unbound menus scoped to details and status without an invented joining action', async () => {
+it('keeps non-administrator unbound menus scoped to details and status', async () => {
   permissions.push('models.read_all')
   await mount()
   await until(() => expect(logicalNames()).toHaveLength(3))
@@ -1024,7 +1029,7 @@ it('does not discard an uncertain intent from obsolete separate-review DOM durin
 interface CapturedRowFiber {
   return?: CapturedRowFiber
   type?: { name?: string }
-  memoizedProps?: { model: ProviderModel; onStatus: () => void }
+  memoizedProps?: { model: ProviderModel; onStatus: () => void; onAddModel?: () => void }
 }
 function captureStatusCallback(index: number, id: string) {
   // Exercise a previously captured row callback even while its menu is closed.
@@ -1284,6 +1289,180 @@ it.each(['Session', 'permission', 'catalogue'])(
       expect(button('Add to model')).toBeTruthy()
       expect(cache.isFetching()).toBe(0)
     })
+    expect(requests.every((request) => request.method === 'get')).toBe(true)
+  },
+)
+
+async function unboundMenu() {
+  await act(async () => table()!.querySelectorAll<HTMLButtonElement>('tbody tr button')[2].click())
+  await until(() => expect(button('View model details')).toBeTruthy())
+}
+function captureAddModel() {
+  const trigger = table()!.querySelectorAll<HTMLButtonElement>('tbody tr button')[2]
+  const key = Object.keys(trigger).find((name) => name.startsWith('__reactFiber$'))!
+  let fiber: CapturedRowFiber | undefined = (
+    trigger as unknown as Record<string, CapturedRowFiber>
+  )[key]
+  while (fiber && fiber.type?.name !== 'ProviderModelRowMenu') fiber = fiber.return
+  expect(fiber?.memoizedProps?.model.id).toBe('pmd_duplicate')
+  expect(fiber?.memoizedProps?.onAddModel).toBeTypeOf('function')
+  return fiber!.memoizedProps!.onAddModel!
+}
+async function mountUnboundEntry() {
+  role = 'admin'
+  permissions = ['providers.read', 'models.read_all']
+  await mount()
+  await until(() => expect(logicalNames()).toHaveLength(3))
+}
+it('opens an exact unbound Connection review with independent reads and no write permission or mutation', async () => {
+  await mountUnboundEntry()
+  await unboundMenu()
+  await click('Add to model')
+  expect(router.state.location.pathname).toBe('/admin/models/new')
+  expect(router.state.location.search).toBe('?connectionId=con_secondary')
+  expect(requests.every((request) => request.method === 'get')).toBe(true)
+  expect(requests.some((request) => request.url === '/admin/models')).toBe(false)
+})
+it('does not add a shortcut to a bound row or infer empty bindings without Model read authority', async () => {
+  await mountUnboundEntry()
+  await act(async () => table()!.querySelector<HTMLButtonElement>('tbody tr button')!.click())
+  await until(() => expect(button('Manage current/name')).toBeTruthy())
+  expect(button('Add to model')).toBeUndefined()
+})
+it('requires independent Model read even when Model and Provider writes are granted', async () => {
+  role = 'admin'
+  permissions = ['providers.read', 'providers.write', 'models.write']
+  await mount()
+  await unboundMenu()
+  expect(button('Add to model')).toBeUndefined()
+  expect(requests.some((request) => request.url?.endsWith('/model-bindings'))).toBe(false)
+})
+it('keeps incomplete binding projections unknown rather than offering an unbound shortcut', async () => {
+  role = 'admin'
+  permissions.push('models.read_all')
+  bindingPages.prv_first.items.pop()
+  await mount()
+  await until(() => expect(cache.isFetching()).toBe(0))
+  await unboundMenu()
+  expect(button('Add to model')).toBeUndefined()
+})
+it('localizes the row shortcut live and permits disabled recorded configuration to open review', async () => {
+  await mountUnboundEntry()
+  await act(async () => table()!.querySelectorAll<HTMLButtonElement>('tbody tr button')[3].click())
+  await until(() => expect(button('Add to model')).toBeTruthy())
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(button('添加到模型')).toBeTruthy()
+  await click('添加到模型')
+  expect(router.state.location.search).toBe('?connectionId=con_secondary')
+  expect(requests.every((request) => request.method === 'get')).toBe(true)
+})
+it('uses the exact canonical Connection identity without name matching', async () => {
+  const id = 'con_Exact_secondary'
+  cataloguePages[0].connections[1].id = id
+  for (const row of bindingPages.prv_first.items)
+    if (row.connection_id === 'con_secondary') row.connection_id = id
+  await mountUnboundEntry()
+  await unboundMenu()
+  await click('Add to model')
+  expect(router.state.location.search).toBe(`?connectionId=${encodeURIComponent(id)}`)
+})
+it.each(['session', 'permission', 'catalogue', 'bindings'] as const)(
+  'rejects a captured unbound shortcut immediately during %s renewal and after an obsolete reply',
+  async (kind) => {
+    await mountUnboundEntry()
+    const captured = captureAddModel()
+    holdUrl =
+      kind === 'session'
+        ? '/auth/session'
+        : kind === 'permission'
+          ? '/auth/permissions'
+          : kind === 'catalogue'
+            ? '/admin/providers'
+            : '/admin/providers/prv_first/model-bindings'
+    const key =
+      kind === 'session'
+        ? sessionKey
+        : cache
+            .getQueryCache()
+            .getAll()
+            .find((query) =>
+              kind === 'permission'
+                ? query.queryKey[0] === 'permissions'
+                : kind === 'catalogue'
+                  ? query.queryKey[0] === 'admin' &&
+                    query.queryKey[1] === 'providers' &&
+                    !query.queryKey.includes('model-bindings')
+                  : query.queryKey.includes('model-bindings'),
+            )!.queryKey
+    await act(async () => {
+      void cache.invalidateQueries({ queryKey: key, exact: true })
+      captured()
+    })
+    expect(router.state.location.pathname).toBe('/admin/providers/prv_first')
+    await until(() => expect(held.length).toBeGreaterThan(0))
+    holdUrl = null
+    if (kind === 'permission') permissionError = true
+    if (kind === 'catalogue') catalogueError = true
+    if (kind === 'bindings') bindingError = true
+    await act(async () => held.forEach((item) => item.release()))
+    await until(() => expect(cache.isFetching()).toBe(0))
+    await act(async () => captured())
+    expect(router.state.location.pathname).toBe('/admin/providers/prv_first')
+  },
+)
+it.each(['expiry', 'actor', 'target', 'unmount', 'source removal', 'new binding'] as const)(
+  'rejects a captured unbound shortcut after %s without a mutation',
+  async (kind) => {
+    await mountUnboundEntry()
+    const captured = captureAddModel()
+    await act(async () => {
+      if (kind === 'expiry') window.dispatchEvent(new Event('routex:session-expired'))
+      else if (kind === 'actor')
+        cache.setQueryData(sessionKey, {
+          user: { id: 'usr_other', role: 'admin' },
+          csrf_token: 'new-csrf',
+        })
+      else if (kind === 'target') await router.navigate('/admin/providers/prv_second?tab=models')
+      else if (kind === 'unmount') await router.navigate('/other')
+      else if (kind === 'source removal') {
+        const key = cache
+          .getQueryCache()
+          .getAll()
+          .find(
+            (query) =>
+              query.queryKey[0] === 'admin' &&
+              query.queryKey[1] === 'providers' &&
+              !query.queryKey.includes('model-bindings'),
+          )!.queryKey
+        cache.setQueryData<Provider[]>(key, (value) =>
+          value!.map((provider) => ({
+            ...provider,
+            connections: provider.connections.map((connection) => ({
+              ...connection,
+              provider_models: connection.provider_models.filter(
+                (model) => model.id !== 'pmd_duplicate',
+              ),
+            })),
+          })),
+        )
+      } else {
+        const key = cache
+          .getQueryCache()
+          .getAll()
+          .find((query) => query.queryKey.includes('model-bindings'))!.queryKey
+        cache.setQueryData<ProviderModelBindings>(key, (value) => ({
+          ...value!,
+          items: value!.items.map((row) =>
+            row.provider_model_id === 'pmd_duplicate'
+              ? { ...row, binding_count: 1, models: [{ id: 'mdl_new', name: 'New target' }] }
+              : row,
+          ),
+        }))
+      }
+      if (kind !== 'target' && kind !== 'unmount') captured()
+    })
+    await act(async () => captured())
+    expect(router.state.location.pathname).not.toBe('/admin/models/new')
     expect(requests.every((request) => request.method === 'get')).toBe(true)
   },
 )

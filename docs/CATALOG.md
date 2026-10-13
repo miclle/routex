@@ -1413,6 +1413,17 @@ and retarget callbacks consult that live lock and exact selection, so callbacks
 captured before React renders cannot discard or replace a dispatched intent.
 
 
+A freshly confirmed unbound row also offers **Add to model**, opening the existing
+`/admin/models/new?connectionId=<exact-encoded-id>` guided review. The current
+administrator Session and independent Provider/Model read permissions gate this
+entry; the destination retains its separate Model write gate. The complete scoped
+binding projection must be current and explicitly empty. Unknown or renewed facts
+never establish an unbound source. Captured actions cannot navigate after Session,
+authority, Provider/row changes, expiry or unmount. Disabled configuration may open
+review without implying eligibility. Navigation performs no writes, discovery,
+verification or implicit grants; selection and atomic routing review stay in the
+existing guided workflow.
+
 ## Connection row model creation entry
 
 The existing Connection action menu exposes Add model at

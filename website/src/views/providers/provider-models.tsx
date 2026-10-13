@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react'
-import { Link } from 'react-router'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { listProviders } from '@/api/catalog'
@@ -32,9 +32,25 @@ export default function ProviderModelTable(props: Props) {
 function Models({ providerId, session, onAdd }: Props) {
   const { t } = useTranslation('catalog')
   const cache = useQueryClient()
+  const navigate = useNavigate()
   const actor = session.data?.user.id ?? ''
   const authState = cache.getQueryState<Session | null>(sessionKey)
   const generation = authState?.dataUpdateCount ?? 0
+  const navigationOwner = useRef<{ actor: string; providerId: string; generation: number } | null>(
+    null,
+  )
+  useLayoutEffect(() => {
+    const owner = { actor, providerId, generation }
+    navigationOwner.current = owner
+    const expire = () => {
+      if (navigationOwner.current === owner) navigationOwner.current = null
+    }
+    window.addEventListener('routex:session-expired', expire)
+    return () => {
+      if (navigationOwner.current === owner) navigationOwner.current = null
+      window.removeEventListener('routex:session-expired', expire)
+    }
+  }, [actor, providerId, generation])
   const sessionFresh =
     session.isSuccess &&
     !session.isFetching &&
@@ -164,6 +180,25 @@ function Models({ providerId, session, onAdd }: Props) {
     )
   const bindingRows = matched ? projectedRows : null
   const currentBindings = () => bindingFresh() && matched
+  const canReviewUnboundModel = (modelId: string, connectionId: string) => {
+    const auth = cache.getQueryData<Session | null>(sessionKey)
+    const currentConnection = cache
+      .getQueryData<Provider[]>(catalogueKey)
+      ?.find((item) => item.id === providerId)
+      ?.connections.find((item) => item.id === connectionId)
+    const row = cache
+      .getQueryData<ProviderModelBindings>(bindingsKey)
+      ?.items.find((item) => item.provider_model_id === modelId)
+    return (
+      currentBindings() &&
+      auth?.user.role === 'admin' &&
+      !!auth.csrf_token &&
+      currentConnection?.provider_models.some((item) => item.id === modelId) === true &&
+      row?.connection_id === connectionId &&
+      row.binding_count === 0 &&
+      row.models.length === 0
+    )
+  }
   const normalizedQuery = query.trim().toLowerCase()
   const rows = allRows.filter(
     (row) =>
@@ -400,6 +435,22 @@ function Models({ providerId, session, onAdd }: Props) {
                       writable={() => writable() && (!statusLocked || statusTarget === model.id)}
                       bindings={bindingRows?.get(model.id)?.models}
                       bindingsFresh={currentBindings}
+                      onAddModel={
+                        canReviewUnboundModel(model.id, item.id)
+                          ? () => {
+                              const owner = navigationOwner.current
+                              if (
+                                owner?.actor === actor &&
+                                owner.providerId === providerId &&
+                                owner.generation === generation &&
+                                canReviewUnboundModel(model.id, item.id)
+                              )
+                                void navigate(
+                                  `/admin/models/new?connectionId=${encodeURIComponent(item.id)}`,
+                                )
+                            }
+                          : undefined
+                      }
                       triggerRef={(node) => {
                         if (node) actionTriggers.current.set(model.id, node)
                         else actionTriggers.current.delete(model.id)

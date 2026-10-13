@@ -38,7 +38,7 @@ does not close the broader acceptance gaps.
   commit. Browser and external-model acceptance remain open.
   A separate held-response exact personal-Model-grant revocation test is prepared
   for subsequent qualification; it is not covered by this receipt.
-- **Offboarding notification restart:** this phase preserves original recipient
+- **Offboarding notification restart:** delivered in `b36dc3f`, preserving original recipient
   Sessions and verifies exact executor/successor notices, deduplication, denied
   stranger/departing reads, retained read timestamps and successor relationships
   across the existing executable restart. All 20 Node controls and candidate
