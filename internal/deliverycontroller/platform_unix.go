@@ -51,3 +51,11 @@ func signalGroup(pid int, kill bool) error {
 func groupExists(pid int) bool {
 	return !errors.Is(syscall.Kill(-pid, 0), syscall.ESRCH)
 }
+
+func platformFileIdentity(info os.FileInfo) (fileIdentity, error) {
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok {
+		return fileIdentity{}, errors.New("filesystem identity unavailable")
+	}
+	return fileIdentity{Device: uint64(stat.Dev), Inode: uint64(stat.Ino), UID: stat.Uid, Mode: uint32(info.Mode().Perm()), Size: info.Size(), ModifiedAt: info.ModTime().UnixNano()}, nil
+}

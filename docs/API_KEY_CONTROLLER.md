@@ -15,12 +15,23 @@ documented in `docs/API_KEY_DELIVERY.md`. A generated
 configuration, joined Agent or advisory report does not establish application
 use, native completion, rotation, retirement or fleet acceptance.
 
-## Supported operation
+The explicit replacement extension passed standalone race tests on its original
+isolated source. This composition retains its nine code/test leaves with two
+equivalent style corrections and
+the delivered Money advice and Gateway dispatch-authority checks. Fresh
+`go tool task test-controller` and mandatory project checking passed on this
+composition after two equivalent style corrections. The original failed
+Staticcheck diagnostics remain retained. Real replacement-Agent qualification
+and application use remain separate acceptance gates.
+
+## Supported operations
 
 `deliver` fetches one assigned configuration, validates its exact slot, descriptor
 revision and opaque server configuration digest, launches the locally pinned
 Vault 1.21.4 binary once, and submits one advisory report. There is no polling,
-automatic reassignment, rotation, application reload, inference or fallback.
+automatic reassignment, scheduled rotation, application reload, inference or
+fallback. `replace` is a separate explicit operation for an administrator-assigned
+successor revision; it does not automate the rotation lifecycle.
 After local preparation, a second bounded configuration read reauthorizes the
 grant and must match the entire original configuration, including exact HCL.
 Denied or changed reads refuse launch instead of substituting an assignment.
@@ -66,10 +77,12 @@ independent regular `0600` workload JWT at
 controller inspects file protection and leaves the JWT unchanged.
 
 The state directory is for exactly one explicit operation. Existing
-`operation.json`, `agent.hcl` or the exact-slot output refuses a new launch. The
-controller never deletes or overwrites an existing application Key file. This
-first slice supports initial file delivery; replacement of an existing slot file
-requires a separate future reviewed contract.
+`operation.json` or `agent.hcl` refuses another launch. Initial `deliver` also
+refuses any existing exact-slot output. Each explicit `replace` requires a fresh
+private state directory and a reviewed assigned revision greater than one. Keep
+earlier state directories unchanged so their original reports remain retryable.
+A file's presence never identifies its previous Key, descriptor revision or
+application use.
 
 Use an absolute-path regular `0600` bootstrap JSON, owned by the same UID:
 
@@ -120,8 +133,12 @@ ancestors must be root/current-UID controlled. Projected symlink-based secret
 volumes need an independently maintained protected regular JWT file.
 
 Supported controller process platforms are Linux and macOS. Other platforms
-fail closed. The output directory must have only this operation as writer;
-private local files cannot prove the absence of a same-UID external writer.
+fail closed. The filesystem must support protected regular files, file and directory fsync,
+and atomic rename within the output directory; unsupported durability operations
+fail closed. The output directory must have only cooperating controller operations
+as writers. A shared exact-slot exclusive lock fences `deliver` and `replace`
+even across different state directories. It cannot fence an external same-UID
+writer; metadata revalidation and rename are not compare-and-swap against one.
 
 ## Run and report recovery
 
@@ -131,6 +148,40 @@ Build the optional executable without server/database/frontend dependencies:
 go tool task build-controller
 bin/routex-controller deliver -config /run/routex-controller/controller.json
 ```
+
+For an explicitly assigned successor, use its reviewed revision and opaque digest
+in a new protected bootstrap file pointing to a fresh state directory:
+
+```bash
+bin/routex-controller replace -config /run/routex-controller/successor.json
+```
+
+Replacement opens and retains the current exact-slot protected regular `0600`
+inode without reading it. It validates the entire original server HCL before
+changing only its one canonical destination token to a private hidden staging
+name in the same output directory, derived from the original operation UUID.
+Authentication, exact version-one template, permissions and backup prohibition
+remain unchanged. No plaintext backup or token sink is created.
+
+After Agent directly joins and its owned group is absent, a third bounded machine
+configuration read must equal the entire original assignment. Denial, changed
+assignment or cancellation preserves the old output instead of promoting the
+stage. This current read is not a distributed lock against a later revocation.
+The stage must be a new same-filesystem, owned, single-link regular `0600` file
+of 1–4 KiB. The controller fsyncs it and its directory, rechecks its metadata,
+and durably saves `promote_pending` with old/stage metadata and unknown output.
+It rechecks both held inodes and cancellation immediately before atomic rename
+over the exact slot, then fsyncs the directory and checks the installed inode.
+Only the subsequently durable report intent may say `written`.
+
+A pre-promotion failure leaves the reviewed old inode untouched by the controller.
+An external writer's changed inode is refused and never overwritten intentionally.
+Cancellation, unconfirmed Agent closure, uncertain rename/directory sync or a
+missing final journal leaves the operation and slot locked for operator review;
+there is no automatic restore, stage promotion, Agent relaunch or recovery based
+on file presence. A crash after rename but before the final journal remains
+unknown, even if the new file is visible. Atomic visibility and fsync depend on
+the local filesystem and do not establish application adoption.
 
 The dedicated `go tool task test-controller` command runs the standalone race
 boundary suite. These optional Tasks do not change the default server build or
@@ -180,19 +231,24 @@ headers, JSON MIME and bounded body. Report timestamps must preserve the server'
 UTC microsecond precision. The acknowledgement endpoint returns HTTP 200 with
 no configuration ETag; only the configuration GET carries the quoted digest ETag.
 
-The `prepared` phase after an interruption retains `unknown/unknown` only. A
-stranded `controller.lock` refuses automatic recovery or relaunch. Before
-manually clearing that lock, an operator must establish that the original owned
+The `prepared` and `promote_pending` phases after interruption retain
+`unknown/unknown` only. A stranded `controller.lock` or exact-slot output-root
+lock refuses automatic recovery or relaunch. Before
+manually clearing these locks, an operator must establish that the original owned
 processes are absent; this executable does not kill stale stored PIDs or infer
-closure after a crash. It preserves delivered output and operation state.
+closure after a crash. Replacement also requires explicit inspection of the
+stranded slot/stage/journal before any manual slot-lock removal. Report-only retry
+never removes a stranded slot lock or infers whether promotion happened. It
+preserves delivered output, staging files and operation state.
 
 ## Verification boundary
 
-The passing focused executable tests cover the closed configuration/HTTP boundary,
+The retained standalone race tests cover the closed configuration/HTTP boundary,
 protected-file rejection, binary pins, fixed arguments, minimal environment,
 parent/descendant cancellation, pre-existing output, failure states, secret
-canaries and exact report-only recovery. Fake-Agent file writes establish these
-controller behaviors only.
+canaries and exact report-only recovery. Fresh standalone Controller race tests
+passed on this composition, including the replacement cases. Fake-Agent file
+writes establish these Controller behaviors only.
 
 The scheduled real acceptance must additionally exercise a pinned Vault 1.21.4
 with independent workload JWTs and both personal and Project slots. It must prove
@@ -202,3 +258,12 @@ revoked/expired controller grants and changed assignments. A version-2 value
 must not replace the reviewed version-1 output. Owned fixture processes,
 listeners, containers and private resources must positively close after direct
 joins. Native inference/application completion remains separate acceptance.
+
+The retained replacement cases additionally cover atomic same-slot replacement,
+pre-promotion failure and authority/cancellation loss, old-inode and staging-file
+changes, shared slot locks across state directories, exact lost-response report
+retry without output inspection, and unknown crash windows on both sides of
+rename. Mandatory project checking also passed on this composition; neither
+check establishes actual Vault/Agent replacement acceptance. Replacement changes no
+Key retirement gate: a qualifying successful final native completed call by the
+exact replacement Key remains separate and required.

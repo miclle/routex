@@ -25,15 +25,15 @@ func main() {
 }
 
 func run(ctx context.Context, args []string, output io.Writer) error {
-	if len(args) == 0 || args[0] != "deliver" && args[0] != "retry-report" {
-		return errors.New("usage: routex-controller {deliver|retry-report} -config /absolute/controller.json")
+	if len(args) == 0 || args[0] != "deliver" && args[0] != "replace" && args[0] != "retry-report" {
+		return errors.New("usage: routex-controller {deliver|replace|retry-report} -config /absolute/controller.json")
 	}
 	flags := flag.NewFlagSet("routex-controller "+args[0], flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	configPath := flags.String("config", "", "protected JSON bootstrap configuration")
 	if err := flags.Parse(args[1:]); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			_, err = fmt.Fprintln(output, "Usage: routex-controller {deliver|retry-report} -config /absolute/controller.json\nCredentials are read only from protected files. No polling or application reload is performed.")
+			_, err = fmt.Fprintln(output, "Usage: routex-controller {deliver|replace|retry-report} -config /absolute/controller.json\nCredentials are read only from protected files. No polling or application reload is performed.")
 			return err
 		}
 		// flag errors echo supplied values; never print arbitrary arguments.
@@ -47,9 +47,12 @@ func run(ctx context.Context, args []string, output io.Writer) error {
 		return err
 	}
 	var result deliverycontroller.Result
-	if args[0] == "deliver" {
+	switch args[0] {
+	case "deliver":
 		result, err = deliverycontroller.Deliver(ctx, cfg)
-	} else {
+	case "replace":
+		result, err = deliverycontroller.Replace(ctx, cfg)
+	default:
 		result, err = deliverycontroller.RetryReport(ctx, cfg)
 	}
 	if result.ReportRecorded {

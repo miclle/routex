@@ -27,7 +27,21 @@ func Deliver(ctx context.Context, cfg Config) (Result, error) {
 // the fixed generated JWT/output paths and never accepts them from an operator.
 type deliveryPaths struct{ jwt, output string }
 
-func deliver(ctx context.Context, cfg Config, paths deliveryPaths) (result Result, runErr error) {
+func deliver(ctx context.Context, cfg Config, paths deliveryPaths) (Result, error) {
+	return executeDelivery(ctx, cfg, paths, false)
+}
+
+// Replace applies one explicitly assigned revision to the current protected local
+// slot inode. It does not identify its old Key or establish application adoption.
+func Replace(ctx context.Context, cfg Config) (Result, error) {
+	return replace(ctx, cfg, deliveryPaths{jwt: jwtFile, output: keyDirectory})
+}
+
+func replace(ctx context.Context, cfg Config, paths deliveryPaths) (Result, error) {
+	return executeDelivery(ctx, cfg, paths, true)
+}
+
+func executeDelivery(ctx context.Context, cfg Config, paths deliveryPaths, replacement bool) (result Result, runErr error) {
 	if cfg.validate() != nil {
 		return result, errors.New("invalid controller configuration")
 	}
@@ -67,7 +81,52 @@ func deliver(ctx context.Context, cfg Config, paths deliveryPaths) (result Resul
 			runErr = errors.New("close controller output directory failed")
 		}
 	}()
-	if err = requireAbsent(output, cfg.SlotID); err != nil {
+	op := newOperation(cfg)
+	if op.validate(cfg) != nil {
+		return result, errors.New("prepare delivery identity failed")
+	}
+	releaseSlot, err := lockSlot(output, cfg.SlotID, op.Intent.RequestID)
+	if err != nil {
+		return result, err
+	}
+	defer func() {
+		if !keepLock {
+			if err := releaseSlot(); err != nil && runErr == nil {
+				runErr = err
+			}
+		}
+	}()
+	var oldFile *os.File
+	if replacement {
+		if cfg.DescriptorRevision == "1" {
+			return result, errors.New("replacement requires an assigned successor revision")
+		}
+		oldFile, err = openRegular(output, cfg.SlotID, 0600, maxKeyFileBytes, false)
+		if err != nil {
+			return result, err
+		}
+		defer func() {
+			if oldFile.Close() != nil && runErr == nil {
+				runErr = errors.New("close reviewed output failed")
+			}
+		}()
+		old, err := inspectIdentity(oldFile)
+		if err != nil {
+			return result, err
+		}
+		op.SchemaVersion = 2
+		op.Replacement = &replacementOperation{Old: old, Stage: stagingLeaf(cfg.SlotID, op.Intent.RequestID)}
+	}
+	checkOutput := func() error {
+		if !replacement {
+			return requireAbsent(output, cfg.SlotID)
+		}
+		if err := exactFileIdentity(output, cfg.SlotID, oldFile, op.Replacement.Old); err != nil {
+			return err
+		}
+		return requireAbsent(output, op.Replacement.Stage)
+	}
+	if err = checkOutput(); err != nil {
 		return result, err
 	}
 	machine, err := newMachineClient(cfg)
@@ -101,17 +160,23 @@ func deliver(ctx context.Context, cfg Config, paths deliveryPaths) (result Resul
 	if jwt.Close() != nil || rootCloseErr != nil {
 		return result, errors.New("close workload JWT inspection failed")
 	}
-	if err = atomicWrite(state, "agent.hcl", []byte(config.AgentConfiguration)); err != nil {
+	agentHCL := config.AgentConfiguration
+	if replacement {
+		agentHCL, err = stagingHCL(config, cfg, op.Intent.RequestID)
+		if err != nil {
+			return result, err
+		}
+	}
+	if err = atomicWrite(state, "agent.hcl", []byte(agentHCL)); err != nil {
 		return result, err
 	}
-	op := newOperation(cfg)
 	if op.validate(cfg) != nil || saveOperation(state, op) != nil {
 		return result, errors.New("persist prepared operation failed")
 	}
 	// Check absence again immediately before launch. This is not a claim that
 	// an external writer can never race us; the private directory is operator
 	// controlled and must have only this delivery process as writer.
-	if err = requireAbsent(output, cfg.SlotID); err != nil {
+	if err = checkOutput(); err != nil {
 		return result, err
 	}
 	// Reauthorize after local preparation without substituting a new assignment
@@ -127,7 +192,7 @@ func deliver(ctx context.Context, cfg Config, paths deliveryPaths) (result Resul
 	if cfg.validate() != nil || ctx.Err() != nil || current.validate(cfg) != nil {
 		return result, errors.New("launch budget or pinned configuration is no longer valid")
 	}
-	if err = requireAbsent(output, cfg.SlotID); err != nil {
+	if err = checkOutput(); err != nil {
 		return result, err
 	}
 	// The trusted operator must not mutate the pathname between this final
@@ -141,6 +206,22 @@ func deliver(ctx context.Context, cfg Config, paths deliveryPaths) (result Resul
 			op.Intent.AgentState = "failed"
 		}
 		runErr = errors.New("agent delivery failed or process cleanup is unconfirmed")
+	} else if replacement {
+		// Agent may run for most of the budget. Recheck the exact assignment
+		// after its owned process has closed, before changing the old output.
+		current, err = machine.pull(ctx)
+		if err != nil || current != config || ctx.Err() != nil {
+			keepLock = true
+			return result, errors.New("promotion reauthorization changed or is unavailable")
+		}
+		if err = promoteReplacement(ctx, state, output, &op, cfg, oldFile); err != nil {
+			// A started replacement with uncertain file promotion cannot be
+			// retried as another Agent run or silently restored.
+			keepLock = true
+			return result, err
+		}
+		op.Phase = "report_pending"
+		op.Intent.OutputState = "written"
 	} else if observeOutput(output, cfg.SlotID) != nil {
 		op.Intent.OutputState = "failed"
 		runErr = errors.New("agent exited without a protected output observation")
@@ -149,8 +230,14 @@ func deliver(ctx context.Context, cfg Config, paths deliveryPaths) (result Resul
 		// Never label a joined one-shot Agent as currently running.
 		op.Intent.OutputState = "written"
 	}
+	if replacement && (!process.Succeeded || !process.Joined || !process.GroupGone) {
+		keepLock = true
+	}
 	result.AgentState, result.OutputState = op.Intent.AgentState, op.Intent.OutputState
 	if saveOperation(state, op) != nil {
+		if replacement {
+			keepLock = true
+		}
 		return result, errors.New("persist final report intent failed; output preserved")
 	}
 	if process.Joined && process.GroupGone || !process.Started {
@@ -162,6 +249,9 @@ func deliver(ctx context.Context, cfg Config, paths deliveryPaths) (result Resul
 		return result, errors.New("delivery interrupted; exact report intent retained")
 	}
 	if keepLock {
+		if process.Joined && process.GroupGone {
+			return result, errors.New("replacement requires operator review; slot remains locked")
+		}
 		return result, errProcessUnclosed
 	}
 	if err = machine.report(ctx, op.Intent); err != nil {

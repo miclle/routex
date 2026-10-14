@@ -10,6 +10,7 @@ import (
 func TestControllerCLIRejectsSecretFlagsWithoutEcho(t *testing.T) {
 	for _, args := range [][]string{
 		{"deliver", "-bearer", "argument-secret-canary"},
+		{"replace", "-bearer", "argument-secret-canary"},
 		{"deliver", "-config", "/missing/config.json", "argument-secret-canary"},
 		{"unknown-secret-canary"},
 		{"deliver"},
@@ -26,7 +27,7 @@ func TestControllerCLIRejectsSecretFlagsWithoutEcho(t *testing.T) {
 }
 
 func TestControllerCLIHelpNeedsNoRuntime(t *testing.T) {
-	for _, command := range []string{"deliver", "retry-report"} {
+	for _, command := range []string{"deliver", "replace", "retry-report"} {
 		var output bytes.Buffer
 		if err := run(context.Background(), []string{command, "-help"}, &output); err != nil {
 			t.Fatal(err)

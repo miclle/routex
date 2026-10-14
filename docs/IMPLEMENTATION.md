@@ -8,20 +8,22 @@ completed acceptance scenarios**. Prepared source does not change those totals.
 
 | Work package | Current state | Next verification or action |
 | --- | --- | --- |
-| F24 Token advice, F29 Controller and F30 archive workflows | Main phase validated | Continue F17 isolated qualification, F24 Money tests and actual Vault Agent/browser acceptance. Global capability totals remain unchanged. |
-| F17 shared admission and single-account rate/executor sampling | Focused race passed; SQL sequence failed | Qualify a narrow test-only successor for Fence, overflow-fixture cost and ETag field issues; production constraints remain unchanged. |
-| F17 original calendar and data provenance | V120 Origin passed on both drivers; corrected Fresh checks pending | Qualify the coherent successor; deployment exclusion, legacy transfer and runtime wiring remain open. |
+| F24 Token advice, F29 Controller and F30 archive workflows | Main phase validated | Continue current-main F17 qualification and actual Vault Agent/browser acceptance. Global capability totals remain unchanged. |
+| F17 shared admission and single-account rate/executor sampling | Repaired original-source focus and six affected SQL workers passed | Qualify the current-main composition, full migrations, ordinary tests and restart; production constraints remain unchanged. |
+| F17 original calendar and data provenance | V120 Origin and corrected Fresh checks passed on both drivers | Current-main qualification, deployment exclusion, legacy transfer and runtime wiring remain open. |
 | F24 Money quota advice | Delivered in `0ccc663`; focused, mandatory and complete ordinary retry passed | Continue browser/external model acceptance; retain initial unrelated deadline failures. |
 | Temporary build output cleanup | Completed | Thirteen obsolete executables removed across five batches (384,377,025 logical bytes); retained replacements, source, original failures and development service preserved. Seven empty directories remain held by the Docker virtual machine. |
-| F30 local dispatch revocation | Gateway and whole-backend race regressions and main check passed | Deliver the verified increment; keep current-process and cross-process guarantees separate. |
+| F30 local dispatch revocation | Delivered in `5b7b34d`; focused, backend race and mandatory checks passed | Fresh remote main readback matches; keep current-process and cross-process guarantees separate. |
+| F29 explicit Controller replacement | Fresh Controller race and mandatory checks passed | Deliver the bounded replacement extension; actual Vault/JWT/Agent and application acceptance remain separate. |
 | Browser acceptance | Pending | Chrome returned no window and application inventory timed out; continue independent backend and source work. |
 
-The latest feature commit `0ccc6637fbaff8640e7c3f504c8f58f9722be993` is pushed;
-fresh remote main readback matches. It adds Money advice to the previously
-qualified V116 delivery `14a75fe`. Nine documentation-only main edits reconcile
-delivered contracts and open acceptance. The F30 Gateway revocation increment passed its focused, whole-backend and
-mandatory main checks. The heavy lane is released to repaired F17 qualification;
-original-local transfer and F29 replacement sources retain independent gates.
+F30 commit `5b7b34dd3809a0a291a18b0c460a6aa28a708662` is pushed with fresh
+remote main parity. Money advice was delivered separately in `0ccc663`; its
+complete ordinary retry passed. Documentation reconciliation is committed in
+`7280a6f`. Original-source repaired F17 focus and affected SQL workers now pass.
+The containing phase adds the independently checked Controller replacement
+extension; current-main F17, original-local transfer and actual Agent/browser
+acceptance retain their separate gates.
 
 The original unchanged V116 full integration directly completed successfully in
 5,200.361 seconds: PostgreSQL and MySQL each passed 610/610 named tests, with
@@ -77,12 +79,23 @@ three defects: RPM history at the coverage boundary can be legacy; sticky
 invalidation request IDs lack incarnation proof; and expired RPM still requires
 quota receipts within the economic retention horizon. The repaired six-file successor
 `45bfa90592f65c5225eb312211079977ff46000c` passed independent source review
-with 14 top-level test sources. No validator compilation, tests, transfer, importer
-or cutover is claimed. The six files are composed onto the latest SQL fixture
+with 14 top-level test sources. That preparation was source-only; the subsequent
+composed-source focused qualification is recorded below. Transfer, importer and
+cutover remain unimplemented. The six files are composed onto the latest SQL fixture
 successor in tree `91b48b7cbd80f40a7aae49813c8c955908c5bbcb` (2,933 paths),
 with every predecessor byte/mode preserved. Its next source-derived focus
 contains 893 named nodes (880 expected passes and 13 dedicated-driver gates),
-followed by six affected SQL workers with 112 nodes. Neither run has started.
+followed by six affected SQL workers with 112 nodes. The original focus directly
+joined exit zero in 118.421 seconds: exactly 880 passes, 13 dedicated-driver
+skips and zero failures across 893 named nodes and 194 top-level tests. All six
+SQL workers directly joined exit zero: Accept 29, Usage 8 and Fresh 19 on each
+driver, totaling 112/112 named passes without skips. Independent physical
+readback confirmed 18 owned groups absent, 18 resource inventories empty,
+six ports closed, unchanged 2,933-path source, and preserved development and
+preexisting containers. SQL readback SHA-256:
+`5ac9d3b9aa0d3115e898b1be90affd8d0352fd304435ba281531191fd0addccf`.
+These results qualify original tree `91b48b7c`; they do not qualify the later
+current-main composition or activate shared admission.
 
 Money advice source is frozen at tree `a343c1c2ee2f5907ee9e38cef448da713c635824`.
 Its 22-file delta is composed onto main `14a75fe` in isolated tree
@@ -158,6 +171,30 @@ uses a tagged switch with unchanged responses. Gateway requalification session
 check session 60131 directly joined exit zero, including formatting, backend
 checks, frontend lint/types and module consistency. Both original failed logs
 remain retained.
+
+## Verified Controller replacement and continuation (2026-10-15)
+
+The containing phase adds explicit administrator-assigned same-slot replacement
+with a fresh private operation directory, a shared exact-slot lock, staged Agent
+output, final authority review and atomic rename. Interrupted promotion remains
+unknown and locked for operator review. Report-only retry never relaunches Agent
+or infers application use. Key retirement still requires separate exact-Key
+native completed-call evidence.
+
+Fresh Controller task session 63342 passed. Mandatory check 58775 failed two
+Staticcheck style diagnostics (CLI branch and redundant test declaration).
+The narrow successor retains behavior with a tagged switch and inferred context
+type. Fresh Controller task 39146 and mandatory check 54509 directly joined exit
+zero. Original failure evidence remains intact. Actual Vault/JWT/Agent
+replacement, application use and browser acceptance remain open; global totals
+do not change.
+
+The F17 source-only composition retains delivered Money and F30 production
+behavior. Inspection identified two delivered journal-backed test fixtures
+missing the new explicit local admission adapter. The successor adds that
+adapter only beside each existing recorder assignment; nil-authority production
+rejection and all original assertions remain unchanged. New composition tests,
+full migrations, ordinary regression and restart are still required.
 
 ## F17 SQL source composition checkpoint (2026-10-15)
 

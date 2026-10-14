@@ -16,3 +16,7 @@ func systemAlias(os.FileInfo) bool   { return false }
 func isolate(*exec.Cmd) error        { return errors.New("controller platform is unsupported") }
 func signalGroup(int, bool) error    { return errors.New("controller platform is unsupported") }
 func groupExists(int) bool           { return true }
+
+func platformFileIdentity(os.FileInfo) (fileIdentity, error) {
+	return fileIdentity{}, errors.New("filesystem identity is unsupported")
+}

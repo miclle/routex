@@ -10,11 +10,12 @@ import (
 )
 
 type operation struct {
-	SchemaVersion int             `json:"schema_version"`
-	RouteXURL     string          `json:"routex_url"`
-	SlotID        string          `json:"slot_id"`
-	Phase         string          `json:"phase"`
-	Intent        acknowledgement `json:"intent"`
+	SchemaVersion int                   `json:"schema_version"`
+	RouteXURL     string                `json:"routex_url"`
+	SlotID        string                `json:"slot_id"`
+	Phase         string                `json:"phase"`
+	Intent        acknowledgement       `json:"intent"`
+	Replacement   *replacementOperation `json:"replacement,omitempty"`
 }
 
 func newOperation(cfg Config) operation {
@@ -37,16 +38,19 @@ func newOperation(cfg Config) operation {
 }
 
 func (op operation) validate(cfg Config) error {
-	if op.SchemaVersion != 1 || op.RouteXURL != cfg.RouteXURL || op.SlotID != cfg.SlotID || op.Intent.DescriptorRevision != cfg.DescriptorRevision || op.Intent.ConfigurationDigest != cfg.ConfigurationDigest || !uuidPattern.MatchString(op.Intent.RequestID) {
+	if (op.SchemaVersion != 1 && op.SchemaVersion != 2) || op.RouteXURL != cfg.RouteXURL || op.SlotID != cfg.SlotID || op.Intent.DescriptorRevision != cfg.DescriptorRevision || op.Intent.ConfigurationDigest != cfg.ConfigurationDigest || !uuidPattern.MatchString(op.Intent.RequestID) {
 		return errors.New("saved operation does not match pinned target")
 	}
-	if op.Phase != "prepared" && op.Phase != "report_pending" && op.Phase != "reported" {
+	if op.Phase != "prepared" && op.Phase != "promote_pending" && op.Phase != "report_pending" && op.Phase != "reported" {
 		return errors.New("invalid saved operation phase")
 	}
 	if op.Intent.AgentState != "unknown" && op.Intent.AgentState != "failed" || op.Intent.OutputState != "unknown" && op.Intent.OutputState != "written" && op.Intent.OutputState != "failed" {
 		return errors.New("invalid saved controller observation")
 	}
-	if op.Phase == "prepared" && (op.Intent.AgentState != "unknown" || op.Intent.OutputState != "unknown") {
+	if op.SchemaVersion == 1 && (op.Replacement != nil || op.Phase == "promote_pending") || op.SchemaVersion == 2 && (op.Replacement == nil || op.Replacement.validate(op) != nil) {
+		return errors.New("invalid replacement operation")
+	}
+	if (op.Phase == "prepared" || op.Phase == "promote_pending") && (op.Intent.AgentState != "unknown" || op.Intent.OutputState != "unknown") {
 		return errors.New("unconfirmed operation claims an observation")
 	}
 	return nil

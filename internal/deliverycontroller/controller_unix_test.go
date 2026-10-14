@@ -33,6 +33,9 @@ type deliveryFixture struct {
 	loseFirst       bool
 	denySecondPull  bool
 	changeSecondHCL bool
+	denyThirdPull   bool
+	changeThirdHCL  bool
+	beforePull      func(int32)
 }
 
 func shellQuote(value string) string { return "'" + strings.ReplaceAll(value, "'", "'\"'\"'") + "'" }
@@ -41,6 +44,10 @@ func newDeliveryFixture(t *testing.T, mode string) *deliveryFixture {
 	t.Helper()
 	directory := privateDirectory(t)
 	f := &deliveryFixture{cfg: fixturePins()}
+	config := fixtureConfiguration()
+	if strings.HasPrefix(mode, "replace-") {
+		f.cfg.DescriptorRevision, config.DescriptorRevision = "2", "2"
+	}
 	f.cfg.StateDirectory = privateDirectory(t)
 	f.cfg.BearerFile = filepath.Join(directory, "controller.bearer")
 	bearer := "rxdctl_" + base64.RawURLEncoding.EncodeToString(bytes.Repeat([]byte{0x42}, 32))
@@ -61,6 +68,18 @@ func newDeliveryFixture(t *testing.T, mode string) *deliveryFixture {
 		script += "exit 4\n"
 	case "missing-output":
 		script += "exit 0\n"
+	case "replace-failed":
+		script += "exit 4\n"
+	case "replace-success":
+		// Translate only the fixed HCL destination's basename into this
+		// private fixture root; no test writes to production secret paths.
+		script += `config=${2#-config=}
+leaf=$(sed -n 's/^  destination = ".*\/\([^"]*\)"$/\1/p' "$config")
+[ -n "$leaf" ] || exit 8
+umask 077
+printf 'replacement-inference-canary' > ` + shellQuote(f.paths.output) + `/"$leaf"
+exit 0
+`
 	default:
 		script += "umask 077\nprintf 'fixture-inference-key' > " + shellQuote(filepath.Join(f.paths.output, fixtureSlot)) + "\nexit 0\n"
 	}
@@ -79,19 +98,23 @@ func newDeliveryFixture(t *testing.T, mode string) *deliveryFixture {
 		case "GET " + machinePath + "/configuration":
 			count := f.pulls.Add(1)
 			f.mu.Lock()
-			deny := f.denySecondPull && count == 2
-			change := f.changeSecondHCL && count == 2
+			deny := f.denySecondPull && count == 2 || f.denyThirdPull && count == 3
+			change := f.changeSecondHCL && count == 2 || f.changeThirdHCL && count == 3
+			hook := f.beforePull
 			f.mu.Unlock()
+			if hook != nil {
+				hook(count)
+			}
 			if deny {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
 			w.Header().Set("ETag", "\""+fixtureDigest+"\"")
-			config := fixtureConfiguration()
+			value := config
 			if change {
-				config.AgentConfiguration = strings.Replace(config.AgentConfiguration, "vault.example.test", "other-vault.example.test", 1)
+				value.AgentConfiguration = strings.Replace(value.AgentConfiguration, "vault.example.test", "other-vault.example.test", 1)
 			}
-			if err := json.NewEncoder(w).Encode(config); err != nil {
+			if err := json.NewEncoder(w).Encode(value); err != nil {
 				t.Errorf("fixture configuration reply: %v", err)
 			}
 		case "POST " + machinePath + "/acknowledgements":
