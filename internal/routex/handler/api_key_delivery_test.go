@@ -217,6 +217,7 @@ func TestAPIKeyDeliveryRegisteredRoutesRejectAnonymousPrivately(t *testing.T) {
 		{"POST", "/api/v1/keys/managed"},
 		{"POST", "/api/v1/keys/key_owned/managed-rotation"},
 		{"GET", "/api/v1/keys/delivery-receipts/11111111-1111-4111-8111-111111111111"},
+		{"GET", "/api/v1/keys/key_owned/delivery-receipt"},
 		{"POST", "/api/v1/keys/key_owned/delivery-reconcile"},
 		{"GET", "/api/v1/keys/key_owned/delivery-descriptor"},
 		{"GET", "/api/v1/projects/prj_owned/keys/delivery-context"},
@@ -225,6 +226,7 @@ func TestAPIKeyDeliveryRegisteredRoutesRejectAnonymousPrivately(t *testing.T) {
 		{"POST", "/api/v1/projects/prj_owned/keys/managed"},
 		{"POST", "/api/v1/projects/prj_owned/keys/key_owned/managed-rotation"},
 		{"GET", "/api/v1/projects/prj_owned/keys/delivery-receipts/11111111-1111-4111-8111-111111111111"},
+		{"GET", "/api/v1/projects/prj_owned/keys/key_owned/delivery-receipt"},
 		{"POST", "/api/v1/projects/prj_owned/keys/key_owned/delivery-reconcile"},
 		{"GET", "/api/v1/projects/prj_owned/keys/key_owned/delivery-descriptor"},
 	} {

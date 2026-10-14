@@ -271,6 +271,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	personalDelivery.POST("/managed", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.CreateManagedAPIKey)
 	personalDelivery.POST("/:key_id/managed-rotation", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RotateManagedAPIKey)
 	personalDelivery.GET("/delivery-receipts/:request_id", ctrl.GetAPIKeyDeliveryReceipt)
+	personalDelivery.GET("/:key_id/delivery-receipt", ctrl.GetAPIKeyDeliveryReceiptForKey)
 	personalDelivery.POST("/:key_id/delivery-reconcile", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.ReconcileAPIKeyDeliveryPublication)
 	personalDelivery.GET("/:key_id/delivery-descriptor", ctrl.GetAPIKeyDeliveryDescriptor)
 	projectDelivery := identity.Group("/projects/:project_id/keys")
@@ -281,6 +282,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	projectDelivery.POST("/managed", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.CreateManagedAPIKey)
 	projectDelivery.POST("/:key_id/managed-rotation", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RotateManagedAPIKey)
 	projectDelivery.GET("/delivery-receipts/:request_id", ctrl.GetAPIKeyDeliveryReceipt)
+	projectDelivery.GET("/:key_id/delivery-receipt", ctrl.GetAPIKeyDeliveryReceiptForKey)
 	projectDelivery.POST("/:key_id/delivery-reconcile", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.ReconcileAPIKeyDeliveryPublication)
 	projectDelivery.GET("/:key_id/delivery-descriptor", ctrl.GetAPIKeyDeliveryDescriptor)
 

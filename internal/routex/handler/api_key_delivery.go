@@ -269,6 +269,23 @@ func (ctrl *Ctrl) GetAPIKeyDeliveryDescriptor(c *fox.Context) (*APIKeyDeliveryDe
 	return apiKeyDeliveryDescriptorDTO(v), nil
 }
 
+func (ctrl *Ctrl) GetAPIKeyDeliveryReceiptForKey(c *fox.Context) (*APIKeyDeliveryReceiptResponse, error) {
+	if e := apiKeyDeliveryRequest(c); e != nil {
+		return nil, e
+	}
+	v, e := ctrl.service.APIKeyDeliveryReceiptForKey(c.Request.Context(), currentAuthentication(c), c.Param("project_id"), c.Param("key_id"))
+	if e != nil {
+		return nil, e
+	}
+	if v == nil {
+		return nil, apperrors.ErrInternal
+	}
+	if e = apiKeyDeliveryReplyETag(c, v.ReviewETag); e != nil {
+		return nil, e
+	}
+	return apiKeyDeliveryReceiptDTO(*v), nil
+}
+
 func (ctrl *Ctrl) PutAPIKeyDeliveryPolicy(c *fox.Context) (*service.APIKeyDeliveryPolicyView, error) {
 	if e := apiKeyDeliveryRequest(c); e != nil {
 		return nil, e

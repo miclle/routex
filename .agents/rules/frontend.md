@@ -1695,6 +1695,17 @@ returned Key; known-Key reviews still require equality. Same-owner Session renew
 the original uncertain reconciliation intent; actor or target changes discard it.
 Use the existing receipt dialog and paired keyDeliveryOwner translations.
 
+Reopening a managed Key row reads its complete retained receipt by exact Key ID,
+including delivery/runtime status and native replacement-call evidence. The
+server resolves the original command in the current owner-authorized transaction
+and checks exact Key identity/birth. Preserve pending, unknown, disabled and
+revoked history; no descriptor does not mean no receipt. Explicit publication
+recovery uses only the returned original request UUID and reviewed receipt ETag,
+with identical uncertain intent/current CSRF retries. New reads invalidate unsent
+reviews and retained copy callbacks before dispatch. Keep request-scoped unknown
+issuance and independent descriptor-only APIs; never fall back after a failed
+receipt read or infer coordinator/application acknowledgement.
+
 The managed receipt's application integration card derives only Vault Agent JWT
 HCL from the exact current server descriptor, with collapsed non-secret delivery
 details. Validate the native auth/identity/path/version tuple before rendering;

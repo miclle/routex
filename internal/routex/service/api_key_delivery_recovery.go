@@ -344,6 +344,14 @@ func (s *Service) apiKeyDeliveryResult(ctx context.Context, a *Authentication, p
 }
 
 func (s *Service) apiKeyDeliveryReadResult(ctx context.Context, a *Authentication, project, request string, status int, replacementProof bool) (*ManagedAPIKeyResult, error) {
+	return s.apiKeyDeliveryReadResultForKey(ctx, a, project, request, "", status, replacementProof)
+}
+
+// A known-Key read resolves its original issuance command inside the same
+// authorized transaction as the receipt projection; no client UUID or Vault
+// operation is needed. The original command and exact current Key birth remain
+// mandatory even for retained revoked or unpublished history.
+func (s *Service) apiKeyDeliveryReadResultForKey(ctx context.Context, a *Authentication, project, request, key string, status int, replacementProof bool) (*ManagedAPIKeyResult, error) {
 	var result ManagedAPIKeyResult
 	result.HTTPStatus = status
 	e := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
@@ -351,11 +359,31 @@ func (s *Service) apiKeyDeliveryReadResult(ctx context.Context, a *Authenticatio
 		if e != nil {
 			return e
 		}
+		if key != "" {
+			var originals []entity.APIKeyDeliveryCommand
+			if e = personalExact(vaultDB(tx), "owner_digest", o.Digest).Where("key_id = ?", key).Limit(2).Find(&originals).Error; e != nil {
+				return e
+			}
+			if len(originals) == 0 {
+				return apperrors.ErrNotFound
+			}
+			if len(originals) != 1 {
+				return apiKeyDeliveryUnavailable
+			}
+			original := originals[0]
+			if original.KeyID != key || !credentialReplacementRequestID.MatchString(original.RequestID) {
+				return apperrors.ErrNotFound
+			}
+			request = original.RequestID
+		}
 		c, e := apiKeyDeliveryCommand(tx, o, request, false)
 		if e != nil {
 			return e
 		}
 		if c.Purpose != "create" && c.Purpose != "rotate" {
+			return apperrors.ErrNotFound
+		}
+		if key != "" && c.KeyID != key {
 			return apperrors.ErrNotFound
 		}
 		r, e := apiKeyDeliveryLoadKey(tx, o, c, false)
@@ -407,6 +435,23 @@ func (s *Service) APIKeyDeliveryReceipt(parent context.Context, a *Authenticatio
 		return nil, apperrors.ErrBadRequest
 	}
 	r, e := s.apiKeyDeliveryResult(ctx, a, project, request, 200)
+	if e != nil {
+		return nil, e
+	}
+	return &r.Delivery, nil
+}
+
+func (s *Service) APIKeyDeliveryReceiptForKey(parent context.Context, a *Authentication, project, key string) (*APIKeyDeliveryReceiptView, error) {
+	a = apiKeyDeliveryCopyAuthentication(a)
+	if !rootSafeIdentity(key, 30) {
+		return nil, apperrors.ErrBadRequest
+	}
+	ctx, cancel, e := apiKeyDeliveryContext(parent, true)
+	if e != nil {
+		return nil, e
+	}
+	defer cancel()
+	r, e := s.apiKeyDeliveryReadResultForKey(ctx, a, project, "", key, 200, true)
 	if e != nil {
 		return nil, e
 	}

@@ -1,8 +1,8 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  getKeyDeliveryDescriptor,
   getKeyDeliveryReceipt,
+  getKeyDeliveryReceiptForKey,
   reconcileManagedKey,
 } from '@/api/key-delivery'
 import type {
@@ -80,6 +80,7 @@ export default function DeliveryReceiptDialog({
     ticket: null as OwnerTicket | null,
     factGeneration: 0,
     copyFact: null as { value: KeyDeliveryDescriptor; generation: number } | null,
+    receiptValue: null as KeyDeliveryReceipt | null,
   })
   const [receiptFact, setReceipt] = useState<{
     value: KeyDeliveryReceipt
@@ -87,19 +88,9 @@ export default function DeliveryReceiptDialog({
     authority: OwnerAuthority
     generation: number
   } | null>(null)
-  const [descriptorFact, setDescriptor] = useState<{
-    value: KeyDeliveryDescriptor
-    target: string
-    authority: OwnerAuthority
-    generation: number
-  } | null>(null)
   const receipt =
     authority.fresh && receiptFact?.target === target && receiptFact.authority === authority
       ? receiptFact.value
-      : null
-  const descriptor =
-    authority.fresh && descriptorFact?.target === target && descriptorFact.authority === authority
-      ? descriptorFact.value
       : null
   const [reason, setReason] = useState('')
   const [pending, setPending] = useState(false)
@@ -114,6 +105,7 @@ export default function DeliveryReceiptDialog({
       cell.turn++
       cell.factGeneration++
       cell.copyFact = null
+      cell.receiptValue = null
       cell.confirmed = null
       cell.ticket?.controller.abort()
     }
@@ -122,6 +114,7 @@ export default function DeliveryReceiptDialog({
     life.current.turn++
     life.current.factGeneration++
     life.current.copyFact = null
+    life.current.receiptValue = null
     life.current.busy = false
     life.current.confirmed = null
     life.current.ticket?.controller.abort()
@@ -129,7 +122,6 @@ export default function DeliveryReceiptDialog({
     setPending(false)
     setConfirm(null)
     setReceipt(null)
-    setDescriptor(null)
     if (life.current.actor !== authority.actor || life.current.target !== target) {
       setIntent(null)
       setReason('')
@@ -183,25 +175,22 @@ export default function DeliveryReceiptDialog({
     // displayed fact. Authority can remain identical across this new read.
     const generation = ++life.current.factGeneration
     life.current.copyFact = null
+    life.current.receiptValue = null
+    life.current.confirmed = null
+    setConfirm(null)
     setReceipt(null)
-    setDescriptor(null)
     try {
-      if (requestId) {
-        const value = await getKeyDeliveryReceipt(owner, requestId, op.ticket.controller.signal)
-        // An uncertain issuance has no Key ID yet; the exact owner/request read supplies it.
-        if (keyId !== '' && value.key_id !== keyId)
-          throw new Error('Receipt does not match the reviewed Key')
-        if (current(op)) {
-          life.current.copyFact = value.descriptor ? { value: value.descriptor, generation } : null
-          setReceipt({ value, target, authority, generation })
-        }
-      } else {
-        const value = await getKeyDeliveryDescriptor(owner, keyId, op.ticket.controller.signal)
-        if (value.key_id !== keyId) throw new Error('Descriptor does not match the reviewed Key')
-        if (current(op)) {
-          life.current.copyFact = { value, generation }
-          setDescriptor({ value, target, authority, generation })
-        }
+      const value = requestId
+        ? await getKeyDeliveryReceipt(owner, requestId, op.ticket.controller.signal)
+        : await getKeyDeliveryReceiptForKey(owner, keyId, op.ticket.controller.signal)
+      // An uncertain issuance has no Key ID yet; its exact owner/request read
+      // supplies it. A row reopened by Key ID must preserve that reviewed Key.
+      if (keyId !== '' && value.key_id !== keyId)
+        throw new Error('Receipt does not match the reviewed Key')
+      if (current(op)) {
+        life.current.receiptValue = value
+        life.current.copyFact = value.descriptor ? { value: value.descriptor, generation } : null
+        setReceipt({ value, target, authority, generation })
       }
     } catch {
       if (current(op)) setNotice('receiptUnavailable')
@@ -225,9 +214,9 @@ export default function DeliveryReceiptDialog({
     if (!op) return
     const generation = ++life.current.factGeneration
     life.current.copyFact = null
+    life.current.receiptValue = null
     setIntent(value)
     setReceipt(null)
-    setDescriptor(null)
     try {
       const result = await reconcileManagedKey(
         owner,
@@ -241,6 +230,7 @@ export default function DeliveryReceiptDialog({
       if (result.delivery.key_id !== value.keyId)
         throw new Error('Receipt does not match the reviewed Key')
       setIntent(null)
+      life.current.receiptValue = result.delivery
       life.current.copyFact = result.delivery.descriptor
         ? { value: result.delivery.descriptor, generation }
         : null
@@ -272,10 +262,8 @@ export default function DeliveryReceiptDialog({
       finish(op)
     }
   }
-  const value = receipt?.descriptor ?? descriptor
-  const copyGeneration = receipt?.descriptor
-    ? receiptFact!.generation
-    : (descriptorFact?.generation ?? -1)
+  const value = receipt?.descriptor
+  const copyGeneration = receiptFact?.generation ?? -1
   return (
     <>
       <Dialog
@@ -374,6 +362,8 @@ export default function DeliveryReceiptDialog({
                       life.current.target !== target ||
                       !authority.fresh ||
                       life.current.busy ||
+                      life.current.receiptValue !== receipt ||
+                      life.current.factGeneration !== receiptFact?.generation ||
                       !reason.trim() ||
                       /[\p{Cc}\p{Cs}]/u.test(reason)
                     )
@@ -407,7 +397,9 @@ export default function DeliveryReceiptDialog({
                     !life.current.mounted ||
                     life.current.busy ||
                     life.current.authority !== authority ||
-                    life.current.target !== target
+                    life.current.target !== target ||
+                    life.current.receiptValue !== receipt ||
+                    life.current.factGeneration !== receiptFact?.generation
                   )
                     return
                   let ticket: OwnerTicket

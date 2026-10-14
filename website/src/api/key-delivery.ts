@@ -711,6 +711,21 @@ export async function getKeyDeliveryDescriptor(
   return result.key_id === keyId ? result : fail()
 }
 
+export async function getKeyDeliveryReceiptForKey(
+  owner: KeyDeliveryOwner,
+  keyId: string,
+  signal?: AbortSignal,
+) {
+  const scope = { ...owner }
+  const result = await request(
+    'get',
+    ownerPath(scope) + '/' + id(keyId, keyPrefix(scope)) + '/delivery-receipt',
+    (value) => parseKeyDeliveryReceipt(value, scope),
+    signal,
+  )
+  return result.key_id === keyId ? result : fail()
+}
+
 // Tokens are accepted only by the identity write call. Managed-Key responses
 // contain metadata and receipts; no function reconstructs or accepts a bearer.
 export function keyDeliveryPrincipal(subject: string): KeyDeliveryPrincipal {

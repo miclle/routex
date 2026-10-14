@@ -172,14 +172,42 @@ Independent unchanged-source/owned-cleanup receipt SHA-256:
 Composed primary formatting, the same 85 frontend cases, focused service/handler
 race tests and `go tool task check` passed before submission.
 
-Continue the isolated durable archive writer (V113), managed Key receipt reopening
-and Team Token quota AI advice. The Key run passed all 23 MySQL names but failed
-four PostgreSQL names after an existing successor-member Login returned 503;
-its original failure and independently verified cleanup remain retained. A
-bounded private diagnostic is running; no timeout or retry change is inferred.
+Continue the isolated durable archive writer (V113), independent managed Key
+controller (V114) and Team Token quota AI advice. Managed receipt reopening has
+separate passing PostgreSQL/MySQL qualification below; its earlier failed run
+and unproven historical cause remain retained.
 The controller (reserved V114), administrator archive cleanup, rollback and broader
 acceptance remain unfinished. First qualify each bounded source packet, compose
 it on main, run required primary checks, update this index and commit/push.
+
+## Managed Key receipt reopening (2026-10-14)
+
+Personal and Project managed Key rows now reopen their complete retained receipt
+by exact Key ID. The server resolves a unique original issuance command in the
+same current-owner-authorized transaction, preserves exact Key birth and returns
+the original request identity and reviewed ETag. Pending, unknown, disabled and
+revoked history remains distinct; missing descriptors do not erase receipt facts.
+This read performs no Vault I/O or Writer replay. Explicit publication recovery
+retains the original intent and requires fresh authority/CSRF. Refreshed reads
+synchronously invalidate unsent confirmations and retained copy callbacks.
+
+Candidate formatting, types, ESLint, mandatory checks and 165 frontend cases
+passed. Unchanged-source PostgreSQL and MySQL each passed all 23 scoped delivery
+and recovery names with zero failures or skips in separate original runs. They
+are not a single complete matrix or external caller/browser acceptance. Independent
+PostgreSQL cleanup/source receipt SHA-256:
+`58f9b06deb800339294c358c45257dbc8338226a71e2ea1b879a443a9c931717`;
+MySQL run cleanup SHA-256:
+`fcb51711b3af8960cd6cf46e5cbbaeabc5a0b813eaf25abf02366bd341d8ef4c`.
+The earlier PostgreSQL 503 failure remains retained. A private diagnostic passed
+but did not observe the suspected deadline branch; the historical cause remains
+unproven. The qualified twelve-file packet manifest is SHA-256
+`baa6dab7c5df6547ef41f43a55ff27ff2c61a25df5d0004b426836ef8ec81a99`.
+Composed primary formatting, focused development-tag Go race tests, all 165
+frontend cases and `go tool task check` passed before the phase commit. An earlier
+unchanged primary frontend run failed one existing JWT fixture at its original
+five-second timeout; the subsequent identical six-file/two-worker run passed.
+The failed run remains retained and its historical cause is unproven.
 
 ## Confirmed next-phase contracts (2026-10-14)
 

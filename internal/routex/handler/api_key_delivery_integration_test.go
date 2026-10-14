@@ -919,12 +919,13 @@ func (f *deliveryFixture) replacementCallNegatives(a deliveryFixtureActor, base 
 			f.replacementProofFailure.Unlock()
 		}()
 		expectStatus(f.t, f.request(a, "GET", base+"/delivery-receipts/"+receipt.RequestID, "", nil), 503)
+		expectStatus(f.t, f.request(a, "GET", base+"/"+receipt.KeyID+"/delivery-receipt", "", nil), 503)
 		expectStatus(f.t, f.request(a, "GET", base+"/"+receipt.KeyID+"/delivery-descriptor", "", nil), 200)
 	}()
 	f.replacementProofFailure.Lock()
 	injected := f.replacementProofFailure.injected
 	f.replacementProofFailure.Unlock()
-	if injected != 1 {
+	if injected != 2 {
 		f.t.Fatal("receipt database-failure control did not reach native proof query")
 	}
 	afterWrites, afterReads, afterMetadata := f.peer.counts()
@@ -934,7 +935,13 @@ func (f *deliveryFixture) replacementCallNegatives(a deliveryFixtureActor, base 
 }
 
 func (f *deliveryFixture) receipt(a deliveryFixtureActor, base, request string) deliveryFixtureReceipt {
-	return deliveryFixtureDecode[deliveryFixtureReceipt](f.t, f.request(a, "GET", base+"/delivery-receipts/"+request, "", nil), 200)
+	f.t.Helper()
+	original := deliveryFixtureDecode[deliveryFixtureReceipt](f.t, f.request(a, "GET", base+"/delivery-receipts/"+request, "", nil), 200)
+	reopened := deliveryFixtureDecode[deliveryFixtureReceipt](f.t, f.request(a, "GET", base+"/"+original.KeyID+"/delivery-receipt", "", nil), 200)
+	if !reflect.DeepEqual(reopened, original) {
+		f.t.Fatal("known-Key receipt changed original UUID, status, native evidence or review")
+	}
+	return original
 }
 func (f *deliveryFixture) assertNoDeliveryRead() {
 	f.t.Helper()
@@ -1156,6 +1163,65 @@ func testAPIKeyDeliveryLifecycle(t *testing.T, db *gorm.DB) {
 	}) {
 		return
 	}
+	t.Run("key_scoped_receipt_requires_exact_retained_birth_and_authority", func(t *testing.T) {
+		beforeWrites, beforeReads, beforeMetadata := f.peer.counts()
+		outsider := f.member("receipt-reopen-outsider", nil)
+		path := base + "/" + first.Key.ID + "/delivery-receipt"
+		expectStatus(t, f.request(outsider, "GET", path, "", nil), 404)
+		expectStatus(t, f.request(f.admin, "GET", base+"/"+strings.ToUpper(first.Key.ID)+"/delivery-receipt", "", nil), 404)
+		expectStatus(t, f.request(f.admin, "GET", path+"?request_id="+first.Delivery.RequestID, "", nil), 400)
+		command := f.command(first.Delivery.RequestID)
+		for _, tc := range []struct {
+			name, table, field, id string
+			birth                  time.Time
+		}{
+			{"key_birth", "api_keys", "created_at", first.Key.ID, *command.KeyBirth},
+			{"command_key_birth", "api_key_delivery_commands", "key_birth", command.ID, *command.KeyBirth},
+			{"command_owner_birth", "api_key_delivery_commands", "owner_birth", command.ID, command.OwnerBirth},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				if e := db.Table(tc.table).Where("id = ?", tc.id).Update(tc.field, tc.birth.Add(time.Second)).Error; e != nil {
+					t.Fatal(e)
+				}
+				defer func() {
+					if e := db.Table(tc.table).Where("id = ?", tc.id).Update(tc.field, tc.birth).Error; e != nil {
+						t.Error(e)
+					}
+				}()
+				expectStatus(t, f.request(f.admin, "GET", path, "", nil), 404)
+			})
+		}
+		t.Run("ambiguous_key_command", func(t *testing.T) {
+			duplicate := command
+			last := "0"
+			if strings.HasSuffix(duplicate.ID, last) {
+				last = "1"
+			}
+			duplicate.ID = duplicate.ID[:len(duplicate.ID)-1] + last
+			duplicate.RequestID = f.uuid()
+			if e := db.Create(&duplicate).Error; e != nil {
+				t.Fatal(e)
+			}
+			defer func() {
+				if e := db.Where("id = ?", duplicate.ID).Delete(&entity.APIKeyDeliveryCommand{}).Error; e != nil {
+					t.Error(e)
+				}
+			}()
+			expectStatus(t, f.request(f.admin, "GET", path, "", nil), 503)
+			original := deliveryFixtureDecode[deliveryFixtureReceipt](t, f.request(f.admin, "GET", base+"/delivery-receipts/"+first.Delivery.RequestID, "", nil), 200)
+			if original.RequestID != first.Delivery.RequestID || original.KeyID != first.Key.ID {
+				t.Fatal("ambiguous known-Key lookup changed explicit original command")
+			}
+		})
+		reopened := f.receipt(f.admin, base, first.Delivery.RequestID)
+		if reopened.KeyID != first.Key.ID || reopened.RequestID != first.Delivery.RequestID {
+			t.Fatal("key-scoped receipt did not preserve original command identity")
+		}
+		afterWrites, afterReads, afterMetadata := f.peer.counts()
+		if beforeWrites != afterWrites || beforeReads != afterReads || beforeMetadata != afterMetadata {
+			t.Fatal("known-Key read performed Vault I/O")
+		}
+	})
 	t.Run("managed_rotation_keeps_native_retirement_gate", func(t *testing.T) {
 		current := deliveryFixtureDecode[service.APIKeyDeliveryTargetView](t, f.request(f.admin, "GET", base+"/delivery-targets/"+target.ID, "", nil), 200)
 		in := f.input(current)
@@ -1200,6 +1266,8 @@ func testAPIKeyDeliveryLifecycle(t *testing.T, db *gorm.DB) {
 		assertBirth(managed.Key.ID)
 		descriptor := deliveryFixtureDecode[deliveryFixtureDescriptor](t, f.request(successor, "GET", projectBase+"/"+managed.Key.ID+"/delivery-descriptor", "", nil), 200)
 		expectStatus(t, f.request(outsider, "GET", projectBase+"/"+managed.Key.ID+"/delivery-descriptor", "", nil), 404)
+		expectStatus(t, f.request(outsider, "GET", projectBase+"/"+managed.Key.ID+"/delivery-receipt", "", nil), 404)
+		f.receipt(successor, projectBase, managed.Delivery.RequestID)
 		expectStatus(t, f.request(manager, "POST", projectBase+"/"+managed.Key.ID+"/confirm", "", nil), 409)
 		auth, e := f.svc.AuthenticateAPIKey(t.Context(), f.peer.bearer(t, managed.Key.ID))
 		if e != nil || auth.ProjectID == "" || auth.Key.UserID != "" || descriptor.ProfileID != owned.ID {
@@ -1235,6 +1303,9 @@ func testAPIKeyDeliveryLifecycle(t *testing.T, db *gorm.DB) {
 		if c.RevokedAt == nil || c.TerminalAt == nil || c.AcknowledgedAt == nil || c.PublishedAt == nil || c.RuntimeStatus == "confirmed" {
 			t.Fatal("revocation discarded historical receipt or kept current publication")
 		}
+		if receipt := f.receipt(successor, projectBase, managed.Delivery.RequestID); receipt.KeyStatus != "revoked" || receipt.Descriptor != nil {
+			t.Fatal("revoked Project Key lost retained receipt or exposed a descriptor")
+		}
 		after, _, _ := f.peer.counts()
 		if after != before+2 {
 			t.Fatal("Project creation/rotation/revocation performed unexpected Writer count")
@@ -1251,6 +1322,9 @@ func testAPIKeyDeliveryLifecycle(t *testing.T, db *gorm.DB) {
 		replacement := deliveryFixtureDecode[deliveryFixtureManaged](t, f.request(f.admin, "POST", base+"/"+original.Key.ID+"/managed-rotation", f.context(f.admin, base).ReviewETag, in), 202)
 		if replacement.Key.Status != entity.KeyDisabled || replacement.Delivery.DeliveryStatus != "acknowledged" || replacement.Delivery.RuntimeStatus != "unknown" || replacement.Delivery.Descriptor != nil {
 			t.Fatal("disabled predecessor silently enabled or acquired active runtime proof")
+		}
+		if receipt := f.receipt(f.admin, base, replacement.Delivery.RequestID); receipt.KeyStatus != "disabled" || receipt.RuntimeStatus != "unknown" || receipt.Descriptor != nil {
+			t.Fatal("disabled replacement receipt acquired active publication proof")
 		}
 		if _, e := f.svc.AuthenticateAPIKey(t.Context(), f.peer.bearer(t, replacement.Key.ID)); e == nil {
 			t.Fatal("disabled replacement authenticated")
@@ -1372,6 +1446,7 @@ func testAPIKeyDeliveryRecovery(t *testing.T, db *gorm.DB) {
 		expectStatus(t, res, 404)
 		f.assertTerminal(in.RequestID, "acknowledged", true)
 		receipt := f.receipt(successor, projectBase, in.RequestID)
+		expectStatus(t, f.request(manager, "GET", projectBase+"/"+receipt.KeyID+"/delivery-receipt", "", nil), 404)
 		expectStatus(t, f.request(successor, "POST", projectBase+"/"+receipt.KeyID+"/delivery-reconcile", receipt.ReviewETag, service.APIKeyDeliveryReconcileInput{RequestID: in.RequestID, Reason: "Successor cannot resurrect late original proof"}), 409)
 	})
 	t.Run("known_ack_publication_outage_reconciles_without_write", func(t *testing.T) {

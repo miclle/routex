@@ -188,12 +188,12 @@ beforeEach(async () => {
         throw new AxiosError('missing', '', config, undefined, response)
       }
       response.data = issuedReceipt
-    } else if (config.url?.endsWith('/delivery-descriptor')) {
+    } else if (config.url?.endsWith('/delivery-receipt')) {
       if (receiptMissing) {
         response.status = 404
         throw new AxiosError('missing', '', config, undefined, response)
       }
-      response.data = issuedReceipt?.descriptor
+      response.data = issuedReceipt
     } else if (config.url?.endsWith('/delivery-reconcile')) {
       if (reconcileFails) {
         response.status = 503
@@ -223,14 +223,14 @@ function Harness({
   allowed = true,
   receiptKeyId,
   receiptRequestId,
-  descriptorOnly = false,
+  keyScoped = false,
 }: {
   predecessor?: PersonalKey
   receipt?: boolean
   allowed?: boolean
   receiptKeyId?: string
   receiptRequestId?: string
-  descriptorOnly?: boolean
+  keyScoped?: boolean
 }) {
   const auth = useQuery({
     queryKey: ['auth', 'session'],
@@ -259,7 +259,7 @@ function Harness({
       owner={scope}
       authority={authority}
       requestId={
-        descriptorOnly ? undefined : (receiptRequestId ?? issuedReceipt?.request_id ?? requestId)
+        keyScoped ? undefined : (receiptRequestId ?? issuedReceipt?.request_id ?? requestId)
       }
       keyId={receiptKeyId ?? key().id}
       onClose={closed}
@@ -681,6 +681,139 @@ describe('owner managed Key delivery', () => {
 })
 describe('owner delivery receipt', () => {
   it.each(['personal', 'project'] as const)(
+    'reopens %s full retained delivery facts by exact Key without an issuance UUID',
+    async (kind) => {
+      if (kind === 'project') scope = { kind: 'project', projectId: id('prj') }
+      result({
+        data: JSON.stringify({ request_id: requestId }),
+        url: base() + '/managed',
+      } as InternalAxiosRequestConfig)
+      await render({ receipt: true, keyScoped: true })
+      expect(requests).toHaveLength(0)
+      for (const [deliveryStatus, keyStatus, runtimeStatus, callStatus] of [
+        ['pending', 'pending', 'pending', 'not_recorded'],
+        ['unknown', 'pending', 'unknown', 'not_recorded'],
+        ['acknowledged', 'disabled', 'unknown', 'not_recorded'],
+        ['acknowledged', 'revoked', 'unknown', 'completed'],
+      ] as const) {
+        issuedReceipt = {
+          ...issuedReceipt!,
+          delivery_status: deliveryStatus,
+          key_status: keyStatus,
+          runtime_status: runtimeStatus,
+          replacement_call_status: callStatus,
+          descriptor: null,
+        }
+        await click(en.readReceipt)
+        await until(() =>
+          expect(document.body.textContent).toContain(en[('key_' + keyStatus) as keyof typeof en]),
+        )
+        expect(document.body.textContent).toContain(requestId)
+        expect(document.body.textContent).toContain(
+          en[('delivery_' + deliveryStatus) as keyof typeof en],
+        )
+        expect(document.body.textContent).toContain(
+          en[('runtime_' + runtimeStatus) as keyof typeof en],
+        )
+        expect(document.body.textContent).toContain(
+          en[('replacementCall_' + callStatus) as keyof typeof en],
+        )
+        expect(document.querySelector('textarea')).toBeNull()
+        await act(async () => i18n.changeLanguage('zh'))
+        expect(document.body.textContent).toContain(zh[('key_' + keyStatus) as keyof typeof zh])
+        await act(async () => i18n.changeLanguage('en'))
+      }
+      expect(requests).toHaveLength(4)
+      expect(
+        requests.every(
+          (request) =>
+            request.method === 'get' &&
+            request.url === base() + '/' + key().id + '/delivery-receipt',
+        ),
+      ).toBe(true)
+      expect(changed).not.toHaveBeenCalled()
+      expect(caches()).not.toContain(requestId)
+    },
+  )
+  it.each(['personal', 'project'] as const)(
+    'recovers reopened %s publication with the returned original UUID and reviewed ETag',
+    async (kind) => {
+      if (kind === 'project') scope = { kind: 'project', projectId: id('prj') }
+      const originalRequest = '30000000-0000-4000-8000-000000000001'
+      result({
+        data: JSON.stringify({ request_id: originalRequest }),
+        url: base() + '/managed',
+      } as InternalAxiosRequestConfig)
+      await render({ receipt: true, keyScoped: true })
+      await click(en.readReceipt)
+      await until(() => expect(document.body.textContent).toContain(originalRequest))
+      await fill('reconcile_reason', 'Recover original acknowledged publication')
+      const obsoleteReview = capturedClick(button(en.reviewReconcile))
+      await click(en.readReceipt)
+      await until(() => expect(document.body.textContent).toContain(originalRequest))
+      await act(async () => obsoleteReview())
+      expect(document.body.textContent).not.toContain(en.confirmReconcile)
+      reconcileFails = true
+      await click(en.reviewReconcile)
+      await click(en.confirm)
+      await until(() => expect(document.body.textContent).toContain(en.reconcileFailed))
+      const original = post('/delivery-reconcile')[0]
+      expect(JSON.parse(original.data)).toEqual({
+        request_id: originalRequest,
+        reason: 'Recover original acknowledged publication',
+      })
+      expect(original.headers.get('If-Match')).toBe('"' + review + '"')
+      await act(async () =>
+        cache.setQueryData(['auth', 'session'], { ...session(), csrf_token: 'c'.repeat(64) }),
+      )
+      await click(en.readReceipt)
+      await until(() => expect(document.body.textContent).toContain(originalRequest))
+      reconcileFails = false
+      await click(en.retryOriginal)
+      await click(en.confirm)
+      await until(() => expect(changed).toHaveBeenCalledOnce())
+      expect(post('/delivery-reconcile')).toHaveLength(2)
+      expect(post('/delivery-reconcile')[1].data).toBe(original.data)
+      expect(post('/delivery-reconcile')[1].headers.get('If-Match')).toBe(
+        original.headers.get('If-Match'),
+      )
+      expect(post('/delivery-reconcile')[1].headers.get('X-CSRF-Token')).toBe('c'.repeat(64))
+      expect(post('/managed')).toHaveLength(0)
+    },
+  )
+  it.each(
+    (['personal', 'project'] as const).flatMap((kind) =>
+      (['success', 'failure'] as const).map((outcome) => ({ kind, outcome })),
+    ),
+  )(
+    'invalidates reopened $kind recovery confirmation before a same-authority read $outcome',
+    async ({ kind, outcome }) => {
+      if (kind === 'project') scope = { kind: 'project', projectId: id('prj') }
+      result({
+        data: JSON.stringify({ request_id: requestId }),
+        url: base() + '/managed',
+      } as InternalAxiosRequestConfig)
+      await render({ receipt: true, keyScoped: true })
+      await click(en.readReceipt)
+      await until(() => expect(document.body.textContent).toContain(en.delivery_acknowledged))
+      const read = capturedClick(button(en.readReceipt))
+      await fill('reconcile_reason', 'Review exact acknowledged command')
+      await click(en.reviewReconcile)
+      const retained = capturedClick(button(en.confirm))
+      receiptMissing = outcome === 'failure'
+      await act(async () => read())
+      await until(() =>
+        expect(document.body.textContent).toContain(
+          outcome === 'failure' ? en.receiptUnavailable : en.delivery_acknowledged,
+        ),
+      )
+      expect(document.body.textContent).not.toContain(en.confirmReconcile)
+      await act(async () => retained())
+      expect(post('/delivery-reconcile')).toHaveLength(0)
+      expect(changed).not.toHaveBeenCalled()
+    },
+  )
+  it.each(['personal', 'project'] as const)(
     'renders and explicitly copies %s JWT Agent configuration without changing delivery facts',
     async (kind) => {
       if (kind === 'project') scope = { kind: 'project', projectId: id('prj') }
@@ -770,7 +903,7 @@ describe('owner delivery receipt', () => {
     (['personal', 'project'] as const).flatMap((kind) =>
       (['configuration', 'descriptor'] as const).flatMap((mode) =>
         (['success', 'failure'] as const).flatMap((outcome) =>
-          (['receipt', 'descriptor'] as const).map((source) => ({ kind, mode, outcome, source })),
+          (['request', 'key'] as const).map((source) => ({ kind, mode, outcome, source })),
         ),
       ),
     ),
@@ -785,7 +918,7 @@ describe('owner delivery receipt', () => {
         } as InternalAxiosRequestConfig,
         'confirmed',
       )
-      await render({ receipt: true, descriptorOnly: source === 'descriptor' })
+      await render({ receipt: true, keyScoped: source === 'key' })
       await click(en.readReceipt)
       await until(() => expect(document.querySelector('textarea')).not.toBeNull())
       const label = mode === 'configuration' ? en.copyConfiguration : en.copyDescriptor
@@ -795,8 +928,8 @@ describe('owner delivery receipt', () => {
           ? document.querySelector('textarea')!.value
           : JSON.stringify(issuedReceipt!.descriptor, null, 2)
       const refresh = hold(
-        source === 'descriptor'
-          ? base() + '/' + key().id + '/delivery-descriptor'
+        source === 'key'
+          ? base() + '/' + key().id + '/delivery-receipt'
           : base() + '/delivery-receipts/' + requestId,
       )
       const read = capturedClick(button(en.readReceipt))

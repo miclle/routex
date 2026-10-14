@@ -121,6 +121,25 @@ that nothing was written. Return 201 only for newly acknowledged and published
 completion, 202 for pending/unknown publication, and 200 for same-intent safe replay.
 These statuses are not caller-side application proof.
 
+Reopening a managed Key from its Personal or Project row reads the complete
+retained receipt by exact Key ID, without requiring the browser to retain an
+issuance UUID. The server resolves the original command under current owner
+authorization and projects the receipt in the same transaction, checking the
+exact owner, command and current Key birth. Pending, unknown, disabled and
+revoked history remains readable within that authority; a missing descriptor
+does not erase the recorded delivery or replacement-call status. A manual Key
+or unavailable original command does not acquire a fabricated managed receipt.
+
+The returned original `request_id` and reviewed receipt ETag bind an explicit
+local publication recovery. No new command UUID, Vault access or Writer replay
+is introduced. Same-owner renewal retains an already dispatched original
+reconciliation intent for identical explicit retry with current CSRF. New reads
+invalidate unsent receipt reviews and copy callbacks synchronously, including
+same-authority refreshes; actor or target changes discard retained intent.
+The original request-scoped read remains available for uncertain issuance before
+a Key ID is known. Descriptor-only reads remain independent of native-call
+projection and never silently substitute for an unavailable complete receipt.
+
 Acknowledged-only publication reconciliation is local. It uses the original UUID
 and current receipt review, rechecks eligible current authority and security facts,
 and performs no Vault request, bearer recovery or additional write. A terminally
@@ -231,7 +250,10 @@ without the explicit scoped attestation.
 Owner routes share `/keys` and `/projects/:project_id/keys`: `/delivery-context`,
 `/delivery-targets/resolve`, `/delivery-targets/:target_id`, `/managed`,
 `/:key_id/managed-rotation`, `/delivery-receipts/:request_id`,
-`/:key_id/delivery-reconcile` and `/:key_id/delivery-descriptor`. Every request
+`/:key_id/delivery-receipt`, `/:key_id/delivery-reconcile` and
+`/:key_id/delivery-descriptor`. Complete receipt GETs return the same closed
+receipt body and reviewed quoted ETag through both request and Key routes.
+Every request
 reauthorizes the current admitted Session and resource; Project lifecycle and
 manager continuity remain mandatory. Writes require same-origin JSON, current
 CSRF, a required reason and the exact reviewed quoted lowercase 64-hex If-Match.

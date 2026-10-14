@@ -5,6 +5,7 @@ import {
   getKeyDeliveryDescriptor,
   reconcileManagedKey,
   getKeyDeliveryReceipt,
+  getKeyDeliveryReceiptForKey,
   issueManagedKey,
   KeyDeliveryError,
   parseKeyCallerTemplate,
@@ -91,6 +92,49 @@ const input: ManagedKeyInput = {
 }
 beforeEach(() => request.mockReset())
 describe('managed API-Key response boundaries', () => {
+  it.each(['personal', 'project'] as const)(
+    'reads the exact %s Key receipt without a client issuance UUID',
+    async (kind) => {
+      const scope =
+        kind === 'personal' ? owner : ({ kind: 'project', projectId: identity('prj') } as const)
+      const keyId = identity(kind === 'personal' ? 'key' : 'pky')
+      const value = {
+        ...receipt,
+        key_id: keyId,
+        descriptor: { ...descriptor, key_id: keyId },
+        replacement_call_status: 'completed',
+      }
+      const signal = new AbortController().signal
+      request.mockResolvedValueOnce({
+        status: 200,
+        data: value,
+        headers: { etag: '"' + review + '"' },
+      })
+      expect(await getKeyDeliveryReceiptForKey(scope, keyId, signal)).toEqual(value)
+      expect(request.mock.calls[0][0]).toMatchObject({
+        method: 'get',
+        url:
+          (kind === 'personal' ? '/keys' : '/projects/' + identity('prj') + '/keys') +
+          '/' +
+          keyId +
+          '/delivery-receipt',
+        signal,
+      })
+      expect(request.mock.calls[0][0].data).toBeUndefined()
+      request.mockResolvedValueOnce({
+        status: 200,
+        data: { ...value, key_id: keyId.slice(0, -1) + '4', descriptor: null },
+        headers: { etag: '"' + review + '"' },
+      })
+      await expect(getKeyDeliveryReceiptForKey(scope, keyId)).rejects.toThrow(KeyDeliveryError)
+      request.mockResolvedValueOnce({
+        status: 200,
+        data: value,
+        headers: { etag: '"' + 'c'.repeat(64) + '"' },
+      })
+      await expect(getKeyDeliveryReceiptForKey(scope, keyId)).rejects.toThrow(KeyDeliveryError)
+    },
+  )
   it('keeps exact descriptor revisions beyond JavaScript integer precision', () => {
     expect(parseKeyDeliveryDescriptor(descriptor).descriptor_revision).toBe('9007199254740993')
     expect(
@@ -369,6 +413,8 @@ describe('managed API-Key transport', () => {
     expect(() => parseKeyDeliveryDescriptor(descriptor, project)).toThrow()
     await expect(getKeyDeliveryDescriptor(project, identity('key'))).rejects.toThrow()
     await expect(getKeyDeliveryDescriptor(owner, identity('pky'))).rejects.toThrow()
+    await expect(getKeyDeliveryReceiptForKey(project, identity('key'))).rejects.toThrow()
+    await expect(getKeyDeliveryReceiptForKey(owner, identity('pky'))).rejects.toThrow()
     await expect(
       reconcileManagedKey(
         project,
