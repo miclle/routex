@@ -29,6 +29,7 @@ const runtimeRefreshTimeout = 3 * time.Second
 var runtimeUnavailable = &apperrors.Error{Code: 503, Message: "runtime configuration is temporarily unavailable"}
 
 type gatewayRuntime struct {
+	configurationCapture        runtimeConfigurationCaptureStateV1
 	authenticationPolicyFence   atomic.Pointer[runtimeAuthenticationPolicy]
 	cancel                      context.CancelFunc
 	done                        chan struct{}
@@ -200,6 +201,7 @@ func (s *Service) StartRuntime(ctx context.Context) error {
 // StopRuntime stops and joins the background publisher during shutdown.
 func (s *Service) StopRuntime() {
 	if s.runtime != nil && s.runtime.cancel != nil {
+		s.runtime.configurationCapture.stop()
 		s.runtime.cancel()
 		<-s.runtime.done
 		if routes := s.runtime.routes.Load(); routes != nil {
@@ -223,6 +225,10 @@ func (s *Service) refreshRuntime(ctx context.Context, tryAdmission bool) error {
 	}
 	ctx, cancel := context.WithTimeout(ctx, runtimeRefreshTimeout)
 	defer cancel()
+	// Register before publication locks so source preparation runs after every
+	// unlock, with the original refresh context rather than a renewed budget.
+	var capture *runtimeConfigurationSourceTicketV1
+	defer func() { s.prepareRuntimeConfigurationCaptureV1(ctx, runtime, capture) }()
 	// Serialize the complete read/effect pipeline, so a later refresh drains
 	// earlier reads instead of publishing a snapshot that can be overwritten.
 	// Admission precedes publication.RLock: queued refreshes hold neither the
@@ -362,6 +368,7 @@ func (s *Service) refreshRuntime(ctx context.Context, tryAdmission bool) error {
 	// Operational reporting is best effort and follows the already bounded
 	// installation evidence. It must not consume that evidence's remaining time.
 	s.recordRuntimeStatusMetadata(ctx, started, "", status)
+	capture = s.runtimeConfigurationSourceTicketV1(ctx, data, runtime.routes.Load(), auth, generation, status)
 	return nil
 }
 

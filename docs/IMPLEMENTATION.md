@@ -81,15 +81,30 @@ does not close the broader acceptance gaps.
   passed 47 focused Vitest cases, formatting and `go tool task check`; browser
   acceptance remains open. See [quota analysis](INSIGHTS.md).
 
-The first verified obsolete temporary-artifact cleanup removed 187 empty directories
-and five byte-identical duplicate binaries, reclaiming 90,229,562 bytes. Fresh
+- **Coherent historical configuration capture:** complete private codec-v1 source
+  is prepared only after matching successful authorization/routing publication,
+  using the original repeatable-read facts and refresh deadline. Preparation runs
+  after publication locks release, with one nonblocking slot and a conservative
+  source-work bound; detached historical bytes confer no current authority.
+  Independent source review found no concrete defects. Primary focused race and
+  complete `go tool task test` passed, including 7,326 frontend cases in 271 files,
+  Go race/coverage, script controls and production assets. Primary mandatory
+  checking passed after narrow, explained privacy-test exemptions for standalone
+  Staticcheck and GolangCI-Lint; both earlier checks remain failed. No migration,
+  automatic durable write, retention, activation or rollback is added. See
+  [historical capture](RUNTIME_CONFIGURATION_CAPTURE.md).
+
+Verified obsolete temporary-artifact cleanup removed 320 empty directories
+and seven byte-identical duplicate binaries plus an obsolete extracted Vault binary,
+reclaiming 677,751,793 bytes. The original pinned Vault image remains available. Fresh
 open-file/process checks and retained-copy hashes preceded deletion. Active
 services, mounted fixtures and qualification receipts remain retained; this does
 not claim that every temporary artifact is obsolete or removed.
 
-Chrome Computer Use is now connected after the user unlocked the screen; RouteX
-is visible at `/login`. Authenticated browser acceptance is being resumed. The
-previous unavailable-browser results remain historical evidence.
+A dedicated headless browser is authenticated to an isolated production fixture
+at delivered head `0f0f144`; authenticated interaction acceptance is underway.
+Native Chrome can open its English-default sign-in page, but authenticated native
+acceptance remains separate. Existing development services are preserved.
 
 Browser inventory previously timed out; direct Chrome Computer Use reported
 `cgWindowNotFound`. Browser acceptance remains open and does not block independent

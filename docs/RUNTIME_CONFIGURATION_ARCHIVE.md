@@ -2,7 +2,7 @@
 
 The private archive stores complete canonical codec-v1 source facts in encrypted,
 ordered chunks. It is a durable storage foundation for reconstructable Gateway
-versions. It creates no capture pipeline, serving authority, public archive API,
+versions. It creates no automatic durable capture, serving authority, public archive API,
 activation command, rollback operation, fleet acknowledgement or automatic
 retention policy. F30 remains partial.
 
@@ -72,7 +72,10 @@ older report helpers cannot consume the archive receipt independently. This
 mechanism exists only in the disposable test harness and is not a product
 downgrade operation.
 
-Later phases must establish coherent original-source capture, bounded retained
+The [private historical capture seam](RUNTIME_CONFIGURATION_CAPTURE.md) now
+prepares complete original-source facts in memory after successful publication,
+without an archive write or serving authority. Later phases must establish
+durable capture provenance, bounded retained
 bytes/counts, deduplication and backpressure without delaying fresh denial
 publication. Current runtime can install fresh authorization while retaining old
 routes after route validation failure; that mixed state is not a complete
