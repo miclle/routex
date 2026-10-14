@@ -86,6 +86,20 @@ export default {
   descriptorBoundary:
     'This descriptor is not a secret. Coordinator: Not configured. Application status: Unknown. It proves neither caller login nor successful application use.',
   copyDescriptor: 'Copy non-secret descriptor',
+  applicationConfiguration: 'Application integration configuration',
+  vaultAgentJWT: 'Vault Agent · JWT',
+  deliveryDetails: 'Delivery details',
+  jwtFileInstruction:
+    'Provide and renew the approved workload JWT at {{path}} outside RouteX. Review Agent filesystem permissions and Vault TLS trust before use.',
+  keyFileInstruction:
+    'The application reads its API Key from {{path}}. This slot-based destination stays stable across replacements for the same target.',
+  configurationBoundary:
+    'Apply this configuration manually and reload or restart the application after replacing its descriptor. Copying does not apply configuration, verify a call or retire the original Key. CSI and External Secrets are not available for this JWT contract.',
+  configurationUnavailable:
+    'This descriptor cannot safely produce the supported Vault Agent JWT configuration. Review the delivery details; no configuration has been applied.',
+  copyConfiguration: 'Copy integration configuration',
+  configurationCopied: 'Integration configuration copied.',
+  configurationCopyFailed: 'The integration configuration could not be copied.',
   copied: 'Descriptor copied.',
   copyFailed: 'The descriptor could not be copied.',
   reviewReconcile: 'Review local publication recovery',

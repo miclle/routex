@@ -21,6 +21,8 @@ const review = 'a'.repeat(64)
 const csrf = 'b'.repeat(64)
 const requestId = '10000000-0000-4000-8000-000000000001'
 const originalAdapter = client.defaults.adapter
+const originalClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard')
+const writeText = vi.fn<(value: string) => Promise<void>>()
 let root: Root, container: HTMLDivElement, cache: QueryClient
 let scope: KeyDeliveryOwner
 let requests: InternalAxiosRequestConfig[]
@@ -88,7 +90,7 @@ function result(config: InternalAxiosRequestConfig, runtime: 'unknown' | 'confir
           endpoint: 'https://vault.example.test',
           namespace: '',
           mount: 'kv',
-          path: 'api-keys/exact',
+          path: 'api-keys/' + id('vap') + '/routex-api-key-' + item.id,
           data_field: 'value',
           version: 1 as const,
           method: 'jwt' as const,
@@ -139,6 +141,11 @@ beforeEach(async () => {
   received.mockReset()
   changed.mockReset()
   closed.mockReset()
+  writeText.mockReset().mockResolvedValue(undefined)
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: { writeText },
+  })
   client.defaults.adapter = async (config) => {
     requests.push(config)
     if (held && config.url === held.url) await held.promise
@@ -181,6 +188,12 @@ beforeEach(async () => {
         throw new AxiosError('missing', '', config, undefined, response)
       }
       response.data = issuedReceipt
+    } else if (config.url?.endsWith('/delivery-descriptor')) {
+      if (receiptMissing) {
+        response.status = 404
+        throw new AxiosError('missing', '', config, undefined, response)
+      }
+      response.data = issuedReceipt?.descriptor
     } else if (config.url?.endsWith('/delivery-reconcile')) {
       if (reconcileFails) {
         response.status = 503
@@ -200,6 +213,8 @@ afterEach(async () => {
   cache.clear()
   container.remove()
   client.defaults.adapter = originalAdapter
+  if (originalClipboard) Object.defineProperty(navigator, 'clipboard', originalClipboard)
+  else Reflect.deleteProperty(navigator, 'clipboard')
   await i18n.changeLanguage('en')
 })
 function Harness({
@@ -208,12 +223,14 @@ function Harness({
   allowed = true,
   receiptKeyId,
   receiptRequestId,
+  descriptorOnly = false,
 }: {
   predecessor?: PersonalKey
   receipt?: boolean
   allowed?: boolean
   receiptKeyId?: string
   receiptRequestId?: string
+  descriptorOnly?: boolean
 }) {
   const auth = useQuery({
     queryKey: ['auth', 'session'],
@@ -223,16 +240,16 @@ function Harness({
   useQuery({
     queryKey:
       scope.kind === 'personal'
-        ? ['keys', auth.data.user.id]
-        : ['project-keys', scope.projectId, auth.data.user.id],
+        ? ['keys', auth.data?.user.id ?? '']
+        : ['project-keys', scope.projectId, auth.data?.user.id ?? ''],
     queryFn: async () => [],
     initialData: [],
   })
   useQuery({
     queryKey:
       scope.kind === 'personal'
-        ? ['models', auth.data.user.id]
-        : ['permissions', auth.data.user.id],
+        ? ['models', auth.data?.user.id ?? '']
+        : ['permissions', auth.data?.user.id ?? ''],
     queryFn: async () => [],
     initialData: [],
   })
@@ -241,7 +258,9 @@ function Harness({
     <DeliveryReceiptDialog
       owner={scope}
       authority={authority}
-      requestId={receiptRequestId ?? issuedReceipt?.request_id ?? requestId}
+      requestId={
+        descriptorOnly ? undefined : (receiptRequestId ?? issuedReceipt?.request_id ?? requestId)
+      }
       keyId={receiptKeyId ?? key().id}
       onClose={closed}
       onChanged={changed}
@@ -661,6 +680,237 @@ describe('owner managed Key delivery', () => {
   })
 })
 describe('owner delivery receipt', () => {
+  it.each(['personal', 'project'] as const)(
+    'renders and explicitly copies %s JWT Agent configuration without changing delivery facts',
+    async (kind) => {
+      if (kind === 'project') scope = { kind: 'project', projectId: id('prj') }
+      result(
+        {
+          data: JSON.stringify({ request_id: requestId }),
+          url: base() + '/managed',
+        } as InternalAxiosRequestConfig,
+        'confirmed',
+      )
+      await render({ receipt: true })
+      expect(document.querySelector('textarea')).toBeNull()
+      await click(en.readReceipt)
+      await until(() => expect(document.querySelector('textarea')).not.toBeNull())
+      const textarea = document.querySelector('textarea')!
+      const configuration = textarea.value
+      expect(textarea.readOnly).toBe(true)
+      expect(configuration).toContain('method "jwt"')
+      expect(configuration).toContain('auth/jwt')
+      expect(configuration).toContain(issuedReceipt!.descriptor!.path + '?version=1')
+      expect(configuration).toContain('/var/run/secrets/routex/api-keys/' + id('kds'))
+      expect(document.body.textContent).toContain(en.configurationBoundary)
+      expect(document.querySelector('details')!.open).toBe(false)
+      expect(writeText).not.toHaveBeenCalled()
+      await click(en.copyConfiguration)
+      expect(writeText).toHaveBeenCalledExactlyOnceWith(configuration)
+      expect(document.body.textContent).toContain(en.configurationCopied)
+      await act(async () => i18n.changeLanguage('zh'))
+      expect(document.body.textContent).toContain(zh.applicationConfiguration)
+      expect(document.body.textContent).toContain(zh.configurationCopied)
+      expect(document.querySelector('textarea')!.value).toBe(configuration)
+      await click(zh.copyDescriptor)
+      expect(writeText.mock.calls[1][0]).toBe(JSON.stringify(issuedReceipt!.descriptor, null, 2))
+      expect(document.body.textContent).toContain(zh.copied)
+      expect(requests).toHaveLength(1)
+      expect(requests[0].method).toBe('get')
+      expect(caches()).not.toContain('workload.jwt')
+      expect(caches()).not.toContain(configuration)
+      expect(localStorage.getItem('routex.key')).toBeNull()
+      expect(sessionStorage.length).toBe(0)
+      expect(changed).not.toHaveBeenCalled()
+    },
+  )
+  it('does not emit executable configuration for an inconsistent descriptor tuple', async () => {
+    result(
+      {
+        data: JSON.stringify({ request_id: requestId }),
+        url: base() + '/managed',
+      } as InternalAxiosRequestConfig,
+      'confirmed',
+    )
+    issuedReceipt!.descriptor!.path = 'api-keys/exact'
+    await render({ receipt: true })
+    await click(en.readReceipt)
+    await until(() => expect(document.body.textContent).toContain(en.configurationUnavailable))
+    expect(document.querySelector('textarea')).toBeNull()
+    expect(document.body.textContent).not.toContain(en.copyConfiguration)
+    expect(document.querySelector('details')!.textContent).toContain('api-keys/exact')
+    await click(en.copyDescriptor)
+    expect(writeText.mock.calls[0][0]).toContain('api-keys/exact')
+    expect(requests).toHaveLength(1)
+  })
+  it('reports clipboard failure locally and permits an explicit configuration retry', async () => {
+    result(
+      {
+        data: JSON.stringify({ request_id: requestId }),
+        url: base() + '/managed',
+      } as InternalAxiosRequestConfig,
+      'confirmed',
+    )
+    await render({ receipt: true })
+    await click(en.readReceipt)
+    await until(() => expect(document.querySelector('textarea')).not.toBeNull())
+    writeText.mockRejectedValueOnce(new Error('Clipboard blocked'))
+    await click(en.copyConfiguration)
+    expect(document.body.textContent).toContain(en.configurationCopyFailed)
+    expect(document.body.textContent).not.toContain(en.configurationCopied)
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(document.body.textContent).toContain(zh.configurationCopyFailed)
+    await click(zh.copyConfiguration)
+    expect(writeText.mock.calls[0][0]).toBe(writeText.mock.calls[1][0])
+    expect(document.body.textContent).toContain(zh.configurationCopied)
+    expect(requests).toHaveLength(1)
+    expect(changed).not.toHaveBeenCalled()
+  })
+  it.each(
+    (['personal', 'project'] as const).flatMap((kind) =>
+      (['configuration', 'descriptor'] as const).flatMap((mode) =>
+        (['success', 'failure'] as const).flatMap((outcome) =>
+          (['receipt', 'descriptor'] as const).map((source) => ({ kind, mode, outcome, source })),
+        ),
+      ),
+    ),
+  )(
+    'rejects retained $kind $mode copy after same-authority $source refresh $outcome',
+    async ({ kind, mode, outcome, source }) => {
+      if (kind === 'project') scope = { kind: 'project', projectId: id('prj') }
+      result(
+        {
+          data: JSON.stringify({ request_id: requestId }),
+          url: base() + '/managed',
+        } as InternalAxiosRequestConfig,
+        'confirmed',
+      )
+      await render({ receipt: true, descriptorOnly: source === 'descriptor' })
+      await click(en.readReceipt)
+      await until(() => expect(document.querySelector('textarea')).not.toBeNull())
+      const label = mode === 'configuration' ? en.copyConfiguration : en.copyDescriptor
+      const retained = capturedClick(button(label))
+      const original =
+        mode === 'configuration'
+          ? document.querySelector('textarea')!.value
+          : JSON.stringify(issuedReceipt!.descriptor, null, 2)
+      const refresh = hold(
+        source === 'descriptor'
+          ? base() + '/' + key().id + '/delivery-descriptor'
+          : base() + '/delivery-receipts/' + requestId,
+      )
+      const read = capturedClick(button(en.readReceipt))
+      await act(async () => {
+        read()
+        retained()
+      })
+      expect(writeText).not.toHaveBeenCalled()
+      expect(document.querySelector('textarea')).toBeNull()
+      receiptMissing = outcome === 'failure'
+      await act(async () => refresh.release())
+      await until(() => {
+        if (outcome === 'failure')
+          expect(document.body.textContent).toContain(en.receiptUnavailable)
+        else expect(document.querySelector('textarea')).not.toBeNull()
+      })
+      await act(async () => retained())
+      expect(writeText).not.toHaveBeenCalled()
+      expect(document.body.textContent).not.toContain(en.configurationCopied)
+      expect(document.body.textContent).not.toContain(en.copied)
+      if (outcome === 'failure') {
+        held = null
+        receiptMissing = false
+        await click(en.readReceipt)
+        await until(() => expect(document.querySelector('textarea')).not.toBeNull())
+        await act(async () => retained())
+        expect(writeText).not.toHaveBeenCalled()
+      }
+      // An identical fresh server fact does not resurrect the original callback.
+      await click(label)
+      expect(writeText).toHaveBeenCalledExactlyOnceWith(original)
+      expect(requests.every((request) => request.method === 'get')).toBe(true)
+      expect(changed).not.toHaveBeenCalled()
+    },
+  )
+  it.each(
+    (['personal', 'project'] as const).flatMap((kind) =>
+      (
+        ['renewal', 'actor', 'target', 'unmount', 'error', 'missing', 'permission', 'list'] as const
+      ).map((change) => ({ kind, change })),
+    ),
+  )(
+    'rejects retained $kind copy dispatch and late clipboard notice after $change',
+    async ({ kind, change }) => {
+      if (kind === 'project') scope = { kind: 'project', projectId: id('prj') }
+      result(
+        {
+          data: JSON.stringify({ request_id: requestId }),
+          url: base() + '/managed',
+        } as InternalAxiosRequestConfig,
+        'confirmed',
+      )
+      await render({ receipt: true })
+      await click(en.readReceipt)
+      await until(() => expect(document.querySelector('textarea')).not.toBeNull())
+      const copied = capturedClick(button(en.copyConfiguration))
+      let release!: () => void
+      writeText.mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            release = resolve
+          }),
+      )
+      await click(en.copyConfiguration)
+      expect(button(en.copyConfiguration).disabled).toBe(true)
+      await act(async () => copied())
+      expect(writeText).toHaveBeenCalledOnce()
+      if (change === 'renewal' || change === 'actor') {
+        await act(async () =>
+          cache.setQueryData(['auth', 'session'], {
+            ...session(),
+            user:
+              change === 'actor'
+                ? { ...session().user, id: 'usr_01m36yee4gkbns18pfcqqc75a4' }
+                : session().user,
+            csrf_token: 'c'.repeat(64),
+          }),
+        )
+      } else if (change === 'target') {
+        await render({
+          receipt: true,
+          receiptKeyId: key().id.slice(0, -1) + '4',
+          receiptRequestId: '20000000-0000-4000-8000-000000000001',
+        })
+      } else if (change === 'error') {
+        await act(async () =>
+          cache
+            .getQueryCache()
+            .find({ queryKey: ['auth', 'session'], exact: true })!
+            .setState({ status: 'error', error: new Error('Session unavailable') }),
+        )
+      } else if (change === 'missing') {
+        await act(async () => cache.setQueryData(['auth', 'session'], null))
+      } else if (change === 'permission') {
+        await render({ receipt: true, allowed: false })
+      } else if (change === 'list') {
+        await act(async () =>
+          cache.invalidateQueries({
+            queryKey: scope.kind === 'personal' ? ['keys'] : ['project-keys'],
+            refetchType: 'none',
+          }),
+        )
+      } else {
+        await act(async () => root.render(null))
+      }
+      expect(document.querySelector('textarea')).toBeNull()
+      await act(async () => copied())
+      expect(writeText).toHaveBeenCalledOnce()
+      await act(async () => release())
+      expect(document.body.textContent).not.toContain(en.configurationCopied)
+      expect(changed).not.toHaveBeenCalled()
+      expect(caches()).not.toContain('workload.jwt')
+    },
+  )
   it('keeps a missing receipt uncertain and never automatically reads, retries or copies a secret', async () => {
     receiptMissing = true
     await render({ receipt: true })
@@ -766,12 +1016,15 @@ describe('owner delivery receipt', () => {
       await render({ receipt: true })
       await click(en.readReceipt)
       await until(() => expect(document.body.textContent).toContain(en.replacementCall_completed))
+      expect(document.querySelector('textarea')).not.toBeNull()
       const refresh = hold(base() + '/delivery-receipts/' + requestId)
       await click(en.readReceipt)
       expect(document.body.textContent).not.toContain(en.replacementCallStatus)
+      expect(document.querySelector('textarea')).toBeNull()
       receiptMissing = true
       await act(async () => refresh.release())
       await until(() => expect(document.body.textContent).toContain(en.receiptUnavailable))
+      expect(document.querySelector('textarea')).toBeNull()
       expect(document.body.textContent).not.toContain(en.replacementCall_completed)
       receiptMissing = false
       held = null

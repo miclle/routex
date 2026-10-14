@@ -1727,6 +1727,19 @@ returned Key; known-Key reviews still require equality. Same-owner Session renew
 the original uncertain reconciliation intent; actor or target changes discard it.
 Use the existing receipt dialog and paired keyDeliveryOwner translations.
 
+The managed receipt's application integration card derives only Vault Agent JWT
+HCL from the exact current server descriptor, with collapsed non-secret delivery
+details. Validate the native auth/identity/path/version tuple before rendering;
+read KV-v2 version one via a GET query, preserve the external workload JWT file,
+and write only the API Key to the stable slot-specific destination with 0600/no
+backup and no Token sink. Bind both configuration and descriptor copy to the
+exact current descriptor fact and read generation; invalidate that generation
+synchronously before every new read or publication recovery, including failed
+and identical same-authority refreshes. Keep copy under the existing fresh owner
+authority and duplicate-operation guards, outside caches/storage. Copying does
+not apply deployment, authenticate, prove native completion or retire a Key.
+Unsupported CSI/External Secrets formats and automatic coordination stay absent.
+
 Operations analysis uses `views/insights` at `/admin/insights` with independent
 `calls.read_all` authority and paired `insights` translations. Keep the approved
 notice, question/result split, result actions and saved-report area, using local

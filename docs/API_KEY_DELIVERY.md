@@ -134,6 +134,50 @@ Its coordinator is `not_configured` and application status is `unknown`. Copying
 descriptor proves neither browser persistence nor application configuration/login,
 successful inference, native completion or fleet acknowledgement.
 
+## Application integration configuration
+
+The owner receipt dialog includes an application configuration card for the
+supported Vault Agent JWT integration, followed by collapsed delivery details.
+It derives the HCL only from the current server descriptor. Exact Key, profile,
+Principal and slot identities, role, descriptor revision, JWT method and KV-v2
+version-one destination must agree; unsupported or malformed tuples remain
+unavailable rather than generating partial instructions. Raw non-secret
+descriptor copying remains available separately.
+
+Supply and renew the workload JWT externally at
+`/var/run/secrets/routex/workload.jwt`. Agent reads the descriptor's exact JWT
+auth mount and role, preserves that JWT file, and renders the API Key to
+`/var/run/secrets/routex/api-keys/<slot_id>`. The output filename stays stable for
+replacements in the same application slot; a changed target can create another
+slot. The KV-v2 template reads the exact recorded path with `?version=1`, using
+the descriptor's exact data field. Missing or empty fields fail rendering.
+The output has permissions `0600`, no backup, and no Vault Token sink. The
+application Key file and workload JWT file are separate.
+
+The caller must explicitly copy, review and apply the configuration, prepare
+the JWT source and output directory, run Agent, and reload or restart its
+application as appropriate. Configuration rendering and clipboard completion
+make no network request or delivery-status change. They establish neither
+Agent authentication nor deployment, inference, native completion or retirement.
+CSI and External Secrets configuration is unavailable until an independent,
+supported authentication and lifecycle contract exists. No coordinator or
+automatic rotation is introduced.
+
+Configuration and descriptor copy actions share the receipt's existing
+actor/Session/owner/Key/request authority fence and duplicate-operation guard.
+Each new read or publication recovery synchronously invalidates the prior
+descriptor fact and copy generation before dispatch. Refresh, failed reads and
+authority changes hide prior configuration; retained configuration and raw
+descriptor callbacks cannot copy obsolete facts even after an identical
+same-authority read succeeds, or publish a new completion notice.
+Descriptors and generated configuration remain outside query/mutation caches
+and browser storage. English and Chinese labels switch without changing the
+machine configuration. Focused renderer and receipt tests cover these contracts.
+A local Vault Agent 1.21.4 process accepted a generated no-namespace HCL fixture
+and initialized its JWT and template handlers without a supplied JWT, then shut
+down cleanly. This verifies configuration startup only; it does not establish
+real JWT authentication, template output, application use or browser acceptance.
+
 ## Replacement-call evidence
 
 Delivery receipts include the read-only `replacement_call_status` advisory. The

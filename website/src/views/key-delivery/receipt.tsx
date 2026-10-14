@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { FormField } from '@/components/app/CatalogUI'
 import type { OwnerAuthority, OwnerTicket } from './lifetime'
+import { ApplicationConfiguration } from './application-config'
 
 type ReconcileIntent = {
   keyId: string
@@ -77,16 +78,20 @@ export default function DeliveryReceiptDialog({
     authority,
     target,
     ticket: null as OwnerTicket | null,
+    factGeneration: 0,
+    copyFact: null as { value: KeyDeliveryDescriptor; generation: number } | null,
   })
   const [receiptFact, setReceipt] = useState<{
     value: KeyDeliveryReceipt
     target: string
     authority: OwnerAuthority
+    generation: number
   } | null>(null)
   const [descriptorFact, setDescriptor] = useState<{
     value: KeyDeliveryDescriptor
     target: string
     authority: OwnerAuthority
+    generation: number
   } | null>(null)
   const receipt =
     authority.fresh && receiptFact?.target === target && receiptFact.authority === authority
@@ -107,12 +112,16 @@ export default function DeliveryReceiptDialog({
     return () => {
       cell.mounted = false
       cell.turn++
+      cell.factGeneration++
+      cell.copyFact = null
       cell.confirmed = null
       cell.ticket?.controller.abort()
     }
   }, [life])
   useLayoutEffect(() => {
     life.current.turn++
+    life.current.factGeneration++
+    life.current.copyFact = null
     life.current.busy = false
     life.current.confirmed = null
     life.current.ticket?.controller.abort()
@@ -170,6 +179,10 @@ export default function DeliveryReceiptDialog({
   async function read() {
     const op = begin()
     if (!op) return
+    // Invalidate retained copy callbacks synchronously, before React clears the
+    // displayed fact. Authority can remain identical across this new read.
+    const generation = ++life.current.factGeneration
+    life.current.copyFact = null
     setReceipt(null)
     setDescriptor(null)
     try {
@@ -178,11 +191,17 @@ export default function DeliveryReceiptDialog({
         // An uncertain issuance has no Key ID yet; the exact owner/request read supplies it.
         if (keyId !== '' && value.key_id !== keyId)
           throw new Error('Receipt does not match the reviewed Key')
-        if (current(op)) setReceipt({ value, target, authority })
+        if (current(op)) {
+          life.current.copyFact = value.descriptor ? { value: value.descriptor, generation } : null
+          setReceipt({ value, target, authority, generation })
+        }
       } else {
         const value = await getKeyDeliveryDescriptor(owner, keyId, op.ticket.controller.signal)
         if (value.key_id !== keyId) throw new Error('Descriptor does not match the reviewed Key')
-        if (current(op)) setDescriptor({ value, target, authority })
+        if (current(op)) {
+          life.current.copyFact = { value, generation }
+          setDescriptor({ value, target, authority, generation })
+        }
       }
     } catch {
       if (current(op)) setNotice('receiptUnavailable')
@@ -204,6 +223,8 @@ export default function DeliveryReceiptDialog({
     setConfirm(null)
     const op = begin()
     if (!op) return
+    const generation = ++life.current.factGeneration
+    life.current.copyFact = null
     setIntent(value)
     setReceipt(null)
     setDescriptor(null)
@@ -220,7 +241,10 @@ export default function DeliveryReceiptDialog({
       if (result.delivery.key_id !== value.keyId)
         throw new Error('Receipt does not match the reviewed Key')
       setIntent(null)
-      setReceipt({ value: result.delivery, target, authority })
+      life.current.copyFact = result.delivery.descriptor
+        ? { value: result.delivery.descriptor, generation }
+        : null
+      setReceipt({ value: result.delivery, target, authority, generation })
       onChanged()
     } catch {
       if (current(op)) setNotice('reconcileFailed')
@@ -228,21 +252,30 @@ export default function DeliveryReceiptDialog({
       finish(op)
     }
   }
-  async function copy() {
-    const value = receipt?.descriptor ?? descriptor
-    if (!value || life.current.busy) return
+  async function copy(value: KeyDeliveryDescriptor, generation: number, configuration?: string) {
+    if (
+      life.current.busy ||
+      life.current.factGeneration !== generation ||
+      life.current.copyFact?.generation !== generation ||
+      life.current.copyFact.value !== value
+    )
+      return
     const op = begin()
     if (!op) return
     try {
-      await navigator.clipboard.writeText(JSON.stringify(value, null, 2))
-      if (current(op)) setNotice('copied')
+      await navigator.clipboard.writeText(configuration ?? JSON.stringify(value, null, 2))
+      if (current(op)) setNotice(configuration === undefined ? 'copied' : 'configurationCopied')
     } catch {
-      if (current(op)) setNotice('copyFailed')
+      if (current(op))
+        setNotice(configuration === undefined ? 'copyFailed' : 'configurationCopyFailed')
     } finally {
       finish(op)
     }
   }
   const value = receipt?.descriptor ?? descriptor
+  const copyGeneration = receipt?.descriptor
+    ? receiptFact!.generation
+    : (descriptorFact?.generation ?? -1)
   return (
     <>
       <Dialog
@@ -295,13 +328,28 @@ export default function DeliveryReceiptDialog({
           )}
           {value && (
             <>
-              <pre className="max-h-64 overflow-auto rounded-md border bg-muted p-3 text-xs">
-                {JSON.stringify(value, null, 2)}
-              </pre>
+              <ApplicationConfiguration
+                descriptor={value}
+                pending={pending}
+                onCopy={(text) => void copy(value, copyGeneration, text)}
+              />
+              <details className="rounded-md border p-3">
+                <summary className="cursor-pointer text-sm font-medium">
+                  {t('deliveryDetails')}
+                </summary>
+                <pre className="mt-3 max-h-64 overflow-auto rounded-md bg-muted p-3 text-xs">
+                  {JSON.stringify(value, null, 2)}
+                </pre>
+                <Button
+                  className="mt-3"
+                  variant="outline"
+                  disabled={pending}
+                  onClick={() => void copy(value, copyGeneration)}
+                >
+                  {t('copyDescriptor')}
+                </Button>
+              </details>
               <p>{t('descriptorBoundary')}</p>
-              <Button variant="outline" disabled={pending} onClick={() => void copy()}>
-                {t('copyDescriptor')}
-              </Button>
             </>
           )}
           {receipt?.delivery_status === 'acknowledged' &&

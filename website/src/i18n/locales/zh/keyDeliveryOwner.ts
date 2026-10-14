@@ -78,6 +78,20 @@ export default {
   descriptorBoundary:
     '此描述符不是秘密。协调器：未配置。应用状态：未知。它不能证明调用方登录或应用使用成功。',
   copyDescriptor: '复制非秘密描述符',
+  applicationConfiguration: '应用接入配置',
+  vaultAgentJWT: 'Vault Agent · JWT',
+  deliveryDetails: '交付详情',
+  jwtFileInstruction:
+    '请在 RouteX 之外提供并更新已批准的工作负载 JWT 文件 {{path}}。使用前请审核 Agent 文件权限和 Vault TLS 信任配置。',
+  keyFileInstruction:
+    '应用从 {{path}} 读取 API Key。同一目标下的替代 Key 沿用此基于交付槽位的文件位置。',
+  configurationBoundary:
+    '请手动应用此配置，并在替换描述符后重新加载或重启应用。复制不代表已应用配置、已验证调用或已退役原 Key。当前 JWT 契约不提供 CSI 和 External Secrets 配置。',
+  configurationUnavailable:
+    '此描述符无法安全生成当前支持的 Vault Agent JWT 配置。请审核交付详情；尚未应用任何配置。',
+  copyConfiguration: '复制接入配置',
+  configurationCopied: '已复制接入配置。',
+  configurationCopyFailed: '无法复制接入配置。',
   copied: '已复制描述符。',
   copyFailed: '无法复制描述符。',
   reviewReconcile: '审核本地发布恢复',

@@ -94,6 +94,20 @@ does not close the broader acceptance gaps.
   automatic durable write, retention, activation or rollback is added. See
   [historical capture](RUNTIME_CONFIGURATION_CAPTURE.md).
 
+- **Managed delivery application configuration:** the existing Personal/Project
+  receipt card now renders an explicit-copy Vault Agent/JWT configuration from
+  exact validated non-secret descriptors. The template reads exact KV-v2 version
+  1 into a stable slot path with 0600 permissions, no backup and no token sink.
+  External JWT provisioning remains the operator's responsibility. Independent
+  review found and then verified repair of obsolete copy callbacks; both copy
+  modes now require exact displayed facts and synchronous read generation.
+  Candidate and composed primary focused suites each passed 155 cases. An earlier
+  unrestricted primary focus failed with timeout and cascading UI assertions;
+  the unchanged-source two-worker qualification passed. Local Vault Agent startup
+  accepted the generated configuration, proving neither authentication nor Key
+  output. No coordinator, automatic application or rotation is claimed. See
+  [managed delivery](API_KEY_DELIVERY.md).
+
 Verified obsolete temporary-artifact cleanup removed 320 empty directories
 and seven byte-identical duplicate binaries plus an obsolete extracted Vault binary,
 reclaiming 677,751,793 bytes. The original pinned Vault image remains available. Fresh
@@ -101,10 +115,12 @@ open-file/process checks and retained-copy hashes preceded deletion. Active
 services, mounted fixtures and qualification receipts remain retained; this does
 not claim that every temporary artifact is obsolete or removed.
 
-A dedicated headless browser is authenticated to an isolated production fixture
-at delivered head `0f0f144`; authenticated interaction acceptance is underway.
-Native Chrome can open its English-default sign-in page, but authenticated native
-acceptance remains separate. Existing development services are preserved.
+Authenticated headless interaction reached the isolated `0f0f144` production
+fixture. Its controlled upstream/controller exited before AI completion; the
+pending request is not accepted native AI evidence. Guarded owned cleanup and
+root-owned fixture recovery are being prepared. Native Chrome reaches the
+English-default sign-in page; authenticated native acceptance remains separate.
+Existing development services are preserved.
 
 Browser inventory previously timed out; direct Chrome Computer Use reported
 `cgWindowNotFound`. Browser acceptance remains open and does not block independent
