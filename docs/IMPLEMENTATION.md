@@ -73,6 +73,20 @@ does not close the broader acceptance gaps.
   coherent capture, bounded retention, activation, rollback and fleet acknowledgement
   remain open. See [archive storage](RUNTIME_CONFIGURATION_ARCHIVE.md).
 
+- **Quota page observations:** the existing reading-guidance card now derives
+  observations from the captured page's recorded warning level, stored Stop or
+  Alert only behavior and authoritative forecast/evidence status. Changing pages
+  replaces observations; language switching performs no new query. This creates
+  no global/member/request counts, policy writes or AI calls. The composed primary
+  passed 47 focused Vitest cases, formatting and `go tool task check`; browser
+  acceptance remains open. See [quota analysis](INSIGHTS.md).
+
+The first verified obsolete temporary-artifact cleanup removed 187 empty directories
+and five byte-identical duplicate binaries, reclaiming 90,229,562 bytes. Fresh
+open-file/process checks and retained-copy hashes preceded deletion. Active
+services, mounted fixtures and qualification receipts remain retained; this does
+not claim that every temporary artifact is obsolete or removed.
+
 Chrome Computer Use is now connected after the user unlocked the screen; RouteX
 is visible at `/login`. Authenticated browser acceptance is being resumed. The
 previous unavailable-browser results remain historical evidence.

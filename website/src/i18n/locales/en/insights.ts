@@ -261,6 +261,28 @@ export default {
   quotaSharedKeys_other: '{{count}} retained Keys share this account.',
   quotaSharedKeys: '{{count}} retained Keys share this account.',
   quotaAdviceTitle: 'Reading this quota analysis',
+  quotaObservationHigh_one:
+    '{{count}} account on this page is near its own cap or has a critical warning. Review its stored cap and settled usage.',
+  quotaObservationHigh_other:
+    '{{count}} accounts on this page are near their own caps or have critical warnings. Review their stored caps and settled usage.',
+  quotaObservationReached_stop_one:
+    '{{count}} account on this page has reached its own cap with Stop configured. Review that policy; this report does not prove actual request blocking.',
+  quotaObservationReached_stop_other:
+    '{{count}} accounts on this page have reached their own caps with Stop configured. Review those policies; this report does not prove actual request blocking.',
+  quotaObservationReached_alert_only_one:
+    '{{count}} account on this page has reached its own cap with Alert only configured. Review that policy; it does not establish allowance under parent constraints.',
+  quotaObservationReached_alert_only_other:
+    '{{count}} accounts on this page have reached their own caps with Alert only configured. Review those policies; they do not establish allowance under parent constraints.',
+  quotaObservationForecast_one:
+    'The server estimates that {{count}} account on this page will reach its own cap within 7 days and before reset. Review capacity planning; active pending holds remain separate and this is not a prediction of request blocking.',
+  quotaObservationForecast_other:
+    'The server estimates that {{count}} accounts on this page will reach their own caps within 7 days and before reset. Review capacity planning; active pending holds remain separate and this is not a prediction of request blocking.',
+  quotaObservationEvidence_one:
+    '{{count}} account on this page has unavailable journal facts, incomplete coverage or unknown usage. Review the recorded reason and terminal holds; no forecast is available for that account.',
+  quotaObservationEvidence_other:
+    '{{count}} accounts on this page have unavailable journal facts, incomplete coverage or unknown usage. Review their recorded reasons and terminal holds; no forecasts are available for those accounts.',
+  quotaObservationEmpty:
+    'This captured page contains no accounts. No account-specific quota observation is available.',
   quotaAdvice:
     'Review coverage, unknown records and reservations independently. This report describes the account’s own stored cap; it does not establish inherited allowance, request blocking or affected members.',
   quotaForecastDefinition:

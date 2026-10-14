@@ -1844,6 +1844,14 @@ separate from active pending reservations. Forecasts do not predict parent limit
 or actual request blocking. Preserve actor/Session/permission/target freshness and
 abort stale reads/exports. Keep quota identities and result rows out of optional AI advice.
 
+The existing quota reading-guidance card may derive deterministic observations
+only from the captured page's recorded levels, stored cap behavior and server
+forecast facts. Keep reached Stop and Alert only policies separate, distinguish
+empty capture from unavailable forecast evidence, and replace observations on
+page changes. No global/member/request counts, forecast recomputation, inference
+or policy writes are implied; active pending holds remain separate from valid
+server estimates, and observations never prove blocking or parent allowance.
+
 Saved quota report definitions extend the existing Save action and four-column
 owner table. Persist only the reviewed kind/dimension and exact member/Project
 scope for Key reports, never results, names, currencies, cursors or AI output.

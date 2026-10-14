@@ -285,6 +285,14 @@ they suppress utilization percentages and forecasts while settled subtotals rema
 visible. Active pending reservations and retained terminal reservations are
 disclosed separately.
 
+The existing reading-guidance card also presents deterministic observations from
+the captured account page: near/critical levels, reached caps separated by their
+stored Stop or Alert only behavior, server-confirmed seven-day estimates, and
+unavailable, incomplete or unknown forecast evidence. An empty capture is stated
+explicitly. Observations update when the page changes and never accumulate into
+global totals. They add no thresholds, forecast calculations, inference calls or
+policy writes, and establish neither actual request blocking nor parent allowance.
+
 Quota reports do not submit identities or result rows to optional AI advice.
 Quota definitions extend the same owner-private Save, Load and confirmed Delete
 workflow in `d9af644`; frozen V111 preserves released V110 receipts and adds

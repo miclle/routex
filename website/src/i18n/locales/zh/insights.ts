@@ -232,6 +232,27 @@ export default {
   quotaSharedKeys_other: '{{count}} 个保留 Key 共享此账户。',
   quotaSharedKeys: '{{count}} 个保留 Key 共享此账户。',
   quotaAdviceTitle: '如何解读配额分析',
+  quotaObservationHigh_one:
+    '当前页 {{count}} 个账户接近自身上限或出现严重预警。请审阅其已存储上限和已结算用量。',
+  quotaObservationHigh_other:
+    '当前页 {{count}} 个账户接近自身上限或出现严重预警。请审阅其已存储上限和已结算用量。',
+  quotaObservationReached_stop_one:
+    '当前页 {{count}} 个账户已达到自身上限，并配置为停止。请审阅该策略；本报告不能证明请求实际已被拦截。',
+  quotaObservationReached_stop_other:
+    '当前页 {{count}} 个账户已达到自身上限，并配置为停止。请审阅这些策略；本报告不能证明请求实际已被拦截。',
+  quotaObservationReached_alert_only_one:
+    '当前页 {{count}} 个账户已达到自身上限，并配置为仅提醒。请审阅该策略；它不能证明父级约束下仍有可用额度。',
+  quotaObservationReached_alert_only_other:
+    '当前页 {{count}} 个账户已达到自身上限，并配置为仅提醒。请审阅这些策略；它们不能证明父级约束下仍有可用额度。',
+  quotaObservationForecast_one:
+    '服务器预计当前页 {{count}} 个账户将在未来七天内、重置之前达到自身上限。请审阅容量规划；有效待结算预留仍单独展示，此预测不代表请求拦截时间。',
+  quotaObservationForecast_other:
+    '服务器预计当前页 {{count}} 个账户将在未来七天内、重置之前达到自身上限。请审阅容量规划；有效待结算预留仍单独展示，此预测不代表请求拦截时间。',
+  quotaObservationEvidence_one:
+    '当前页 {{count}} 个账户的账本数据不可用、覆盖不完整或用量未知。请审阅记录原因和终态预留；该账户暂无预测。',
+  quotaObservationEvidence_other:
+    '当前页 {{count}} 个账户的账本数据不可用、覆盖不完整或用量未知。请审阅记录原因和终态预留；这些账户暂无预测。',
+  quotaObservationEmpty: '本次捕获的当前页无账户，暂无针对具体账户的配额观察。',
   quotaAdvice:
     '请分别审阅覆盖情况、未知记录和预留量。本报告仅描述账户自身已存储的上限，不推断继承额度、请求拦截或受影响成员。',
   quotaForecastDefinition:

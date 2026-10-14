@@ -197,6 +197,12 @@ const reports = () =>
 async function ready() {
   await until(() => expect(host.textContent).toContain('Reviewed quota account'))
 }
+function advice() {
+  return host.querySelector<HTMLElement>('section[aria-label="' + text('quotaAdviceTitle') + '"]')!
+}
+function observation(key: string, count: number) {
+  return i18n.t('insights:' + key, { count })
+}
 async function member() {
   await click('shortcutKey')
   await until(() => expect(host.textContent).toContain('Reviewed member'))
@@ -492,15 +498,128 @@ it('pages distinct account roots with the server cursor and keeps cards page-sco
   await click('shortcutTeam')
   await click('quotaRun')
   await until(() => expect(host.textContent).toContain('First page account'))
+  expect(advice().textContent).toContain(observation('quotaObservationHigh', 1))
+  expect(advice().textContent).toContain(observation('quotaObservationForecast', 1))
   mutation = (r) => {
     r.items[0].name = 'Second page account'
     r.items[0].id = 'tea_01arz3ndektsv4rrffq69g5faw'
+    r.items[0].level = 'normal'
+    r.items[0].utilization_percent = '10.00'
+    r.items[0].month_settled = '10'
+    r.items[0].estimate_status = 'after_reset'
+    r.items[0].estimate_at = null
+    r.items[0].estimate_within_seven_days = false
   }
   await click('quotaNextPage')
   await until(() => expect(host.textContent).toContain('Second page account'))
   expect(host.textContent).not.toContain('First page account')
   expect(reports()[1].params).toEqual({ dimension: 'tokens', limit: 20, cursor: 'next-page' })
   expect(host.textContent).toContain(text('quotaPageAccounts'))
+  expect(advice().querySelector('ul')).toBeNull()
+})
+it('keeps valid server forecasts alongside pending holds and localizes advice without new reads or inference', async () => {
+  await mount()
+  await member()
+  await click('quotaRun')
+  await ready()
+  expect(advice().textContent).toContain(observation('quotaObservationForecast', 1))
+  expect(advice().textContent).toContain(observation('quotaObservationHigh', 1))
+  expect(host.textContent).toContain(
+    i18n.t('insights:quotaHeldValues', { month: '0', baseline: '0', active: '5' }),
+  )
+  const readCount = requests.length
+  const english = advice().textContent
+  await act(async () => {
+    await i18n.changeLanguage('zh')
+  })
+  expect(advice().textContent).toContain(observation('quotaObservationForecast', 1))
+  expect(advice().textContent).not.toBe(english)
+  expect(requests).toHaveLength(readCount)
+  expect(requests.every((r) => r.method === 'get')).toBe(true)
+})
+it.each(['unavailable', 'incomplete_coverage', 'unknown_usage'] as const)(
+  'advises evidence review without positive forecasts for %s',
+  async (status) => {
+    mutation = (r) => {
+      r.items[0] = {
+        ...r.items[0],
+        level: 'unknown',
+        utilization_percent: null,
+        baseline_covered: status !== 'incomplete_coverage',
+        baseline_held: status === 'unknown_usage' ? '8' : '0',
+        estimate_status: status,
+        estimate_at: null,
+        estimate_within_seven_days: false,
+      }
+    }
+    await mount()
+    await click('shortcutTeam')
+    await click('quotaRun')
+    await ready()
+    expect(advice().textContent).toContain(observation('quotaObservationEvidence', 1))
+    expect(advice().textContent).not.toContain(observation('quotaObservationForecast', 1))
+    expect(advice().textContent).not.toContain(observation('quotaObservationHigh', 1))
+    expect(host.textContent).toContain(text('quotaEstimate_' + status))
+  },
+)
+it('separates reached cap behaviors without turning inactive accounts into blocking claims', async () => {
+  mutation = (r) => {
+    const base = r.items[0]
+    r.items = [
+      {
+        ...base,
+        level: 'reached',
+        month_settled: '100',
+        utilization_percent: '100.00',
+        estimate_at: null,
+        estimate_status: 'already_reached',
+        estimate_within_seven_days: false,
+      },
+      {
+        ...base,
+        id: 'tea_01arz3ndektsv4rrffq69g5faw',
+        behavior: 'alert_only',
+        level: 'reached',
+        month_settled: '120',
+        utilization_percent: '120.00',
+        estimate_at: null,
+        estimate_status: 'already_reached',
+        estimate_within_seven_days: false,
+      },
+      {
+        ...base,
+        id: 'tea_01arz3ndektsv4rrffq69g5fax',
+        status: 'disabled',
+        level: 'normal',
+        month_settled: '10',
+        utilization_percent: '10.00',
+        estimate_at: null,
+        estimate_status: 'inactive',
+        estimate_within_seven_days: false,
+      },
+    ]
+  }
+  await mount()
+  await click('shortcutTeam')
+  await click('quotaRun')
+  await ready()
+  expect(advice().textContent).toContain(observation('quotaObservationReached_stop', 1))
+  expect(advice().textContent).toContain(observation('quotaObservationReached_alert_only', 1))
+  expect(advice().querySelectorAll('li')).toHaveLength(2)
+  expect(host.textContent).toContain(text('quotaEstimate_inactive'))
+  expect(reports()).toHaveLength(1)
+})
+it('distinguishes an empty captured page from accounts with unavailable forecast evidence', async () => {
+  mutation = (r) => {
+    r.items = []
+  }
+  await mount()
+  await click('shortcutTeam')
+  await click('quotaRun')
+  await until(() => expect(host.textContent).toContain(text('quotaEmpty')))
+  expect(advice().textContent).toContain(text('quotaObservationEmpty'))
+  expect(advice().querySelector('ul')).toBeNull()
+  expect(reports()).toHaveLength(1)
 })
 it('shows terminal held baseline separately and never presents it as a positive estimate', async () => {
   mutation = (r) => {

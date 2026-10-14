@@ -55,6 +55,24 @@ export default function QuotaInsightsResult({ report }: { report: QuotaInsightsR
     ['near', 'critical', 'reached'].includes(row.level),
   ).length
   const estimates = report.items.filter((row) => row.estimate_within_seven_days).length
+  const observations = [
+    {
+      key: 'quotaObservationHigh',
+      count: report.items.filter((row) => row.level === 'near' || row.level === 'critical').length,
+    },
+    ...(['stop', 'alert_only'] as const).map((behavior) => ({
+      key: `quotaObservationReached_${behavior}`,
+      count: report.items.filter((row) => row.level === 'reached' && row.behavior === behavior)
+        .length,
+    })),
+    { key: 'quotaObservationForecast', count: estimates },
+    {
+      key: 'quotaObservationEvidence',
+      count: report.items.filter((row) =>
+        ['unavailable', 'incomplete_coverage', 'unknown_usage'].includes(row.estimate_status),
+      ).length,
+    },
+  ].filter(({ count }) => count > 0)
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">{t('quotaPageScope')}</p>
@@ -202,6 +220,14 @@ export default function QuotaInsightsResult({ report }: { report: QuotaInsightsR
       </section>
       <section className="space-y-2 rounded-lg border p-4" aria-label={t('quotaAdviceTitle')}>
         <h3 className="font-medium">{t('quotaAdviceTitle')}</h3>
+        {!report.items.length && <p className="text-sm">{t('quotaObservationEmpty')}</p>}
+        {observations.length > 0 && (
+          <ul className="list-disc space-y-2 pl-5 text-sm">
+            {observations.map(({ key, count }) => (
+              <li key={key}>{t(key, { count })}</li>
+            ))}
+          </ul>
+        )}
         <p className="text-sm">{t('quotaAdvice')}</p>
         <p className="text-xs text-muted-foreground">{t('quotaForecastDefinition')}</p>
       </section>
