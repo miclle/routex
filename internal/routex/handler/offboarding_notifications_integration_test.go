@@ -182,7 +182,7 @@ func assertOffboardingCompletionNotifications(t *testing.T, db *gorm.DB, svc *se
 	// A retained recipient fact prevents historical schema peel, even though the
 	// Case has completed and no resource currently has to remain assigned.
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 111 || before[110].Version != 111 || before[109].Version != 110 {
+	if len(before) != 112 || before[110].Version != 111 || before[109].Version != 110 {
 		t.Fatal("retained recipient peel control requires exact current V109 head")
 	}
 	peelErr := offboardingNotificationsPeelV107(db, before)

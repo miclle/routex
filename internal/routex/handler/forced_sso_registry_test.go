@@ -31,7 +31,7 @@ func TestForcedSSORegistry214ExactPrefixAndSuffix(t *testing.T) {
 	for i, match := range matches {
 		names[i] = match[1] + ":" + match[2]
 	}
-	if !credentialInferenceRegistry224Current(names) || !strings.Contains(string(raw), "versions != 111") {
+	if !credentialInferenceRegistry224Current(names) || !strings.Contains(string(raw), "versions != 112") {
 		t.Fatal("exact V109/224 Credential registry required before historical checks")
 	}
 	names = names[:222]
@@ -82,8 +82,8 @@ func TestForcedSSORegistry214ExactPrefixAndSuffix(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(migrations), "apiKeyDeliveryMigration, forcedSSOMigration, vaultCertificateMigration, runtimePublicationCommandMigration, telegramIdentityMigration, offboardingNotificationMigration, modelDiscoveryNoticeMigration, credentialInferenceFailureMigration, insightsReportMigration, insightsQuotaReportMigration)") {
-		t.Fatal("V111 migration suffix or retained forced SSO predecessor changed")
+	if !strings.Contains(string(migrations), "apiKeyDeliveryMigration, forcedSSOMigration, vaultCertificateMigration, runtimePublicationCommandMigration, telegramIdentityMigration, offboardingNotificationMigration, modelDiscoveryNoticeMigration, credentialInferenceFailureMigration, insightsReportMigration, insightsQuotaReportMigration, runtimeConfigurationArchiveMigration)") {
+		t.Fatal("V112 migration suffix or retained forced SSO predecessor changed")
 	}
 	installation, err := os.ReadFile("../service/runtime_installation.go")
 	if err != nil {
@@ -122,7 +122,7 @@ func TestEnterpriseRegistry218ExactPrefixAndSuffix(t *testing.T) {
 		t.Fatal("exact222 Insights successor required before historical221 checks")
 	}
 	names = names[:221]
-	if !telegramRegistry221Current(names) || !strings.Contains(string(raw), "versions != 111") {
+	if !telegramRegistry221Current(names) || !strings.Contains(string(raw), "versions != 112") {
 		t.Fatal("exact V105/218 enterprise registry required")
 	}
 	names = names[:218] // Preserve the exact historical enterprise prefix and all mutations below.

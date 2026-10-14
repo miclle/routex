@@ -9,7 +9,7 @@ import (
 )
 
 func TestTelegramRootInventoryPreservesHistoricalCoverage(t *testing.T) {
-	if rootInventoryVersion != 10 || len(rootDomains) != 12 || rootDomains[10] != "named_identity_providers" || rootDomains[11] != "api_key_delivery_auth" {
+	if rootInventoryVersion != 11 || len(rootDomains) != 13 || rootDomains[10] != "named_identity_providers" || rootDomains[11] != "api_key_delivery_auth" {
 		t.Fatal("Telegram must reuse the twelve-domain envelope")
 	}
 	for _, tc := range []struct{ version, count int }{{6, 11}, {7, 11}, {8, 11}, {9, 12}, {10, 12}} {
@@ -17,7 +17,7 @@ func TestTelegramRootInventoryPreservesHistoricalCoverage(t *testing.T) {
 			t.Fatal("historical root domain scope changed", tc.version)
 		}
 	}
-	if rootInventoryDomains(11) != nil {
+	if rootInventoryDomains(12) != nil {
 		t.Fatal("unknown future inventory admitted")
 	}
 	now := time.Now().UTC()

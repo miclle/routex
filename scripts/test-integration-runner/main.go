@@ -122,6 +122,14 @@ func runLifecycleWithOutputBudget(project, private string, outputBudget time.Dur
 				}
 				batch(test("nonmatrix", "-skip", "^TestIdentityIntegration$", "./internal/routex/..."))
 				if ctx.Err() == nil && allGone {
+					// Archive qualification owns the disposable schema exclusively before
+					// the identity matrix resets it. Never inherit this destructive gate
+					// into the concurrently compiled nonmatrix package worker.
+					archive := test("runtime-archive", "-run", "^TestRuntimeConfigurationArchiveIntegration$", "./internal/routex/service")
+					archive.env = append(append([]string(nil), env...), "ROUTEX_TEST_RUNTIME_ARCHIVE=1")
+					batch(archive)
+				}
+				if ctx.Err() == nil && allGone {
 					// Reserve only this fixed private output; inherited artifact paths
 					// never authorize reading or replacing a caller-supplied binary.
 					absolute, err := filepath.Abs(binaryPath)
@@ -329,7 +337,7 @@ func readPort(path string) (string, bool) {
 func withoutOIDCBinary(env []string) []string {
 	result := make([]string, 0, len(env))
 	for _, value := range env {
-		if !strings.HasPrefix(value, "ROUTEX_TEST_OIDC_BINARY=") && !strings.HasPrefix(value, "ROUTEX_TEST_OIDC_BINARY_SHA256=") && !strings.HasPrefix(value, "ROUTEX_TEST_OIDC_GUARD_DIR=") {
+		if !strings.HasPrefix(value, "ROUTEX_TEST_RUNTIME_ARCHIVE=") && !strings.HasPrefix(value, "ROUTEX_TEST_RUNTIME_ARCHIVE_CHILD_DRIVER=") && !strings.HasPrefix(value, "ROUTEX_TEST_RUNTIME_ARCHIVE_CHILD_ID=") && !strings.HasPrefix(value, "ROUTEX_TEST_OIDC_BINARY=") && !strings.HasPrefix(value, "ROUTEX_TEST_OIDC_BINARY_SHA256=") && !strings.HasPrefix(value, "ROUTEX_TEST_OIDC_GUARD_DIR=") {
 			result = append(result, value)
 		}
 	}

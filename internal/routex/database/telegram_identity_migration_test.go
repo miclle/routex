@@ -28,14 +28,21 @@ func TestTelegramV106FrozenCurrentParityAndAdditiveTail(t *testing.T) {
 		}
 		for _, field := range frozen.Fields {
 			actual := current.FieldsByDBName[field.DBName]
-			if actual == nil || actual.FieldType != field.FieldType || actual.Tag.Get("gorm") != field.Tag.Get("gorm") {
+			expected := field
+			if frozen.Table == "secret_rotation_jobs" {
+				expected = oidcV94Schema(t, &runtimeArchiveRootJobV112{}).FieldsByDBName[field.DBName]
+			}
+			if frozen.Table == "secret_process_verifications" {
+				expected = oidcV94Schema(t, &runtimeArchiveRootProcessV112{}).FieldsByDBName[field.DBName]
+			}
+			if actual == nil || actual.FieldType != field.FieldType || actual.Tag.Get("gorm") != expected.Tag.Get("gorm") {
 				t.Fatal("frozen field parity", frozen.Table, field.DBName)
 			}
 		}
 	}
 	for _, driver := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(driver)
-		if len(steps) != 111 || reflect.ValueOf(steps[97]).Pointer() != reflect.ValueOf(namedIdentityMigration).Pointer() || reflect.ValueOf(steps[98]).Pointer() != reflect.ValueOf(googleIdentityMigration).Pointer() || reflect.ValueOf(steps[99]).Pointer() != reflect.ValueOf(runtimeInstallationMigration).Pointer() || reflect.ValueOf(steps[100]).Pointer() != reflect.ValueOf(discordIdentityMigration).Pointer() || reflect.ValueOf(steps[101]).Pointer() != reflect.ValueOf(apiKeyDeliveryMigration).Pointer() || reflect.ValueOf(steps[102]).Pointer() != reflect.ValueOf(forcedSSOMigration).Pointer() || reflect.ValueOf(steps[103]).Pointer() != reflect.ValueOf(vaultCertificateMigration).Pointer() || reflect.ValueOf(steps[104]).Pointer() != reflect.ValueOf(runtimePublicationCommandMigration).Pointer() || reflect.ValueOf(steps[105]).Pointer() != reflect.ValueOf(telegramIdentityMigration).Pointer() {
+		if len(steps) != 112 || reflect.ValueOf(steps[97]).Pointer() != reflect.ValueOf(namedIdentityMigration).Pointer() || reflect.ValueOf(steps[98]).Pointer() != reflect.ValueOf(googleIdentityMigration).Pointer() || reflect.ValueOf(steps[99]).Pointer() != reflect.ValueOf(runtimeInstallationMigration).Pointer() || reflect.ValueOf(steps[100]).Pointer() != reflect.ValueOf(discordIdentityMigration).Pointer() || reflect.ValueOf(steps[101]).Pointer() != reflect.ValueOf(apiKeyDeliveryMigration).Pointer() || reflect.ValueOf(steps[102]).Pointer() != reflect.ValueOf(forcedSSOMigration).Pointer() || reflect.ValueOf(steps[103]).Pointer() != reflect.ValueOf(vaultCertificateMigration).Pointer() || reflect.ValueOf(steps[104]).Pointer() != reflect.ValueOf(runtimePublicationCommandMigration).Pointer() || reflect.ValueOf(steps[105]).Pointer() != reflect.ValueOf(telegramIdentityMigration).Pointer() {
 			t.Fatal("released tail or new106 registration")
 		}
 	}

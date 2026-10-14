@@ -92,7 +92,7 @@ func TestAPIKeyDeliveryRootAADBindsExactPurposeAndArchivedTuple(t *testing.T) {
 
 func TestAPIKeyDeliveryRootV9KeepsAllHistoricalScopes(t *testing.T) {
 	expected := []string{"provider_credentials", "egresses", "smtp_settings", "storage_revisions", "user_mfa", "vault_writer_auth", "vault_reader_auth", "oidc_providers", "oauth_providers", "ldap_providers", "named_identity_providers", "api_key_delivery_auth"}
-	if rootInventoryVersion != 10 || len(rootDomains) != len(expected) {
+	if rootInventoryVersion != 11 || len(rootDomains) != len(expected)+1 {
 		t.Fatal("current inventory")
 	}
 	for i, domain := range expected {
@@ -111,7 +111,7 @@ func TestAPIKeyDeliveryRootV9KeepsAllHistoricalScopes(t *testing.T) {
 			}
 		}
 	}
-	if rootInventoryDomains(11) != nil || rootInventoryDomains(0) != nil {
+	if rootInventoryDomains(12) != nil || rootInventoryDomains(0) != nil {
 		t.Fatal("unknown inventory claimed")
 	}
 	spec, err := rootSpec("api_key_delivery_auth")

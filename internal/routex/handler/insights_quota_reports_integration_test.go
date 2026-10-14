@@ -219,7 +219,7 @@ func testInsightsQuotaReportMigration(t *testing.T, db *gorm.DB) {
 	}
 	pool.SetMaxIdleConns(0)
 	defer pool.SetMaxIdleConns(2)
-	if head := personalKeyBehaviorLedger(t, db); len(head) != 111 {
+	if head := personalKeyBehaviorLedger(t, db); len(head) != 112 {
 		t.Fatal("quota reports require exact V111 head")
 	}
 	model := &entity.InsightsReport{}
@@ -230,7 +230,7 @@ func testInsightsQuotaReportMigration(t *testing.T, db *gorm.DB) {
 	removeReceipt := func(t *testing.T) {
 		t.Helper()
 		head := personalKeyBehaviorLedger(t, db)
-		if len(head) != 111 {
+		if len(head) != 112 {
 			t.Fatal("exact quota report replay precondition")
 		}
 		removed := db.Table("schema_migrations").Where("version = ? AND applied_at = ?", 111, head[110].AppliedAt).Delete(&struct{}{})
@@ -301,7 +301,7 @@ func testInsightsQuotaReportMigration(t *testing.T, db *gorm.DB) {
 			}
 		}
 		after := personalKeyBehaviorLedger(t, db)
-		if len(after) != 111 || !reflect.DeepEqual(before[:110], after[:110]) {
+		if len(after) != 112 || !reflect.DeepEqual(before[:110], after[:110]) {
 			t.Fatal("concurrent startup changed retained prefix")
 		}
 		if db.Migrator().HasConstraint(model, "ck_insights_report_definition") || !db.Migrator().HasConstraint(model, "ck_insights_report_definition_v111") {

@@ -17,7 +17,7 @@ type insightsReportDefinitionCheckV110 struct {
 func (insightsReportDefinitionCheckV110) TableName() string { return "insights_reports" }
 
 func insightsReportsPeelV111(db *gorm.DB, expected []personalKeyBehaviorMigrationEntry) error {
-	if len(expected) < 1 || len(expected) > 111 {
+	if len(expected) < 1 || len(expected) > 112 {
 		return errors.New("unsupported quota report fixture head")
 	}
 	for i, row := range expected {
@@ -44,6 +44,12 @@ func insightsReportsPeelV111(db *gorm.DB, expected []personalKeyBehaviorMigratio
 	var count int64
 	if err := db.Model(model).Where("OCTET_LENGTH(dimension) <> 0 OR OCTET_LENGTH(scope_kind) <> 0 OR OCTET_LENGTH(scope_id) <> 0").Count(&count).Error; err != nil || count != 0 {
 		return errors.New("retained quota report definition prevents historical peel")
+	}
+	if len(expected) == 112 {
+		if err := runtimeArchivePeelV112(db, expected); err != nil {
+			return err
+		}
+		expected = expected[:111]
 	}
 	// Install the old predicate first: a refusal must not leave an unguarded table.
 	if !db.Migrator().HasConstraint(model, "ck_insights_report_definition") {

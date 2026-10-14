@@ -37,7 +37,7 @@ func TestCredentialAttemptStatisticsRegistry181Preserves179AndRejectsSuffixDrift
 		t.Fatal("exact210 ordered delivery restart successor required")
 	}
 	names = names[:181]
-	if !credentialAttemptStatisticsRegistry181Current(names) || !strings.Contains(string(raw), "versions != 111") {
+	if !credentialAttemptStatisticsRegistry181Current(names) || !strings.Contains(string(raw), "versions != 112") {
 		t.Fatal("exact181/V93 required")
 	}
 	if !connectionTransportRegistry179Current(names[:179]) || credentialAttemptStatisticsRegistry181Current(names[:179]) {

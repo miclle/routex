@@ -13,7 +13,7 @@ func TestRootSecretObservationRequiresContinuousExactGeneration(t *testing.T) {
 	last := start.Add(300 * time.Second)
 	now := last
 	svc := &Service{rootNow: func() time.Time { return now }}
-	job := entity.SecretRotationJob{InventoryVersion: rootInventoryVersion, Domain: 12, CountsJSON: `{"provider_credentials":{},"egresses":{},"smtp_settings":{},"storage_revisions":{},"user_mfa":{},"vault_writer_auth":{},"vault_reader_auth":{},"oidc_providers":{},"oauth_providers":{},"ldap_providers":{},"named_identity_providers":{},"api_key_delivery_auth":{}}`, Status: "ready", ObservationStartedAt: &start, ObservationLastConfirmedAt: &last, VerifiedProcessID: "ins_current", VerifiedSnapshotID: "cfg_current"}
+	job := entity.SecretRotationJob{InventoryVersion: rootInventoryVersion, Domain: 13, CountsJSON: `{"provider_credentials":{},"egresses":{},"smtp_settings":{},"storage_revisions":{},"user_mfa":{},"vault_writer_auth":{},"vault_reader_auth":{},"oidc_providers":{},"oauth_providers":{},"ldap_providers":{},"named_identity_providers":{},"api_key_delivery_auth":{},"runtime_config_chunks":{}}`, Status: "ready", ObservationStartedAt: &start, ObservationLastConfirmedAt: &last, VerifiedProcessID: "ins_current", VerifiedSnapshotID: "cfg_current"}
 	proof := entity.SecretProcessVerification{InventoryVersion: rootInventoryVersion, ProcessID: "ins_current", RuntimeSnapshotID: "cfg_current"}
 	if !svc.rootObservationEligible(job, proof) {
 		t.Fatal("continuous300s not eligible")
@@ -82,7 +82,7 @@ func TestRootSecretJobProgressHasNoInventedDenominator(t *testing.T) {
 	}
 }
 func TestRootSecretAllHistoricalDomainsAndReferenceIdentity(t *testing.T) {
-	if len(rootDomains) != 12 {
+	if len(rootDomains) != 13 {
 		t.Fatal("partial-domain rotation")
 	}
 	for _, domain := range rootDomains {

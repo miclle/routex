@@ -126,7 +126,7 @@ func testVaultIntegrationMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal(e)
 	}
 	assert()
-	for _, version := range []int{0, 11} {
+	for _, version := range []int{0, 12} {
 		if e := db.Model(&entity.SecretRotationJob{}).Where("id = ?", old.ID).Update("InventoryVersion", version).Error; e == nil {
 			t.Fatal("invalid inventory version persisted")
 		}

@@ -24,12 +24,12 @@ func TestFrozenRootRotationSchemasKeepExactColumnsAndNoLiveHistory(t *testing.T)
 		switch frozen.Table {
 		case "secret_rotation_jobs":
 			extra = 1
-			upgrade, err = schema.Parse(&telegramIdentityRootJobV106{}, &sync.Map{}, schema.NamingStrategy{})
+			upgrade, err = schema.Parse(&runtimeArchiveRootJobV112{}, &sync.Map{}, schema.NamingStrategy{})
 		case "secret_process_verifications":
 			extra = 1
-			upgrade, err = schema.Parse(&telegramIdentityRootProcessV106{}, &sync.Map{}, schema.NamingStrategy{})
+			upgrade, err = schema.Parse(&runtimeArchiveRootProcessV112{}, &sync.Map{}, schema.NamingStrategy{})
 		case "secret_rotation_items":
-			upgrade, err = schema.Parse(&apiKeyDeliveryRootItemV102{}, &sync.Map{}, schema.NamingStrategy{})
+			upgrade, err = schema.Parse(&runtimeArchiveRootItemV112{}, &sync.Map{}, schema.NamingStrategy{})
 		}
 		if err != nil {
 			t.Fatal(err)
@@ -38,7 +38,7 @@ func TestFrozenRootRotationSchemasKeepExactColumnsAndNoLiveHistory(t *testing.T)
 			field := current.LookUpField("InventoryVersion")
 			expected := upgrade.LookUpField("InventoryVersion")
 			if field == nil || field.Tag != expected.Tag || field.FieldType != expected.FieldType {
-				t.Fatal("unreviewed V106 inventory field")
+				t.Fatal("unreviewed V112 inventory field")
 			}
 		}
 		if frozen.Table != current.Table || len(frozen.Relationships.Relations) != 0 || len(current.Relationships.Relations) != 0 || len(frozen.Fields)+extra != len(current.Fields) {

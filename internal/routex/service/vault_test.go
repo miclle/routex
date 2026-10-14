@@ -189,7 +189,7 @@ func TestVaultTypedAuditProjectsOnlySafeConfigurationFacts(t *testing.T) {
 }
 
 func TestVaultRootUnknownInventoryNeverGrantsActionsOrHistory(t *testing.T) {
-	for _, version := range []int{0, -1, 11} {
+	for _, version := range []int{0, -1, 12} {
 		job := entity.SecretRotationJob{InventoryVersion: version, CountsJSON: "{}", Status: "blocked"}
 		if _, err := rootCountsChecked(job); err == nil {
 			t.Fatal("unknown inventory accepted", version)
@@ -238,10 +238,10 @@ func TestVaultRootUnknownInventoryNeverGrantsActionsOrHistory(t *testing.T) {
 	}
 }
 func TestVaultRootWorkerRejectsUnknownInventoryWithoutRewrap(t *testing.T) {
-	for _, version := range []int{0, 11} {
+	for _, version := range []int{0, 12} {
 		svc, f := rootPublicationService(t)
-		if f.job.InventoryVersion != 10 || len(rootInventoryDomains(10)) != 12 {
-			t.Fatal("current worker fixture is not V10")
+		if f.job.InventoryVersion != 11 || len(rootInventoryDomains(11)) != 13 {
+			t.Fatal("current worker fixture is not V11")
 		}
 		if _, err := rootCountsChecked(f.job); err != nil {
 			t.Fatal("current worker inventory rejected", err)

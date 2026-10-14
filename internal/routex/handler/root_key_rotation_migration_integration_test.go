@@ -286,7 +286,7 @@ func assertRetainedRootInventoryV7(t *testing.T, db *gorm.DB, label string, stam
 	if err := db.Take(&savedJob, "id = ?", job.ID).Error; err != nil || savedJob.InventoryVersion != 7 || savedJob.Domain != 11 {
 		t.Fatal("reconstructed current V7 job facts changed", label, err)
 	}
-	for _, change := range []map[string]any{{"Domain": -1}, {"Domain": 12}, {"InventoryVersion": 11}} {
+	for _, change := range []map[string]any{{"Domain": -1}, {"Domain": 12}, {"InventoryVersion": 12}} {
 		if err := db.Model(&entity.SecretRotationJob{}).Where("id = ?", job.ID).Updates(change).Error; err == nil {
 			t.Fatal("reconstructed current V7 job accepted invalid envelope", label, change)
 		}
@@ -303,7 +303,7 @@ func assertRetainedRootInventoryV7(t *testing.T, db *gorm.DB, label string, stam
 	if err := db.Take(&savedProof, "process_id = ?", proof.ProcessID).Error; err != nil || savedProof.InventoryVersion != 7 {
 		t.Fatal("reconstructed current V7 process facts changed", label, err)
 	}
-	if err := db.Model(&entity.SecretProcessVerification{}).Where("process_id = ?", proof.ProcessID).Update("InventoryVersion", 11).Error; err == nil {
+	if err := db.Model(&entity.SecretProcessVerification{}).Where("process_id = ?", proof.ProcessID).Update("InventoryVersion", 12).Error; err == nil {
 		t.Fatal("reconstructed process accepted unsupported future inventory", label)
 	}
 	var observed entity.SecretProcessVerification
@@ -323,7 +323,7 @@ func assertRetainedRootInventoryV8(t *testing.T, db *gorm.DB, label string, stam
 	if err := db.Take(&savedJob, "id = ?", job.ID).Error; err != nil || savedJob.InventoryVersion != 8 || savedJob.Domain != 11 {
 		t.Fatal("reconstructed current V8 job facts changed", label, err)
 	}
-	for _, change := range []map[string]any{{"Domain": -1}, {"Domain": 12}, {"InventoryVersion": 11}} {
+	for _, change := range []map[string]any{{"Domain": -1}, {"Domain": 12}, {"InventoryVersion": 12}} {
 		if err := db.Model(&entity.SecretRotationJob{}).Where("id = ?", job.ID).Updates(change).Error; err == nil {
 			t.Fatal("reconstructed current V8 job accepted invalid envelope", label, change)
 		}
@@ -340,7 +340,7 @@ func assertRetainedRootInventoryV8(t *testing.T, db *gorm.DB, label string, stam
 	if err := db.Take(&savedProof, "process_id = ?", proof.ProcessID).Error; err != nil || savedProof.InventoryVersion != 8 {
 		t.Fatal("reconstructed current V8 process facts changed", label, err)
 	}
-	if err := db.Model(&entity.SecretProcessVerification{}).Where("process_id = ?", proof.ProcessID).Update("InventoryVersion", 11).Error; err == nil {
+	if err := db.Model(&entity.SecretProcessVerification{}).Where("process_id = ?", proof.ProcessID).Update("InventoryVersion", 12).Error; err == nil {
 		t.Fatal("reconstructed process accepted unsupported future inventory", label)
 	}
 	var observed entity.SecretProcessVerification
@@ -360,7 +360,7 @@ func assertRetainedRootInventoryV9(t *testing.T, db *gorm.DB, label string, stam
 	if err := db.Take(&savedJob, "id = ?", job.ID).Error; err != nil || savedJob.InventoryVersion != 9 || savedJob.Domain != 12 {
 		t.Fatal("reconstructed current V9 job facts changed", label, err)
 	}
-	for _, change := range []map[string]any{{"Domain": -1}, {"Domain": 13}, {"InventoryVersion": 11}} {
+	for _, change := range []map[string]any{{"Domain": -1}, {"Domain": 13}, {"InventoryVersion": 12}} {
 		if err := db.Model(&entity.SecretRotationJob{}).Where("id = ?", job.ID).Updates(change).Error; err == nil {
 			t.Fatal("reconstructed current V9 job accepted invalid envelope", label, change)
 		}
@@ -377,7 +377,7 @@ func assertRetainedRootInventoryV9(t *testing.T, db *gorm.DB, label string, stam
 	if err := db.Take(&savedProof, "process_id = ?", proof.ProcessID).Error; err != nil || savedProof.InventoryVersion != 9 {
 		t.Fatal("reconstructed current V9 process facts changed", label, err)
 	}
-	if err := db.Model(&entity.SecretProcessVerification{}).Where("process_id = ?", proof.ProcessID).Update("InventoryVersion", 11).Error; err == nil {
+	if err := db.Model(&entity.SecretProcessVerification{}).Where("process_id = ?", proof.ProcessID).Update("InventoryVersion", 12).Error; err == nil {
 		t.Fatal("reconstructed process accepted unsupported future inventory", label)
 	}
 	var observed entity.SecretProcessVerification

@@ -274,7 +274,7 @@ func testInsightsReportDefinitions(t *testing.T, db *gorm.DB, svc *service.Servi
 func testInsightsReportMigration(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 111 || before[110].Version != 111 {
+	if len(before) != 112 || before[110].Version != 111 {
 		t.Fatal("saved report requires current V111 head")
 	}
 	// Genuine V109 upgrade retains unrelated existing data and exact receipts.
@@ -328,7 +328,7 @@ func testInsightsReportMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	after := personalKeyBehaviorLedger(t, db)
-	if len(after) != 111 || after[110].Version != 111 || !reflect.DeepEqual(before[:109], after[:109]) {
+	if len(after) != 112 || after[110].Version != 111 || !reflect.DeepEqual(before[:109], after[:109]) {
 		t.Fatal("V110 replay changed immutable prefix")
 	}
 	var retained entity.InsightsReport
@@ -396,7 +396,7 @@ func insightsReportSameStoredDefinition(a, b entity.InsightsReport) bool {
 // A historical fixture may remove V110 only after validating the full receipt
 // and proving no definition or minimal deleted-intent receipt would be lost.
 func insightsReportsPeelV110(db *gorm.DB, expected []personalKeyBehaviorMigrationEntry) error {
-	if len(expected) < 1 || len(expected) > 111 {
+	if len(expected) < 1 || len(expected) > 112 {
 		return errors.New("unsupported saved report fixture head")
 	}
 	for i, row := range expected {
@@ -414,6 +414,12 @@ func insightsReportsPeelV110(db *gorm.DB, expected []personalKeyBehaviorMigratio
 	var count int64
 	if err := db.Model(&entity.InsightsReport{}).Count(&count).Error; err != nil || count != 0 {
 		return errors.New("retained saved report receipt prevents historical peel")
+	}
+	if len(expected) == 112 {
+		if err := runtimeArchivePeelV112(db, expected); err != nil {
+			return err
+		}
+		expected = expected[:111]
 	}
 	if err := db.Migrator().DropTable(&entity.InsightsReport{}); err != nil {
 		return err

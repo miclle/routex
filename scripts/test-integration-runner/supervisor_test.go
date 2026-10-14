@@ -290,16 +290,18 @@ if [ "$1" = build ]; then
  exit 0
 fi
 case "$*" in
- *-skip*) [ -z "$ROUTEX_TEST_OIDC_BINARY" ] && [ -z "$ROUTEX_TEST_OIDC_BINARY_SHA256" ] && [ -z "$ROUTEX_TEST_OIDC_GUARD_DIR" ] || exit 24;;
+ *TestRuntimeConfigurationArchiveIntegration*) [ "$ROUTEX_TEST_RUNTIME_ARCHIVE" = 1 ] && [ -z "$ROUTEX_TEST_RUNTIME_ARCHIVE_CHILD_DRIVER" ] && [ -z "$ROUTEX_TEST_RUNTIME_ARCHIVE_CHILD_ID" ] && [ -z "$ROUTEX_TEST_OIDC_BINARY" ] && [ -z "$ROUTEX_TEST_OIDC_BINARY_SHA256" ] && [ -z "$ROUTEX_TEST_OIDC_GUARD_DIR" ] || exit 25;;
+ *-skip*) [ -z "$ROUTEX_TEST_RUNTIME_ARCHIVE" ] && [ -z "$ROUTEX_TEST_OIDC_BINARY" ] && [ -z "$ROUTEX_TEST_OIDC_BINARY_SHA256" ] && [ -z "$ROUTEX_TEST_OIDC_GUARD_DIR" ] || exit 24;;
  *) [ "$ROUTEX_TEST_OIDC_BINARY" = "$ROUTEX_RUNNER_PRIVATE/oidc-routex" ] && [ "$ROUTEX_TEST_OIDC_BINARY_SHA256" = "636bcee43aa96219a5c7f910c96e3c700fb31006e546047359d26e80eb0a7d10" ] && [ -x "$ROUTEX_TEST_OIDC_BINARY" ] && [ "$ROUTEX_TEST_OIDC_GUARD_DIR" = "$ROUTEX_RUNNER_PRIVATE/oidc-owners" ] && [ -d "$ROUTEX_TEST_OIDC_GUARD_DIR" ] || exit 26;;
 esac
 case "$*" in
+ *TestRuntimeConfigurationArchiveIntegration*) if [ "$ROUTEX_RUNNER_FAIL" = runtime-archive ]; then exit 27; fi;;
  *-skip*) if [ "$ROUTEX_RUNNER_FAIL" = nonmatrix ]; then exit 6; fi;;
  *postgres*) if [ "$ROUTEX_RUNNER_FAIL" = postgres ]; then exit 7; fi;;
 esac
 if [ "$ROUTEX_RUNNER_FAIL" = guard ]; then
  case "$*" in
-  *-skip*) ;;
+  *-skip*|*TestRuntimeConfigurationArchiveIntegration*) ;;
   *postgres*) printf 'unknown owned application' > "$ROUTEX_TEST_OIDC_GUARD_DIR/postgres.json";;
   *) printf 'unknown owned application' > "$ROUTEX_TEST_OIDC_GUARD_DIR/mysql.json";;
  esac
@@ -321,7 +323,7 @@ printf 'fake test result\n'
 }
 
 func TestCompleteCommandPlanAndFailureAggregation(t *testing.T) {
-	for _, failure := range []string{"", "nonmatrix", "postgres", "cleanup"} {
+	for _, failure := range []string{"", "nonmatrix", "runtime-archive", "postgres", "cleanup"} {
 		t.Run(failure, func(t *testing.T) {
 			cmd, trace, private := fakeLifecycle(t, failure)
 			output, err := cmd.CombinedOutput()
@@ -333,17 +335,20 @@ func TestCompleteCommandPlanAndFailureAggregation(t *testing.T) {
 				t.Fatal(err)
 			}
 			lines := strings.Split(strings.TrimSpace(string(raw)), "\n")
-			if len(lines) != 6 || lines[0] != "up" || lines[5] != "down" {
+			if len(lines) != 7 || lines[0] != "up" || lines[6] != "down" {
 				t.Fatalf("incomplete lifecycle %q", lines)
 			}
 			common := "test -trimpath -race -count=1 -timeout 120m -tags development -v -json "
 			if lines[1] != common+"-skip ^TestIdentityIntegration$ ./internal/routex/..." {
 				t.Fatal(lines[1])
 			}
-			if lines[2] != "build -trimpath -tags development -o "+filepath.Join(private, "oidc-routex")+" ./cmd/routex" {
+			if lines[2] != common+"-run ^TestRuntimeConfigurationArchiveIntegration$ ./internal/routex/service" {
+				t.Fatal("mandatory exclusive archive worker missing")
+			}
+			if lines[3] != "build -trimpath -tags development -o "+filepath.Join(private, "oidc-routex")+" ./cmd/routex" {
 				t.Fatal("same-source supervised binary build missing")
 			}
-			remaining := strings.Join(lines[3:5], "\n")
+			remaining := strings.Join(lines[4:6], "\n")
 			for _, driver := range []string{"postgres", "mysql"} {
 				if !strings.Contains(remaining, common+"-run ^TestIdentityIntegration$/^"+driver+"$ ./internal/routex/handler") {
 					t.Fatalf("missing complete driver: %s", remaining)
@@ -371,7 +376,7 @@ func TestCompleteCommandPlanAndFailureAggregation(t *testing.T) {
 			if report.Failed != (failure != "") || report.RuntimeAcceptance != nil {
 				t.Fatalf("untruthful report: %s", data)
 			}
-			if len(report.Statuses) < 8 || report.Statuses[4].Name != "oidc-build" || !report.Statuses[4].Started || !report.Statuses[4].IdentityRecorded || !report.Statuses[4].Joined || !report.Statuses[4].GroupGone || report.Statuses[4].ExitCode != 0 || report.Statuses[5].Name != "postgres" || report.Statuses[6].Name != "mysql" {
+			if len(report.Statuses) < 9 || report.Statuses[4].Name != "runtime-archive" || !report.Statuses[4].Started || !report.Statuses[4].Joined || !report.Statuses[4].GroupGone || (report.Statuses[4].ExitCode != 0) != (failure == "runtime-archive") || report.Statuses[5].Name != "oidc-build" || !report.Statuses[5].Started || !report.Statuses[5].IdentityRecorded || !report.Statuses[5].Joined || !report.Statuses[5].GroupGone || report.Statuses[5].ExitCode != 0 || report.Statuses[6].Name != "postgres" || report.Statuses[7].Name != "mysql" {
 				t.Fatal("matrix was not preceded by a successful joined owned build")
 			}
 		})
@@ -770,7 +775,7 @@ func TestIdentityLedgerCreationFailureJoinsBeforeRecoveredCleanup(t *testing.T) 
 }
 
 func TestOIDCBinaryEnvironmentIsolation(t *testing.T) {
-	env := withoutOIDCBinary([]string{"ROUTEX_TEST_OIDC_BINARY=/foreign", "OTHER=keep", "ROUTEX_TEST_OIDC_BINARY_SHA256=foreign", "ROUTEX_TEST_OIDC_BINARY=/second", "ROUTEX_TEST_OIDC_GUARD_DIR=/foreign"})
+	env := withoutOIDCBinary([]string{"ROUTEX_TEST_OIDC_BINARY=/foreign", "OTHER=keep", "ROUTEX_TEST_OIDC_BINARY_SHA256=foreign", "ROUTEX_TEST_OIDC_BINARY=/second", "ROUTEX_TEST_OIDC_GUARD_DIR=/foreign", "ROUTEX_TEST_RUNTIME_ARCHIVE=1", "ROUTEX_TEST_RUNTIME_ARCHIVE_CHILD_DRIVER=mysql", "ROUTEX_TEST_RUNTIME_ARCHIVE_CHILD_ID=private"})
 	if len(env) != 1 || env[0] != "OTHER=keep" {
 		t.Fatal("caller artifact override survived or unrelated environment was lost")
 	}

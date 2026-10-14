@@ -63,7 +63,7 @@ func TestAPIKeyDeliveryV102KeepsReleasedTailAndRootHistory(t *testing.T) {
 	}
 	for _, driver := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(driver)
-		if len(legacyMigrationSQL(driver)) != 4 || len(steps) != 111 || len(old) != 97 || reflect.ValueOf(steps[105]).Pointer() != reflect.ValueOf(telegramIdentityMigration).Pointer() {
+		if len(legacyMigrationSQL(driver)) != 4 || len(steps) != 112 || len(old) != 97 || reflect.ValueOf(steps[105]).Pointer() != reflect.ValueOf(telegramIdentityMigration).Pointer() {
 			t.Fatal("exact V101 prefix/V102 length")
 		}
 		for i, expected := range old {
@@ -106,7 +106,11 @@ func TestAPIKeyDeliveryV102KeepsReleasedTailAndRootHistory(t *testing.T) {
 		}
 		for _, field := range frozen.Fields {
 			actual := current.FieldsByDBName[field.DBName]
-			if actual == nil || actual.FieldType != field.FieldType || actual.Tag.Get("gorm") != field.Tag.Get("gorm") {
+			expected := field
+			if frozen.Table == "secret_rotation_items" && field.DBName == "domain" {
+				expected = oidcV94Schema(t, &runtimeArchiveRootItemV112{}).FieldsByDBName["domain"]
+			}
+			if actual == nil || actual.FieldType != field.FieldType || actual.Tag.Get("gorm") != expected.Tag.Get("gorm") {
 				t.Fatal("current root inventory parity", frozen.Table, field.DBName)
 			}
 		}

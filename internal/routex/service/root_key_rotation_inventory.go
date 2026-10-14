@@ -14,15 +14,17 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-const rootInventoryVersion = 10
+const rootInventoryVersion = 11
 
-var rootDomains = []string{"provider_credentials", "egresses", "smtp_settings", "storage_revisions", "user_mfa", "vault_writer_auth", "vault_reader_auth", "oidc_providers", "oauth_providers", "ldap_providers", "named_identity_providers", "api_key_delivery_auth"}
+var rootDomains = []string{"provider_credentials", "egresses", "smtp_settings", "storage_revisions", "user_mfa", "vault_writer_auth", "vault_reader_auth", "oidc_providers", "oauth_providers", "ldap_providers", "named_identity_providers", "api_key_delivery_auth", "runtime_config_chunks"}
 
 type rootInventoryRow struct{ id, generation, reference, ciphertext string }
 type rootDomainSpec struct{ table, id, generation, ciphertext string }
 
 func rootSpec(domain string) (rootDomainSpec, error) {
 	switch domain {
+	case "runtime_config_chunks":
+		return rootDomainSpec{"runtime_configuration_archive_chunks", "id", "secret_generation", "auth_ciphertext"}, nil
 	case "api_key_delivery_auth":
 		return rootDomainSpec{domain, "id", "secret_generation", "auth_ciphertext"}, nil
 	case "provider_credentials":
@@ -39,6 +41,8 @@ func rootSpec(domain string) (rootDomainSpec, error) {
 }
 func rootReference(domain, id, generation string) string {
 	switch domain {
+	case "runtime_config_chunks":
+		return "runtime-config:" + id + ":" + generation
 	case "provider_credentials":
 		return id
 	case "egresses":
@@ -94,6 +98,9 @@ func rootInventoryQuery(db *gorm.DB, spec rootDomainSpec, cursor string) *gorm.D
 	return query.Clauses(clause.OrderBy{Expression: database.ByteOrder(db, column)}).Limit(50)
 }
 func (s *Service) rootInventoryPage(ctx context.Context, domain, cursor string) ([]rootInventoryRow, error) {
+	if domain == "runtime_config_chunks" {
+		return s.rootRuntimeArchiveInventoryPage(ctx, cursor)
+	}
 	if domain == "api_key_delivery_auth" {
 		return s.rootDeliveryAuthInventoryPage(ctx, cursor)
 	}
@@ -178,6 +185,9 @@ func (s *Service) rootTargetSweep(ctx context.Context, target string) error {
 	return nil
 }
 func (s *Service) rootCAS(tx *gorm.DB, domain string, row rootInventoryRow, result string) (string, error) {
+	if domain == "runtime_config_chunks" {
+		return rootRuntimeArchiveCAS(tx, row, result)
+	}
 	if domain == "api_key_delivery_auth" {
 		return rootDeliveryAuthCAS(tx, row, result)
 	}

@@ -59,7 +59,25 @@ does not close the broader acceptance gaps.
   158 focused frontend tests, TypeScript and ESLint. Navigation performs no write,
   discovery or implicit grant; browser acceptance remains open.
 
-Browser inventory currently times out; direct Chrome Computer Use reports
+- **Encrypted configuration archive foundation:** this phase adds frozen GORM
+  V112 headers/chunks, authenticated codec-v1 storage, detached cold reconstruction
+  and appended root inventory V11. Released migrations and V1–V10 inventory prefixes
+  remain unchanged. The complete maintained qualification passed 10,346 nonmatrix
+  names with eight explicit skips, 33 archive names and all 585 names on each
+  PostgreSQL/MySQL driver, without failures. Independent source/cleanup readback
+  accepted all 2,682 pinned paths and 117 delivery paths, SHA-256
+  `ba43aa89bf7301802f89b2f575a23b98a80ccf23d95e3e23a63013ec2ad09fe0`.
+  Earlier failed/interrupted matrices remain retained. Candidate mandatory checks,
+  focused race, 7,320 frontend cases and supervisor controls passed. Primary
+  composed `go tool task check` passed before commit. This stores no source automatically;
+  coherent capture, bounded retention, activation, rollback and fleet acknowledgement
+  remain open. See [archive storage](RUNTIME_CONFIGURATION_ARCHIVE.md).
+
+Chrome Computer Use is now connected after the user unlocked the screen; RouteX
+is visible at `/login`. Authenticated browser acceptance is being resumed. The
+previous unavailable-browser results remain historical evidence.
+
+Browser inventory previously timed out; direct Chrome Computer Use reported
 `cgWindowNotFound`. Browser acceptance remains open and does not block independent
 implementation or verification. Historical checkpoints below retain their original
 source, time, failures and acceptance boundaries; this section supersedes their

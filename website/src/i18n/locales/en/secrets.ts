@@ -386,6 +386,7 @@ export default {
       unknown: 'Unknown',
     },
   },
+  runtime_config_chunks: 'Gateway configuration archive chunks',
   api_key_delivery_auth: 'API-Key delivery machine authentication',
   named_identity_providers: 'Named identity provider client secrets',
 }

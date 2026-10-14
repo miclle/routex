@@ -1006,7 +1006,7 @@ func testRootKeyRotationLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Model(&entity.APIKeyDeliveryAuth{}).Count(&deliveryAuthCount).Error; err != nil || deliveryAuthCount != 0 {
 		t.Fatal("controlled global rotation unexpectedly retained delivery authentication", deliveryAuthCount, err)
 	}
-	expectedDomains := map[string]uint64{"provider_credentials": 2, "egresses": 1, "smtp_settings": 1, "storage_revisions": 25, "user_mfa": 4, "vault_writer_auth": 2, "vault_reader_auth": 2, "oidc_providers": 1, "oauth_providers": 1, "ldap_providers": 1, "named_identity_providers": 2, "api_key_delivery_auth": 0}
+	expectedDomains := map[string]uint64{"provider_credentials": 2, "egresses": 1, "smtp_settings": 1, "storage_revisions": 25, "user_mfa": 4, "vault_writer_auth": 2, "vault_reader_auth": 2, "oidc_providers": 1, "oauth_providers": 1, "ldap_providers": 1, "named_identity_providers": 2, "api_key_delivery_auth": 0, "runtime_config_chunks": 0}
 	if len(observing.Rotation.Domains) != len(expectedDomains) {
 		t.Fatal("global observation omitted a retained encryption domain")
 	}
@@ -1022,8 +1022,8 @@ func testRootKeyRotationLifecycle(t *testing.T, db *gorm.DB) {
 			if err != nil || strconv.FormatUint(number, 10) != text {
 				t.Fatal("domain work count lost exact decimal-string encoding", domain.Code, text)
 			}
-			if domain.Code == "api_key_delivery_auth" && number != 0 {
-				t.Fatal("empty delivery authentication inventory reported unexpected work", text)
+			if (domain.Code == "api_key_delivery_auth" || domain.Code == "runtime_config_chunks") && number != 0 {
+				t.Fatal("empty retained inventory reported unexpected work", text)
 			}
 		}
 		rewrapped, _ := strconv.ParseUint(domain.Rewrapped, 10, 64)

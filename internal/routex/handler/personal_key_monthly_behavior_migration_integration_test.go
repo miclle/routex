@@ -460,7 +460,7 @@ func TestPersonalKeyBehaviorFixtureExactRegistryPrefixAndNewPair(t *testing.T) {
 		t.Fatal("exact V93/181 successor changed")
 	}
 	names = names[:179]
-	if len(names) != 179 || !strings.Contains(string(raw), "versions != 111") {
+	if len(names) != 179 || !strings.Contains(string(raw), "versions != 112") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if !personalKeyBehaviorRegistryMatches(names) {
@@ -518,7 +518,7 @@ func TestPersonalKeyBehaviorFixtureExactRegistryPrefixAndNewPair(t *testing.T) {
 			}
 		}
 	}
-	if !strings.Contains(string(raw), "versions != 111") || !strings.Contains(string(raw), "personalKeyBehaviorHistoricalReplay(t, db, test.run)") {
+	if !strings.Contains(string(raw), "versions != 112") || !strings.Contains(string(raw), "personalKeyBehaviorHistoricalReplay(t, db, test.run)") {
 		t.Fatal("current ledger or bounded historical companion not bound")
 	}
 }

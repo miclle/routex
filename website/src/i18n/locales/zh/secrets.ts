@@ -354,6 +354,7 @@ export default {
       unknown: '未知',
     },
   },
+  runtime_config_chunks: 'Gateway 配置归档分块',
   api_key_delivery_auth: 'API Key 下发机器身份认证',
   named_identity_providers: '命名身份提供方客户端密钥',
 }
