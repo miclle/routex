@@ -178,6 +178,19 @@ and initialized its JWT and template handlers without a supplied JWT, then shut
 down cleanly. This verifies configuration startup only; it does not establish
 real JWT authentication, template output, application use or browser acceptance.
 
+## Confirmed controller direction
+
+The next supported integration is an independent RouteX controller with Vault
+Agent file delivery. Its machine identity must be independently scoped; an owner
+Session, application name or copied descriptor grants no controller authority.
+Deployment acknowledgement must identify the exact reviewed configuration
+version and delivery target. An acknowledgement is separate from successful
+native inference and does not satisfy replacement-Key retirement on its own.
+
+The existing explicit-copy configuration remains the delivered capability.
+Controller registration, authentication, acknowledgement and automatic rotation
+are future implementation work; this decision does not activate a coordinator.
+
 ## Replacement-call evidence
 
 Delivery receipts include the read-only `replacement_call_status` advisory. The

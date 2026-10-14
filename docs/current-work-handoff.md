@@ -101,9 +101,10 @@ does not close the broader acceptance gaps.
   External JWT provisioning remains the operator's responsibility. Independent
   review found and then verified repair of obsolete copy callbacks; both copy
   modes now require exact displayed facts and synchronous read generation.
-  Candidate and composed primary focused suites each passed 155 cases. An earlier
-  unrestricted primary focus failed with timeout and cascading UI assertions;
-  the unchanged-source two-worker qualification passed. Local Vault Agent startup
+  Candidate and composed primary focused suites each passed 155 cases. An accidental
+  unfiltered npm invocation was cancelled; a separate four-file focus failed with
+  timeout and cascading UI assertions. The unchanged-source six-file, two-worker
+  qualification passed; the earlier failure's cause remains unproven. Local Vault Agent startup
   accepted the generated configuration, proving neither authentication nor Key
   output. No coordinator, automatic application or rotation is claimed. See
   [managed delivery](API_KEY_DELIVERY.md).
@@ -127,6 +128,37 @@ Browser inventory previously timed out; direct Chrome Computer Use reported
 implementation or verification. Historical checkpoints below retain their original
 source, time, failures and acceptance boundaries; this section supersedes their
 older pending-delivery and pause statements.
+
+## Provider question boundary acceptance (2026-10-14)
+
+The existing Provider-quality AI scenario now submits hostile-looking question
+text as exact data inside the closed question/aggregate payload. Assertions retain
+the reviewed fixed range and anonymous Provider labels, and verify that question
+and answer content enters neither call/attempt/report/audit rows nor the durable
+call journal, including the existing late-permission-revocation case. No new
+inference dispatch, database schema or product API is added by this test phase.
+
+Focused ordinary race qualification passed all 19 names. PostgreSQL passed all
+30 names in the original serial R2 run; unchanged-source MySQL passed all 30 in
+R4. These are separate successful driver runs, not one complete matrix. Earlier
+parallel bootstrap and serial MySQL login failures remain retained. A private
+Login-timing overlay passed independently but does not establish the cause of
+the earlier timeout or replace unchanged-source acceptance. Independent R4
+cleanup/source readback is SHA-256
+`480f4b0770167148e4f202d903b1331ade42092fee7017f8cc21cd2259c1d991`.
+Primary `go tool task check` passed before the phase commit.
+
+## Confirmed next-phase contracts (2026-10-14)
+
+- F30 durable capture will retain at most 100 versions and 256 MiB of actual
+  encrypted content, deduplicate exact content and pause new writes at either
+  limit. Cleanup requires administrator preview and confirmation; historical
+  archives and current routing remain intact. The writer, capacity ledger and
+  cleanup workflow are not yet implemented. See [archive policy](RUNTIME_CONFIGURATION_ARCHIVE.md#confirmed-retention-policy).
+- F29 will first support an independently scoped RouteX controller with Vault
+  Agent file delivery and exact configuration-version acknowledgement. Native
+  inference remains separate proof. The controller is not yet implemented. See
+  [controller direction](API_KEY_DELIVERY.md#confirmed-controller-direction).
 
 ## Local service phase delivered (2026-10-13)
 

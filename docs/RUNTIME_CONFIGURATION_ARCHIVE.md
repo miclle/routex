@@ -53,6 +53,22 @@ and codec identity stay unchanged. Current rotation and retirement proof require
 the new inventory; old terminal histories do not gain archive coverage. Rewrap
 must preserve cold readability after the old root is removed.
 
+## Confirmed retention policy
+
+The initial durable-capture policy is at most 100 retained versions and at most
+256 MiB of actual persisted encrypted content. Both limits apply together.
+Byte accounting uses the stored encrypted envelopes, including their encoding,
+rather than plaintext size or an estimated encryption overhead. Exactly identical
+canonical content is deduplicated; source-publication provenance must remain
+separate from content identity and current installation status.
+
+Reaching either limit pauses new archive writes. It does not delete history,
+block current routing or delay fresh authorization and revocation publication.
+Cleanup requires an administrator's explicit preview and confirmation; no
+scheduled deletion is enabled. Root-envelope rewrap must preserve correct byte
+accounting because envelope sizes can change. The durable writer, capacity
+ledger and cleanup workflow are not implemented by this policy decision.
+
 ## Validation and remaining work
 
 Source qualification covers frozen schema/FK/index direction and portability,
