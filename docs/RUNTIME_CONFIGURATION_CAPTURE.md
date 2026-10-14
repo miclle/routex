@@ -2,9 +2,10 @@
 
 The publisher prepares one private, complete historical configuration capture
 after a successful local publication. It uses the original repeatable-read
-source and canonical codec v1. This is an in-memory handoff for later encrypted
-archive work; it performs no archive write, activation, rollback, public archive
-API operation or fleet acknowledgement. F30 remains partial.
+source and canonical codec v1. Commit `14a75fe` connects this in-memory handoff to
+the bounded independent [encrypted archive writer](RUNTIME_CONFIGURATION_ARCHIVE.md).
+Preparation grants no serving authority, activation or fleet acknowledgement.
+F30 remains partial.
 
 ## Source and observation identity
 
@@ -36,7 +37,7 @@ state, and carries no invented historical validity period.
 Preparation runs after every publisher lock is released and uses the original
 refresh context. It never renews the existing installation projection/recording
 deadline. One nonblocking preparation slot prevents concurrent archive clones;
-there is no queue, goroutine or independent worker. A busy slot skips preparation
+the preparation stage itself has no queue or independent worker. A busy slot skips preparation
 without delaying authorization or changing successful route publication.
 
 A conservative original-source work preflight counts all fields, including
@@ -84,8 +85,9 @@ Mandatory checking passed after narrowly documenting the deliberate private-JSON
 privacy assertion for both Staticcheck entry points. The earlier failed checks
 remain failures. Independent source review found no concrete defect.
 
-Automatic durable capture still requires an approved archive retention/count/
-encrypted-byte budget, serialized deduplication/backpressure and historical
-capture provenance. The encrypted archive foundation remains separately
-documented in [the archive contract](RUNTIME_CONFIGURATION_ARCHIVE.md). Reviewed
-current-authority rollback and fleet acknowledgement remain subsequent work.
+The containing `14a75fe` phase delivers automatic durable capture under the
+approved 100-version/256-MiB caps, serialized deduplication, bounded backpressure
+and original capture provenance. Its complete PostgreSQL/MySQL archive regression,
+ordinary tests and mandatory checks pass. The [archive contract](RUNTIME_CONFIGURATION_ARCHIVE.md)
+and separate [reviewed routing rollback](RUNTIME_ARCHIVE_ROLLBACK.md) define their
+own boundaries. Genuine browser/process and fleet acknowledgement remain open.

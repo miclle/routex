@@ -9,11 +9,19 @@ completed acceptance scenarios**. Prepared source does not change those totals.
 | Work package | Current state | Next verification or action |
 | --- | --- | --- |
 | F24 Token advice, F29 Controller and F30 archive workflows | Main phase validated | Continue F17 isolated qualification, F24 Money tests and actual Vault Agent/browser acceptance. Global capability totals remain unchanged. |
-| F17 shared admission and single-account rate/executor sampling | Isolated source prepared; runtime remains dormant | Compile the exact composition, run focused race tests and dedicated real-driver workers after main delivery. |
-| F17 original calendar and data provenance | Private constructor and immutable-calendar reader composed, awaiting execution | Qualify frozen unregistered V120 and private SQL helpers; deployment exclusion, legacy transfer and runtime wiring remain open. |
-| F24 Money quota advice | Isolated source complete; tests pending | Qualify the exact 22-file successor with backend/frontend tests and both databases; preserve reviewed dimension, exact cap currencies, anonymous labels and personal-model quota. |
-| Temporary build output cleanup | Completed | Eleven obsolete binaries removed across three batches (372,954,525 logical bytes); retained replacements, source, original failures and development service preserved. Seven empty directories remain held by the Docker virtual machine. |
+| F17 shared admission and single-account rate/executor sampling | Focused race passed; SQL sequence failed | Qualify a narrow test-only successor for Fence, overflow-fixture cost and ETag field issues; production constraints remain unchanged. |
+| F17 original calendar and data provenance | V120 Origin passed on both drivers; corrected Fresh checks pending | Qualify the coherent successor; deployment exclusion, legacy transfer and runtime wiring remain open. |
+| F24 Money quota advice | Delivered in `0ccc663`; focused, mandatory and complete ordinary retry passed | Continue browser/external model acceptance; retain initial unrelated deadline failures. |
+| Temporary build output cleanup | Completed | Thirteen obsolete executables removed across five batches (384,377,025 logical bytes); retained replacements, source, original failures and development service preserved. Seven empty directories remain held by the Docker virtual machine. |
+| F30 local dispatch revocation | Four-protocol race regression running | Check original caller and selected route before and after the durable attempt checkpoint; preserve dispatched history and local-only limitations. |
 | Browser acceptance | Pending | Chrome returned no window and application inventory timed out; continue independent backend and source work. |
+
+The latest feature commit `0ccc6637fbaff8640e7c3f504c8f58f9722be993` is pushed;
+fresh remote main readback matches. It adds Money advice to the previously
+qualified V116 delivery `14a75fe`. Nine documentation-only main edits reconcile
+delivered contracts and open acceptance. The heavy lane now runs the local F30
+Gateway revocation regression; repaired F17, original-local transfer and F29
+replacement sources remain isolated pending their own qualification.
 
 The original unchanged V116 full integration directly completed successfully in
 5,200.361 seconds: PostgreSQL and MySQL each passed 610/610 named tests, with
@@ -28,20 +36,109 @@ fresh `go tool task check` and frontend formatting passed on main. These facts
 do not complete F29 actual-Agent acceptance, browser qualification or the global
 objective.
 
-The latest isolated F17 source tree is `4c86d13ed3cf123a401e0a14fe2fb7d0c96adcaa`
-(2,927 paths). Exactly five additions implement private fresh initialization,
-immutable-calendar reads, and test sources; the existing live calendar guard is
-preserved. All source bytes and modes were checked. Compilation and runtime
-acceptance remain pending; the next focused plan contains 36 required new
-controls and 13 explicit dedicated-driver skips. The source-derived inventory
-also includes the separately gated initial-authorization capture worker.
+The first F17 focused run directly completed with exit 1: 811 named passes,
+seven failed nodes and 13 explicit dedicated-driver skips. Source diagnosis
+identified live evaluation preceding fixed fixture births, plus a positive
+coverage fixture missing its required bound revision. Production gates correctly
+rejected both inputs; fixes are limited to a separately frozen test successor.
+No SQL worker or runtime qualification is claimed from this failed run.
+
+The corrected isolated F17 source tree is
+`5c3ae6b4392f90705b7c1e8708fc3770ddcd1740` (2,927 paths). Its two test-file
+corrections retain the predecessor production bytes and add a missing-bound-
+revision negative control. The original focused successor directly joined exit
+zero in 117.226 seconds: 819 named passes, 13 explicit dedicated-driver skips,
+zero failures, and all three package terminals passed. The exact 180 top-level
+inventory and 34 required nongated controls passed. Readback SHA-256:
+`65310fba61bd8107c516cab9f27941d38c6e5641a3cd4690de3bf8e84dea4c1b`.
+Source, development PID 723 and preexisting containers stayed unchanged.
+
+The original 14-worker SQL sequence directly joined exit one: 216 named nodes,
+198 passes, 18 failures and zero skips. Initial Capture (11), Local startup (12),
+V120 Origin (9), and affected Authorization (20) passed completely on each driver.
+Accept passed 27/29 on each driver because its fence fixture omitted the fencing
+UUID/timestamp; Usage passed 4/8 because building 4097 records exhausted the
+unchanged 120-second context; Fresh initialization passed 16/19 because fixture
+writes used `etag` instead of GORM's `ETag` field. A separate three-file test-only successor
+`a560e0ee7cdf4966e66e71c8d5a91b39b86e790e` is sealed; neither production
+constraints nor deadlines are relaxed.
+The original aggregate preparation text incorrectly said 236; exact per-worker
+inventories and actual paired terminals total 216, with no test scope change.
+
+Physical readback verifies 42 owned groups gone, 42 resource inventories empty,
+14 ports closed, all 2,927 source paths unchanged, and development PID 723 and
+preexisting containers preserved. Readback SHA-256:
+`9f0e9de75ebb6d480ce2623d25f627a91959568d64e0e86a8b58b222ca03e07d`.
+The heavy lane now validates the local F30 dispatch-revocation increment. Complete F17 SQL,
+runtime, transfer and multi-process acceptance remain open.
+
+Independent source-only review of the six-file local-v2 transfer validator found
+three defects: RPM history at the coverage boundary can be legacy; sticky
+invalidation request IDs lack incarnation proof; and expired RPM still requires
+quota receipts within the economic retention horizon. The repaired six-file successor
+`45bfa90592f65c5225eb312211079977ff46000c` passed independent source review
+with 14 top-level test sources. No validator compilation, tests, transfer, importer
+or cutover is claimed. The six files are composed onto the latest SQL fixture
+successor in tree `91b48b7cbd80f40a7aae49813c8c955908c5bbcb` (2,933 paths),
+with every predecessor byte/mode preserved. Its next source-derived focus
+contains 893 named nodes (880 expected passes and 13 dedicated-driver gates),
+followed by six affected SQL workers with 112 nodes. Neither run has started.
 
 Money advice source is frozen at tree `a343c1c2ee2f5907ee9e38cef448da713c635824`.
-The exact 22-file delta and working-tree hashes were checked. Formatting and
-source checks passed; compilation, tests, runtime and browser acceptance remain
-pending. The source-only local-v2 transfer assessment requires retaining original
+Its 22-file delta is composed onto main `14a75fe` in isolated tree
+`f15108a40d312521930f12692542615cb966a118`; 19 code/test leaves remain exact,
+with only three rules/documentation leaves reconciled. Source hashes and formatting were checked. Current composed-source focused race
+checks directly passed 66 service and 11 handler nodes without failures/skips;
+eight frontend suites passed 263 tests. The complete `insights_ai` parent passed exactly 35/35 named nodes on each real
+database, without failures/skips. Root independently compared every expected
+name, verified unchanged source after formatting, and checked removed owned
+resources and refused/bindable mapped ports. The original immediate MySQL
+fresh-bind failure remains retained; later independent port checks passed
+without rerunning tests or extra cleanup.
+The first mandatory check failed on TypeScript report-union narrowing and two
+intentional malformed-input casts. The separately frozen successor tree
+`86e3abce16905e5b8c2ef46e01c9e8dac6ed8b66` corrects only those frontend types,
+casts and qualification prose; backend and frontend runtime bytes remain unchanged.
+Formatting and `go tool task check` passed directly (sessions 37861 and 88004).
+Complete ordinary session 79726 directly joined exit 201. Its Go phase passed;
+frontend tests passed 7,700 and failed 34 across two unchanged suites (Member model
+grants and Model inline access), beginning with 5-second dialog-workflow timeouts.
+Node lifecycle and production checks were not reached. Unchanged focused reproduction
+(session 94542) passed all 43 tests in the two affected suites, without changing
+deadlines or configuration. Complete ordinary retry session 42544 passed
+on the same source: all 287 frontend files and 7,734 tests, Node lifecycle,
+production build/assets and Go phases passed. All 2,807 source paths remained
+unchanged. The initial timeout cause remains unproven. The 22-path Money phase is
+delivered in commit `0ccc6637fbaff8640e7c3f504c8f58f9722be993`, with
+main check session 49485 passed and fresh remote main parity verified. Nine
+existing documentation edits remain separate from the 22-path feature commit. Browser and external model acceptance remain open. Original failed check and immediate MySQL port readback
+are preserved; later successful checks do not erase that evidence.
+The source-only local-v2 transfer assessment requires retaining original
 receipts, unknown births and historical holds; shared receipt coordinates cannot
 be synthesized from legacy local data. No transfer or cutover is implemented.
+
+The latest bounded temporary cleanup removed one obsolete, closed diagnostic
+executable (6,794,930 logical bytes). Root verified its absence and unchanged
+retained generator source and original qualification readback. Cleanup receipt
+SHA-256: `4681fbff54947510f5dd31f0c9b40c57b0e738e3455a72f1dcf2ebc8f3f2b1af`.
+Active outputs, failed evidence, development PID 723 and preexisting containers
+remain preserved; no physical APFS reclamation is claimed.
+
+A fifth bounded cleanup removed the duplicate V115 database diagnostic runner
+(4,627,570 logical bytes) after fresh hash, process, open-file and Docker-mount
+checks. Its identical retained executable, generator source and original evidence
+remain available. Receipt SHA-256:
+`dbad7e9c83005c54ecf7862c93f7eef221f809cf518eb3697955d5ac54fd0f8b`.
+No physical APFS reclamation was measured.
+
+F17's private original-local history codec is prepared in isolated tree
+`25089578664049021dc6f428c0a7d240373b8798`, adding five files without changing
+its `91b48b7c` predecessor. Fifteen top-level tests (50 named nodes) are authored;
+independent source review, gofmt and whitespace passed. It preserves raw history
+and reconstructs/revalidates evidence with bounded framing while retaining every
+incomplete-transfer boundary. Compilation, tests, SQL ingestion, deployment
+exclusion, cutover and runtime activation remain unqualified. This source and its
+preparation receipt are local-only; it is not included in the delivered commits.
 
 ## F17 SQL source composition checkpoint (2026-10-15)
 
@@ -5814,13 +5911,13 @@ The binary capability count is 16 completed, 14 partially completed, and 0 not s
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
 | F22 | Usage trends, amounts, and multidimensional filters | Completed | Personal, Team, Project and platform reports, all scoped dimensions, exact historical amounts/currencies, unknown coverage and explicit freshness are implemented. Committed controlled evidence includes current-member aggregation, exact-ID selection, native recording, late/replayed events, restart and scoped CSV. Commits 598ffd17 and e4f87ab record the accepted workflows and dual-driver regression. Measured capacity, wider A10/A14/A18 and P6 remain independent open gates. |
 | F23 | Operations overview, quality, alerts, and notifications | Partially completed | Real-data overview, immutable Provider-attempt quality, revisioned quality thresholds, grouped operational alerts, recipient-isolated history, independent severity settings and bounded operational SMTP delivery are implemented. Fixed monthly settled warnings cover Personal, Team aggregate/member, Project and Personal/Project Key scopes. Own positive stored five-hour/seven-day Token warnings cover Personal users, Personal root-Key accounts, Project aggregates, Team aggregates and Project root-Key accounts (GORM V81–V85), with fixed 80%/90% sampled episodes and recipient-scoped inbox history. Replacement Keys share their root account; independent Team-member rolling controls are unsupported. Notification settings preserve captured-authority retries. External mail, bounce/inbox tracking, real-Provider quality acceptance and separately specified enterprise warning sources remain open. |
-| F24 | Read-only AI operations analysis and saved reports | Partially completed | Authorized Tokens-by-Model and Provider-quality reports, fresh CSV and explicit personal-model advice retain their recorded scope. Delivered commits `4ee3909` and `bb542e9` implement creator-private parameter definitions retained until explicit owner deletion, plus readable-Team and explicitly authorized member/Project Key quota reports with exact local-cap facts and covered trailing-168-hour settled-rate forecasts. Loading never executes. Creator-private Team/Key quota definitions are delivered in `d9af644` with frozen V111 and complete dual-driver qualification. Coherent mandatory, ordinary, dual-database and authentication qualification passed before delivery. Provider-quality personal-model AI advice is delivered in `0d40dc2` with independent Provider-read authority and anonymous immutable attempt aggregates. Broader analysis/evaluation, browser and real external-model acceptance remain open; AI answers remain transient and receive only authorized aggregates and temporary Model/Provider labels. |
+| F24 | Read-only AI operations analysis and saved reports | Partially completed | Authorized Tokens-by-Model and Provider-quality reports, fresh CSV and explicit personal-model advice retain their recorded scope. Delivered commits `4ee3909` and `bb542e9` implement creator-private parameter definitions retained until explicit owner deletion, plus readable-Team and explicitly authorized member/Project Key quota reports with exact local-cap facts and covered trailing-168-hour settled-rate forecasts. Loading never executes. Creator-private Team/Key quota definitions are delivered in `d9af644` with frozen V111 and complete dual-driver qualification. Coherent mandatory, ordinary, dual-database and authentication qualification passed before delivery. Provider-quality personal-model AI advice is delivered in `0d40dc2` with independent Provider-read authority and anonymous immutable attempt aggregates. Commit `14a75fe` adds explicitly reviewed current-page Team/member-Key/Project-Key Token advice, anonymous T/K labels, original identity/birth reauthorization and personal-model quota under the full V116 dual-driver and ordinary/check gates. Money advice source is prepared separately and remains unqualified. Bilingual browser and real external-model acceptance remain open; answers remain transient and receive only authorized aggregates and temporary labels. |
 | F25 | Site presentation, language, and announcements | Completed | Durable site name, URL, logo, footer, default language, bilingual UI behavior, and announcement lifecycle are implemented. |
 | F26 | Instances, heartbeats, resources, jobs, and offline cleanup | Completed | Distinct process generations, server-owned leases, nullable resource facts, bounded real system jobs, executor-loss reconciliation, revision-checked cleanup, audit evidence, and the bilingual administrative workspace are implemented. |
 | F27 | S3, owned attachments, SMTP, and notifications | Partially completed | S3-compatible configuration and administration UI, explicit user/Project attachment APIs, cleanup recovery, Key-scoped inference reads, single/comparison attachment interfaces, SMTP administration/test delivery, and durable operational email intents exist. External storage/mail acceptance, bounce handling, and inbox tracking remain open. |
 | F28 | Internal encryption, root-key rotation, and Vault switching | Partially completed | Internal Provider, egress, SMTP, retained Storage and MFA encryption is implemented. Guarded root rotation passed source, complete dual-driver regression and controlled production/browser/restart acceptance, including final mandatory checks. Vault Token settings, retained revisions, diagnostic probes and seven-domain root inventory are delivered in c2368ddb; the bounded credential KV-v2 SDK is delivered in 78c76d2. Bounded Vault-backed Provider storage switching, stable retained references, durable write compensation and root retirement pass source, dual-driver and controlled API/native/restart acceptance in this phase. Saved independent writer/reader AppRole activation is delivered as 77ece177 after source gates, Focus16, complete Full150 and real Vault API/native/root-key/original-Session restart acceptance. Administrator-previewed, explicitly confirmed cleanup of never-committed Provider objects is delivered as 5fda0737 after source, Full154 and real Vault API/restart acceptance; automatic scheduled deletion is excluded. Published-object drain and graceful closure are delivered in V88/V89. Saved independent writer/reader certificate identities (V104) are delivered with coherent R7 gates, original full R6 dual-driver, auth lifecycle R4 and default-production build R7 acceptance. Controlled real Vault R8 passes all 12 saved-certificate cases on both databases, including encrypted persistence, same-binary restart, exact native audit attribution and scoped Provider cleanup. Four normal generations close durably; two intended mandatory-mTLS CA-only operator failures retain unknown cleanup intent and unproven durable closure despite positive OS joins, with no remote destruction. Genuine bilingual Vault/storage browser acceptance, workload identities, external Vault/PKI compatibility and wider release acceptance remain open. |
-| F29 | API Key Vault delivery and application identities | Partially completed | The application contract separates immutable manual/managed modes, exact-owner Consumer/Profile/Principal targets, independent Writer/Provisioner and JWT-template verification, explicit control approval and separate isolation attestation. Durable pre-I/O claims prevent Writer replay and plaintext fallback; acknowledgements, local runtime publication, descriptors and actual caller use remain distinct. Native-completed retirement remains mandatory. The exact-owner replacement-call readiness advisory is included in this containing delivery after coherent controlled qualification; it reports recorded evidence without changing Keys or proving completed retirement. Controlled application, real local Vault, browser and external caller evidence are recorded separately below; coordinator and automatic rotation remain outside this bounded phase. |
-| F30 | Configuration publication, acknowledgement, rollback, revocation, and audit | Partially completed | Immutable runtime publication, durable events, current revocation, and audit foundations exist. Actor-owned idempotent manual publication receipts (V105) are delivered with coherent R7 gates, original full R6 dual-driver, auth lifecycle R4 and default-production build R7 acceptance. The strict UUIDv4/reason wire contract, current actor/Session authority, identical retry without redispatch and immutable terminal receipts are accepted. The original three-second budget is unchanged; unknown claims are never resumed after restart, and the two-process HTTP witness preserves terminal receipts and command/audit rows without claiming interrupted in-flight process acceptance. A receipt proves neither application/fleet acknowledgement nor absence of effects. Exact snapshot filtering and all-recorded-process review have focused real PostgreSQL/MySQL and API/UI acceptance; observations are not fleet acknowledgements. Bounded frozen configuration source encoding and detached cold reconstruction are delivered in `f45d999`; frozen V112 encrypted archive storage and root inventory V11 are delivered in the current phase with complete dual-driver acceptance. Coherent private capture is delivered in `808614f`; this phase adds read-only header metadata. Automatic durable writing, bounded retention and activation remain open. Node acknowledgement, complete rollback, and distributed emergency-revocation acceptance remain open. |
+| F29 | API Key Vault delivery and application identities | Partially completed | The application contract separates immutable manual/managed modes, exact-owner Consumer/Profile/Principal targets, independent Writer/Provisioner and JWT-template verification, explicit control approval and separate isolation attestation. Durable pre-I/O claims prevent Writer replay and plaintext fallback; acknowledgements, local runtime publication, descriptors and actual caller use remain distinct. Native-completed retirement remains mandatory. The exact-owner replacement-call readiness advisory is included in this containing delivery after coherent controlled qualification; it reports recorded evidence without changing Keys or proving completed retirement. Commit `14a75fe` delivers independently enrolled controllers, scoped discovery, management UI and the optional explicit Vault Agent file executable; reviewed machine reports remain distinct from delivery and native-completed retirement. The phase passes full dual-driver, ordinary, race and authentication/check gates. Actual Agent, bilingual browser, automatic rotation and external caller acceptance remain open. |
+| F30 | Configuration publication, acknowledgement, rollback, revocation, and audit | Partially completed | Immutable runtime publication, durable events, current revocation, and audit foundations exist. Actor-owned idempotent manual publication receipts (V105) are delivered with coherent R7 gates, original full R6 dual-driver, auth lifecycle R4 and default-production build R7 acceptance. The strict UUIDv4/reason wire contract, current actor/Session authority, identical retry without redispatch and immutable terminal receipts are accepted. The original three-second budget is unchanged; unknown claims are never resumed after restart, and the two-process HTTP witness preserves terminal receipts and command/audit rows without claiming interrupted in-flight process acceptance. A receipt proves neither application/fleet acknowledgement nor absence of effects. Exact snapshot filtering and all-recorded-process review have focused real PostgreSQL/MySQL and API/UI acceptance; observations are not fleet acknowledgements. Bounded frozen configuration source encoding and detached cold reconstruction are delivered in `f45d999`; frozen V112 encrypted archive storage and root inventory V11 are delivered in the current phase with complete dual-driver acceptance. Coherent private capture is delivered in `808614f`. Commit `14a75fe` adds the bounded independent durable writer, 100-version/256-MiB retention ledger, exact-content deduplication, confirmed cleanup, authenticated integrity review and explicitly whitelisted routing rollback (V113–V116), with complete dual-driver archive/full regression and ordinary/check gates. Rollback preserves current identity, grants, quotas, revocations, prices and secret authority. Genuine browser/rollback-process, node/fleet acknowledgement and distributed emergency-revocation acceptance remain open. |
 
 ### Acceptance-case status
 

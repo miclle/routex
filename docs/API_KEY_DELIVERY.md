@@ -376,5 +376,9 @@ Acceptance status and exact receipts are recorded separately in
 Controlled peers, real dual-database application qualification and genuine RouteX
 process restart do not prove real local Vault JWT/CAS-zero behavior. Real Vault,
 bilingual browser and external caller results each need their own recorded scope.
-A reconstructed Service is not process restart. No coordinator, automatic rotation,
-external cleanup or fleet application is inferred from this bounded contract.
+A reconstructed Service is not process restart. Commit `14a75fe` delivers the
+independently enrolled explicit file controller, its discovery and management UI,
+and exact reviewed machine acknowledgement protocol. The phase passes mandatory,
+ordinary, complete dual-database and authentication-restart checks. Real Agent
+delivery remains pending. Explicit controller delivery establishes neither
+automatic rotation, external cleanup, native application use nor fleet application.

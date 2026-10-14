@@ -6,12 +6,12 @@ database, credential root key, administrator Session and inference API. The
 server remains a single-binary application; this executable is installed only in
 an application environment that opts into managed file delivery.
 
-The standalone controller boundary passes all 21 focused fake-process, HTTP and
-CLI tests in ordinary and race runs, with direct process joins and confirmed
-owned-group cleanup. Mandatory project checks, real Vault/JWT/Agent delivery and
-application acceptance have not run. This slice remains unqualified for delivery. It requires
-the independently enrolled controller routes; their delivery and database
-qualification are tracked separately in `docs/API_KEY_DELIVERY.md`. A generated
+Commit `14a75fe` delivers the standalone controller and enrolled controller routes.
+The focused fake-process, HTTP and CLI boundary passes ordinary and race tests;
+the containing phase also passes mandatory checks, frontend tests, authentication
+restart and the complete PostgreSQL/MySQL regression. Real Vault/JWT/Agent delivery,
+browser interaction and application use remain unverified. Server contracts are
+documented in `docs/API_KEY_DELIVERY.md`. A generated
 configuration, joined Agent or advisory report does not establish application
 use, native completion, rotation, retirement or fleet acceptance.
 

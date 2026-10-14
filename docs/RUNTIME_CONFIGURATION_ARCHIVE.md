@@ -2,9 +2,10 @@
 
 The private archive stores complete canonical codec-v1 source facts in encrypted,
 ordered chunks. It is a durable storage foundation for reconstructable Gateway
-versions. It creates no automatic durable capture, serving authority, source-content API,
-activation command, rollback operation, fleet acknowledgement or automatic
-retention policy. F30 remains partial.
+versions. Commit `14a75fe` adds bounded automatic durable capture, fixed retention
+caps, reviewed storage cleanup, authenticated integrity review and reviewed
+[routing rollback](RUNTIME_ARCHIVE_ROLLBACK.md). Archive facts grant no serving
+authority, secret recovery or fleet acknowledgement. F30 remains partial.
 
 ## Storage contract
 
@@ -58,9 +59,10 @@ hide prior rows; closing destroys the query lifetime. English/Chinese labels and
 date/number formatting switch without refetching metadata. There is no automatic
 read until the action is explicitly opened.
 
-Normal runtime capture is still private memory only and no production caller
-writes archives automatically. An empty directory is therefore expected; it does
-not mean that no configuration was ever published or installed. Routing and
+Successful complete runtime captures feed the bounded private archive writer.
+An empty directory does not prove that no configuration was ever published or
+installed: preparation, capacity, queue contention or storage failure can prevent
+an archive. Routing and
 installation observation histories remain separate. This endpoint deliberately
 works without a configured envelope opener and never claims source readability.
 
@@ -100,7 +102,7 @@ block current routing or delay fresh authorization and revocation publication.
 Cleanup requires an administrator's explicit preview and confirmation; no
 scheduled deletion is enabled. Root-envelope rewrap must preserve correct byte
 accounting because envelope sizes can change. The durable writer, capacity
-ledger and cleanup workflow are not implemented by this policy decision.
+ledger and cleanup workflow are delivered in `14a75fe`.
 
 ## Validation and remaining work
 
@@ -121,19 +123,21 @@ older report helpers cannot consume the archive receipt independently. This
 mechanism exists only in the disposable test harness and is not a product
 downgrade operation.
 
-The [private historical capture seam](RUNTIME_CONFIGURATION_CAPTURE.md) now
-prepares complete original-source facts in memory after successful publication,
-without an archive write or serving authority. Later phases must establish
-durable capture provenance, bounded retained
-bytes/counts, deduplication and backpressure without delaying fresh denial
-publication. Current runtime can install fresh authorization while retaining old
-routes after route validation failure; that mixed state is not a complete
-captured version. Reviewed current-authority rollback and fleet acknowledgement
-remain separate work. This foundation stores nothing automatically.
+The [private historical capture seam](RUNTIME_CONFIGURATION_CAPTURE.md) prepares
+complete original-source facts after successful publication. Its independent
+three-second writer permits one queued and one in-flight capture; queue saturation
+skips archiving without delaying authorization or route publication. Shutdown
+cancels and joins the writer. Original provenance, canonical-content deduplication
+and actual encrypted-byte/count caps are persisted atomically. Current runtime
+can install fresh authorization while retaining old routes after route validation
+failure; that mixed state never becomes a complete captured version. Reviewed
+rollback remains limited to its explicit routing whitelist; fleet acknowledgement
+and genuine archive/rollback browser and process acceptance remain open.
 
 ## Administrator storage cleanup contract
 
-The cleanup slice is under implementation and has not completed qualification.
+The cleanup workflow is delivered in `14a75fe` with complete dual-driver and
+ordinary/frontend qualification; genuine browser acceptance remains pending.
 It belongs in the existing archive-history dialog. An intrinsic administrator
 must have current `system.read` and `system.write`, an exact current Session,
 a bounded selection of 1–20 archive IDs, a server-issued strong preview ETag,
@@ -169,7 +173,11 @@ are validated before capture as nonblank, trimmed Unicode text of at most 1,000
 characters without control characters. Cleanup releases archive storage only and
 changes no current route or runtime installation.
 
-## Cleanup proposal qualification checkpoint
+## Historical cleanup proposal qualification checkpoint
+
+The following earlier failed and focused runs retain their original source
+scope. They are superseded for current delivery by commit `14a75fe` and its
+complete PostgreSQL/MySQL archive regression; original failures remain retained.
 
 The isolated V115 proposal has authored real-driver migration, partial-DDL,
 retained-intent refusal, transactional audit rollback, lost-acknowledgement
@@ -239,6 +247,7 @@ authority/target generation change. Obsolete replies cannot restore them. No
 automatic validation or retry runs. English/Chinese copy uses local primitives
 and preserves the existing table/dialog layout.
 
-Focused frontend tests and TypeScript checks have passed for this isolated successor.
-Backend compiler tests, real PostgreSQL/MySQL, coherent project gates and browser
-qualification remain pending. Validation does not implement activation or rollback.
+Integrity review is delivered in `14a75fe`, with ordinary/frontend tests,
+mandatory checks and complete PostgreSQL/MySQL regression passed. Browser
+qualification remains pending. Integrity review itself performs no activation
+or rollback; the separate reviewed rollback contract remains independently gated.

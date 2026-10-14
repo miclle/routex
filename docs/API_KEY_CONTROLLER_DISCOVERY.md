@@ -1,6 +1,7 @@
 # API Key Controller Discovery
 
-Status: isolated source candidate, not qualified or delivered. This additive
+Status: delivered in `14a75fe` with controlled database and ordinary qualification.
+Real browser and Agent acceptance remain pending. This additive
 boundary depends on the frozen V114 controller schema and server contract. It
 adds no migration and leaves the standalone controller executable unchanged.
 
@@ -64,14 +65,13 @@ explicit review/revocation and a separate new enrollment, never reconstruction.
 
 ## Qualification
 
-Source-only unit tests cover canonical query parsing, bounds, collection/parent
+Delivered unit tests cover canonical query parsing, bounds, collection/parent
 birth cursor isolation and lifecycle-only projection. A real-driver fixture is
-authored for scoped pagination, cross-collection denial, original-actor birth,
+registered for scoped pagination, cross-collection denial, original-actor birth,
 independent read permission, retained revoked/unavailable records, private wire
-responses and unchanged external-operation counters. It is intentionally not
-registered before the integrating owner adopts the dependency and shared test
-registry together.
+responses and unchanged external-operation counters.
 
-No compiler, unit test, mandatory project check, PostgreSQL/MySQL qualification,
-browser acceptance or real Agent/controller execution is claimed for this source
-candidate. Frozen V114 and executable qualification remain separately tracked.
+Commit `14a75fe` passes the containing phase's mandatory checks, ordinary tests,
+authentication restart and complete PostgreSQL/MySQL regression, including these
+registered controls. Browser interaction and real Agent execution remain pending;
+directory facts never prove delivery, application use or fleet acceptance.

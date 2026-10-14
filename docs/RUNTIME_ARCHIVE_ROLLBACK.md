@@ -1,8 +1,9 @@
 # Gateway routing archive rollback
 
-This candidate implements a reviewed routing-configuration rollback. Source
-implementation and authored tests do not establish database, browser, genuine
-process restart, or deployment acceptance.
+Commit `14a75fe` delivers reviewed routing-configuration rollback. The containing
+phase passes mandatory checks, ordinary tests, authentication restart and complete
+PostgreSQL/MySQL regression, including the exclusive archive worker. Browser,
+genuine rollback-process restart and deployment acceptance remain separate.
 
 An intrinsic administrator with current Session authority may review a retained
 archive through `GET /api/v1/admin/runtime/archives/:archive_id/rollback`.
@@ -76,4 +77,5 @@ Each write, dispatch and final receipt phase is bounded to three seconds;
 publication admission is nonblocking. The maintained exclusive PostgreSQL/MySQL
 archive worker owns migration, current-authority, atomicity, unknown-commit,
 replay, supersession, restrictive-reference and disabled-transport controls.
-Their authored status remains separate from execution results.
+These controls pass on both databases in the containing phase. They establish
+the tested local contract, without proving fleet rollback or route health.

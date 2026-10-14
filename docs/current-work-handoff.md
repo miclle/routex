@@ -9,11 +9,19 @@ completed acceptance scenarios**. Prepared source does not change those totals.
 | Work package | Current state | Next verification or action |
 | --- | --- | --- |
 | F24 Token advice, F29 Controller and F30 archive workflows | Main phase validated | Continue F17 isolated qualification, F24 Money tests and actual Vault Agent/browser acceptance. Global capability totals remain unchanged. |
-| F17 shared admission and single-account rate/executor sampling | Isolated source prepared; runtime remains dormant | Compile the exact composition, run focused race tests and dedicated real-driver workers after main delivery. |
-| F17 original calendar and data provenance | Private constructor and immutable-calendar reader composed, awaiting execution | Qualify frozen unregistered V120 and private SQL helpers; deployment exclusion, legacy transfer and runtime wiring remain open. |
-| F24 Money quota advice | Isolated source complete; tests pending | Qualify the exact 22-file successor with backend/frontend tests and both databases; preserve reviewed dimension, exact cap currencies, anonymous labels and personal-model quota. |
-| Temporary build output cleanup | Completed | Eleven obsolete binaries removed across three batches (372,954,525 logical bytes); retained replacements, source, original failures and development service preserved. Seven empty directories remain held by the Docker virtual machine. |
+| F17 shared admission and single-account rate/executor sampling | Focused race passed; SQL sequence failed | Qualify a narrow test-only successor for Fence, overflow-fixture cost and ETag field issues; production constraints remain unchanged. |
+| F17 original calendar and data provenance | V120 Origin passed on both drivers; corrected Fresh checks pending | Qualify the coherent successor; deployment exclusion, legacy transfer and runtime wiring remain open. |
+| F24 Money quota advice | Delivered in `0ccc663`; focused, mandatory and complete ordinary retry passed | Continue browser/external model acceptance; retain initial unrelated deadline failures. |
+| Temporary build output cleanup | Completed | Thirteen obsolete executables removed across five batches (384,377,025 logical bytes); retained replacements, source, original failures and development service preserved. Seven empty directories remain held by the Docker virtual machine. |
+| F30 local dispatch revocation | Four-protocol race regression running | Check original caller and selected route before and after the durable attempt checkpoint; preserve dispatched history and local-only limitations. |
 | Browser acceptance | Pending | Chrome returned no window and application inventory timed out; continue independent backend and source work. |
+
+The latest feature commit `0ccc6637fbaff8640e7c3f504c8f58f9722be993` is pushed;
+fresh remote main readback matches. It adds Money advice to the previously
+qualified V116 delivery `14a75fe`. Nine documentation-only main edits reconcile
+delivered contracts and open acceptance. The heavy lane now runs the local F30
+Gateway revocation regression; repaired F17, original-local transfer and F29
+replacement sources remain isolated pending their own qualification.
 
 The original unchanged V116 full integration directly completed successfully in
 5,200.361 seconds: PostgreSQL and MySQL each passed 610/610 named tests, with
@@ -28,20 +36,109 @@ fresh `go tool task check` and frontend formatting passed on main. These facts
 do not complete F29 actual-Agent acceptance, browser qualification or the global
 objective.
 
-The latest isolated F17 source tree is `4c86d13ed3cf123a401e0a14fe2fb7d0c96adcaa`
-(2,927 paths). Exactly five additions implement private fresh initialization,
-immutable-calendar reads, and test sources; the existing live calendar guard is
-preserved. All source bytes and modes were checked. Compilation and runtime
-acceptance remain pending; the next focused plan contains 36 required new
-controls and 13 explicit dedicated-driver skips. The source-derived inventory
-also includes the separately gated initial-authorization capture worker.
+The first F17 focused run directly completed with exit 1: 811 named passes,
+seven failed nodes and 13 explicit dedicated-driver skips. Source diagnosis
+identified live evaluation preceding fixed fixture births, plus a positive
+coverage fixture missing its required bound revision. Production gates correctly
+rejected both inputs; fixes are limited to a separately frozen test successor.
+No SQL worker or runtime qualification is claimed from this failed run.
+
+The corrected isolated F17 source tree is
+`5c3ae6b4392f90705b7c1e8708fc3770ddcd1740` (2,927 paths). Its two test-file
+corrections retain the predecessor production bytes and add a missing-bound-
+revision negative control. The original focused successor directly joined exit
+zero in 117.226 seconds: 819 named passes, 13 explicit dedicated-driver skips,
+zero failures, and all three package terminals passed. The exact 180 top-level
+inventory and 34 required nongated controls passed. Readback SHA-256:
+`65310fba61bd8107c516cab9f27941d38c6e5641a3cd4690de3bf8e84dea4c1b`.
+Source, development PID 723 and preexisting containers stayed unchanged.
+
+The original 14-worker SQL sequence directly joined exit one: 216 named nodes,
+198 passes, 18 failures and zero skips. Initial Capture (11), Local startup (12),
+V120 Origin (9), and affected Authorization (20) passed completely on each driver.
+Accept passed 27/29 on each driver because its fence fixture omitted the fencing
+UUID/timestamp; Usage passed 4/8 because building 4097 records exhausted the
+unchanged 120-second context; Fresh initialization passed 16/19 because fixture
+writes used `etag` instead of GORM's `ETag` field. A separate three-file test-only successor
+`a560e0ee7cdf4966e66e71c8d5a91b39b86e790e` is sealed; neither production
+constraints nor deadlines are relaxed.
+The original aggregate preparation text incorrectly said 236; exact per-worker
+inventories and actual paired terminals total 216, with no test scope change.
+
+Physical readback verifies 42 owned groups gone, 42 resource inventories empty,
+14 ports closed, all 2,927 source paths unchanged, and development PID 723 and
+preexisting containers preserved. Readback SHA-256:
+`9f0e9de75ebb6d480ce2623d25f627a91959568d64e0e86a8b58b222ca03e07d`.
+The heavy lane now validates the local F30 dispatch-revocation increment. Complete F17 SQL,
+runtime, transfer and multi-process acceptance remain open.
+
+Independent source-only review of the six-file local-v2 transfer validator found
+three defects: RPM history at the coverage boundary can be legacy; sticky
+invalidation request IDs lack incarnation proof; and expired RPM still requires
+quota receipts within the economic retention horizon. The repaired six-file successor
+`45bfa90592f65c5225eb312211079977ff46000c` passed independent source review
+with 14 top-level test sources. No validator compilation, tests, transfer, importer
+or cutover is claimed. The six files are composed onto the latest SQL fixture
+successor in tree `91b48b7cbd80f40a7aae49813c8c955908c5bbcb` (2,933 paths),
+with every predecessor byte/mode preserved. Its next source-derived focus
+contains 893 named nodes (880 expected passes and 13 dedicated-driver gates),
+followed by six affected SQL workers with 112 nodes. Neither run has started.
 
 Money advice source is frozen at tree `a343c1c2ee2f5907ee9e38cef448da713c635824`.
-The exact 22-file delta and working-tree hashes were checked. Formatting and
-source checks passed; compilation, tests, runtime and browser acceptance remain
-pending. The source-only local-v2 transfer assessment requires retaining original
+Its 22-file delta is composed onto main `14a75fe` in isolated tree
+`f15108a40d312521930f12692542615cb966a118`; 19 code/test leaves remain exact,
+with only three rules/documentation leaves reconciled. Source hashes and formatting were checked. Current composed-source focused race
+checks directly passed 66 service and 11 handler nodes without failures/skips;
+eight frontend suites passed 263 tests. The complete `insights_ai` parent passed exactly 35/35 named nodes on each real
+database, without failures/skips. Root independently compared every expected
+name, verified unchanged source after formatting, and checked removed owned
+resources and refused/bindable mapped ports. The original immediate MySQL
+fresh-bind failure remains retained; later independent port checks passed
+without rerunning tests or extra cleanup.
+The first mandatory check failed on TypeScript report-union narrowing and two
+intentional malformed-input casts. The separately frozen successor tree
+`86e3abce16905e5b8c2ef46e01c9e8dac6ed8b66` corrects only those frontend types,
+casts and qualification prose; backend and frontend runtime bytes remain unchanged.
+Formatting and `go tool task check` passed directly (sessions 37861 and 88004).
+Complete ordinary session 79726 directly joined exit 201. Its Go phase passed;
+frontend tests passed 7,700 and failed 34 across two unchanged suites (Member model
+grants and Model inline access), beginning with 5-second dialog-workflow timeouts.
+Node lifecycle and production checks were not reached. Unchanged focused reproduction
+(session 94542) passed all 43 tests in the two affected suites, without changing
+deadlines or configuration. Complete ordinary retry session 42544 passed
+on the same source: all 287 frontend files and 7,734 tests, Node lifecycle,
+production build/assets and Go phases passed. All 2,807 source paths remained
+unchanged. The initial timeout cause remains unproven. The 22-path Money phase is
+delivered in commit `0ccc6637fbaff8640e7c3f504c8f58f9722be993`, with
+main check session 49485 passed and fresh remote main parity verified. Nine
+existing documentation edits remain separate from the 22-path feature commit. Browser and external model acceptance remain open. Original failed check and immediate MySQL port readback
+are preserved; later successful checks do not erase that evidence.
+The source-only local-v2 transfer assessment requires retaining original
 receipts, unknown births and historical holds; shared receipt coordinates cannot
 be synthesized from legacy local data. No transfer or cutover is implemented.
+
+The latest bounded temporary cleanup removed one obsolete, closed diagnostic
+executable (6,794,930 logical bytes). Root verified its absence and unchanged
+retained generator source and original qualification readback. Cleanup receipt
+SHA-256: `4681fbff54947510f5dd31f0c9b40c57b0e738e3455a72f1dcf2ebc8f3f2b1af`.
+Active outputs, failed evidence, development PID 723 and preexisting containers
+remain preserved; no physical APFS reclamation is claimed.
+
+A fifth bounded cleanup removed the duplicate V115 database diagnostic runner
+(4,627,570 logical bytes) after fresh hash, process, open-file and Docker-mount
+checks. Its identical retained executable, generator source and original evidence
+remain available. Receipt SHA-256:
+`dbad7e9c83005c54ecf7862c93f7eef221f809cf518eb3697955d5ac54fd0f8b`.
+No physical APFS reclamation was measured.
+
+F17's private original-local history codec is prepared in isolated tree
+`25089578664049021dc6f428c0a7d240373b8798`, adding five files without changing
+its `91b48b7c` predecessor. Fifteen top-level tests (50 named nodes) are authored;
+independent source review, gofmt and whitespace passed. It preserves raw history
+and reconstructs/revalidates evidence with bounded framing while retaining every
+incomplete-transfer boundary. Compilation, tests, SQL ingestion, deployment
+exclusion, cutover and runtime activation remain unqualified. This source and its
+preparation receipt are local-only; it is not included in the delivered commits.
 
 ## F17 SQL source composition checkpoint (2026-10-15)
 

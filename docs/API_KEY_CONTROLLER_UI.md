@@ -75,7 +75,7 @@ names use the paired `keyControllers` English/Chinese namespace. English remains
 the default. Dates follow the selected language, and changing languages preserves
 the name and reason draft.
 
-This is an isolated UI candidate with focused validation, not a delivered feature.
+Commit `14a75fe` delivers this interface with the enrolled controller routes.
 The hardened focused API, lifetime, UI, parent-workspace and localization suite
 passes 56 cases. It covers explicit confirmation, exact request retry, independent
 permissions, same-actor renewal, changed Slot birth/Controller, delayed private
@@ -83,6 +83,7 @@ responses, stale review proof, uncached one-time bearers and stale clipboard
 callbacks. The first focused predecessor retained one incorrect localized-label
 test assertion, subsequently corrected; earlier failed runs remain failed evidence.
 The hardened source also passes TypeScript with a bounded 2 GiB heap and focused
-Prettier/ESLint checks. Mandatory project checking, the frozen
-server's real PostgreSQL/MySQL qualification, real-window browser acceptance and
-external Controller/Agent integration remain independent pending gates.
+Prettier/ESLint checks. The containing phase passes mandatory checking, the full
+frontend suite, complete PostgreSQL/MySQL regression and authentication restart.
+Real-window browser acceptance and external Controller/Agent integration remain
+independent pending gates.
