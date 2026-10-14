@@ -113,6 +113,23 @@ export default {
   installationObserved: 'First recorded observation',
   installationMatch: 'Current installed source matches',
   installationDifferent: 'Different installed source',
+  archiveMetadataAction: 'Configuration archive metadata',
+  archiveMetadataTitle: 'Configuration archive metadata',
+  archiveMetadataBoundary:
+    'Stored archive headers only. These records do not prove encrypted source integrity, coherent capture, publication, current installation, fleet application or rollback readiness.',
+  archiveCaptureBoundary:
+    'Automatic durable configuration capture is not configured. Archive creation time records storage, not the original publisher or application time. Rows are ordered by archive ID.',
+  archiveMetadataEmpty:
+    'No retained configuration archive metadata. Routing and installation observations are separate records.',
+  archiveMetadataFailed: 'Configuration archive metadata could not be loaded.',
+  archiveMetadataTable: 'Retained configuration archive headers',
+  archiveIdentity: 'Archive ID',
+  archiveCreatedAt: 'Archive created',
+  archiveCodec: 'Codec version',
+  archiveContentDigest: 'Content digest',
+  archiveDocumentBytes: 'Original document bytes',
+  archiveFirstPage: 'First page',
+  archiveNextPage: 'Next page',
   jobTypes: {
     runtime_publication: 'Runtime publication',
     call_record_delivery: 'Call record delivery',

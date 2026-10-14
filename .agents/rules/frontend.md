@@ -1873,3 +1873,13 @@ or invoking inference; explicit Run reauthorizes current scope. Preserve creator
 listing/deletion after analysis authority loss, exact uncertain creation intent
 and actor/Session/permission/control-sequence guards. Controls changing away and
 back never authorize an obsolete save completion.
+
+Configuration archive metadata stays in the existing System Status jobs card
+and local Base UI dialog/Table. Read only the closed header-metadata endpoint
+under independent system.read authority; preserve exact actor/Session/permission/
+jobs and response generations for reads, visibility and retained callbacks.
+Default pagination follows archive IDs, not historical capture or installation
+time. Original document bytes are not encrypted retention bytes. No source,
+secrets, integrity, rollback-readiness, current application or fleet claim is
+implied. Automatic durable capture remains unconfigured; render an honest empty
+state and keep routing/installation histories separate. Pair English/Chinese copy.

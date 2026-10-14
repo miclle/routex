@@ -57,7 +57,8 @@ does not close the broader acceptance gaps.
   Independent Provider/Model read permissions, administrator Session, complete
   empty binding projection and actor/target/renewal/unmount fences are covered by
   158 focused frontend tests, TypeScript and ESLint. Navigation performs no write,
-  discovery or implicit grant; browser acceptance remains open.
+  discovery or implicit grant; the controlled headless row workflow is accepted
+  below, while authenticated native Chrome acceptance remains open.
 
 - **Encrypted configuration archive foundation:** this phase adds frozen GORM
   V112 headers/chunks, authenticated codec-v1 storage, detached cold reconstruction
@@ -116,18 +117,24 @@ open-file/process checks and retained-copy hashes preceded deletion. Active
 services, mounted fixtures and qualification receipts remain retained; this does
 not claim that every temporary artifact is obsolete or removed.
 
-Authenticated headless interaction reached the isolated `0f0f144` production
-fixture. Its controlled upstream/controller exited before AI completion; the
-pending request is not accepted native AI evidence. Guarded owned cleanup and
-root-owned fixture recovery are being prepared. Native Chrome reaches the
-English-default sign-in page; authenticated native acceptance remains separate.
-Existing development services are preserved.
+Authenticated headless browser acceptance now covers the isolated committed
+`808614f` production fixture: English Tokens-by-Model and Chinese Provider-quality
+questions each passed exact range/question/model review, explicit personal-quota
+confirmation and recorded native completion. The unbound Provider Model row
+opened the existing guided review with its exact Connection identity, without
+configuration writes. Browser network records contain one login and two analysis
+POSTs only; controlled upstream totals are four completed, one rate-limited and
+one server-error attempt, with one discovery read. Screenshots establish layout;
+text and accessibility records establish the answers below the viewport.
 
-Browser inventory previously timed out; direct Chrome Computer Use reported
-`cgWindowNotFound`. Browser acceptance remains open and does not block independent
-implementation or verification. Historical checkpoints below retain their original
-source, time, failures and acceptance boundaries; this section supersedes their
-older pending-delivery and pause statements.
+The root-owned fixture controller joined zero after normal shutdown. Independent
+readback confirms unchanged source/assets/binary, closed owned processes, Compose
+resources and ports, and preserved development process. Cleanup receipt SHA-256:
+`68f7b4cb3349d3eb8071441e5941b4d24e49d68f4c55dc298ae6edaa7a609a3c`.
+The earlier orphaned fixture remains failed evidence. Native Chrome authenticated
+workflows, external-model acceptance and the new archive UI remain open; they do
+not block independent implementation. Historical checkpoints below retain their
+original source, time, failures and acceptance boundaries.
 
 ## Provider question boundary acceptance (2026-10-14)
 
@@ -147,6 +154,32 @@ the earlier timeout or replace unchanged-source acceptance. Independent R4
 cleanup/source readback is SHA-256
 `480f4b0770167148e4f202d903b1331ade42092fee7017f8cc21cd2259c1d991`.
 Primary `go tool task check` passed before the phase commit.
+
+## Archive metadata delivery and active work (2026-10-14)
+
+The existing System Status jobs action now opens a local Base UI archive-history
+dialog. Its bounded header-only API independently requires current `system.read`
+and binds pagination to the actor. Headers expose canonical document size and
+digest; they do not authenticate chunks, disclose source, install configuration,
+prove fleet application or establish rollback readiness. No automatic writer is
+included in this phase, so an empty retained history is expected.
+
+The qualified candidate passed 85 frontend cases, focused Go race tests and
+mandatory checks. Real archive qualification passed 17 PostgreSQL, 17 MySQL and
+one root case with no failures or skips; this is a focused run, not a full matrix.
+Independent unchanged-source/owned-cleanup receipt SHA-256:
+`beae895976c823fd6c04f97de941d9af7b7f063f7697a71c2404678f618c2055`.
+Composed primary formatting, the same 85 frontend cases, focused service/handler
+race tests and `go tool task check` passed before submission.
+
+Continue the isolated durable archive writer (V113), managed Key receipt reopening
+and Team Token quota AI advice. The Key run passed all 23 MySQL names but failed
+four PostgreSQL names after an existing successor-member Login returned 503;
+its original failure and independently verified cleanup remain retained. A
+bounded private diagnostic is running; no timeout or retry change is inferred.
+The controller (reserved V114), administrator archive cleanup, rollback and broader
+acceptance remain unfinished. First qualify each bounded source packet, compose
+it on main, run required primary checks, update this index and commit/push.
 
 ## Confirmed next-phase contracts (2026-10-14)
 

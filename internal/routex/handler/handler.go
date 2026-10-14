@@ -410,6 +410,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.GET("/runtime", ctrl.RequirePermission("system.read"), ctrl.RuntimeStatus)
 	admin.GET("/runtime/applications", ctrl.RequirePermission("system.read"), ctrl.RuntimeApplications)
 	admin.GET("/runtime/installations", ctrl.RequirePermission("system.read"), ctrl.RuntimeInstallations)
+	admin.GET("/runtime/archives", ctrl.RequirePermission("system.read"), ctrl.RuntimeArchiveMetadata)
 	admin.GET("/provider-credential-storage-operations/:request_id", memberMetadataResponseHeaders, ctrl.RequirePermission("providers.write"), ctrl.GetCredentialStorageOperation)
 	admin.GET("/provider-credential-storage-context", memberMetadataResponseHeaders, ctrl.RequirePermission("providers.write"), ctrl.GetCredentialStorageContext)
 	admin.GET("/secrets/provider-storage", memberMetadataResponseHeaders, requireAdmin, ctrl.RequirePermission("secrets.read"), ctrl.GetCredentialStoragePolicy)

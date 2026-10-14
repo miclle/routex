@@ -57,7 +57,8 @@ does not close the broader acceptance gaps.
   Independent Provider/Model read permissions, administrator Session, complete
   empty binding projection and actor/target/renewal/unmount fences are covered by
   158 focused frontend tests, TypeScript and ESLint. Navigation performs no write,
-  discovery or implicit grant; browser acceptance remains open.
+  discovery or implicit grant; the controlled headless row workflow is accepted
+  below, while authenticated native Chrome acceptance remains open.
 
 - **Encrypted configuration archive foundation:** this phase adds frozen GORM
   V112 headers/chunks, authenticated codec-v1 storage, detached cold reconstruction
@@ -116,18 +117,24 @@ open-file/process checks and retained-copy hashes preceded deletion. Active
 services, mounted fixtures and qualification receipts remain retained; this does
 not claim that every temporary artifact is obsolete or removed.
 
-Authenticated headless interaction reached the isolated `0f0f144` production
-fixture. Its controlled upstream/controller exited before AI completion; the
-pending request is not accepted native AI evidence. Guarded owned cleanup and
-root-owned fixture recovery are being prepared. Native Chrome reaches the
-English-default sign-in page; authenticated native acceptance remains separate.
-Existing development services are preserved.
+Authenticated headless browser acceptance now covers the isolated committed
+`808614f` production fixture: English Tokens-by-Model and Chinese Provider-quality
+questions each passed exact range/question/model review, explicit personal-quota
+confirmation and recorded native completion. The unbound Provider Model row
+opened the existing guided review with its exact Connection identity, without
+configuration writes. Browser network records contain one login and two analysis
+POSTs only; controlled upstream totals are four completed, one rate-limited and
+one server-error attempt, with one discovery read. Screenshots establish layout;
+text and accessibility records establish the answers below the viewport.
 
-Browser inventory previously timed out; direct Chrome Computer Use reported
-`cgWindowNotFound`. Browser acceptance remains open and does not block independent
-implementation or verification. Historical checkpoints below retain their original
-source, time, failures and acceptance boundaries; this section supersedes their
-older pending-delivery and pause statements.
+The root-owned fixture controller joined zero after normal shutdown. Independent
+readback confirms unchanged source/assets/binary, closed owned processes, Compose
+resources and ports, and preserved development process. Cleanup receipt SHA-256:
+`68f7b4cb3349d3eb8071441e5941b4d24e49d68f4c55dc298ae6edaa7a609a3c`.
+The earlier orphaned fixture remains failed evidence. Native Chrome authenticated
+workflows, external-model acceptance and the new archive UI remain open; they do
+not block independent implementation. Historical checkpoints below retain their
+original source, time, failures and acceptance boundaries.
 
 ## Provider question boundary acceptance (2026-10-14)
 
@@ -147,6 +154,32 @@ the earlier timeout or replace unchanged-source acceptance. Independent R4
 cleanup/source readback is SHA-256
 `480f4b0770167148e4f202d903b1331ade42092fee7017f8cc21cd2259c1d991`.
 Primary `go tool task check` passed before the phase commit.
+
+## Archive metadata delivery and active work (2026-10-14)
+
+The existing System Status jobs action now opens a local Base UI archive-history
+dialog. Its bounded header-only API independently requires current `system.read`
+and binds pagination to the actor. Headers expose canonical document size and
+digest; they do not authenticate chunks, disclose source, install configuration,
+prove fleet application or establish rollback readiness. No automatic writer is
+included in this phase, so an empty retained history is expected.
+
+The qualified candidate passed 85 frontend cases, focused Go race tests and
+mandatory checks. Real archive qualification passed 17 PostgreSQL, 17 MySQL and
+one root case with no failures or skips; this is a focused run, not a full matrix.
+Independent unchanged-source/owned-cleanup receipt SHA-256:
+`beae895976c823fd6c04f97de941d9af7b7f063f7697a71c2404678f618c2055`.
+Composed primary formatting, the same 85 frontend cases, focused service/handler
+race tests and `go tool task check` passed before submission.
+
+Continue the isolated durable archive writer (V113), managed Key receipt reopening
+and Team Token quota AI advice. The Key run passed all 23 MySQL names but failed
+four PostgreSQL names after an existing successor-member Login returned 503;
+its original failure and independently verified cleanup remain retained. A
+bounded private diagnostic is running; no timeout or retry change is inferred.
+The controller (reserved V114), administrator archive cleanup, rollback and broader
+acceptance remain unfinished. First qualify each bounded source packet, compose
+it on main, run required primary checks, update this index and commit/push.
 
 ## Confirmed next-phase contracts (2026-10-14)
 
@@ -5107,7 +5140,7 @@ The binary capability count is 16 completed, 14 partially completed, and 0 not s
 | F27 | S3, owned attachments, SMTP, and notifications | Partially completed | S3-compatible configuration and administration UI, explicit user/Project attachment APIs, cleanup recovery, Key-scoped inference reads, single/comparison attachment interfaces, SMTP administration/test delivery, and durable operational email intents exist. External storage/mail acceptance, bounce handling, and inbox tracking remain open. |
 | F28 | Internal encryption, root-key rotation, and Vault switching | Partially completed | Internal Provider, egress, SMTP, retained Storage and MFA encryption is implemented. Guarded root rotation passed source, complete dual-driver regression and controlled production/browser/restart acceptance, including final mandatory checks. Vault Token settings, retained revisions, diagnostic probes and seven-domain root inventory are delivered in c2368ddb; the bounded credential KV-v2 SDK is delivered in 78c76d2. Bounded Vault-backed Provider storage switching, stable retained references, durable write compensation and root retirement pass source, dual-driver and controlled API/native/restart acceptance in this phase. Saved independent writer/reader AppRole activation is delivered as 77ece177 after source gates, Focus16, complete Full150 and real Vault API/native/root-key/original-Session restart acceptance. Administrator-previewed, explicitly confirmed cleanup of never-committed Provider objects is delivered as 5fda0737 after source, Full154 and real Vault API/restart acceptance; automatic scheduled deletion is excluded. Published-object drain and graceful closure are delivered in V88/V89. Saved independent writer/reader certificate identities (V104) are delivered with coherent R7 gates, original full R6 dual-driver, auth lifecycle R4 and default-production build R7 acceptance. Controlled real Vault R8 passes all 12 saved-certificate cases on both databases, including encrypted persistence, same-binary restart, exact native audit attribution and scoped Provider cleanup. Four normal generations close durably; two intended mandatory-mTLS CA-only operator failures retain unknown cleanup intent and unproven durable closure despite positive OS joins, with no remote destruction. Genuine bilingual Vault/storage browser acceptance, workload identities, external Vault/PKI compatibility and wider release acceptance remain open. |
 | F29 | API Key Vault delivery and application identities | Partially completed | The application contract separates immutable manual/managed modes, exact-owner Consumer/Profile/Principal targets, independent Writer/Provisioner and JWT-template verification, explicit control approval and separate isolation attestation. Durable pre-I/O claims prevent Writer replay and plaintext fallback; acknowledgements, local runtime publication, descriptors and actual caller use remain distinct. Native-completed retirement remains mandatory. The exact-owner replacement-call readiness advisory is included in this containing delivery after coherent controlled qualification; it reports recorded evidence without changing Keys or proving completed retirement. Controlled application, real local Vault, browser and external caller evidence are recorded separately below; coordinator and automatic rotation remain outside this bounded phase. |
-| F30 | Configuration publication, acknowledgement, rollback, revocation, and audit | Partially completed | Immutable runtime publication, durable events, current revocation, and audit foundations exist. Actor-owned idempotent manual publication receipts (V105) are delivered with coherent R7 gates, original full R6 dual-driver, auth lifecycle R4 and default-production build R7 acceptance. The strict UUIDv4/reason wire contract, current actor/Session authority, identical retry without redispatch and immutable terminal receipts are accepted. The original three-second budget is unchanged; unknown claims are never resumed after restart, and the two-process HTTP witness preserves terminal receipts and command/audit rows without claiming interrupted in-flight process acceptance. A receipt proves neither application/fleet acknowledgement nor absence of effects. Exact snapshot filtering and all-recorded-process review have focused real PostgreSQL/MySQL and API/UI acceptance; observations are not fleet acknowledgements. Bounded frozen configuration source encoding and detached cold reconstruction are delivered in `f45d999`; frozen V112 encrypted archive storage and root inventory V11 are delivered in the current phase with complete dual-driver acceptance. Coherent automatic capture, bounded retention and activation remain open. Node acknowledgement, complete rollback, and distributed emergency-revocation acceptance remain open. |
+| F30 | Configuration publication, acknowledgement, rollback, revocation, and audit | Partially completed | Immutable runtime publication, durable events, current revocation, and audit foundations exist. Actor-owned idempotent manual publication receipts (V105) are delivered with coherent R7 gates, original full R6 dual-driver, auth lifecycle R4 and default-production build R7 acceptance. The strict UUIDv4/reason wire contract, current actor/Session authority, identical retry without redispatch and immutable terminal receipts are accepted. The original three-second budget is unchanged; unknown claims are never resumed after restart, and the two-process HTTP witness preserves terminal receipts and command/audit rows without claiming interrupted in-flight process acceptance. A receipt proves neither application/fleet acknowledgement nor absence of effects. Exact snapshot filtering and all-recorded-process review have focused real PostgreSQL/MySQL and API/UI acceptance; observations are not fleet acknowledgements. Bounded frozen configuration source encoding and detached cold reconstruction are delivered in `f45d999`; frozen V112 encrypted archive storage and root inventory V11 are delivered in the current phase with complete dual-driver acceptance. Coherent private capture is delivered in `808614f`; this phase adds read-only header metadata. Automatic durable writing, bounded retention and activation remain open. Node acknowledgement, complete rollback, and distributed emergency-revocation acceptance remain open. |
 
 ### Acceptance-case status
 

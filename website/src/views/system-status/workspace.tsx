@@ -27,6 +27,7 @@ import { Dialog } from '@/components/ui/dialog'
 import { Table } from '@/components/ui/table'
 import { ResourceGauge } from './resource-gauge'
 import { RoutingApplicationsDialog } from './routing-applications'
+import { ConfigurationArchivesDialog } from './configuration-archives'
 import { useRoutingReadAuthority } from './routing-authority'
 import { canonicalRuntimeID } from '@/api/runtime-applications'
 
@@ -141,6 +142,7 @@ export function SystemStatusWorkspace() {
     refetchOnWindowFocus: false,
   })
   const routingAuthority = useRoutingReadAuthority()
+  const [archiveBasis, setArchiveBasis] = useState<string | null>(null)
   const [routingSelection, setRoutingSelection] = useState<{
     instanceID: string
     basis: string
@@ -334,7 +336,18 @@ export function SystemStatusWorkspace() {
                 </Badge>
               )}
             </CardTitle>
-            <RefreshButton fetching={jobs.isFetching} onClick={() => void jobs.refetch()} />
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                disabled={!routingAuthority.ready}
+                onClick={() => {
+                  if (routingAuthority.isCurrent()) setArchiveBasis(routingAuthority.basis)
+                }}
+              >
+                {t('archiveMetadataAction')}
+              </Button>
+              <RefreshButton fetching={jobs.isFetching} onClick={() => void jobs.refetch()} />
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             {jobs.isPending && (
@@ -372,6 +385,19 @@ export function SystemStatusWorkspace() {
           </CardContent>
         </Card>
       </div>
+
+      {archiveBasis &&
+        routingAuthority.ready &&
+        routingAuthority.actorID &&
+        archiveBasis === routingAuthority.basis && (
+          <ConfigurationArchivesDialog
+            key={archiveBasis}
+            actorID={routingAuthority.actorID}
+            authority={archiveBasis}
+            isCurrent={routingAuthority.isCurrent}
+            onClose={() => setArchiveBasis(null)}
+          />
+        )}
 
       {routingSelection &&
         routingAuthority.ready &&

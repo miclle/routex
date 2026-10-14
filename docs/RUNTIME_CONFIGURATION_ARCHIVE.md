@@ -2,7 +2,7 @@
 
 The private archive stores complete canonical codec-v1 source facts in encrypted,
 ordered chunks. It is a durable storage foundation for reconstructable Gateway
-versions. It creates no automatic durable capture, serving authority, public archive API,
+versions. It creates no automatic durable capture, serving authority, source-content API,
 activation command, rollback operation, fleet acknowledgement or automatic
 retention policy. F30 remains partial.
 
@@ -30,6 +30,39 @@ same identity, birth and content verifies the complete retained archive without
 rewriting its immutable fields. A different intent at the same identity fails.
 A failed or uncertain write is not a positive storage or application receipt;
 an explicit identical retry may reconcile the retained complete source.
+
+## Read-only header metadata
+
+`GET /api/v1/admin/runtime/archives` exposes a bounded header-only directory under
+current `system.read` authority. The service rechecks the exact enabled, admitted
+actor and effective permission in a read-only repeatable-read transaction.
+Canonical actor-bound cursors page by descending archive ID, with a default of
+20 and a maximum of 100 rows. This order is not archive creation-time order.
+
+The closed `archive_metadata_only` response contains each exact archive ID,
+archive creation time, codec version, full content digest and original document
+byte count. The latter is neither persisted encrypted bytes nor a retention
+budget. No chunks, ciphertext, canonical source, secrets or current catalog
+resources are read or returned. Source/authorization/network/pricing digests are
+used only to validate retained headers and are not returned.
+Header validation does not authenticate encrypted content, validate chunk
+completeness or establish coherent capture, publication, installation, fleet
+application or rollback readiness. Archive birth is storage identity, not an
+original actor or application receipt. Reads perform no write or activation.
+
+The System Status jobs card opens the existing-style local dialog and metadata
+table. Fresh actor, Session, permission and jobs generations gate dispatch,
+visibility, pagination, refresh and late completion. Exact read generations reject
+retained callbacks after an identical same-page refresh. Failed or renewed reads
+hide prior rows; closing destroys the query lifetime. English/Chinese labels and
+date/number formatting switch without refetching metadata. There is no automatic
+read until the action is explicitly opened.
+
+Normal runtime capture is still private memory only and no production caller
+writes archives automatically. An empty directory is therefore expected; it does
+not mean that no configuration was ever published or installed. Routing and
+installation observation histories remain separate. This endpoint deliberately
+works without a configured envelope opener and never claims source readability.
 
 ## Cold reconstruction and rotation
 

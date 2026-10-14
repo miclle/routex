@@ -107,6 +107,22 @@ export default {
   installationObserved: '首次记录观测',
   installationMatch: '当前已安装来源匹配',
   installationDifferent: '已安装来源不同',
+  archiveMetadataAction: '配置归档元数据',
+  archiveMetadataTitle: '配置归档元数据',
+  archiveMetadataBoundary:
+    '仅展示已存储的归档头信息。这些记录不能证明加密源数据完整性、连贯捕获、配置发布、当前安装状态、集群生效或回滚就绪。',
+  archiveCaptureBoundary:
+    '尚未配置自动持久化捕获。归档创建时间记录存储时间，不代表原始发布者或生效时间。记录按归档 ID 排序。',
+  archiveMetadataEmpty: '暂无保留的配置归档元数据。路由和安装观测属于独立记录。',
+  archiveMetadataFailed: '无法加载配置归档元数据。',
+  archiveMetadataTable: '保留的配置归档头信息',
+  archiveIdentity: '归档 ID',
+  archiveCreatedAt: '归档创建时间',
+  archiveCodec: '编码版本',
+  archiveContentDigest: '内容摘要',
+  archiveDocumentBytes: '原始文档字节数',
+  archiveFirstPage: '第一页',
+  archiveNextPage: '下一页',
   jobTypes: {
     runtime_publication: '运行时发布',
     call_record_delivery: '调用记录投递',

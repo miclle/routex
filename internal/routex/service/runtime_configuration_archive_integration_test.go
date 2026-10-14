@@ -203,6 +203,7 @@ func testRuntimeArchiveDatabase(t *testing.T, driver string) {
 			t.Fatal("cancelled cold read accepted")
 		}
 	})
+	t.Run("authorized_header_metadata", func(t *testing.T) { testRuntimeArchiveMetadataDatabase(t, db, svc, identity, document) })
 	t.Run("failed_and_uncertain_commit_retry", func(t *testing.T) { testRuntimeArchiveCommitOutcomes(t, db, svc, document) })
 	t.Run("concurrent_identical_intent", func(t *testing.T) { testRuntimeArchiveConcurrentWrites(t, db, svc, document) })
 	t.Run("constraints_and_exact_order", func(t *testing.T) { testRuntimeArchiveConstraints(t, db, svc, identity) })
@@ -560,5 +561,102 @@ func testRuntimeArchiveConcurrentWrites(t *testing.T, db *gorm.DB, svc *Service,
 	}
 	if facts, err := svc.readRuntimeConfigurationArchiveV1(ctx, identity); err != nil || facts == nil {
 		t.Fatal("concurrent source incomplete", err)
+	}
+}
+
+// Metadata reads deliberately work without an envelope opener. The retained
+// headers do not prove that their encrypted source can currently reconstruct.
+func testRuntimeArchiveMetadataDatabase(t *testing.T, db *gorm.DB, writer *Service, identity string, document runtimeConfigurationV1) {
+	secondID, secondBirth, err := newRuntimeArchiveIdentity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = writer.storeRuntimeConfigurationArchiveV1(t.Context(), secondID, secondBirth, document); err != nil {
+		t.Fatal("second persisted metadata fixture", err)
+	}
+	t.Helper()
+	ctx := t.Context()
+	actorID := configurationTestIDV1("usr", 101)
+	readerID := configurationTestIDV1("usr", 102)
+	roleID := configurationTestIDV1("rol", 101)
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	for _, u := range []entity.User{
+		{ID: actorID, Email: "archive-admin@example.test", Name: "Archive administrator", PasswordHash: "test-only", Role: entity.RoleAdmin, CreatedAt: now},
+		{ID: readerID, Email: "archive-reader@example.test", Name: "Archive metadata reader", PasswordHash: "test-only", Role: entity.RoleMember, CreatedAt: now},
+	} {
+		if err := db.Create(&u).Error; err != nil {
+			t.Fatal("metadata actor fixture", err)
+		}
+	}
+	if err := db.Create(&entity.Role{ID: roleID, Name: "Archive read only", NameKey: strings.Repeat("a", 64), CreatedAt: now}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&entity.RolePermission{RoleID: roleID, Permission: "system.read"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&entity.UserRole{RoleID: roleID, UserID: readerID}).Error; err != nil {
+		t.Fatal(err)
+	}
+	svc := &Service{db: db}
+	reads := 0
+	callback := "test:archive-metadata-headers-only"
+	if err := db.Callback().Query().Before("gorm:query").Register(callback, func(tx *gorm.DB) {
+		if tx.Statement.Table == "runtime_configuration_archive_chunks" {
+			_ = tx.AddError(errors.New("metadata must not read envelopes"))
+		}
+		if tx.Statement.Table == "runtime_configuration_archives" {
+			reads++
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := db.Callback().Query().Remove(callback); err != nil {
+			t.Error(err)
+		}
+	}()
+	page, err := svc.ListRuntimeArchiveMetadata(ctx, readerID, RuntimeArchiveMetadataFilter{Limit: 1})
+	if err != nil || len(page.Items) != 1 || page.NextCursor == nil || page.Scope != "archive_metadata_only" {
+		t.Fatal("authorized bounded header page", page, err)
+	}
+	seen := map[string]bool{}
+	for {
+		for _, row := range page.Items {
+			if seen[row.ID] {
+				t.Fatal("duplicate metadata")
+			}
+			seen[row.ID] = true
+		}
+		if page.NextCursor == nil {
+			break
+		}
+		page, err = svc.ListRuntimeArchiveMetadata(ctx, readerID, RuntimeArchiveMetadataFilter{Limit: 1, Cursor: *page.NextCursor})
+		if err != nil {
+			t.Fatal("metadata pagination", err)
+		}
+	}
+	if !seen[identity] {
+		t.Fatal("persisted archive not reachable")
+	}
+	before := reads
+	if _, err := svc.ListRuntimeArchiveMetadata(ctx, strings.ToUpper(readerID), RuntimeArchiveMetadataFilter{}); err == nil || reads != before {
+		t.Fatal("actor alias borrowed metadata", err)
+	}
+	if err := personalExact(db, "user_id", readerID).Delete(&entity.UserRole{}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.ListRuntimeArchiveMetadata(ctx, readerID, RuntimeArchiveMetadataFilter{}); err == nil || reads != before {
+		t.Fatal("revoked permission read metadata", err)
+	}
+	if err := personalExact(db.Model(&entity.User{}), "id", actorID).Update("disabled", true).Error; err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.ListRuntimeArchiveMetadata(ctx, actorID, RuntimeArchiveMetadataFilter{}); err == nil || reads != before {
+		t.Fatal("disabled actor read metadata", err)
+	}
+	cancelled, cancel := context.WithCancel(ctx)
+	cancel()
+	if page, err := svc.ListRuntimeArchiveMetadata(cancelled, readerID, RuntimeArchiveMetadataFilter{}); err == nil || page != nil {
+		t.Fatal("cancelled metadata read", page, err)
 	}
 }
