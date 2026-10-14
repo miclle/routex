@@ -69,9 +69,9 @@ func decodeInsightsAIInput(raw []byte) (service.InsightsAIInput, error) {
 	}
 	required := []string{"report", "model_id", "from", "to", "timezone", "language"}
 	switch input.Report {
-	case "team_quota_tokens":
+	case "team_quota_tokens", "team_quota_money":
 		required = []string{"report", "model_id", "language", "cursor", "limit"}
-	case "key_quota_tokens":
+	case "key_quota_tokens", "key_quota_money":
 		required = []string{"report", "model_id", "language", "scope_kind", "scope_id", "cursor", "limit"}
 	}
 	for _, field := range required {

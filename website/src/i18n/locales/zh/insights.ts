@@ -48,7 +48,7 @@ export default {
     '需要平台调用读取权限。报表使用已记录调用、上游尝试及授权范围内的配额账本事实，不会更改配置或授予推理访问权限。',
   assistantTitle: '运营分析指引',
   introduction:
-    '选择固定报告，审阅日期或当前配额范围后手动运行。对于按模型统计 Token、Provider 质量或已审阅的团队或 Key Token 页面，可准备问题并单独确认个人模型 AI 分析。问题不能改变报告范围。可保存已审阅的报告参数，以便之后手动使用；配额定义仅保留维度与有权读取的所有者范围。问题与 AI 回答不会保存。',
+    '选择固定报告，审阅日期或当前配额范围后手动运行。对于按模型统计 Token、Provider 质量或已审阅的团队或 Key Token 或金额页面，可准备问题并单独确认个人模型 AI 分析。问题不能改变报告范围。可保存已审阅的报告参数，以便之后手动使用；配额定义仅保留维度与有权读取的所有者范围。问题与 AI 回答不会保存。',
 
   shortcutTokens: '按模型统计 Token',
   shortcutTeam: '分析团队用量',
@@ -324,12 +324,13 @@ export default {
     '已载入配额参数供复核，并清除之前的结果和 AI 建议。显式运行前需确认当前范围权限；不会恢复历史配额数据。',
   savedCreatedAt: '创建时间：{{time}}',
   aiTeamQuotaDisclosure:
-    '向所选个人模型发送当前已审阅团队 Token 页面的全新授权快照和您的原始问题。服务器仅补充临时 T 标签及配额聚合；团队身份和分页游标保持私密。此操作可能消耗个人配额并产生费用。不包含其他页面、全局总数或新预测。',
+    '向所选个人模型发送当前已审阅团队配额页的全新授权快照和您的原始问题。服务器仅补充临时 T 标签及配额聚合；团队身份和分页游标保持私密。此操作可能消耗个人配额并产生费用。不包含其他页面、全局总数或新预测。',
   aiTeamQuotaPageReview:
-    '当前团队 Token 页面：{{page}}，最多 {{limit}} 个团队。服务器将使用当前权限重新读取此页。',
+    '当前团队 {{dimension}} 页面：{{page}}，最多 {{limit}} 个团队。服务器将使用当前权限重新读取此页。',
+  aiQuotaCurrency: '采集的配额币种：{{currency}}。本级限额保留其单独记录的币种，不推算换算结果。',
   aiTeamQuotaFirstPage: '第一页',
   aiTeamQuotaFollowingPage: '已审阅的后续页',
-  aiTeamQuotaSource: '来源：本地配额日志；仅包含当前授权的团队 Token 页面。',
+  aiTeamQuotaSource: '来源：本地配额日志；仅包含当前授权的团队配额页。',
   aiTeamQuotaCurrentPage_one: '本次全新快照包含 {{count}} 个团队。{{more}}',
   aiTeamQuotaCurrentPage_other: '本次全新快照包含 {{count}} 个团队。{{more}}',
   aiTeamQuotaMore: '存在后续页，其内容不包含在本次建议中。',
@@ -344,10 +345,10 @@ export default {
   aiTeamQuotaOverflow:
     '完整团队页面超出分析限制。不会发送截断页面，也不会替换为更广范围或全局报告。',
   aiKeyQuotaDisclosure:
-    '将重新采集此已复核 Key Token 页的当前授权聚合，并将其与确切问题发送给所选个人模型。服务器只添加临时 K 标签和已有共享根账户 Token 聚合；Key、所有者身份和分页游标保留在私有响应中。这可能消耗个人配额并产生费用。不包含其他页、全局总数或新预测。',
+    '将重新采集此已复核 Key 配额页的当前授权聚合，并将其与确切问题发送给所选个人模型。服务器只添加临时 K 标签和已有共享根账户配额聚合；Key、所有者身份和分页游标保留在私有响应中。这可能消耗个人配额并产生费用。不包含其他页、全局总数或新预测。',
   aiKeyQuotaPageReview:
-    '当前所选范围的 Key Token 页：{{page}}，最多 {{limit}} 个根账户。服务器将按当前权限重新采集此确切页面。',
-  aiKeyQuotaSource: '来源：本地配额日志；仅限当前授权成员或项目的 Key Token 页。',
+    '当前所选范围的 Key {{dimension}} 页：{{page}}，最多 {{limit}} 个根账户。服务器将按当前权限重新采集此确切页面。',
+  aiKeyQuotaSource: '来源：本地配额日志；仅限当前授权成员或项目的 Key 配额页。',
   aiKeyQuotaCurrentPage_one: '此次新采集包含 {{count}} 个根 Key 账户。{{more}}',
   aiKeyQuotaCurrentPage_other: '此次新采集包含 {{count}} 个根 Key 账户。{{more}}',
   aiKeyQuotaLabels: '此回答的临时 Key 标签',

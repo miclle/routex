@@ -253,3 +253,40 @@ func TestInsightsAIKeyQuotaDecoderRequiresExactOwnerPageGrammar(t *testing.T) {
 		}
 	}
 }
+
+func TestInsightsAIQuotaMoneyDecoderDerivesDimensionAndCurrencyFromFixedKind(t *testing.T) {
+	for _, kind := range []string{"team", "key"} {
+		t.Run(kind, func(t *testing.T) {
+			valid := `{"report":"` + kind + `_quota_money","model_id":"mdl_01arz3ndektsv4rrffq69g5fav","language":"en","cursor":"","limit":20`
+			if kind == "key" {
+				valid += `,"scope_kind":"member","scope_id":"usr_01arz3ndektsv4rrffq69g5fav"`
+			}
+			valid += `}`
+			input, err := decodeInsightsAIInput([]byte(valid))
+			if err != nil || input.Report != kind+"_quota_money" || input.Limit != 20 {
+				t.Fatal("fixed Money page grammar rejected", err)
+			}
+			for _, field := range []string{`"currency":"USD"`, `"dimension":"money"`, `"statistics":{}`, `"from":"2026-10-01T00:00:00Z"`, `"timezone":"UTC"`, `"report":"team_quota_money"`, `"rep\u006frt":"key_quota_money"`} {
+				if _, err := decodeInsightsAIInput([]byte(strings.TrimSuffix(valid, "}") + `,` + field + `}`)); err == nil {
+					t.Fatal("client currency, statistics or duplicate field accepted", field)
+				}
+			}
+			for _, raw := range []string{strings.Replace(valid, `"cursor":"",`, "", 1), strings.Replace(valid, `"limit":20`, `"limit":null`, 1), strings.Replace(valid, `"limit":20`, `"limit":20.1`, 1)} {
+				if _, err := decodeInsightsAIInput([]byte(raw)); err == nil {
+					t.Fatal("incomplete Money page grammar accepted", raw)
+				}
+			}
+			if kind == "team" {
+				if _, err := decodeInsightsAIInput([]byte(strings.TrimSuffix(valid, "}") + `,"scope_kind":"member","scope_id":"usr_01arz3ndektsv4rrffq69g5fav"}`)); err == nil {
+					t.Fatal("Team Money accepted Key owner grammar")
+				}
+			} else {
+				for _, field := range []string{`"scope_kind":"member",`, `,"scope_id":"usr_01arz3ndektsv4rrffq69g5fav"`} {
+					if _, err := decodeInsightsAIInput([]byte(strings.Replace(valid, field, "", 1))); err == nil {
+						t.Fatal("Key Money owner grammar became optional")
+					}
+				}
+			}
+		})
+	}
+}

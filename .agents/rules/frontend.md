@@ -1812,17 +1812,21 @@ calls.read_all and providers.read checks before capture, dispatch and private an
 Send only bounded authorized aggregates and temporary P labels, keeping unknown attribution
 and duration coverage distinct. Never forward Provider/model identities, raw attempts, members
 or secrets. An optional exact question is reviewed untrusted text, not a report selector.
-Report-kind changes revoke reviews and obsolete answers. Current-page Team Token advice
+Report-kind changes revoke reviews and obsolete answers. Current-page Team Token or Money advice
 uses a fresh authorized capture of the reviewed cursor and limit, anonymous T labels and
 only existing quota facts and supplied estimates. Recheck exact captured Team birth and
 scoped read authority before dispatch and answer publication, independently of report read,
 Session and personal-model/quota authority. Cursor and identities never enter upstream
-aggregates. Current-page Key Token advice uses the independently authorized member or
+aggregates. Current-page Key Token or Money advice uses the independently authorized member or
 Project scope, anonymous K labels and the existing shared root-account facts. Capture and
 recheck exact owner/root birth and current scope read before dispatch and publication; no
 Key secret, owner identity or cursor enters upstream data. Scope/target/page/refresh/dimension
-changes revoke reviews and answers. Money quota advice remains unavailable. Loading saved
-definitions only prepares controls. Do not add persistence or policy writes, infer live
+changes revoke reviews and answers. Money advice uses only the server-derived currency
+and exact decimal strings, with stored-cap currency captured privately from its policy
+and disclosed independently in the anonymous projection. Never relabel or convert a
+mismatched cap, whose unavailable status remains explicit. Money response capture must
+match the reviewed local dimension/currency; Tokens retain their existing closed wire
+shape. Loading saved definitions only prepares controls. Do not add persistence or policy writes, infer live
 health, or treat attempt success as native completion.
 
 Offboarding completion uses the existing recipient notification menu with a closed
@@ -1868,7 +1872,7 @@ also prove incomplete actual usage even if an unknown counter is zero. Keep them
 separate from active pending reservations. Forecasts do not predict parent limits
 or actual request blocking. Preserve actor/Session/permission/target freshness and
 abort stale reads/exports. Optional AI advice uses only explicitly reviewed current-page
-Token facts with anonymous T/K labels; quota identities and uncaptured data remain excluded.
+Token or Money facts with anonymous T/K labels; quota identities and uncaptured data remain excluded.
 
 The existing quota reading-guidance card may derive deterministic observations
 only from the captured page's recorded levels, stored cap behavior and server

@@ -411,13 +411,12 @@ export function useQuotaInsights({
   return {
     clear,
     aiPage:
-      current &&
-      request &&
-      (kind === 'team_quota' || kind === 'key_quota') &&
-      dimension === 'tokens'
+      current && request && (kind === 'team_quota' || kind === 'key_quota')
         ? {
             cursor: request.input.cursor ?? '',
             limit: 20,
+            dimension: current.dimension,
+            currency: current.currency,
             stamp: JSON.stringify([request.id, reportStamp]),
             ...(kind === 'key_quota' ? { scope_kind: scopeKind, scope_id: scopeID } : {}),
           }
@@ -426,7 +425,6 @@ export function useQuotaInsights({
       live() &&
       !!request &&
       (kind === 'team_quota' || kind === 'key_quota') &&
-      dimension === 'tokens' &&
       scopeCurrent(request) &&
       reportSnapshot() === reportStamp &&
       cache.getQueryState(reportKey)?.status === 'success' &&

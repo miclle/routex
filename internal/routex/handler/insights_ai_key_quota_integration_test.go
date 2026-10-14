@@ -69,7 +69,11 @@ func testInsightsAIKeyQuotaIntegration(t *testing.T, ctx context.Context, db *go
 		}
 		readPage := func(t *testing.T, kind, id string) service.InsightsQuotaReport {
 			t.Helper()
-			res := request("GET", "/api/v1/admin/insights/quota/keys?dimension=tokens&scope_kind="+kind+"&scope_id="+url.QueryEscape(id)+"&limit=1", nil, "")
+			dimension := "tokens"
+			if input["report"] == "key_quota_money" {
+				dimension = "money"
+			}
+			res := request("GET", "/api/v1/admin/insights/quota/keys?dimension="+dimension+"&scope_kind="+kind+"&scope_id="+url.QueryEscape(id)+"&limit=1", nil, "")
 			expectStatus(t, res, 200)
 			var page service.InsightsQuotaReport
 			if json.Unmarshal(res.Body.Bytes(), &page) != nil {
@@ -118,6 +122,9 @@ func testInsightsAIKeyQuotaIntegration(t *testing.T, ctx context.Context, db *go
 			if json.Unmarshal(res.Body.Bytes(), &view) != nil || view.Capture != nil || view.QuotaCapture != nil || view.KeyQuotaCapture == nil || view.KeyQuotaCapture.ScopeKind != kind || view.KeyQuotaCapture.ScopeID != id || view.KeyQuotaCapture.Cursor != "" || view.KeyQuotaCapture.Limit != 1 || len(view.Labels) != 1 || view.Labels[0].KeyID == nil || *view.Labels[0].KeyID != root || view.Labels[0].TeamID != nil {
 				t.Fatal("answer widened the reviewed Key scope")
 			}
+			if input["report"] == "key_quota_money" && (view.KeyQuotaCapture.Dimension != "money" || view.KeyQuotaCapture.Currency != page.Currency) {
+				t.Fatal("Money Key capture lost the server-owned denomination")
+			}
 			payload := native.content.Load().(string)
 			for _, private := range []string{adminID, analystID, projectID, privateProjectID, personalRootID, projectKey.Record.Key.ID, projectKey.Secret, page.Items[0].Name, "scope_kind", "scope_id", "key_id", "token_hash"} {
 				if strings.Contains(payload, private) {
@@ -126,14 +133,20 @@ func testInsightsAIKeyQuotaIntegration(t *testing.T, ctx context.Context, db *go
 			}
 			var projected struct {
 				Aggregates struct {
-					Keys []struct {
-						Label          string
-						SharedKeyCount int `json:"shared_key_count"`
+					Dimension, Currency string
+					Keys                []struct {
+						Label            string
+						LocalCap         *string `json:"local_cap"`
+						LocalCapCurrency string  `json:"local_cap_currency"`
+						SharedKeyCount   int     `json:"shared_key_count"`
 					}
 				}
 			}
 			if json.Unmarshal([]byte(payload), &projected) != nil || len(projected.Aggregates.Keys) != 1 || projected.Aggregates.Keys[0].Label != "K1" || projected.Aggregates.Keys[0].SharedKeyCount != page.Items[0].SharedKeyCount {
 				t.Fatal("root count or anonymous projection changed")
+			}
+			if input["report"] == "key_quota_money" && (projected.Aggregates.Dimension != "money" || projected.Aggregates.Currency != page.Currency || page.Items[0].LocalCap == nil || projected.Aggregates.Keys[0].LocalCap == nil || *projected.Aggregates.Keys[0].LocalCap != *page.Items[0].LocalCap || projected.Aggregates.Keys[0].LocalCapCurrency != page.Currency) {
+				t.Fatal("stored Money root cap changed upstream")
 			}
 		}
 		before := native.dispatches.Load()
@@ -204,6 +217,12 @@ func testInsightsAIKeyQuotaIntegration(t *testing.T, ctx context.Context, db *go
 			if successes != 0 || attempts != 0 {
 				t.Fatal("quota denial recorded a successful call or dispatched attempt", scope.kind, successes, attempts)
 			}
+			input["report"] = "key_quota_money"
+			expectStatus(t, analyze(), 429)
+			if native.dispatches.Load() != before {
+				t.Fatal("Money advice borrowed the selected owner's quota", scope.kind)
+			}
+			input["report"] = "key_quota_tokens"
 		}
 		zeroView, err := svc.GetResourceLimit(ctx, adminID, quotaTarget)
 		if err != nil || zeroView.QuotaUsage == nil || zeroView.QuotaUsage.Month == nil || zeroView.QuotaUsage.Active == nil || zeroView.QuotaUsage.Month.TokensUsed != usedBefore || zeroView.QuotaUsage.Month.TokensUnknown != 0 || zeroView.QuotaUsage.Month.TokensHeld != 0 || zeroView.QuotaUsage.Active.TokensHeld != 0 {
@@ -327,6 +346,45 @@ func testInsightsAIKeyQuotaIntegration(t *testing.T, ctx context.Context, db *go
 		held(t, func(t *testing.T) {
 			expectStatus(t, request("POST", "/api/v1/auth/logout", nil, session.CSRFToken), 204)
 		}, func(t *testing.T) { session, cookie = login(t) }, 401)
+		for _, scope := range []struct{ kind, id, root string }{{"member", adminID, personalRootID}, {"project", projectID, projectKey.Record.Key.ID}} {
+			t.Run(scope.kind+"_money_current_page_and_late_birth", func(t *testing.T) {
+				input["report"], input["scope_kind"], input["scope_id"] = "key_quota_money", scope.kind, scope.id
+				page := readPage(t, scope.kind, scope.id)
+				if len(page.Items) != 1 || page.Items[0].ID != scope.root {
+					t.Fatal("Money root scope prerequisite")
+				}
+				targetKind := "personal_key"
+				if scope.kind == "project" {
+					targetKind = "project_key"
+				}
+				target := service.LimitTarget{Kind: targetKind, ID: scope.root}
+				if scope.kind == "project" {
+					target.ProjectID = scope.id
+				}
+				policy, err := svc.GetResourceLimit(ctx, adminID, target)
+				if err != nil {
+					t.Fatal(err)
+				}
+				cap := "9007199254740993.000000000000000001"
+				stored := policy.Stored
+				stored.MoneyMonth, stored.Currency = &cap, page.Currency
+				if _, err = svc.SetResourceLimit(ctx, adminID, target, policy.ETag, service.LimitInput{Policy: stored, Reason: "Review exact root Money advice fixture cap"}); err != nil {
+					t.Fatal(err)
+				}
+				assertAnswer(t, scope.kind, scope.id, scope.root)
+				if scope.kind == "project" {
+					held(t, func(t *testing.T) {
+						updateBirth(t, &entity.ProjectKey{}, persistedKey.ID, persistedKey.CreatedAt.Add(time.Second))
+					}, func(t *testing.T) { updateBirth(t, &entity.ProjectKey{}, persistedKey.ID, persistedKey.CreatedAt) }, 404)
+				} else {
+					var member entity.User
+					if err := db.Where("id = ?", adminID).Take(&member).Error; err != nil {
+						t.Fatal(err)
+					}
+					held(t, func(t *testing.T) { updateBirth(t, &entity.User{}, member.ID, member.CreatedAt.Add(time.Second)) }, func(t *testing.T) { updateBirth(t, &entity.User{}, member.ID, member.CreatedAt) }, 404)
+				}
+			})
+		}
 		usage, err := svc.GetResourceLimit(ctx, adminID, service.LimitTarget{Kind: "user", ID: analystID})
 		if err != nil || usage.QuotaUsage == nil || usage.QuotaUsage.Month == nil || usage.QuotaUsage.Active == nil || usage.QuotaUsage.Month.TokensUsed != usedBefore+completed*14 || usage.QuotaUsage.Month.TokensUnknown != 0 || usage.QuotaUsage.Month.TokensHeld != 0 || usage.QuotaUsage.Active.TokensHeld != 0 {
 			t.Fatal("Key advice did not retain exact personal-only settlements", usage, err)

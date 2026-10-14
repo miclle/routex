@@ -192,20 +192,21 @@ revoke prepared confirmation, abort obsolete work and reject late replies. Each
 submit reads current CSRF. Cancellation does not prove dispatched inference or
 charges were undone. Requested answer language is captured with the confirmed
 request; switching UI language does not replay or translate an existing answer.
-Money quota reports remain outside AI advice. Saved-definition loading
+Saved-definition loading
 only prepares the selected controls and clears previous reviews/results; it
 never invokes a model or restores a prior answer.
 
-## Current-page Team Token advice
+## Current-page Team quota advice
 
-The existing assistant can review the selected Team Token page after an explicit
-report run. Its separate strict request is `report: team_quota_tokens`, canonical
+The existing assistant can review the selected Team Tokens or Money page after an explicit
+report run. Its separate strict request selects `team_quota_tokens` or
+`team_quota_money`, canonical
 personal `model_id`, `language`, reviewed `cursor` (empty for the first page),
-`limit` (1–50), and optional exact `question`. Range fields and browser statistics
-are rejected. The server consumes the actor-bound cursor and captures only that
+`limit` (1–50), and optional exact `question`. Range, currency, dimension and browser statistics
+fields are rejected; the fixed report kind owns the dimension and the server owns the currency. The server consumes the actor-bound cursor and captures only that
 page again; it neither automatically pages nor produces global totals.
 
-Only anonymous `T1` labels, stored own caps/behavior, settled Tokens, separate
+Only anonymous `T1` labels, stored own caps/behavior, settled amounts, separate
 reservations, unknown coverage and already supplied estimates enter the aggregate
 projection. Team names, IDs, memberships and cursor remain outside it. Nullable
 facts remain unknown. Existing date estimates retain their trailing 168-hour
@@ -220,8 +221,7 @@ of each captured Team's current scoped read and exact birth before dispatch and
 answer publication. Late revocation discards the private answer while preserving
 actual native usage and settlement. Page, dimension, refresh, permission, model
 or Session changes revoke confirmation and obsolete answers. No automatic paid
-inference, policy write or saved answer is added. Money quota advice remains
-unavailable. This phase's authored tests require separate qualification;
+inference, policy write or saved answer is added. This phase's authored tests require separate qualification;
 source changes alone establish no browser or real-driver acceptance.
 
 ## Earlier isolated source checks (historical)
@@ -322,8 +322,8 @@ global totals. They add no thresholds, forecast calculations, inference calls or
 policy writes, and establish neither actual request blocking nor parent allowance.
 
 Quota identities and uncaptured data never enter optional AI advice. After explicit
-review, Team and Key Token advice may use only the captured page's anonymous quota
-facts; Money advice remains unavailable.
+review, Team and Key Token or Money advice may use only the captured page's anonymous
+quota facts; the report dimension and Money denomination remain explicitly bound.
 Quota definitions extend the same owner-private Save, Load and confirmed Delete
 workflow in `d9af644`; frozen V111 preserves released V110 receipts and adds
 disjoint parameter constraints. The complete unfiltered PostgreSQL and MySQL
@@ -347,13 +347,13 @@ revocation leaf passed 30 named tests on each PostgreSQL and MySQL driver with n
 failures or skips, preserving one dispatch and settlement while denying the revoked
 private answer.
 
-## Current-page Key Token advice
+## Current-page Key quota advice
 
-The fixed `key_quota_tokens` analysis accepts canonical personal `model_id`,
+The fixed `key_quota_tokens` or `key_quota_money` analysis accepts canonical personal `model_id`,
 `language`, one explicitly reviewed `scope_kind` (`member` or `project`), canonical
 `scope_id`, `cursor`, `limit` (1–50), and optional exact `question`. Range fields,
-browser statistics and mixed report grammars are rejected. The server repeats the existing authorized Token
-quota query; it does not accept browser statistics, widen the scope or fetch other
+browser statistics, currency/dimension fields and mixed report grammars are rejected. The server repeats the existing authorized
+quota query in the report kind's fixed dimension; it does not accept browser statistics, widen the scope or fetch other
 pages. Rotation descendants share their recorded root account. Only anonymous K
 labels, existing own-cap/behavior/settled/held/unknown facts and supplied estimates
 enter the closed upstream projection. No new forecast or threshold math is added.
@@ -365,7 +365,50 @@ Exact owner/root birth and current scope read are checked independently
 from report read, current Session and personal-model authority before dispatch and
 answer publication. Late revocation suppresses the answer while actual native
 attempts and personal quota settlement remain recorded. Scope, target, page or
-authority changes invalidate the review and answer. Money advice stays unavailable.
+authority changes invalidate the review and answer.
 
 This source slice and its authored tests are not runtime, browser, external-model
 or delivery acceptance. It introduces no persistence, schema or policy writes.
+
+## Current-page Money advice
+
+The Money variants reuse the same current-page review and personal-model confirmation,
+existing quota-journal query, immutable attempt attribution and personal settlement.
+They add no global enumeration, SQL, schema, persistence, policy writes or forecast math.
+The server derives Money from `team_quota_money` or `key_quota_money`; the browser cannot
+supply statistics or a denomination. Token requests and their closed response capture
+retain their existing wire shape.
+
+Every Money amount remains an exact decimal string, including very large caps and
+18-digit fractional precision. Unknown request counts remain integer strings. The
+closed anonymous upstream projection adds the server's report `currency` and, when an
+own cap exists, its separately recorded `local_cap_currency`. The stored-cap currency
+is captured privately with the policy rather than inferred from the current report.
+A cap whose stored denomination differs from the report remains unavailable with
+unknown utilization and no comparable settled amounts, reservations or estimate;
+there is no conversion, relabeling or summation across currencies. Zero, no own cap,
+unknown usage, coverage gaps and Stop versus Alert only remain distinct.
+
+Money `quota_capture` and `key_quota_capture` add `dimension: money` and `currency`.
+The client compares the returned denomination with the reviewed local page before
+publishing an answer; its local currency review argument is never sent in the request.
+The existing dialog and answer disclose the denomination in English and Chinese.
+Page, dimension, currency, scope, target, Session, permission, model and actor generations
+continue to revoke confirmation, abort obsolete calls and suppress late answers.
+Private identities, cursors and exact owner/root/Team birth proofs remain outside
+upstream aggregates; current authority is checked again before dispatch and publication.
+
+Regression tests cover exact anonymous amounts, mismatched stored currencies,
+closed request/response grammars, local currency review, explicit confirmation and stale
+Money replies. Real-driver scenarios additionally exercise Team/member/Project scopes,
+root-account deduplication, personal quota denial, immutable native metering and late
+Team/owner/root birth changes. Focused qualification passed 66 service and 11 handler
+race tests, 263 frontend tests, and 35 tests on each real PostgreSQL/MySQL database.
+The first mandatory check rejected frontend report-union narrowing and malformed
+test-input casts. A successor fixes those types without changing the qualified backend;
+formatting, `go tool task check` and complete ordinary tests pass on that successor,
+including all 7,734 frontend tests and production assets. The first ordinary run
+hit two unrelated dialog-workflow test deadlines; unchanged focused reproduction
+(43 tests) and complete ordinary retry pass with original timeouts/configuration.
+The initial deadline cause remains unproven. Browser and external model acceptance
+remain separate from these controlled tests.

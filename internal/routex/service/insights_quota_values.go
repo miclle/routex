@@ -41,6 +41,9 @@ type InsightsQuotaReport struct {
 }
 
 type InsightsQuotaRow struct {
+	// Captured with the stored policy; never infer its denomination from the report.
+	capCurrency string
+
 	ID                      string  `json:"id"`
 	Name                    string  `json:"name"`
 	Status                  string  `json:"status"`
@@ -121,6 +124,7 @@ func insightsQuotaPolicy(row *InsightsQuotaRow, policy limits.Policy, dimension,
 	}
 	row.Behavior = limits.StoredMonthlyBehavior(policy.MoneyMonthBehavior)
 	row.LocalCap = policy.MoneyMonth
+	row.capCurrency = policy.Currency
 	if row.LocalCap != nil && policy.Currency != currency {
 		row.EstimateStatus = "unavailable"
 	}

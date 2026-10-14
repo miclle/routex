@@ -112,11 +112,12 @@ beforeEach(async () => {
     else if (config.url === '/admin/insights/analyze') {
       const input = JSON.parse(config.data)
       if (aiGate) await aiGate.promise
-      const keyAdvice = input.report === 'key_quota_tokens'
+      const keyAdvice = input.report === 'key_quota_tokens' || input.report === 'key_quota_money'
+      const dimension = input.report.endsWith('_money') ? 'money' : 'tokens'
       const report = quotaFixture(
         keyAdvice
-          ? { ...keyQuotaInput, scope: { kind: input.scope_kind, id: input.scope_id } }
-          : teamQuotaInput,
+          ? { ...keyQuotaInput, dimension, scope: { kind: input.scope_kind, id: input.scope_id } }
+          : { ...teamQuotaInput, dimension },
       )
       const capture = {
         source: 'local_quota_journal',
@@ -132,6 +133,7 @@ beforeEach(async () => {
         month_from: report.month_from,
         month_reset: report.month_reset,
         baseline_basis: report.baseline_basis,
+        ...(dimension === 'money' ? { dimension, currency: report.currency } : {}),
       }
       data = {
         request_id: 'req_01arz3ndektsv4rrffq69g5fav',
@@ -861,10 +863,11 @@ it('rejects an obsolete pending Team save even after controls return to the orig
 })
 
 const analyses = () => requests.filter((r) => r.url === '/admin/insights/analyze')
-async function prepareTeamAdvice() {
+async function prepareTeamAdvice(dimension: 'tokens' | 'money' = 'tokens') {
   aiModels = true
   await mount()
   await click('shortcutTeam')
+  if (dimension === 'money') await select('quotaDimension', 'money')
   await click('quotaRun')
   await ready()
   await until(() => expect(host.textContent).toContain('Personal quota analyst'))
@@ -876,7 +879,11 @@ it('requires current-page review and explicit personal inference confirmation, a
   await prepareTeamAdvice()
   expect(analyses()).toHaveLength(0)
   expect(document.body.textContent).toContain(
-    i18n.t('insights:aiTeamQuotaPageReview', { limit: 20, page: text('aiTeamQuotaFirstPage') }),
+    i18n.t('insights:aiTeamQuotaPageReview', {
+      limit: 20,
+      page: text('aiTeamQuotaFirstPage'),
+      dimension: text('quotaTokens'),
+    }),
   )
   await click('aiConfirm')
   await until(() => expect(host.textContent).toContain('T1 current-page advice'))
@@ -970,14 +977,15 @@ it.each(['dimension', 'refresh', 'permission', 'session', 'actor', 'models'] as 
     expect(analyses()).toHaveLength(1)
   },
 )
-it('keeps Money and unreviewed Key quota advice unavailable without personal inference', async () => {
+it('requires a reviewed Money page and keeps unreviewed Key advice unavailable without personal inference', async () => {
   aiModels = true
   await mount()
   await click('shortcutTeam')
   await select('quotaDimension', 'money')
+  expect(host.textContent).not.toContain(text('aiTitle'))
   await click('quotaRun')
   await ready()
-  expect(host.textContent).not.toContain(text('aiTitle'))
+  expect(host.textContent).toContain(text('aiTitle'))
   await click('shortcutKey')
   expect(host.textContent).not.toContain(text('aiTitle'))
   expect(analyses()).toHaveLength(0)
@@ -1017,10 +1025,14 @@ it('keeps an exact Team question transient and does not clear the reviewed page 
   expect(JSON.stringify(cache.getMutationCache().getAll())).not.toContain(question)
 })
 
-async function prepareKeyAdvice(kind: 'member' | 'project' = 'member') {
+async function prepareKeyAdvice(
+  kind: 'member' | 'project' = 'member',
+  dimension: 'tokens' | 'money' = 'tokens',
+) {
   aiModels = true
   await mount()
   await click('shortcutKey')
+  if (dimension === 'money') await select('quotaDimension', 'money')
   if (kind === 'project') await select('quotaScopeKind', 'project')
   await until(() =>
     expect(host.textContent).toContain(kind === 'member' ? 'Reviewed member' : 'Reviewed Project'),
@@ -1167,3 +1179,107 @@ it('keeps the exact Key question transient and its owner page unchanged until ex
   })
   expect(JSON.stringify(cache.getMutationCache().getAll())).not.toContain(question)
 })
+
+it.each(['team', 'member', 'project'] as const)(
+  'reviews %s Money denomination and scope without an automatic paid invocation',
+  async (kind) => {
+    if (kind === 'team') await prepareTeamAdvice('money')
+    else await prepareKeyAdvice(kind, 'money')
+    expect(analyses()).toHaveLength(0)
+    expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain(
+      text('quotaMoney'),
+    )
+    expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain(
+      i18n.t('insights:aiQuotaCurrency', { currency: 'USD' }),
+    )
+    await click('aiConfirm')
+    await until(() =>
+      expect(host.textContent).toContain(`${kind === 'team' ? 'T1' : 'K1'} current-page advice`),
+    )
+    expect(JSON.parse(analyses()[0].data)).toEqual({
+      report: kind === 'team' ? 'team_quota_money' : 'key_quota_money',
+      model_id: 'mdl_01arz3ndektsv4rrffq69g5fav',
+      language: 'en',
+      cursor: '',
+      limit: 20,
+      ...(kind === 'team'
+        ? {}
+        : { scope_kind: kind, scope_id: kind === 'member' ? quotaActor : quotaProject }),
+    })
+    expect(host.textContent).toContain(i18n.t('insights:aiQuotaCurrency', { currency: 'USD' }))
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(host.textContent).toContain(i18n.t('insights:aiQuotaCurrency', { currency: 'USD' }))
+    expect(analyses()).toHaveLength(1)
+    expect(host.querySelector('script')).toBeNull()
+    expect(JSON.stringify(cache.getMutationCache().getAll())).not.toContain('current-page advice')
+  },
+)
+
+it.each(['team', 'member', 'project'] as const)(
+  'rejects a changed %s Money denomination returned by the analysis capture',
+  async (kind) => {
+    mutation = (report) => {
+      report.currency = 'EUR'
+    }
+    if (kind === 'team') await prepareTeamAdvice('money')
+    else await prepareKeyAdvice(kind, 'money')
+    expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain(
+      i18n.t('insights:aiQuotaCurrency', { currency: 'EUR' }),
+    )
+    await click('aiConfirm')
+    await until(() => expect(host.textContent).toContain(text('aiUnavailable')))
+    expect(host.textContent).not.toContain('current-page advice')
+    expect(analyses()).toHaveLength(1)
+  },
+)
+
+it.each([
+  ['team', 'dimension'],
+  ['team', 'refresh'],
+  ['team', 'session'],
+  ['member', 'dimension'],
+  ['member', 'target'],
+  ['member', 'session'],
+  ['project', 'scope'],
+  ['project', 'refresh'],
+  ['project', 'actor'],
+] as const)(
+  'discards held %s Money advice after %s changes without retry or stale private cache writes',
+  async (kind, boundary) => {
+    if (kind === 'team') await prepareTeamAdvice('money')
+    else await prepareKeyAdvice(kind, 'money')
+    aiGate = deferred()
+    await click('aiConfirm')
+    await until(() => expect(analyses()).toHaveLength(1))
+    if (boundary === 'dimension') await select('quotaDimension', 'tokens')
+    if (boundary === 'target') await select('quotaSelectedScope', '')
+    if (boundary === 'scope') await select('quotaScopeKind', 'member')
+    if (boundary === 'refresh') {
+      reportGate = deferred()
+      await click('quotaRefresh')
+    }
+    if (boundary === 'session') {
+      sessionGate = deferred()
+      await act(async () => {
+        void cache.invalidateQueries({ queryKey: sessionKey })
+      })
+    }
+    if (boundary === 'actor') {
+      actor = 'usr_01arz3ndektsv4rrffq69g5faw'
+      await act(async () => {
+        cache.setQueryData(sessionKey, { user: { id: actor, role: 'member' }, csrf_token: 'fresh' })
+      })
+    }
+    expect(analyses()[0].signal?.aborted).toBe(true)
+    aiGate.release()
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 10)))
+    expect(host.textContent).not.toContain('current-page advice')
+    expect(analyses()).toHaveLength(1)
+    expect(
+      cache
+        .getQueryCache()
+        .getAll()
+        .some((query) => (JSON.stringify(query.state.data) ?? '').includes('current-page advice')),
+    ).toBe(false)
+  },
+)

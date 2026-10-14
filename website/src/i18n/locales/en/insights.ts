@@ -52,7 +52,7 @@ export default {
     'Requires platform call-read permission. Reports use recorded calls, upstream attempts and scoped quota-journal facts; they do not change configuration or grant inference access.',
   assistantTitle: 'Operations analysis guide',
   introduction:
-    'Select a fixed report, review dates or the current quota scope, then run explicitly. For Tokens by Model, Provider quality or a reviewed Team Token page, you may prepare a question and separately confirm personal-model AI analysis. Questions cannot change the report scope. Save reviewed report parameters for later explicit use; quota definitions retain only the dimension and authorized owner scope. Questions and AI answers are not saved.',
+    'Select a fixed report, review dates or the current quota scope, then run explicitly. For Tokens by Model, Provider quality or a reviewed Team/Key Token or Money page, you may prepare a question and separately confirm personal-model AI analysis. Questions cannot change the report scope. Save reviewed report parameters for later explicit use; quota definitions retain only the dimension and authorized owner scope. Questions and AI answers are not saved.',
 
   shortcutTokens: 'Tokens by model',
   shortcutTeam: 'Analyze team usage',
@@ -61,7 +61,7 @@ export default {
   questionLabel: 'Analysis question',
   questionPlaceholder: 'Ask about the selected aggregate report…',
   questionHelp:
-    'Questions use the selected Tokens by Model, Provider quality or reviewed Team/Key Token page and require separate personal-model confirmation. Your exact confirmed question is sent upstream; do not paste credentials, private identities or sensitive content. Questions cannot change the reviewed query scope.',
+    'Questions use the selected Tokens by Model, Provider quality or reviewed Team/Key Token or Money page and require separate personal-model confirmation. Your exact confirmed question is sent upstream; do not paste credentials, private identities or sensitive content. Questions cannot change the reviewed query scope.',
   questionPrepared:
     'Question prepared. Review the selected aggregate report range and select a personal model before confirming AI analysis.',
   questionTooLong: 'Questions must contain at most 1,024 UTF-8 bytes.',
@@ -361,12 +361,14 @@ export default {
     'Saved quota controls loaded for review. Previous results and AI answers were cleared. Current scope authority must be confirmed before an explicit run; no saved quota facts are restored.',
   savedCreatedAt: 'Created: {{time}}',
   aiTeamQuotaDisclosure:
-    'Send a fresh authorized capture of this reviewed Team Token page and your exact question to the selected personal model. Only temporary T labels and quota aggregates are added by the server; Team identities and the page cursor stay private. This may consume your personal quota and incur charges. No other page, global total or new forecast is included.',
+    'Send a fresh authorized capture of this reviewed Team quota page and your exact question to the selected personal model. Only temporary T labels and quota aggregates are added by the server; Team identities and the page cursor stay private. This may consume your personal quota and incur charges. No other page, global total or new forecast is included.',
   aiTeamQuotaPageReview:
-    'Current Team Token page: {{page}}, up to {{limit}} Teams. The server will capture this exact page again with current authority.',
+    'Current Team {{dimension}} page: {{page}}, up to {{limit}} Teams. The server will capture this exact page again with current authority.',
+  aiQuotaCurrency:
+    'Captured quota currency: {{currency}}. Stored caps retain their own recorded denomination; no conversion is inferred.',
   aiTeamQuotaFirstPage: 'first page',
   aiTeamQuotaFollowingPage: 'reviewed following page',
-  aiTeamQuotaSource: 'Source: local quota journal; current authorized Team Token page only.',
+  aiTeamQuotaSource: 'Source: local quota journal; current authorized Team quota page only.',
   aiTeamQuotaCurrentPage_one: '{{count}} Team in this fresh capture. {{more}}',
   aiTeamQuotaCurrentPage_other: '{{count}} Teams in this fresh capture. {{more}}',
   aiTeamQuotaMore: 'More pages exist; they are excluded from this advice.',
@@ -381,11 +383,11 @@ export default {
   aiTeamQuotaOverflow:
     'The complete Team page exceeds the analysis bounds. No truncated page is sent; no broader or global report is substituted.',
   aiKeyQuotaDisclosure:
-    'Send a fresh authorized capture of this reviewed Key Token page and your exact question to the selected personal model. Only temporary K labels and existing shared root-account Token aggregates are added by the server; Key and owner identities and the page cursor stay private. This may consume your personal quota and incur charges. No other page, global total or new forecast is included.',
+    'Send a fresh authorized capture of this reviewed Key quota page and your exact question to the selected personal model. Only temporary K labels and existing shared root-account quota aggregates are added by the server; Key and owner identities and the page cursor stay private. This may consume your personal quota and incur charges. No other page, global total or new forecast is included.',
   aiKeyQuotaPageReview:
-    'Current selected-scope Key Token page: {{page}}, up to {{limit}} root accounts. The server will capture this exact authorized page again.',
+    'Current selected-scope Key {{dimension}} page: {{page}}, up to {{limit}} root accounts. The server will capture this exact authorized page again.',
   aiKeyQuotaSource:
-    'Source: local quota journal; current authorized member or Project Key Token page only.',
+    'Source: local quota journal; current authorized member or Project Key quota page only.',
   aiKeyQuotaCurrentPage_one: '{{count}} root Key account in this fresh capture. {{more}}',
   aiKeyQuotaCurrentPage_other: '{{count}} root Key accounts in this fresh capture. {{more}}',
   aiKeyQuotaLabels: 'Temporary Key labels for this answer',

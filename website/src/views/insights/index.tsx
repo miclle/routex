@@ -243,9 +243,13 @@ function InsightsContent({
     question: 'text' in question ? question.text : undefined,
     report:
       quotaKind === 'team_quota'
-        ? 'team_quota_tokens'
+        ? quota.aiPage?.dimension === 'money'
+          ? 'team_quota_money'
+          : 'team_quota_tokens'
         : quotaKind === 'key_quota'
-          ? 'key_quota_tokens'
+          ? quota.aiPage?.dimension === 'money'
+            ? 'key_quota_money'
+            : 'key_quota_tokens'
           : providerReport
             ? 'provider_quality'
             : 'tokens_by_model',

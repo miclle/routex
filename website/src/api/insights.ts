@@ -211,6 +211,7 @@ export async function analyzeTeamQuotaInsights(
   input: InsightsTeamQuotaInput,
   csrf: string,
   signal: AbortSignal,
+  reviewedCurrency?: string,
 ): Promise<InsightsTeamQuotaAnalysis> {
   if (
     !exact(input as unknown as Record<string, unknown>, [
@@ -221,7 +222,10 @@ export async function analyzeTeamQuotaInsights(
       'limit',
       ...(Object.hasOwn(input, 'question') ? ['question'] : []),
     ]) ||
-    input.report !== 'team_quota_tokens' ||
+    !['team_quota_tokens', 'team_quota_money'].includes(input.report) ||
+    (input.report === 'team_quota_money'
+      ? typeof reviewedCurrency !== 'string' || !/^[A-Z]{3}$/.test(reviewedCurrency)
+      : reviewedCurrency !== undefined) ||
     !modelID.test(input.model_id) ||
     !['en', 'zh'].includes(input.language) ||
     !string(input.cursor, 160) ||
@@ -271,8 +275,11 @@ export async function analyzeTeamQuotaInsights(
       'month_from',
       'month_reset',
       'baseline_basis',
+      ...(input.report === 'team_quota_money' ? ['dimension', 'currency'] : []),
     ]) ||
     capture.source !== 'local_quota_journal' ||
+    (input.report === 'team_quota_money' &&
+      (capture.dimension !== 'money' || capture.currency !== reviewedCurrency)) ||
     !stamp(capture.queried_at) ||
     capture.cursor !== input.cursor ||
     capture.limit !== input.limit ||
@@ -312,6 +319,7 @@ export async function analyzeKeyQuotaInsights(
   input: InsightsKeyQuotaInput,
   csrf: string,
   signal: AbortSignal,
+  reviewedCurrency?: string,
 ): Promise<InsightsKeyQuotaAnalysis> {
   if (
     !exact(input as unknown as Record<string, unknown>, [
@@ -324,7 +332,10 @@ export async function analyzeKeyQuotaInsights(
       'limit',
       ...(Object.hasOwn(input, 'question') ? ['question'] : []),
     ]) ||
-    input.report !== 'key_quota_tokens' ||
+    !['key_quota_tokens', 'key_quota_money'].includes(input.report) ||
+    (input.report === 'key_quota_money'
+      ? typeof reviewedCurrency !== 'string' || !/^[A-Z]{3}$/.test(reviewedCurrency)
+      : reviewedCurrency !== undefined) ||
     !modelID.test(input.model_id) ||
     !['member', 'project'].includes(input.scope_kind) ||
     typeof input.scope_id !== 'string' ||
@@ -381,8 +392,11 @@ export async function analyzeKeyQuotaInsights(
       'month_from',
       'month_reset',
       'baseline_basis',
+      ...(input.report === 'key_quota_money' ? ['dimension', 'currency'] : []),
     ]) ||
     capture.source !== 'local_quota_journal' ||
+    (input.report === 'key_quota_money' &&
+      (capture.dimension !== 'money' || capture.currency !== reviewedCurrency)) ||
     capture.scope_kind !== input.scope_kind ||
     capture.scope_id !== input.scope_id ||
     !stamp(capture.queried_at) ||

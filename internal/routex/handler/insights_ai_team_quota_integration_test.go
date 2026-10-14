@@ -97,9 +97,9 @@ func testInsightsAITeamQuotaIntegration(t *testing.T, ctx context.Context, db *g
 			router.ServeHTTP(res, req)
 			return res
 		}
-		readPage := func(t *testing.T, cursor string) service.InsightsQuotaReport {
+		readPage := func(t *testing.T, dimension, cursor string) service.InsightsQuotaReport {
 			t.Helper()
-			path := "/api/v1/admin/insights/quota/teams?dimension=tokens&limit=1"
+			path := "/api/v1/admin/insights/quota/teams?dimension=" + dimension + "&limit=1"
 			if cursor != "" {
 				path += "&cursor=" + url.QueryEscape(cursor)
 			}
@@ -111,11 +111,11 @@ func testInsightsAITeamQuotaIntegration(t *testing.T, ctx context.Context, db *g
 			}
 			return page
 		}
-		first := readPage(t, "")
+		first := readPage(t, "tokens", "")
 		if len(first.Items) != 1 || first.NextCursor == nil {
 			t.Fatal("two readable Teams require bounded cursor", first)
 		}
-		page := readPage(t, *first.NextCursor)
+		page := readPage(t, "tokens", *first.NextCursor)
 		if len(page.Items) != 1 || page.Items[0].ID == first.Items[0].ID || page.NextCursor != nil || page.Items[0].ID == privateTeamID || page.Items[0].ID != teamID && page.Items[0].ID != second.ID {
 			t.Fatal("reviewed following page escaped exact readable scope", page)
 		}
@@ -177,6 +177,9 @@ func testInsightsAITeamQuotaIntegration(t *testing.T, ctx context.Context, db *g
 			t.Fatal(err)
 		}
 		denied(t, analyze(), 429, before)
+		input["report"], input["cursor"] = "team_quota_money", ""
+		denied(t, analyze(), 429, before)
+		input["report"], input["cursor"] = "team_quota_tokens", *first.NextCursor
 		zeroView, err := svc.GetResourceLimit(ctx, adminID, target)
 		if err != nil || zeroView.QuotaUsage == nil || zeroView.QuotaUsage.Active == nil || zeroView.QuotaUsage.Active.TokensHeld != 0 {
 			t.Fatal("quota denial retained an active hold", zeroView, err)
@@ -282,6 +285,57 @@ func testInsightsAITeamQuotaIntegration(t *testing.T, ctx context.Context, db *g
 		held(t, func(t *testing.T) {
 			expectStatus(t, request("POST", "/api/v1/auth/logout", nil, session.CSRFToken), 204)
 		}, func(t *testing.T) { session, cookie = login(t) }, 401)
+		t.Run("money_current_page_and_late_team_birth", func(t *testing.T) {
+			moneyFirst := readPage(t, "money", "")
+			if moneyFirst.NextCursor == nil {
+				t.Fatal("Money following-page prerequisite missing")
+			}
+			moneyPage := readPage(t, "money", *moneyFirst.NextCursor)
+			if len(moneyPage.Items) != 1 || moneyPage.Items[0].ID != page.Items[0].ID {
+				t.Fatal("Money cursor widened the reviewed Team scope")
+			}
+			// Store an exact decimal cap through the real policy API. No estimate
+			// or settled currency amount is fabricated for the journal's unknown money.
+			cap := "9007199254740993.000000000000000001"
+			policy, err := svc.GetTeamResourceLimit(ctx, adminID, moneyPage.Items[0].ID, "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			currencyJSON, _ := json.Marshal(moneyPage.Currency)
+			capJSON, _ := json.Marshal(cap)
+			if _, err = svc.SetTeamResourceLimit(ctx, adminID, moneyPage.Items[0].ID, "", policy.ETag, service.TeamLimitInput{Reason: "Review exact Money advice fixture cap", Fields: map[string]json.RawMessage{"money_month": capJSON, "currency": currencyJSON}}); err != nil {
+				t.Fatal(err)
+			}
+			input["report"], input["cursor"] = "team_quota_money", *moneyFirst.NextCursor
+			res := analyze()
+			expectStatus(t, res, 200)
+			recorded(t, res)
+			completed++
+			var money service.InsightsAIResponse
+			if json.Unmarshal(res.Body.Bytes(), &money) != nil || money.QuotaCapture == nil || money.QuotaCapture.Dimension != "money" || money.QuotaCapture.Currency != moneyPage.Currency || money.QuotaCapture.Cursor != *moneyFirst.NextCursor || len(money.Labels) != 1 || money.Labels[0].TeamID == nil || *money.Labels[0].TeamID != moneyPage.Items[0].ID {
+				t.Fatal("Money advice lost its exact page or denomination")
+			}
+			payload := native.content.Load().(string)
+			var projection struct {
+				Aggregates struct {
+					Dimension, Currency string
+					Teams               []struct {
+						Label            string
+						LocalCap         *string `json:"local_cap"`
+						LocalCapCurrency string  `json:"local_cap_currency"`
+					}
+				}
+			}
+			if json.Unmarshal([]byte(payload), &projection) != nil || projection.Aggregates.Dimension != "money" || projection.Aggregates.Currency != moneyPage.Currency || len(projection.Aggregates.Teams) != 1 || projection.Aggregates.Teams[0].Label != "T1" || projection.Aggregates.Teams[0].LocalCap == nil || *projection.Aggregates.Teams[0].LocalCap != cap || projection.Aggregates.Teams[0].LocalCapCurrency != moneyPage.Currency {
+				t.Fatal("exact stored Money cap changed upstream")
+			}
+			for _, private := range []string{teamID, second.ID, privateTeamID, analystID, *moneyFirst.NextCursor, moneyPage.Items[0].Name, "team_id"} {
+				if strings.Contains(payload, private) {
+					t.Fatal("private Team Money identity entered upstream data")
+				}
+			}
+			held(t, func(t *testing.T) { updateBirth(t, capturedTeam.CreatedAt.Add(time.Second)) }, func(t *testing.T) { updateBirth(t, capturedTeam.CreatedAt) }, 404)
+		})
 		usage, err := svc.GetResourceLimit(ctx, adminID, service.LimitTarget{Kind: "user", ID: analystID})
 		if err != nil || usage.QuotaUsage == nil || usage.QuotaUsage.Month == nil || usage.QuotaUsage.Active == nil || usage.QuotaUsage.Month.TokensUsed != completed*14 || usage.QuotaUsage.Month.TokensUnknown != 0 || usage.QuotaUsage.Month.TokensHeld != 0 || usage.QuotaUsage.Active.TokensHeld != 0 {
 			t.Fatal("all real advice must settle personal-only usage despite late denials", usage, err)

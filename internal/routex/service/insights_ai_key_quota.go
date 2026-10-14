@@ -52,7 +52,7 @@ func insightsAIKeyScopeID(value, kind string) bool {
 	return strings.HasPrefix(value, prefix) && memberKeyUserID.MatchString("usr_"+strings.TrimPrefix(value, prefix))
 }
 func validateInsightsAIKeyQuota(input InsightsAIInput) error {
-	if input.Report != "key_quota_tokens" || !insightsAIModelID.MatchString(input.ModelID) || input.Language != "en" && input.Language != "zh" || !validInsightsAIQuestion(input.Question) || input.From != "" || input.To != "" || input.Timezone != "" || input.ScopeKind != "member" && input.ScopeKind != "project" || !insightsAIKeyScopeID(input.ScopeID, input.ScopeKind) || len(input.Cursor) > 160 || !utf8.ValidString(input.Cursor) || input.Limit < 1 || input.Limit > 50 {
+	if (input.Report != "key_quota_tokens" && input.Report != "key_quota_money") || !insightsAIModelID.MatchString(input.ModelID) || input.Language != "en" && input.Language != "zh" || !validInsightsAIQuestion(input.Question) || input.From != "" || input.To != "" || input.Timezone != "" || input.ScopeKind != "member" && input.ScopeKind != "project" || !insightsAIKeyScopeID(input.ScopeID, input.ScopeKind) || len(input.Cursor) > 160 || !utf8.ValidString(input.Cursor) || input.Limit < 1 || input.Limit > 50 {
 		return apperrors.ErrBadRequest
 	}
 	return nil
@@ -94,7 +94,7 @@ func insightsAIKeyScope(tx *gorm.DB, actor, kind, id string) (*insightsAIKeyScop
 }
 
 func projectInsightsAIKeyQuota(report *InsightsQuotaReport, input InsightsAIInput, observed time.Time) (*InsightsAIResponse, []byte, error) {
-	if validateInsightsAIKeyQuota(input) != nil || report == nil || report.Kind != "key_quota" || report.Dimension != "tokens" || report.Currency != "" || report.Scope.Kind != input.ScopeKind || report.Scope.ID != input.ScopeID || report.keyScopeProof == nil || report.keyScopeProof.Kind != input.ScopeKind || report.keyScopeProof.ID != input.ScopeID || report.keyScopeProof.CreatedAt.IsZero() || report.BaselineBasis != "settled_admissions_168h" || observed.IsZero() || len(report.Items) > input.Limit || len(report.keyProofs) != len(report.Items) {
+	if validateInsightsAIKeyQuota(input) != nil || report == nil || report.Kind != "key_quota" || !insightsAIQuotaReportDimension(report, input.Report) || report.Scope.Kind != input.ScopeKind || report.Scope.ID != input.ScopeID || report.keyScopeProof == nil || report.keyScopeProof.Kind != input.ScopeKind || report.keyScopeProof.ID != input.ScopeID || report.keyScopeProof.CreatedAt.IsZero() || report.BaselineBasis != "settled_admissions_168h" || observed.IsZero() || len(report.Items) > input.Limit || len(report.keyProofs) != len(report.Items) {
 		return nil, nil, insightsAIUnavailable
 	}
 	if _, err := time.LoadLocation(report.TimeZone); err != nil || report.TimeZone == "" || report.TimeZone == "Local" {
@@ -109,12 +109,16 @@ func projectInsightsAIKeyQuota(report *InsightsQuotaReport, input InsightsAIInpu
 		return nil, nil, insightsAIUnavailable
 	}
 	capture := &InsightsAIKeyQuotaCapture{ScopeKind: input.ScopeKind, ScopeID: input.ScopeID, InsightsAITeamQuotaCapture: InsightsAITeamQuotaCapture{Source: "local_quota_journal", QueriedAt: observed, Cursor: input.Cursor, Limit: input.Limit, HasMore: report.NextCursor != nil, Timezone: report.TimeZone, AsOf: report.AsOf, CoverageStart: report.CoverageStart, BaselineFrom: report.BaselineFrom, BaselineTo: report.BaselineTo, MonthFrom: report.MonthFrom, MonthReset: report.MonthReset, BaselineBasis: report.BaselineBasis}}
+	if report.Dimension == "money" {
+		capture.Dimension, capture.Currency = report.Dimension, report.Currency
+	}
 	view := &InsightsAIResponse{Completion: "unknown", KeyQuotaCapture: capture, keyScopeProof: &insightsAIKeyScopeProof{Kind: report.keyScopeProof.Kind, ID: report.keyScopeProof.ID, CreatedAt: report.keyScopeProof.CreatedAt}, Labels: []InsightsAILabel{}, keyProofs: append([]insightsAIKeyProof(nil), report.keyProofs...)}
 	// This is a closed projection, not serialization of the full report. Names,
 	// canonical IDs, cursor, membership and other resource domains never enter it.
 	projection := struct {
 		Scope         string                  `json:"scope"`
 		Dimension     string                  `json:"dimension"`
+		Currency      string                  `json:"currency,omitempty"`
 		Timezone      string                  `json:"timezone"`
 		QueriedAt     time.Time               `json:"queried_at"`
 		AsOf          *string                 `json:"as_of"`
@@ -126,25 +130,20 @@ func projectInsightsAIKeyQuota(report *InsightsQuotaReport, input InsightsAIInpu
 		BaselineBasis string                  `json:"baseline_basis"`
 		HasMore       bool                    `json:"has_more"`
 		Keys          []insightsAIKeyQuotaRow `json:"keys"`
-	}{"current_page", "tokens", report.TimeZone, observed, report.AsOf, report.CoverageStart, report.BaselineFrom, report.BaselineTo, report.MonthFrom, report.MonthReset, report.BaselineBasis, report.NextCursor != nil, []insightsAIKeyQuotaRow{}}
+	}{"current_page", report.Dimension, report.Currency, report.TimeZone, observed, report.AsOf, report.CoverageStart, report.BaselineFrom, report.BaselineTo, report.MonthFrom, report.MonthReset, report.BaselineBasis, report.NextCursor != nil, []insightsAIKeyQuotaRow{}}
 	seen := map[string]bool{}
 	for i, row := range report.Items {
 		if !insightsAIKeyID(row.ID, input.ScopeKind) || seen[row.ID] || len(row.Name) > 1024 || !utf8.ValidString(row.Name) || report.keyProofs[i].ID != row.ID || report.keyProofs[i].CreatedAt.IsZero() || report.keyProofs[i].CreatedAt.Before(report.keyScopeProof.CreatedAt) || !slices.Contains([]string{"active", "disabled", "pending", "revoked"}, row.Status) || !slices.Contains([]string{"stop", "alert_only"}, row.Behavior) || !slices.Contains([]string{"normal", "near", "critical", "reached", "unknown"}, row.Level) || !slices.Contains([]string{"estimated", "already_reached", "no_local_cap", "zero_cap", "inactive", "unavailable", "incomplete_coverage", "unknown_usage", "zero_rate", "after_reset"}, row.EstimateStatus) || !insightsAIQuotaStamp(row.EstimateAt) || row.SharedKeyCount < 1 || row.SharedKeyCount > 10000 {
 			return nil, nil, insightsAIUnavailable
 		}
-		for _, value := range []*string{row.LocalCap, row.MonthSettled, row.BaselineSettled, row.BaselineHeld, row.MonthHeld, row.ActiveHeld, row.MonthUnknown, row.BaselineUnknown} {
-			if value != nil && !insightsAIInteger.MatchString(*value) {
-				return nil, nil, insightsAIUnavailable
-			}
-		}
-		if row.UtilizationPercent != nil && !insightsQuotaDecimal.MatchString(*row.UtilizationPercent) {
+		if !insightsAIQuotaRowAmounts(row, report.Dimension, report.Currency) {
 			return nil, nil, insightsAIUnavailable
 		}
 		seen[row.ID] = true
 		label := fmt.Sprintf("K%d", i+1)
 		id := row.ID
 		view.Labels = append(view.Labels, InsightsAILabel{Label: label, KeyID: &id, Name: row.Name, Unknown: false})
-		projection.Keys = append(projection.Keys, insightsAIKeyQuotaRow{insightsAITeamQuotaRow{label, row.Status, row.LocalCap, row.Behavior, row.MonthSettled, row.BaselineSettled, row.BaselineHeld, row.MonthHeld, row.ActiveHeld, row.MonthUnknown, row.BaselineUnknown, row.MonthCovered, row.BaselineCovered, row.UtilizationPercent, row.Level, row.EstimateAt, row.EstimateStatus, row.EstimateWithinSevenDays}, row.SharedKeyCount})
+		projection.Keys = append(projection.Keys, insightsAIKeyQuotaRow{insightsAIQuotaRowView(row, report.Dimension, label), row.SharedKeyCount})
 	}
 	raw, err := json.Marshal(projection)
 	if err != nil {

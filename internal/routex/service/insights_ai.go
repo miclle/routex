@@ -152,9 +152,9 @@ func (s *Service) AnalyzeInsightsAI(ctx context.Context, identity *PersonalSessi
 	var filter UsageFilter
 	var err error
 	switch input.Report {
-	case "team_quota_tokens":
+	case "team_quota_tokens", "team_quota_money":
 		err = validateInsightsAITeamQuota(input)
-	case "key_quota_tokens":
+	case "key_quota_tokens", "key_quota_money":
 		err = validateInsightsAIKeyQuota(input)
 	default:
 		filter, err = insightsAIFilter(input)
@@ -168,14 +168,14 @@ func (s *Service) AnalyzeInsightsAI(ctx context.Context, identity *PersonalSessi
 	var view *InsightsAIResponse
 	var projection []byte
 	switch input.Report {
-	case "team_quota_tokens":
-		report, captureErr := s.InsightsQuota(ctx, identity.UserID, InsightsQuotaInput{Dimension: "tokens", Cursor: input.Cursor, Limit: input.Limit}, false)
+	case "team_quota_tokens", "team_quota_money":
+		report, captureErr := s.InsightsQuota(ctx, identity.UserID, InsightsQuotaInput{Dimension: insightsAIQuotaDimension(input.Report), Cursor: input.Cursor, Limit: input.Limit}, false)
 		if captureErr != nil {
 			return nil, nil, captureErr
 		}
 		view, projection, err = projectInsightsAITeamQuota(report, input, time.Now().UTC())
-	case "key_quota_tokens":
-		report, captureErr := s.InsightsQuota(ctx, identity.UserID, InsightsQuotaInput{Dimension: "tokens", ScopeKind: input.ScopeKind, ScopeID: input.ScopeID, Cursor: input.Cursor, Limit: input.Limit}, true)
+	case "key_quota_tokens", "key_quota_money":
+		report, captureErr := s.InsightsQuota(ctx, identity.UserID, InsightsQuotaInput{Dimension: insightsAIQuotaDimension(input.Report), ScopeKind: input.ScopeKind, ScopeID: input.ScopeID, Cursor: input.Cursor, Limit: input.Limit}, true)
 		if captureErr != nil {
 			return nil, nil, captureErr
 		}
@@ -213,10 +213,18 @@ func (s *Service) AnalyzeInsightsAI(ctx context.Context, identity *PersonalSessi
 	}
 	var body []byte
 	switch input.Report {
-	case "team_quota_tokens":
-		body, err = insightsAITeamQuotaChatBody(name, input.Language, projection, input.Question)
-	case "key_quota_tokens":
-		body, err = insightsAIKeyQuotaChatBody(name, input.Language, projection, input.Question)
+	case "team_quota_tokens", "team_quota_money":
+		if input.Report == "team_quota_money" {
+			body, err = insightsAIQuotaMoneyChatBody(name, input.Language, "team", projection, input.Question)
+		} else {
+			body, err = insightsAITeamQuotaChatBody(name, input.Language, projection, input.Question)
+		}
+	case "key_quota_tokens", "key_quota_money":
+		if input.Report == "key_quota_money" {
+			body, err = insightsAIQuotaMoneyChatBody(name, input.Language, "key", projection, input.Question)
+		} else {
+			body, err = insightsAIKeyQuotaChatBody(name, input.Language, projection, input.Question)
+		}
 	case "provider_quality":
 		body, err = insightsAIProviderQualityChatBody(name, input.Language, projection, input.Question)
 	default:
@@ -235,7 +243,7 @@ func (s *Service) AnalyzeInsightsAI(ctx context.Context, identity *PersonalSessi
 }
 
 func (s *Service) ReauthorizeInsightsAIReport(ctx context.Context, identity *PersonalSessionIdentity, modelID, report string) error {
-	if report != "tokens_by_model" && report != "provider_quality" && report != "team_quota_tokens" && report != "key_quota_tokens" {
+	if report != "tokens_by_model" && report != "provider_quality" && report != "team_quota_tokens" && report != "key_quota_tokens" && report != "team_quota_money" && report != "key_quota_money" {
 		return apperrors.ErrBadRequest
 	}
 	if err := s.ReauthorizeInsightsAI(ctx, identity, modelID); err != nil {

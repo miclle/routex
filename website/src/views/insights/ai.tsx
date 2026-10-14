@@ -48,12 +48,17 @@ export function useInsightsAI({
   authorized: () => boolean
   range: InsightsRange
   question?: string
-  report: InsightsAnalysisInput['report'] | 'team_quota_tokens' | 'key_quota_tokens'
+  report:
+    | InsightsAnalysisInput['report']
+    | InsightsTeamQuotaInput['report']
+    | InsightsKeyQuotaInput['report']
   supported: boolean
   teamQuotaPage?: {
     cursor: string
     limit: number
     stamp: string
+    dimension: 'tokens' | 'money'
+    currency: string
     scope_kind?: 'member' | 'project'
     scope_id?: string
   } | null
@@ -188,7 +193,7 @@ export function useInsightsAI({
   function prepare() {
     if (!current() || lock.current || !selected || !supported) return
     let input: InsightsAnalysisInput | InsightsTeamQuotaInput | InsightsKeyQuotaInput
-    if (report === 'key_quota_tokens') {
+    if (report === 'key_quota_tokens' || report === 'key_quota_money') {
       if (!teamQuotaPage?.scope_kind || !teamQuotaPage.scope_id) return
       input = {
         report,
@@ -200,7 +205,7 @@ export function useInsightsAI({
         limit: teamQuotaPage.limit,
         ...(question === undefined ? {} : { question }),
       }
-    } else if (report === 'team_quota_tokens') {
+    } else if (report === 'team_quota_tokens' || report === 'team_quota_money') {
       if (!teamQuotaPage) return
       input = {
         report,
@@ -261,13 +266,20 @@ export function useInsightsAI({
     setError(null)
     try {
       const value =
-        captured.input.report === 'key_quota_tokens'
-          ? await analyzeKeyQuotaInsights({ ...captured.input }, session.csrf_token, abort.signal)
-          : captured.input.report === 'team_quota_tokens'
+        captured.input.report === 'key_quota_tokens' || captured.input.report === 'key_quota_money'
+          ? await analyzeKeyQuotaInsights(
+              { ...captured.input },
+              session.csrf_token,
+              abort.signal,
+              captured.input.report === 'key_quota_money' ? teamQuotaPage?.currency : undefined,
+            )
+          : captured.input.report === 'team_quota_tokens' ||
+              captured.input.report === 'team_quota_money'
             ? await analyzeTeamQuotaInsights(
                 { ...captured.input },
                 session.csrf_token,
                 abort.signal,
+                captured.input.report === 'team_quota_money' ? teamQuotaPage?.currency : undefined,
               )
             : await analyzeInsights({ ...captured.input }, session.csrf_token, abort.signal)
       if (abort.signal.aborted || epoch.current !== capturedEpoch || !current()) return
@@ -287,15 +299,19 @@ export function useInsightsAI({
           : status === 429
             ? 'aiQuota'
             : status === 422
-              ? captured.input.report === 'key_quota_tokens'
+              ? captured.input.report === 'key_quota_tokens' ||
+                captured.input.report === 'key_quota_money'
                 ? 'aiKeyQuotaOverflow'
-                : captured.input.report === 'team_quota_tokens'
+                : captured.input.report === 'team_quota_tokens' ||
+                    captured.input.report === 'team_quota_money'
                   ? 'aiTeamQuotaOverflow'
                   : 'aiOverflow'
               : status === 400
-                ? captured.input.report === 'key_quota_tokens'
+                ? captured.input.report === 'key_quota_tokens' ||
+                  captured.input.report === 'key_quota_money'
                   ? 'aiKeyQuotaInvalid'
-                  : captured.input.report === 'team_quota_tokens'
+                  : captured.input.report === 'team_quota_tokens' ||
+                      captured.input.report === 'team_quota_money'
                     ? 'aiTeamQuotaInvalid'
                     : 'invalidRange'
                 : 'aiUnavailable',
@@ -321,9 +337,9 @@ export function useInsightsAI({
         <h3 className="font-medium">{t('aiTitle')}</h3>
         <p className="text-xs text-muted-foreground">
           {t(
-            report === 'key_quota_tokens'
+            report === 'key_quota_tokens' || report === 'key_quota_money'
               ? 'aiKeyQuotaDisclosure'
-              : report === 'team_quota_tokens'
+              : report === 'team_quota_tokens' || report === 'team_quota_money'
                 ? 'aiTeamQuotaDisclosure'
                 : report === 'provider_quality'
                   ? 'aiProviderDisclosure'
@@ -401,9 +417,11 @@ export function useInsightsAI({
             <div className="space-y-4 text-sm">
               <p className="font-medium">
                 {t(
-                  review.input.report === 'key_quota_tokens'
+                  review.input.report === 'key_quota_tokens' ||
+                    review.input.report === 'key_quota_money'
                     ? 'shortcutKey'
-                    : review.input.report === 'team_quota_tokens'
+                    : review.input.report === 'team_quota_tokens' ||
+                        review.input.report === 'team_quota_money'
                       ? 'shortcutTeam'
                       : review.input.report === 'provider_quality'
                         ? 'shortcutProvider'
@@ -421,14 +439,20 @@ export function useInsightsAI({
                 <p className="text-muted-foreground">{t('aiQuestionBoundary')}</p>
               )}
               {review.input.report === 'team_quota_tokens' ||
-              review.input.report === 'key_quota_tokens' ? (
+              review.input.report === 'team_quota_money' ||
+              review.input.report === 'key_quota_tokens' ||
+              review.input.report === 'key_quota_money' ? (
                 <p>
                   {t(
-                    review.input.report === 'key_quota_tokens'
+                    review.input.report === 'key_quota_tokens' ||
+                      review.input.report === 'key_quota_money'
                       ? 'aiKeyQuotaPageReview'
                       : 'aiTeamQuotaPageReview',
                     {
                       limit: review.input.limit,
+                      dimension: t(
+                        review.input.report.endsWith('_money') ? 'quotaMoney' : 'quotaTokens',
+                      ),
                       page: t(
                         review.input.cursor ? 'aiTeamQuotaFollowingPage' : 'aiTeamQuotaFirstPage',
                       ),
@@ -443,6 +467,9 @@ export function useInsightsAI({
                     timezone: review.input.timezone,
                   })}
                 </p>
+              )}
+              {review.input.report.endsWith('_money') && (
+                <p>{t('aiQuotaCurrency', { currency: teamQuotaPage?.currency })}</p>
               )}
               <p>
                 {t('aiLanguage', {
@@ -483,10 +510,16 @@ export function useInsightsAI({
             </p>
             {quotaAnswer ? (
               <div className="space-y-2 text-xs text-muted-foreground">
-                <p>{t(report === 'key_quota_tokens' ? 'aiKeyQuotaSource' : 'aiTeamQuotaSource')}</p>
                 <p>
                   {t(
-                    report === 'key_quota_tokens'
+                    report === 'key_quota_tokens' || report === 'key_quota_money'
+                      ? 'aiKeyQuotaSource'
+                      : 'aiTeamQuotaSource',
+                  )}
+                </p>
+                <p>
+                  {t(
+                    report === 'key_quota_tokens' || report === 'key_quota_money'
                       ? 'aiKeyQuotaCurrentPage'
                       : 'aiTeamQuotaCurrentPage',
                     {
@@ -507,6 +540,9 @@ export function useInsightsAI({
                       : t('quotaUnknown'),
                   })}
                 </p>
+                {quotaAnswer.dimension === 'money' && (
+                  <p>{t('aiQuotaCurrency', { currency: quotaAnswer.currency })}</p>
+                )}
                 <p>{t('aiTeamQuotaBasis')}</p>
               </div>
             ) : 'capture' in answer.value ? (
@@ -562,9 +598,9 @@ export function useInsightsAI({
             {answer.value.labels.length > 0 && (
               <Table
                 aria-label={t(
-                  report === 'key_quota_tokens'
+                  report === 'key_quota_tokens' || report === 'key_quota_money'
                     ? 'aiKeyQuotaLabels'
-                    : report === 'team_quota_tokens'
+                    : report === 'team_quota_tokens' || report === 'team_quota_money'
                       ? 'aiTeamQuotaLabels'
                       : report === 'provider_quality'
                         ? 'aiProviderLabels'
@@ -576,9 +612,9 @@ export function useInsightsAI({
                     <th>{t('aiLabel')}</th>
                     <th>
                       {t(
-                        report === 'key_quota_tokens'
+                        report === 'key_quota_tokens' || report === 'key_quota_money'
                           ? 'aiRecordedKey'
-                          : report === 'team_quota_tokens'
+                          : report === 'team_quota_tokens' || report === 'team_quota_money'
                             ? 'aiRecordedTeam'
                             : report === 'provider_quality'
                               ? 'aiRecordedProvider'

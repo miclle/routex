@@ -34,6 +34,8 @@ type InsightsAITeamQuotaCapture struct {
 	MonthFrom     *string   `json:"month_from"`
 	MonthReset    *string   `json:"month_reset"`
 	BaselineBasis string    `json:"baseline_basis"`
+	Dimension     string    `json:"dimension,omitempty"`
+	Currency      string    `json:"currency,omitempty"`
 }
 
 type insightsAITeamQuotaRow struct {
@@ -55,10 +57,11 @@ type insightsAITeamQuotaRow struct {
 	EstimateAt              *string `json:"estimate_at"`
 	EstimateStatus          string  `json:"estimate_status"`
 	EstimateWithinSevenDays bool    `json:"estimate_within_seven_days"`
+	LocalCapCurrency        *string `json:"local_cap_currency,omitempty"`
 }
 
 func validateInsightsAITeamQuota(input InsightsAIInput) error {
-	if input.Report != "team_quota_tokens" || !insightsAIModelID.MatchString(input.ModelID) || input.Language != "en" && input.Language != "zh" || !validInsightsAIQuestion(input.Question) || input.From != "" || input.To != "" || input.Timezone != "" || input.ScopeKind != "" || input.ScopeID != "" {
+	if (input.Report != "team_quota_tokens" && input.Report != "team_quota_money") || !insightsAIModelID.MatchString(input.ModelID) || input.Language != "en" && input.Language != "zh" || !validInsightsAIQuestion(input.Question) || input.From != "" || input.To != "" || input.Timezone != "" || input.ScopeKind != "" || input.ScopeID != "" {
 		return apperrors.ErrBadRequest
 	}
 	if len(input.Cursor) > 160 || !utf8.ValidString(input.Cursor) || input.Limit < 1 || input.Limit > 50 {
@@ -81,7 +84,7 @@ func insightsAIQuotaStamp(value *string) bool {
 }
 
 func projectInsightsAITeamQuota(report *InsightsQuotaReport, input InsightsAIInput, observed time.Time) (*InsightsAIResponse, []byte, error) {
-	if validateInsightsAITeamQuota(input) != nil || report == nil || report.Kind != "team_quota" || report.Dimension != "tokens" || report.Currency != "" || report.Scope.Kind != "readable_teams" || report.Scope.ID != "" || report.BaselineBasis != "settled_admissions_168h" || observed.IsZero() || len(report.Items) > input.Limit || len(report.teamProofs) != len(report.Items) {
+	if validateInsightsAITeamQuota(input) != nil || report == nil || report.Kind != "team_quota" || !insightsAIQuotaReportDimension(report, input.Report) || report.Scope.Kind != "readable_teams" || report.Scope.ID != "" || report.BaselineBasis != "settled_admissions_168h" || observed.IsZero() || len(report.Items) > input.Limit || len(report.teamProofs) != len(report.Items) {
 		return nil, nil, insightsAIUnavailable
 	}
 	if _, err := time.LoadLocation(report.TimeZone); err != nil || report.TimeZone == "" || report.TimeZone == "Local" {
@@ -96,12 +99,16 @@ func projectInsightsAITeamQuota(report *InsightsQuotaReport, input InsightsAIInp
 		return nil, nil, insightsAIUnavailable
 	}
 	capture := &InsightsAITeamQuotaCapture{Source: "local_quota_journal", QueriedAt: observed, Cursor: input.Cursor, Limit: input.Limit, HasMore: report.NextCursor != nil, Timezone: report.TimeZone, AsOf: report.AsOf, CoverageStart: report.CoverageStart, BaselineFrom: report.BaselineFrom, BaselineTo: report.BaselineTo, MonthFrom: report.MonthFrom, MonthReset: report.MonthReset, BaselineBasis: report.BaselineBasis}
+	if report.Dimension == "money" {
+		capture.Dimension, capture.Currency = report.Dimension, report.Currency
+	}
 	view := &InsightsAIResponse{Completion: "unknown", QuotaCapture: capture, Labels: []InsightsAILabel{}, teamProofs: append([]insightsAITeamProof(nil), report.teamProofs...)}
 	// This is a closed projection, not serialization of the full report. Names,
 	// canonical IDs, cursor, membership and other resource domains never enter it.
 	projection := struct {
 		Scope         string                   `json:"scope"`
 		Dimension     string                   `json:"dimension"`
+		Currency      string                   `json:"currency,omitempty"`
 		Timezone      string                   `json:"timezone"`
 		QueriedAt     time.Time                `json:"queried_at"`
 		AsOf          *string                  `json:"as_of"`
@@ -113,25 +120,20 @@ func projectInsightsAITeamQuota(report *InsightsQuotaReport, input InsightsAIInp
 		BaselineBasis string                   `json:"baseline_basis"`
 		HasMore       bool                     `json:"has_more"`
 		Teams         []insightsAITeamQuotaRow `json:"teams"`
-	}{"current_page", "tokens", report.TimeZone, observed, report.AsOf, report.CoverageStart, report.BaselineFrom, report.BaselineTo, report.MonthFrom, report.MonthReset, report.BaselineBasis, report.NextCursor != nil, []insightsAITeamQuotaRow{}}
+	}{"current_page", report.Dimension, report.Currency, report.TimeZone, observed, report.AsOf, report.CoverageStart, report.BaselineFrom, report.BaselineTo, report.MonthFrom, report.MonthReset, report.BaselineBasis, report.NextCursor != nil, []insightsAITeamQuotaRow{}}
 	seen := map[string]bool{}
 	for i, row := range report.Items {
 		if !safeTeamSessionID(row.ID) || seen[row.ID] || len(row.Name) > 1024 || !utf8.ValidString(row.Name) || report.teamProofs[i].ID != row.ID || report.teamProofs[i].CreatedAt.IsZero() || !slices.Contains([]string{"active", "disabled", "archived"}, row.Status) || !slices.Contains([]string{"stop", "alert_only"}, row.Behavior) || !slices.Contains([]string{"normal", "near", "critical", "reached", "unknown"}, row.Level) || !slices.Contains([]string{"estimated", "already_reached", "no_local_cap", "zero_cap", "inactive", "unavailable", "incomplete_coverage", "unknown_usage", "zero_rate", "after_reset"}, row.EstimateStatus) || !insightsAIQuotaStamp(row.EstimateAt) {
 			return nil, nil, insightsAIUnavailable
 		}
-		for _, value := range []*string{row.LocalCap, row.MonthSettled, row.BaselineSettled, row.BaselineHeld, row.MonthHeld, row.ActiveHeld, row.MonthUnknown, row.BaselineUnknown} {
-			if value != nil && !insightsAIInteger.MatchString(*value) {
-				return nil, nil, insightsAIUnavailable
-			}
-		}
-		if row.UtilizationPercent != nil && !insightsQuotaDecimal.MatchString(*row.UtilizationPercent) {
+		if !insightsAIQuotaRowAmounts(row, report.Dimension, report.Currency) {
 			return nil, nil, insightsAIUnavailable
 		}
 		seen[row.ID] = true
 		label := fmt.Sprintf("T%d", i+1)
 		id := row.ID
 		view.Labels = append(view.Labels, InsightsAILabel{Label: label, TeamID: &id, Name: row.Name, Unknown: false})
-		projection.Teams = append(projection.Teams, insightsAITeamQuotaRow{label, row.Status, row.LocalCap, row.Behavior, row.MonthSettled, row.BaselineSettled, row.BaselineHeld, row.MonthHeld, row.ActiveHeld, row.MonthUnknown, row.BaselineUnknown, row.MonthCovered, row.BaselineCovered, row.UtilizationPercent, row.Level, row.EstimateAt, row.EstimateStatus, row.EstimateWithinSevenDays})
+		projection.Teams = append(projection.Teams, insightsAIQuotaRowView(row, report.Dimension, label))
 	}
 	raw, err := json.Marshal(projection)
 	if err != nil {
@@ -183,13 +185,16 @@ func (s *Service) ReauthorizeInsightsAIResult(ctx context.Context, identity *Per
 	if err := s.ReauthorizeInsightsAIReport(ctx, identity, modelID, report); err != nil {
 		return err
 	}
-	if report == "key_quota_tokens" {
+	if report == "key_quota_tokens" || report == "key_quota_money" {
+		if view == nil || view.KeyQuotaCapture == nil || !insightsAIQuotaCaptureDimension(&view.KeyQuotaCapture.InsightsAITeamQuotaCapture, report) {
+			return insightsAIUnavailable
+		}
 		return s.reauthorizeInsightsAIKeyQuota(ctx, identity, view)
 	}
-	if report != "team_quota_tokens" {
+	if report != "team_quota_tokens" && report != "team_quota_money" {
 		return nil
 	}
-	if view == nil || view.QuotaCapture == nil || view.Capture != nil || len(view.teamProofs) != len(view.Labels) || len(view.teamProofs) > 50 {
+	if view == nil || !insightsAIQuotaCaptureDimension(view.QuotaCapture, report) || view.Capture != nil || view.KeyQuotaCapture != nil || len(view.teamProofs) != len(view.Labels) || len(view.teamProofs) > 50 {
 		return insightsAIUnavailable
 	}
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)

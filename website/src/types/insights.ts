@@ -11,16 +11,17 @@ export interface InsightsAnalysisInput {
   timezone: string
   language: 'en' | 'zh'
 }
-export interface InsightsTeamQuotaInput {
-  report: 'team_quota_tokens'
+export type InsightsTeamQuotaInput = {
   model_id: string
   language: 'en' | 'zh'
   cursor: string
   limit: number
   question?: string
-}
+} & ({ report: 'team_quota_tokens' } | { report: 'team_quota_money' })
 export interface InsightsTeamQuotaCapture {
   source: 'local_quota_journal'
+  dimension?: 'money'
+  currency?: string
   queried_at: string
   cursor: string
   limit: number
@@ -41,8 +42,7 @@ export interface InsightsTeamQuotaAnalysis {
   quota_capture: InsightsTeamQuotaCapture
   labels: { label: string; team_id: string; name: string; unknown: false }[]
 }
-export interface InsightsKeyQuotaInput {
-  report: 'key_quota_tokens'
+export type InsightsKeyQuotaInput = {
   model_id: string
   language: 'en' | 'zh'
   scope_kind: 'member' | 'project'
@@ -50,7 +50,7 @@ export interface InsightsKeyQuotaInput {
   cursor: string
   limit: number
   question?: string
-}
+} & ({ report: 'key_quota_tokens' } | { report: 'key_quota_money' })
 export interface InsightsKeyQuotaCapture extends InsightsTeamQuotaCapture {
   scope_kind: 'member' | 'project'
   scope_id: string
