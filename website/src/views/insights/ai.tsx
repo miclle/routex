@@ -9,10 +9,23 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { useTranslation } from 'react-i18next'
-import { getInsightsModels, analyzeInsights, isInsightsQuestion } from '@/api/insights'
+import {
+  getInsightsModels,
+  analyzeInsights,
+  analyzeTeamQuotaInsights,
+  analyzeKeyQuotaInsights,
+  isInsightsQuestion,
+} from '@/api/insights'
 import { sessionKey } from '@/hooks/use-auth'
 import type { Session } from '@/types/auth'
-import type { InsightsAnalysis, InsightsAnalysisInput } from '@/types/insights'
+import type {
+  InsightsAnalysis,
+  InsightsAnalysisInput,
+  InsightsTeamQuotaInput,
+  InsightsTeamQuotaAnalysis,
+  InsightsKeyQuotaInput,
+  InsightsKeyQuotaAnalysis,
+} from '@/types/insights'
 import { FormField } from '@/components/app/CatalogUI'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
@@ -28,14 +41,22 @@ export function useInsightsAI({
   question,
   report,
   supported,
+  teamQuotaPage,
 }: {
   actor: string
   authorityStamp: string
   authorized: () => boolean
   range: InsightsRange
   question?: string
-  report: InsightsAnalysisInput['report']
+  report: InsightsAnalysisInput['report'] | 'team_quota_tokens' | 'key_quota_tokens'
   supported: boolean
+  teamQuotaPage?: {
+    cursor: string
+    limit: number
+    stamp: string
+    scope_kind?: 'member' | 'project'
+    scope_id?: string
+  } | null
 }) {
   const { t, i18n } = useTranslation('insights')
   const locale = i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US'
@@ -58,13 +79,13 @@ export function useInsightsAI({
   const [review, setReview] = useState<{
     context: string
     epoch: number
-    input: InsightsAnalysisInput
+    input: InsightsAnalysisInput | InsightsTeamQuotaInput | InsightsKeyQuotaInput
   } | null>(null)
   const [response, setResponse] = useState<{
     context: string
     language: 'en' | 'zh'
     question?: string
-    value: InsightsAnalysis
+    value: InsightsAnalysis | InsightsTeamQuotaAnalysis | InsightsKeyQuotaAnalysis
   } | null>(null)
   const [error, setError] = useState<{ context: string; key: string } | null>(null)
   const [pending, setPending] = useState(false)
@@ -110,6 +131,7 @@ export function useInsightsAI({
     range,
     question,
     report,
+    teamQuotaPage,
     supported,
   ])
   const modelState = cache.getQueryState(key)
@@ -165,19 +187,44 @@ export function useInsightsAI({
   }, [context])
   function prepare() {
     if (!current() || lock.current || !selected || !supported) return
-    const filters = readInsightsRange(range)
-    if (typeof filters === 'string') {
-      setError({ context, key: filters })
-      return
-    }
-    const input: InsightsAnalysisInput = {
-      report,
-      ...(question === undefined ? {} : { question }),
-      model_id: selected.model_id,
-      from: filters.from!,
-      to: filters.to!,
-      timezone: filters.timezone,
-      language: i18n.resolvedLanguage === 'zh' ? 'zh' : 'en',
+    let input: InsightsAnalysisInput | InsightsTeamQuotaInput | InsightsKeyQuotaInput
+    if (report === 'key_quota_tokens') {
+      if (!teamQuotaPage?.scope_kind || !teamQuotaPage.scope_id) return
+      input = {
+        report,
+        model_id: selected.model_id,
+        language: i18n.resolvedLanguage === 'zh' ? 'zh' : 'en',
+        scope_kind: teamQuotaPage.scope_kind,
+        scope_id: teamQuotaPage.scope_id,
+        cursor: teamQuotaPage.cursor,
+        limit: teamQuotaPage.limit,
+        ...(question === undefined ? {} : { question }),
+      }
+    } else if (report === 'team_quota_tokens') {
+      if (!teamQuotaPage) return
+      input = {
+        report,
+        model_id: selected.model_id,
+        language: i18n.resolvedLanguage === 'zh' ? 'zh' : 'en',
+        cursor: teamQuotaPage.cursor,
+        limit: teamQuotaPage.limit,
+        ...(question === undefined ? {} : { question }),
+      }
+    } else {
+      const filters = readInsightsRange(range)
+      if (typeof filters === 'string') {
+        setError({ context, key: filters })
+        return
+      }
+      input = {
+        report,
+        model_id: selected.model_id,
+        from: filters.from!,
+        to: filters.to!,
+        timezone: filters.timezone,
+        language: i18n.resolvedLanguage === 'zh' ? 'zh' : 'en',
+        ...(question === undefined ? {} : { question }),
+      }
     }
     if (question !== undefined && !isInsightsQuestion(question)) {
       setError({ context, key: 'questionInvalid' })
@@ -213,7 +260,16 @@ export function useInsightsAI({
     setResponse(null)
     setError(null)
     try {
-      const value = await analyzeInsights({ ...captured.input }, session.csrf_token, abort.signal)
+      const value =
+        captured.input.report === 'key_quota_tokens'
+          ? await analyzeKeyQuotaInsights({ ...captured.input }, session.csrf_token, abort.signal)
+          : captured.input.report === 'team_quota_tokens'
+            ? await analyzeTeamQuotaInsights(
+                { ...captured.input },
+                session.csrf_token,
+                abort.signal,
+              )
+            : await analyzeInsights({ ...captured.input }, session.csrf_token, abort.signal)
       if (abort.signal.aborted || epoch.current !== capturedEpoch || !current()) return
       setResponse({
         context: captured.context,
@@ -231,9 +287,17 @@ export function useInsightsAI({
           : status === 429
             ? 'aiQuota'
             : status === 422
-              ? 'aiOverflow'
+              ? captured.input.report === 'key_quota_tokens'
+                ? 'aiKeyQuotaOverflow'
+                : captured.input.report === 'team_quota_tokens'
+                  ? 'aiTeamQuotaOverflow'
+                  : 'aiOverflow'
               : status === 400
-                ? 'invalidRange'
+                ? captured.input.report === 'key_quota_tokens'
+                  ? 'aiKeyQuotaInvalid'
+                  : captured.input.report === 'team_quota_tokens'
+                    ? 'aiTeamQuotaInvalid'
+                    : 'invalidRange'
                 : 'aiUnavailable',
       })
     } finally {
@@ -243,13 +307,28 @@ export function useInsightsAI({
     }
   }
   const answer = response?.context === context && optionsReady ? response : null
+  const quotaAnswer =
+    answer &&
+    ('key_quota_capture' in answer.value
+      ? answer.value.key_quota_capture
+      : 'quota_capture' in answer.value
+        ? answer.value.quota_capture
+        : null)
   return {
     invalidate,
     controls: (
       <div className="space-y-3 border-t pt-3">
         <h3 className="font-medium">{t('aiTitle')}</h3>
         <p className="text-xs text-muted-foreground">
-          {t(report === 'provider_quality' ? 'aiProviderDisclosure' : 'aiDisclosure')}
+          {t(
+            report === 'key_quota_tokens'
+              ? 'aiKeyQuotaDisclosure'
+              : report === 'team_quota_tokens'
+                ? 'aiTeamQuotaDisclosure'
+                : report === 'provider_quality'
+                  ? 'aiProviderDisclosure'
+                  : 'aiDisclosure',
+          )}
         </p>
         <p className="text-xs text-muted-foreground">{t('aiStateless')}</p>
         <FormField label={t('aiModel')}>
@@ -322,9 +401,13 @@ export function useInsightsAI({
             <div className="space-y-4 text-sm">
               <p className="font-medium">
                 {t(
-                  review.input.report === 'provider_quality'
-                    ? 'shortcutProvider'
-                    : 'shortcutTokens',
+                  review.input.report === 'key_quota_tokens'
+                    ? 'shortcutKey'
+                    : review.input.report === 'team_quota_tokens'
+                      ? 'shortcutTeam'
+                      : review.input.report === 'provider_quality'
+                        ? 'shortcutProvider'
+                        : 'shortcutTokens',
                 )}
               </p>
               <p>{selected?.name || review.input.model_id}</p>
@@ -337,13 +420,30 @@ export function useInsightsAI({
               {review.input.question !== undefined && (
                 <p className="text-muted-foreground">{t('aiQuestionBoundary')}</p>
               )}
-              <p>
-                {t('range', {
-                  from: usageTime(review.input.from, locale, review.input.timezone),
-                  to: usageTime(review.input.to, locale, review.input.timezone),
-                  timezone: review.input.timezone,
-                })}
-              </p>
+              {review.input.report === 'team_quota_tokens' ||
+              review.input.report === 'key_quota_tokens' ? (
+                <p>
+                  {t(
+                    review.input.report === 'key_quota_tokens'
+                      ? 'aiKeyQuotaPageReview'
+                      : 'aiTeamQuotaPageReview',
+                    {
+                      limit: review.input.limit,
+                      page: t(
+                        review.input.cursor ? 'aiTeamQuotaFollowingPage' : 'aiTeamQuotaFirstPage',
+                      ),
+                    },
+                  )}
+                </p>
+              ) : (
+                <p>
+                  {t('range', {
+                    from: usageTime(review.input.from, locale, review.input.timezone),
+                    to: usageTime(review.input.to, locale, review.input.timezone),
+                    timezone: review.input.timezone,
+                  })}
+                </p>
+              )}
               <p>
                 {t('aiLanguage', {
                   language: t(review.input.language === 'zh' ? 'aiChinese' : 'aiEnglish'),
@@ -381,56 +481,109 @@ export function useInsightsAI({
             <p className="text-xs text-muted-foreground">
               {t('aiRequestID', { id: answer.value.request_id })}
             </p>
-            <p className="text-xs text-muted-foreground">
-              {t(
-                answer.value.capture.source === 'persisted_call_attempts'
-                  ? 'qualitySource'
-                  : 'source',
-              )}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {t('range', {
-                from: usageTime(answer.value.capture.from, locale, answer.value.capture.timezone),
-                to: usageTime(answer.value.capture.to, locale, answer.value.capture.timezone),
-                timezone: answer.value.capture.timezone,
-              })}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {t('queriedAt', {
-                time: usageTime(
-                  answer.value.capture.queried_at,
-                  locale,
-                  answer.value.capture.timezone,
-                ),
-              })}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {answer.value.capture.latest_completed_at
-                ? t('latestCompletedAt', {
-                    time: usageTime(
-                      answer.value.capture.latest_completed_at,
+            {quotaAnswer ? (
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <p>{t(report === 'key_quota_tokens' ? 'aiKeyQuotaSource' : 'aiTeamQuotaSource')}</p>
+                <p>
+                  {t(
+                    report === 'key_quota_tokens'
+                      ? 'aiKeyQuotaCurrentPage'
+                      : 'aiTeamQuotaCurrentPage',
+                    {
+                      count: answer.value.labels.length,
+                      more: t(quotaAnswer.has_more ? 'aiTeamQuotaMore' : 'aiTeamQuotaNoMore'),
+                    },
+                  )}
+                </p>
+                <p>
+                  {t('queriedAt', {
+                    time: usageTime(quotaAnswer.queried_at, locale, quotaAnswer.timezone),
+                  })}
+                </p>
+                <p>
+                  {t('aiTeamQuotaAsOf', {
+                    time: quotaAnswer.as_of
+                      ? usageTime(quotaAnswer.as_of, locale, quotaAnswer.timezone)
+                      : t('quotaUnknown'),
+                  })}
+                </p>
+                <p>{t('aiTeamQuotaBasis')}</p>
+              </div>
+            ) : 'capture' in answer.value ? (
+              <>
+                {' '}
+                <p className="text-xs text-muted-foreground">
+                  {t(
+                    answer.value.capture.source === 'persisted_call_attempts'
+                      ? 'qualitySource'
+                      : 'source',
+                  )}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t('range', {
+                    from: usageTime(
+                      answer.value.capture.from,
                       locale,
                       answer.value.capture.timezone,
                     ),
-                  })
-                : t('noCompletedCalls')}
-            </p>
-            {answer.value.capture.may_lag && (
-              <p className="text-xs text-muted-foreground">{t('mayLag')}</p>
-            )}
+                    to: usageTime(answer.value.capture.to, locale, answer.value.capture.timezone),
+                    timezone: answer.value.capture.timezone,
+                  })}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t('queriedAt', {
+                    time: usageTime(
+                      answer.value.capture.queried_at,
+                      locale,
+                      answer.value.capture.timezone,
+                    ),
+                  })}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {answer.value.capture.latest_completed_at
+                    ? t('latestCompletedAt', {
+                        time: usageTime(
+                          answer.value.capture.latest_completed_at,
+                          locale,
+                          answer.value.capture.timezone,
+                        ),
+                      })
+                    : t('noCompletedCalls')}
+                </p>
+                {answer.value.capture.may_lag && (
+                  <p className="text-xs text-muted-foreground">{t('mayLag')}</p>
+                )}
+              </>
+            ) : null}
             {answer.value.completion === 'completed' && (
               <p className="whitespace-pre-wrap break-words text-sm">{answer.value.text}</p>
             )}
             <p className="text-xs text-muted-foreground">{t('aiAdvisory')}</p>
             {answer.value.labels.length > 0 && (
               <Table
-                aria-label={t(report === 'provider_quality' ? 'aiProviderLabels' : 'aiLabels')}
+                aria-label={t(
+                  report === 'key_quota_tokens'
+                    ? 'aiKeyQuotaLabels'
+                    : report === 'team_quota_tokens'
+                      ? 'aiTeamQuotaLabels'
+                      : report === 'provider_quality'
+                        ? 'aiProviderLabels'
+                        : 'aiLabels',
+                )}
               >
                 <thead>
                   <tr>
                     <th>{t('aiLabel')}</th>
                     <th>
-                      {t(report === 'provider_quality' ? 'aiRecordedProvider' : 'aiRecordedModel')}
+                      {t(
+                        report === 'key_quota_tokens'
+                          ? 'aiRecordedKey'
+                          : report === 'team_quota_tokens'
+                            ? 'aiRecordedTeam'
+                            : report === 'provider_quality'
+                              ? 'aiRecordedProvider'
+                              : 'aiRecordedModel',
+                      )}
                     </th>
                   </tr>
                 </thead>
@@ -441,7 +594,12 @@ export function useInsightsAI({
                       <td className="break-all">
                         {item.unknown
                           ? t('unknownModel')
-                          : item.name || item.provider_id || item.model_id}
+                          : item.name ||
+                            ('key_id' in item
+                              ? item.key_id
+                              : 'team_id' in item
+                                ? item.team_id
+                                : item.provider_id || item.model_id)}
                       </td>
                     </tr>
                   ))}

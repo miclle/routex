@@ -16,6 +16,12 @@ import (
 // Field semantics, owner authorization and immutable command claims remain in Service.
 func apiKeyDeliveryJSONFields(kind string) map[string]string {
 	switch kind {
+	case "controller_enrollment":
+		return map[string]string{"request_id": "text", "name": "text", "expires_at": "text", "opt_in": "bool", "descriptor_revision": "text", "configuration_digest": "text", "reason": "text"}
+	case "controller_assignment":
+		return map[string]string{"request_id": "text", "opt_in": "bool", "descriptor_revision": "text", "configuration_digest": "text", "reason": "text"}
+	case "controller_acknowledgement":
+		return map[string]string{"request_id": "text", "descriptor_revision": "text", "configuration_digest": "text", "agent_state": "text", "output_state": "text"}
 	case "policy":
 		return map[string]string{"allowed_modes": "texts", "default_mode": "text", "integration_id": "text", "writer_identity_id": "text", "provisioner_identity_id": "text", "reason": "text"}
 	case "identity":
@@ -114,7 +120,7 @@ func apiKeyDeliveryJSONShape(raw []byte, kind string) error {
 	}
 	for name := range fields {
 		// Absent consumer_id requests server allocation; expiry is optional/nullable.
-		if !seen[name] && name != "expires_at" && (kind != "resolve" || name != "consumer_id") {
+		if !seen[name] && (name != "expires_at" || kind == "controller_enrollment") && (kind != "resolve" || name != "consumer_id") {
 			return apperrors.ErrBadRequest
 		}
 	}
@@ -127,6 +133,12 @@ func decodeAPIKeyDeliveryJSON(raw []byte, target any) error {
 	}
 	kind := ""
 	switch target.(type) {
+	case *service.APIKeyDeliveryControllerEnrollmentInput:
+		kind = "controller_enrollment"
+	case *service.APIKeyDeliveryControllerAssignmentInput:
+		kind = "controller_assignment"
+	case *service.APIKeyDeliveryControllerAcknowledgementInput:
+		kind = "controller_acknowledgement"
 	case *service.APIKeyDeliveryPolicyInput:
 		kind = "policy"
 	case *service.APIKeyDeliveryIdentityInput:

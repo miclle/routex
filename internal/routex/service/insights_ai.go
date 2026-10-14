@@ -29,13 +29,17 @@ var insightsAIUnavailable = &apperrors.Error{Code: 503, Message: "analysis data 
 var insightsAITooLarge = &apperrors.Error{Code: 422, Message: "analysis capture is too large; narrow the time range"}
 
 type InsightsAIInput struct {
-	Report   string  `json:"report"`
-	ModelID  string  `json:"model_id"`
-	From     string  `json:"from"`
-	To       string  `json:"to"`
-	Timezone string  `json:"timezone"`
-	Language string  `json:"language"`
-	Question *string `json:"question,omitempty"`
+	Report    string  `json:"report"`
+	ModelID   string  `json:"model_id"`
+	From      string  `json:"from"`
+	To        string  `json:"to"`
+	Timezone  string  `json:"timezone"`
+	Language  string  `json:"language"`
+	Question  *string `json:"question,omitempty"`
+	Cursor    string  `json:"cursor,omitempty"`
+	Limit     int     `json:"limit,omitempty"`
+	ScopeKind string  `json:"scope_kind,omitempty"`
+	ScopeID   string  `json:"scope_id,omitempty"`
 }
 type InsightsAIModel struct {
 	ModelID string `json:"model_id"`
@@ -57,15 +61,22 @@ type InsightsAILabel struct {
 	Label      string  `json:"label"`
 	ModelID    *string `json:"model_id,omitempty"`
 	ProviderID *string `json:"provider_id,omitempty"`
+	TeamID     *string `json:"team_id,omitempty"`
+	KeyID      *string `json:"key_id,omitempty"`
 	Name       string  `json:"name"`
 	Unknown    bool    `json:"unknown"`
 }
 type InsightsAIResponse struct {
-	RequestID  string            `json:"request_id"`
-	Completion string            `json:"completion"`
-	Text       *string           `json:"text"`
-	Capture    InsightsAICapture `json:"capture"`
-	Labels     []InsightsAILabel `json:"labels"`
+	RequestID       string                      `json:"request_id"`
+	Completion      string                      `json:"completion"`
+	Text            *string                     `json:"text"`
+	Capture         *InsightsAICapture          `json:"capture,omitempty"`
+	QuotaCapture    *InsightsAITeamQuotaCapture `json:"quota_capture,omitempty"`
+	teamProofs      []insightsAITeamProof
+	KeyQuotaCapture *InsightsAIKeyQuotaCapture `json:"key_quota_capture,omitempty"`
+	keyProofs       []insightsAIKeyProof
+	keyScopeProof   *insightsAIKeyScopeProof
+	Labels          []InsightsAILabel `json:"labels"`
 }
 
 // DecodeInsightsAIQuestion preserves the reviewed caller text. It is transient
@@ -84,7 +95,7 @@ func validInsightsAIQuestion(question *string) bool {
 
 func insightsAIFilter(input InsightsAIInput) (UsageFilter, error) {
 	filter := UsageFilter{Timezone: input.Timezone, Granularity: "auto", Compare: false}
-	if !validInsightsAIQuestion(input.Question) || input.Report != "tokens_by_model" && input.Report != "provider_quality" || !insightsAIModelID.MatchString(input.ModelID) || input.Language != "en" && input.Language != "zh" || input.Timezone == "" || len(input.Timezone) > 100 || len(input.From) > 64 || len(input.To) > 64 || !insightsAIAbsolute.MatchString(input.From) || !insightsAIAbsolute.MatchString(input.To) {
+	if input.ScopeKind != "" || input.ScopeID != "" || input.Cursor != "" || input.Limit != 0 || !validInsightsAIQuestion(input.Question) || input.Report != "tokens_by_model" && input.Report != "provider_quality" || !insightsAIModelID.MatchString(input.ModelID) || input.Language != "en" && input.Language != "zh" || input.Timezone == "" || len(input.Timezone) > 100 || len(input.From) > 64 || len(input.To) > 64 || !insightsAIAbsolute.MatchString(input.From) || !insightsAIAbsolute.MatchString(input.To) {
 		return filter, apperrors.ErrBadRequest
 	}
 	from, err := time.Parse(time.RFC3339Nano, input.From)
@@ -138,7 +149,16 @@ func (s *Service) AnalyzeInsightsAI(ctx context.Context, identity *PersonalSessi
 	if identity == nil {
 		return nil, nil, apperrors.ErrUnauthorized
 	}
-	filter, err := insightsAIFilter(input)
+	var filter UsageFilter
+	var err error
+	switch input.Report {
+	case "team_quota_tokens":
+		err = validateInsightsAITeamQuota(input)
+	case "key_quota_tokens":
+		err = validateInsightsAIKeyQuota(input)
+	default:
+		filter, err = insightsAIFilter(input)
+	}
 	if err != nil {
 		return nil, nil, err
 	}
@@ -147,13 +167,26 @@ func (s *Service) AnalyzeInsightsAI(ctx context.Context, identity *PersonalSessi
 	}
 	var view *InsightsAIResponse
 	var projection []byte
-	if input.Report == "provider_quality" {
+	switch input.Report {
+	case "team_quota_tokens":
+		report, captureErr := s.InsightsQuota(ctx, identity.UserID, InsightsQuotaInput{Dimension: "tokens", Cursor: input.Cursor, Limit: input.Limit}, false)
+		if captureErr != nil {
+			return nil, nil, captureErr
+		}
+		view, projection, err = projectInsightsAITeamQuota(report, input, time.Now().UTC())
+	case "key_quota_tokens":
+		report, captureErr := s.InsightsQuota(ctx, identity.UserID, InsightsQuotaInput{Dimension: "tokens", ScopeKind: input.ScopeKind, ScopeID: input.ScopeID, Cursor: input.Cursor, Limit: input.Limit}, true)
+		if captureErr != nil {
+			return nil, nil, captureErr
+		}
+		view, projection, err = projectInsightsAIKeyQuota(report, input, time.Now().UTC())
+	case "provider_quality":
 		report, captureErr := s.InsightsProviderQuality(ctx, identity.UserID, InsightsProviderQualityInput{From: input.From, To: input.To, Timezone: input.Timezone})
 		if captureErr != nil {
 			return nil, nil, captureErr
 		}
 		view, projection, err = projectInsightsAIProviderQuality(report, input)
-	} else {
+	default:
 		report, captureErr := s.AdminUsage(ctx, identity.UserID, filter)
 		if captureErr != nil {
 			return nil, nil, captureErr
@@ -179,9 +212,14 @@ func (s *Service) AnalyzeInsightsAI(ctx context.Context, identity *PersonalSessi
 		return nil, nil, apperrors.ErrNotFound
 	}
 	var body []byte
-	if input.Report == "provider_quality" {
+	switch input.Report {
+	case "team_quota_tokens":
+		body, err = insightsAITeamQuotaChatBody(name, input.Language, projection, input.Question)
+	case "key_quota_tokens":
+		body, err = insightsAIKeyQuotaChatBody(name, input.Language, projection, input.Question)
+	case "provider_quality":
 		body, err = insightsAIProviderQualityChatBody(name, input.Language, projection, input.Question)
-	} else {
+	default:
 		body, err = insightsAIChatBody(name, input.Language, projection, input.Question)
 	}
 	if err != nil {
@@ -189,7 +227,7 @@ func (s *Service) AnalyzeInsightsAI(ctx context.Context, identity *PersonalSessi
 	}
 	// The usage capture and picker are not dispatch authority. Recheck the exact
 	// current read permission and runtime Session/model grant after preparation.
-	if err := s.ReauthorizeInsightsAIReport(ctx, identity, input.ModelID, input.Report); err != nil {
+	if err := s.ReauthorizeInsightsAIResult(ctx, identity, input.ModelID, input.Report, view); err != nil {
 		return nil, nil, err
 	}
 	result, err := s.PersonalSessionGatewayChat(ctx, identity, input.ModelID, body, requestID)
@@ -197,7 +235,7 @@ func (s *Service) AnalyzeInsightsAI(ctx context.Context, identity *PersonalSessi
 }
 
 func (s *Service) ReauthorizeInsightsAIReport(ctx context.Context, identity *PersonalSessionIdentity, modelID, report string) error {
-	if report != "tokens_by_model" && report != "provider_quality" {
+	if report != "tokens_by_model" && report != "provider_quality" && report != "team_quota_tokens" && report != "key_quota_tokens" {
 		return apperrors.ErrBadRequest
 	}
 	if err := s.ReauthorizeInsightsAI(ctx, identity, modelID); err != nil {
@@ -294,7 +332,7 @@ func projectInsightsAI(report *UsageReport, input InsightsAIInput) (*InsightsAIR
 		return nil, nil, insightsAITooLarge
 	}
 	capture := InsightsAICapture{Source: report.Source, From: input.From, To: input.To, Timezone: input.Timezone, QueriedAt: report.QueriedAt, LatestCompletedAt: report.LatestCompletedAt, MayLag: report.MayLag}
-	view := &InsightsAIResponse{Completion: "unknown", Capture: capture, Labels: []InsightsAILabel{}}
+	view := &InsightsAIResponse{Completion: "unknown", Capture: &capture, Labels: []InsightsAILabel{}}
 	summary, err := projectInsightsAIStats(report.Current.Summary)
 	if err != nil {
 		return nil, nil, err

@@ -130,3 +130,115 @@ publication. Current runtime can install fresh authorization while retaining old
 routes after route validation failure; that mixed state is not a complete
 captured version. Reviewed current-authority rollback and fleet acknowledgement
 remain separate work. This foundation stores nothing automatically.
+
+## Administrator storage cleanup contract
+
+The cleanup slice is under implementation and has not completed qualification.
+It belongs in the existing archive-history dialog. An intrinsic administrator
+must have current `system.read` and `system.write`, an exact current Session,
+a bounded selection of 1–20 archive IDs, a server-issued strong preview ETag,
+a reason and a stable UUIDv4 request identity.
+
+Preview reports retained count and actual encrypted-envelope bytes, selected
+count and bytes, and both fixed caps. It reads no source or secret material.
+The ETag binds the exact actor birth, selected immutable headers, chunk count
+and actual bytes, retention ledger, and canonical content targets. Any concurrent
+archive admission or byte-accounting change requires a new unsent review.
+
+Cleanup serializes with the archive writer and root-envelope rewrap. Header,
+chunks, provenance, actual-byte accounting, immutable original receipt and audit
+commit atomically. The audit targets the first canonical selected archive ID;
+its details retain the complete selection, UUID request, reason and released
+encrypted bytes. The UUID is not stored in the audit's bounded resource-ID field.
+If a selected version owns a canonical digest mapping, a
+remaining duplicate becomes the target only after authenticated reconstruction
+and exact canonical-byte comparison. Legacy provenance is never inferred.
+No automatic deletion is introduced. Future activation or rollback references
+must establish explicit retention protection before referencing archives.
+
+A failed or unknown acknowledgement is not success. An explicit identical retry
+reauthorizes the current administrator and returns only the exact retained receipt
+without repeating deletion. The UI retains dispatched intent in mounted local
+state, rejects obsolete read/actor responses and never infers deletion from a
+missing row. Same-actor Session, permission, jobs or list renewal hides prior
+facts and releases obsolete pending requests while retaining the exact dispatched
+intent. Explicit replay waits for fresh authority and a successful current list
+read, then uses current CSRF with the original UUID, selection, reason and ETag.
+Actor change, dismissal or parent unmount clears that local retry state. Reasons
+are validated before capture as nonblank, trimmed Unicode text of at most 1,000
+characters without control characters. Cleanup releases archive storage only and
+changes no current route or runtime installation.
+
+## Cleanup proposal qualification checkpoint
+
+The isolated V115 proposal has authored real-driver migration, partial-DDL,
+retained-intent refusal, transactional audit rollback, lost-acknowledgement
+replay and authenticated legacy-content rebind controls. These controls are
+registered inside the maintained exclusive archive worker. The first two
+dual-driver runs failed and remain retained. The first exposed a fixture reset
+that left successor migration receipts; the second exposed an oversized audit
+resource identity that rolled back successful cleanup on both databases. The
+isolated successor corrects both, retains exact audit-intent assertions, and
+normalizes PostgreSQL timestamp locations before full-field receipt comparison.
+Its real-driver qualification remains pending.
+Source review identified a lossy unpaired-Unicode decoder path; it is corrected
+in the proposal with paired/unpaired escape regressions. The corrected database,
+service and handler race focus passed all 22 named tests. The repaired frontend
+and localization focus passed all 63 cases; mandatory and browser acceptance
+remain open. These source results are not complete integration acceptance.
+
+The direct three-file frontend run passed all five new cleanup component cases
+but failed one API header fixture and twelve existing archive-page cases. Axios
+normalizes header whitespace before the decoder receives it; the inappropriate
+newline fixture is replaced with a noncanonical uppercase digest case. The
+existing page first failed at its unchanged five-second timeout, followed by
+overlapping React act calls. Its historical cause remains unproven. The earlier
+accidental full frontend launch was terminated and is not acceptance. No V115
+mandatory, backend, database, browser or main-composition pass is claimed.
+
+The repaired three-file frontend run now passes all 54 cases with unchanged
+five-second test limits, one DOM worker and a 512 MiB Node heap. All twelve
+sealed repair paths and modes remained unchanged after the run, and its owned
+process group is gone. Same-actor Session, permission, Jobs and list renewal
+preserves only the exact dispatched cleanup intent; renewed authority hides
+prior facts and permits explicit identical retry with fresh CSRF. Actor change,
+dismissal and parent unmount discard it. Reasons validate before capture.
+Earlier failed and interrupted frontend runs remain retained separately.
+Backend source now rechecks Session expiry before returning a preview and before
+committing cleanup or returning a saved receipt. Controlled expiry during the
+preview and audit stages must roll back the transaction and return no private
+review or receipt. Persisted reason/selection payloads have frozen GORM bounds.
+Registered anonymous-route and malformed-wire regression controls are also
+authored. These backend changes and their real-driver controls remain unqualified.
+
+## Authenticated integrity review
+
+`GET /api/v1/admin/runtime/archives/:archive_id/validation` requires an exact
+current intrinsic administrator Session and independent `system.read`. It is a
+read-only operation; `system.write`, CSRF and a reason are not required. Query
+parameters are rejected. One three-second repeatable-read transaction rechecks
+current admission, actor/Session birth, primary authentication policy and read
+permission before decoding and before returning.
+
+The existing bounded cold reader authenticates every retained chunk and the
+complete canonical document using current available envelope roots. Missing or
+corrupt chunks, unavailable roots and cancellation return sanitized failure with
+no partial success. The closed response contains only scope
+`archive_integrity_only`, archive identity/birth, codec version, observation time
+and `integrity: authenticated`. No source facts, secret-derived digests, ciphertext
+or decrypted content leave the server. No network or historical secret recovery
+is performed. This result proves one successful cold read, not future readability,
+rollback eligibility, current serving configuration, command completion, application
+adoption or fleet acknowledgement. It creates no activation reference, audit
+mutation, retention reservation or publication. It issues no mutation ETag.
+
+The existing archive-history table offers an explicit Validate integrity action
+for current administrators with read authority, independently of cleanup/write
+authority. Results and errors remain transient and are cleared by refresh or any
+authority/target generation change. Obsolete replies cannot restore them. No
+automatic validation or retry runs. English/Chinese copy uses local primitives
+and preserves the existing table/dialog layout.
+
+Focused frontend tests and TypeScript checks have passed for this isolated successor.
+Backend compiler tests, real PostgreSQL/MySQL, coherent project gates and browser
+qualification remain pending. Validation does not implement activation or rollback.

@@ -30,7 +30,7 @@ func decodeInsightsAIInput(raw []byte) (service.InsightsAIInput, error) {
 	if err != nil || start != json.Delim('{') {
 		return input, apperrors.ErrBadRequest
 	}
-	fields := map[string]bool{"report": true, "model_id": true, "from": true, "to": true, "timezone": true, "language": true, "question": true}
+	fields := map[string]bool{"report": true, "model_id": true, "from": true, "to": true, "timezone": true, "language": true, "question": true, "cursor": true, "limit": true, "scope_kind": true, "scope_id": true}
 	seen := map[string]bool{}
 	for decoder.More() {
 		token, err := decoder.Token()
@@ -48,6 +48,13 @@ func decodeInsightsAIInput(raw []byte) (service.InsightsAIInput, error) {
 				return input, err
 			}
 		}
+		if name == "limit" {
+			var limit int
+			if json.Unmarshal(rawValue, &limit) != nil {
+				return input, apperrors.ErrBadRequest
+			}
+			continue
+		}
 		var text string
 		if json.Unmarshal(rawValue, &text) != nil {
 			return input, apperrors.ErrBadRequest
@@ -57,13 +64,32 @@ func decodeInsightsAIInput(raw []byte) (service.InsightsAIInput, error) {
 	if err != nil || end != json.Delim('}') || decoder.Decode(new(any)) != io.EOF {
 		return input, apperrors.ErrBadRequest
 	}
-	for _, field := range []string{"report", "model_id", "from", "to", "timezone", "language"} {
+	if json.Unmarshal(raw, &input) != nil {
+		return input, apperrors.ErrBadRequest
+	}
+	required := []string{"report", "model_id", "from", "to", "timezone", "language"}
+	switch input.Report {
+	case "team_quota_tokens":
+		required = []string{"report", "model_id", "language", "cursor", "limit"}
+	case "key_quota_tokens":
+		required = []string{"report", "model_id", "language", "scope_kind", "scope_id", "cursor", "limit"}
+	}
+	for _, field := range required {
 		if !seen[field] {
 			return input, apperrors.ErrBadRequest
 		}
 	}
-	if json.Unmarshal(raw, &input) != nil {
-		return input, apperrors.ErrBadRequest
+	for field := range seen {
+		if field == "question" {
+			continue
+		}
+		found := false
+		for _, allowed := range required {
+			found = found || field == allowed
+		}
+		if !found {
+			return input, apperrors.ErrBadRequest
+		}
 	}
 	return input, nil
 }
@@ -185,7 +211,7 @@ func (ctrl *Ctrl) finishInsightsAI(c *fox.Context, ctx context.Context, requestI
 	}
 	// Publication authority is fresh after native work. A denial discards private
 	// output without changing the actual call outcome recorded by the defer.
-	if err := ctrl.service.ReauthorizeInsightsAIReport(ctx, identity, modelID, report); err != nil {
+	if err := ctrl.service.ReauthorizeInsightsAIResult(ctx, identity, modelID, report, view); err != nil {
 		writeInsightsAIError(c, err)
 		return
 	}

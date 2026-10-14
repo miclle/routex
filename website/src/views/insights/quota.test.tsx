@@ -34,6 +34,7 @@ let actor: string,
   sessionGate: DeferredGate | undefined
 let definitions: InsightsReportDefinition[], saveStatus: number, saveGate: DeferredGate | undefined
 const savedID = 'isr_01arz3ndektsv4rrffq69g5fav'
+let aiModels: boolean, aiGate: DeferredGate | undefined
 let reportStatus: number, targetStatus: number, mutation: (r: QuotaInsightsReport) => void
 const original = client.defaults.adapter
 const text = (key: string) => i18n.t('insights:' + key)
@@ -57,6 +58,8 @@ function failure(config: InternalAxiosRequestConfig, status: number) {
 }
 beforeEach(async () => {
   await i18n.changeLanguage('en')
+  aiModels = false
+  aiGate = undefined
   actor = quotaActor
   permissions = ['calls.read_all', 'members.read']
   requests = []
@@ -100,8 +103,56 @@ beforeEach(async () => {
     } else if (config.url === '/auth/permissions') {
       data = { permissions: [...permissions] }
       if (permissionGate) await permissionGate.promise
-    } else if (config.url === '/admin/insights/models') data = { items: [] }
-    else if (config.url === '/admin/members')
+    } else if (config.url === '/admin/insights/models')
+      data = {
+        items: aiModels
+          ? [{ model_id: 'mdl_01arz3ndektsv4rrffq69g5fav', name: 'Personal quota analyst' }]
+          : [],
+      }
+    else if (config.url === '/admin/insights/analyze') {
+      const input = JSON.parse(config.data)
+      if (aiGate) await aiGate.promise
+      const keyAdvice = input.report === 'key_quota_tokens'
+      const report = quotaFixture(
+        keyAdvice
+          ? { ...keyQuotaInput, scope: { kind: input.scope_kind, id: input.scope_id } }
+          : teamQuotaInput,
+      )
+      const capture = {
+        source: 'local_quota_journal',
+        queried_at: '2026-10-14T12:00:00Z',
+        cursor: input.cursor,
+        limit: input.limit,
+        has_more: true,
+        timezone: report.time_zone,
+        as_of: report.as_of,
+        coverage_start: report.coverage_start,
+        baseline_from: report.baseline_from,
+        baseline_to: report.baseline_to,
+        month_from: report.month_from,
+        month_reset: report.month_reset,
+        baseline_basis: report.baseline_basis,
+      }
+      data = {
+        request_id: 'req_01arz3ndektsv4rrffq69g5fav',
+        completion: 'completed',
+        text: '<script>unsafe</script> ' + (keyAdvice ? 'K1' : 'T1') + ' current-page advice',
+        ...(keyAdvice
+          ? {
+              key_quota_capture: {
+                ...capture,
+                scope_kind: input.scope_kind,
+                scope_id: input.scope_id,
+              },
+            }
+          : { quota_capture: capture }),
+        labels: [
+          keyAdvice
+            ? { label: 'K1', key_id: report.items[0].id, name: '<img src=key>', unknown: false }
+            : { label: 'T1', team_id: report.items[0].id, name: '<img src=team>', unknown: false },
+        ],
+      }
+    } else if (config.url === '/admin/members')
       data = { items: [{ id: quotaActor, name: 'Reviewed member' }], next_cursor: null }
     else if (config.url === '/projects' || config.url === '/admin/projects')
       data = { items: [{ id: quotaProject, name: 'Reviewed Project' }], next_cursor: null }
@@ -807,4 +858,312 @@ it('rejects an obsolete pending Team save even after controls return to the orig
   await until(() => expect(host.textContent).toContain(text('savedConfirmed')))
   expect(saves()[1].data).toBe(originalBody)
   expect(reports()).toHaveLength(0)
+})
+
+const analyses = () => requests.filter((r) => r.url === '/admin/insights/analyze')
+async function prepareTeamAdvice() {
+  aiModels = true
+  await mount()
+  await click('shortcutTeam')
+  await click('quotaRun')
+  await ready()
+  await until(() => expect(host.textContent).toContain('Personal quota analyst'))
+  await select('aiModel', 'mdl_01arz3ndektsv4rrffq69g5fav')
+  await click('aiReview')
+  await until(() => expect(document.body.textContent).toContain(text('aiConfirmTitle')))
+}
+it('requires current-page review and explicit personal inference confirmation, and renders anonymous advice as plain text', async () => {
+  await prepareTeamAdvice()
+  expect(analyses()).toHaveLength(0)
+  expect(document.body.textContent).toContain(
+    i18n.t('insights:aiTeamQuotaPageReview', { limit: 20, page: text('aiTeamQuotaFirstPage') }),
+  )
+  await click('aiConfirm')
+  await until(() => expect(host.textContent).toContain('T1 current-page advice'))
+  expect(JSON.parse(analyses()[0].data)).toEqual({
+    report: 'team_quota_tokens',
+    model_id: 'mdl_01arz3ndektsv4rrffq69g5fav',
+    language: 'en',
+    cursor: '',
+    limit: 20,
+  })
+  expect(host.querySelector('script')).toBeNull()
+  expect(host.querySelector('img')).toBeNull()
+  expect(host.textContent).toContain(text('aiTeamQuotaBasis'))
+  expect(host.textContent).toContain(text('aiTeamQuotaMore'))
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(host.textContent).toContain(text('aiTeamQuotaSource'))
+  expect(analyses()).toHaveLength(1)
+  expect(
+    cache
+      .getQueryCache()
+      .getAll()
+      .some((q) => (JSON.stringify(q.state.data) ?? '').includes('T1 current-page advice')),
+  ).toBe(false)
+})
+it('uses only the reviewed following-page cursor and revokes its prepared confirmation on refresh', async () => {
+  mutation = (r) => {
+    r.next_cursor = 'cmV2aWV3ZWQ'
+  }
+  aiModels = true
+  await mount()
+  await click('shortcutTeam')
+  await click('quotaRun')
+  await ready()
+  mutation = (r) => {
+    r.next_cursor = null
+  }
+  await click('quotaNextPage')
+  await until(() => expect(reports()).toHaveLength(2))
+  await ready()
+  await select('aiModel', 'mdl_01arz3ndektsv4rrffq69g5fav')
+  await click('aiReview')
+  await click('aiConfirm')
+  await until(() => expect(analyses()).toHaveLength(1))
+  expect(JSON.parse(analyses()[0].data).cursor).toBe('cmV2aWV3ZWQ')
+  await until(() => expect(host.textContent).toContain('T1 current-page advice'))
+  reportGate = deferred()
+  await click('quotaRefresh')
+  expect(host.textContent).not.toContain('T1 current-page advice')
+  reportGate.release()
+  await ready()
+  expect(analyses()).toHaveLength(1)
+})
+it.each(['dimension', 'refresh', 'permission', 'session', 'actor', 'models'] as const)(
+  'discards a held Team advice result after %s lifetime changes',
+  async (boundary) => {
+    await prepareTeamAdvice()
+    aiGate = deferred()
+    await click('aiConfirm')
+    await until(() => expect(analyses()).toHaveLength(1))
+    if (boundary === 'dimension') await select('quotaDimension', 'money')
+    if (boundary === 'refresh') {
+      reportGate = deferred()
+      await click('quotaRefresh')
+    }
+    if (boundary === 'permission') {
+      permissions = []
+      await act(async () => {
+        await cache.invalidateQueries({ queryKey: ['permissions', actor] })
+      })
+    }
+    if (boundary === 'session') {
+      sessionGate = deferred()
+      await act(async () => {
+        void cache.invalidateQueries({ queryKey: sessionKey })
+      })
+    }
+    if (boundary === 'actor') {
+      actor = 'usr_other'
+      await act(async () => {
+        cache.setQueryData(sessionKey, { user: { id: actor, role: 'member' }, csrf_token: 'new' })
+      })
+    }
+    if (boundary === 'models') {
+      await act(async () => {
+        void cache.refetchQueries({ queryKey: ['insights-models'] })
+      })
+    }
+    aiGate.release()
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 10)))
+    expect(host.textContent).not.toContain('T1 current-page advice')
+    expect(analyses()).toHaveLength(1)
+  },
+)
+it('keeps Money and unreviewed Key quota advice unavailable without personal inference', async () => {
+  aiModels = true
+  await mount()
+  await click('shortcutTeam')
+  await select('quotaDimension', 'money')
+  await click('quotaRun')
+  await ready()
+  expect(host.textContent).not.toContain(text('aiTitle'))
+  await click('shortcutKey')
+  expect(host.textContent).not.toContain(text('aiTitle'))
+  expect(analyses()).toHaveLength(0)
+})
+it('keeps an exact Team question transient and does not clear the reviewed page or invoke a model before confirmation', async () => {
+  aiModels = true
+  await mount()
+  await click('shortcutTeam')
+  await click('quotaRun')
+  await ready()
+  const question = '  Explain T1; do not expose Teams outside this page  '
+  const field = host.querySelector<HTMLTextAreaElement>('[name="question"]')!
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
+      field,
+      question,
+    )
+    field.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  await click('send')
+  expect(analyses()).toHaveLength(0)
+  expect(host.textContent).toContain('Reviewed quota account')
+  await select('aiModel', 'mdl_01arz3ndektsv4rrffq69g5fav')
+  await click('aiReview')
+  expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain(question)
+  await click('aiConfirm')
+  await until(() => expect(analyses()).toHaveLength(1))
+  expect(JSON.parse(analyses()[0].data)).toEqual({
+    report: 'team_quota_tokens',
+    model_id: 'mdl_01arz3ndektsv4rrffq69g5fav',
+    language: 'en',
+    cursor: '',
+    limit: 20,
+    question,
+  })
+  await until(() => expect(host.textContent).toContain('T1 current-page advice'))
+  expect(JSON.stringify(cache.getMutationCache().getAll())).not.toContain(question)
+})
+
+async function prepareKeyAdvice(kind: 'member' | 'project' = 'member') {
+  aiModels = true
+  await mount()
+  await click('shortcutKey')
+  if (kind === 'project') await select('quotaScopeKind', 'project')
+  await until(() =>
+    expect(host.textContent).toContain(kind === 'member' ? 'Reviewed member' : 'Reviewed Project'),
+  )
+  await select('quotaSelectedScope', kind === 'member' ? quotaActor : quotaProject)
+  await until(() => expect(button('quotaRun').disabled).toBe(false))
+  await click('quotaRun')
+  await ready()
+  await until(() => expect(host.textContent).toContain('Personal quota analyst'))
+  await select('aiModel', 'mdl_01arz3ndektsv4rrffq69g5fav')
+  await click('aiReview')
+  await until(() => expect(document.body.textContent).toContain(text('aiConfirmTitle')))
+}
+it.each(['member', 'project'] as const)(
+  'requires explicit %s Key page review, personal model and confirmation before advice',
+  async (kind) => {
+    await prepareKeyAdvice(kind)
+    expect(analyses()).toHaveLength(0)
+    expect(document.body.textContent).toContain(text('aiKeyQuotaDisclosure'))
+    await click('aiConfirm')
+    await until(() => expect(host.textContent).toContain('K1 current-page advice'))
+    expect(JSON.parse(analyses()[0].data)).toEqual({
+      report: 'key_quota_tokens',
+      model_id: 'mdl_01arz3ndektsv4rrffq69g5fav',
+      language: 'en',
+      scope_kind: kind,
+      scope_id: kind === 'member' ? quotaActor : quotaProject,
+      cursor: '',
+      limit: 20,
+    })
+    expect(host.querySelector('script')).toBeNull()
+    expect(host.querySelector('img')).toBeNull()
+    expect(host.textContent).toContain(text('aiKeyQuotaSource'))
+    expect(host.textContent).toContain(text('aiTeamQuotaBasis'))
+    expect(
+      Array.from(host.querySelectorAll('table'), (table) => table.getAttribute('aria-label')),
+    ).toContain(text('aiKeyQuotaLabels'))
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(
+      Array.from(host.querySelectorAll('table'), (table) => table.getAttribute('aria-label')),
+    ).toContain(text('aiKeyQuotaLabels'))
+    expect(analyses()).toHaveLength(1)
+    expect(JSON.stringify(cache.getMutationCache().getAll())).not.toContain(
+      'K1 current-page advice',
+    )
+    expect(
+      cache
+        .getQueryCache()
+        .getAll()
+        .some((q) => (JSON.stringify(q.state.data) ?? '').includes('K1 current-page advice')),
+    ).toBe(false)
+  },
+)
+it.each([
+  'scope',
+  'target',
+  'scope_read',
+  'dimension',
+  'refresh',
+  'permission',
+  'session',
+  'actor',
+  'models',
+] as const)(
+  'discards held Key advice after %s changes without replaying inference',
+  async (boundary) => {
+    await prepareKeyAdvice()
+    aiGate = deferred()
+    await click('aiConfirm')
+    await until(() => expect(analyses()).toHaveLength(1))
+    if (boundary === 'scope') await select('quotaScopeKind', 'project')
+    if (boundary === 'target') await select('quotaSelectedScope', '')
+    if (boundary === 'scope_read') {
+      targetGate = deferred()
+      await act(async () => {
+        void cache.refetchQueries({ queryKey: targetKey(), exact: true })
+      })
+    }
+    if (boundary === 'dimension') await select('quotaDimension', 'money')
+    if (boundary === 'refresh') {
+      reportGate = deferred()
+      await click('quotaRefresh')
+    }
+    if (boundary === 'permission') {
+      permissions = ['calls.read_all']
+      await act(async () => {
+        await cache.invalidateQueries({ queryKey: ['permissions', actor] })
+      })
+    }
+    if (boundary === 'session') {
+      sessionGate = deferred()
+      await act(async () => {
+        void cache.invalidateQueries({ queryKey: sessionKey })
+      })
+    }
+    if (boundary === 'actor') {
+      actor = 'usr_01arz3ndektsv4rrffq69g5faw'
+      await act(async () => {
+        cache.setQueryData(sessionKey, { user: { id: actor, role: 'member' }, csrf_token: 'new' })
+      })
+    }
+    if (boundary === 'models')
+      await act(async () => {
+        void cache.refetchQueries({ queryKey: ['insights-models'] })
+      })
+    aiGate.release()
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 10)))
+    expect(host.textContent).not.toContain('K1 current-page advice')
+    expect(analyses()).toHaveLength(1)
+  },
+)
+it('keeps the exact Key question transient and its owner page unchanged until explicit confirmation', async () => {
+  aiModels = true
+  await mount()
+  await member()
+  await click('quotaRun')
+  await ready()
+  const question = '  Explain K1; never disclose another owner or Key  '
+  const field = host.querySelector<HTMLTextAreaElement>('[name="question"]')!
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
+      field,
+      question,
+    )
+    field.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  await click('send')
+  expect(analyses()).toHaveLength(0)
+  expect(host.textContent).toContain('Reviewed quota account')
+  await select('aiModel', 'mdl_01arz3ndektsv4rrffq69g5fav')
+  await click('aiReview')
+  expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain(question)
+  await click('aiConfirm')
+  await until(() => expect(host.textContent).toContain('K1 current-page advice'))
+  expect(JSON.parse(analyses()[0].data)).toEqual({
+    report: 'key_quota_tokens',
+    model_id: 'mdl_01arz3ndektsv4rrffq69g5fav',
+    language: 'en',
+    scope_kind: 'member',
+    scope_id: quotaActor,
+    cursor: '',
+    limit: 20,
+    question,
+  })
+  expect(JSON.stringify(cache.getMutationCache().getAll())).not.toContain(question)
 })

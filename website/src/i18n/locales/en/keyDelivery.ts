@@ -40,6 +40,7 @@ export default {
   subjectsHelp:
     'Values are case-sensitive and preserved verbatim. No name, email or numeric identity conversion is performed.',
   reviewTemplate: 'Review JWT template',
+  reviewControllers: 'Review delivery controllers',
   profiles: 'Application targets and Profiles',
   profilesHelp:
     'Review existing owner-created targets. Control approval, isolation attestation and reconciliation are separate operations.',

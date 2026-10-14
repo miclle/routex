@@ -1,0 +1,12 @@
+{
+  "routex_url": "https://routex.example.test",
+  "slot_id": "kds_01aaaaaaaaaaaaaaaaaaaaaaaa",
+  "descriptor_revision": "1",
+  "configuration_digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "bearer_file": "/run/routex-controller/controller.bearer",
+  "state_directory": "/run/routex-controller/operation",
+  "agent_executable": "/opt/vault/bin/vault",
+  "agent_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "timeout_seconds": 60,
+  "allow_loopback_http": false
+}

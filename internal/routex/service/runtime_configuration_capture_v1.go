@@ -28,11 +28,12 @@ type runtimeConfigurationCaptureV1 struct {
 }
 
 type runtimeConfigurationCaptureStateV1 struct {
-	publication sync.Mutex
-	preparing   atomic.Bool
-	stopped     atomic.Bool
-	sequence    atomic.Uint64
-	latest      atomic.Pointer[runtimeConfigurationCaptureV1]
+	archiveWriter runtimeArchiveWriterState
+	publication   sync.Mutex
+	preparing     atomic.Bool
+	stopped       atomic.Bool
+	sequence      atomic.Uint64
+	latest        atomic.Pointer[runtimeConfigurationCaptureV1]
 }
 
 func (c *runtimeConfigurationCaptureStateV1) stop() {
@@ -99,7 +100,7 @@ func runtimeConfigurationCaptureLiveV1(ctx context.Context, r *gatewayRuntime) b
 }
 
 // This synchronous best-effort seam has one nonblocking preparation slot and
-// no queue or worker. Failure changes neither authorization nor route status.
+// no blocking archive write. Failure changes neither authorization nor route status.
 // Later source publication cannot turn proven historical capture into current
 // authority, and does not invalidate the ticket's earlier coherent observation.
 func (s *Service) prepareRuntimeConfigurationCaptureV1(ctx context.Context, r *gatewayRuntime, ticket *runtimeConfigurationSourceTicketV1) {
@@ -140,6 +141,7 @@ func (s *Service) prepareRuntimeConfigurationCaptureV1(ctx context.Context, r *g
 		return
 	}
 	r.configurationCapture.latest.Store(capture)
+	r.configurationCapture.archiveWriter.submit(capture)
 }
 
 func runtimeConfigurationNetworkDigestV1(policy runtimeConfigurationNetworkPolicyV1) (string, bool) {

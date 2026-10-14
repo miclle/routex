@@ -46,8 +46,12 @@ func (s *Service) rootRuntimeArchiveInventoryPage(ctx context.Context, cursor st
 }
 
 func rootRuntimeArchiveCAS(tx *gorm.DB, row rootInventoryRow, result string) (string, error) {
+	ledger, err := lockRuntimeArchiveRetention(tx)
+	if err != nil {
+		return "", err
+	}
 	var chunk entity.RuntimeConfigurationArchiveChunk
-	err := personalExact(tx, "id", row.id).Take(&chunk).Error
+	err = personalExact(tx, "id", row.id).Take(&chunk).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return "deleted", nil
 	}
@@ -77,6 +81,17 @@ func rootRuntimeArchiveCAS(tx *gorm.DB, row rootInventoryRow, result string) (st
 	}
 	if update.RowsAffected != 1 {
 		return "changed", nil
+	}
+	// Root rotation may increase the retained total beyond a cap. It still
+	// proceeds; the next new archive remains paused rather than deleting history.
+	total, err := runtimeArchiveRetentionRewrapBytes(ledger.EncryptedBytes, int64(len(chunk.AuthCiphertext)), int64(len(result)))
+	if err != nil {
+		return "", err
+	}
+	if total != ledger.EncryptedBytes {
+		if err = updateRuntimeArchiveRetention(tx, ledger.RetainedCount, total); err != nil {
+			return "", err
+		}
 	}
 	return "rewrapped", nil
 }

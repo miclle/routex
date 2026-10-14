@@ -341,6 +341,11 @@ func testTeamModelRequestsLifecycle(t *testing.T, db *gorm.DB) {
 	failedCreate := send(applicant, "POST", ownPath, input, bCandidate.ReviewETag)
 	auditFailure.Store(false)
 	expectStatus(t, failedCreate, 500)
+	// The controlled rollback does not publish source changes. Restore the
+	// current authorization lease before reading runtime-backed discovery.
+	if err := svc.RefreshRuntime(ctx); err != nil {
+		t.Fatal(err)
+	}
 	if candidate(applicant, models["b"]).PendingRequest {
 		t.Fatal("failed creation retained pending shared slot")
 	}

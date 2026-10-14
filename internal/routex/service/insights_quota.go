@@ -256,6 +256,10 @@ func (s *Service) InsightsQuota(ctx context.Context, actor string, input Insight
 		var more bool
 		var err error
 		if keys {
+			result.keyScopeProof, err = insightsAIKeyScope(tx, actor, input.ScopeKind, input.ScopeID)
+			if err != nil {
+				return err
+			}
 			targets, more, err = insightsQuotaKeys(tx, actor, input, after, now)
 		} else {
 			targets, more, err = insightsQuotaTeams(tx, actor, after, input.Limit)
@@ -295,6 +299,11 @@ func (s *Service) InsightsQuota(ctx context.Context, actor string, input Insight
 			}
 		}
 		for _, target := range targets {
+			if !keys {
+				result.teamProofs = append(result.teamProofs, insightsAITeamProof{ID: target.row.ID, CreatedAt: target.created})
+			} else {
+				result.keyProofs = append(result.keyProofs, insightsAIKeyProof{ID: target.row.ID, CreatedAt: target.created})
+			}
 			var proof *eventqueue.QuotaUsageAccountProof
 			if result.AsOf != nil {
 				value, exists := batch.Accounts[limitAccount(target.kind, target.row.ID)]

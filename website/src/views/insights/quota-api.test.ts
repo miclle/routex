@@ -328,3 +328,18 @@ it('exports a fresh bounded CSV, refuses malformed blobs and never accepts an ab
   await expect(getQuotaInsights(teamQuotaInput, controller.signal)).rejects.toThrow()
   expect(urls).toHaveLength(3)
 })
+
+it.each(['member', 'project'] as const)(
+  'requires canonical %s root Key IDs for the reviewed owner scope',
+  (kind) => {
+    const input = {
+      ...keyQuotaInput,
+      scope: { kind, id: kind === 'member' ? quotaActor : quotaProject },
+    }
+    const value = quotaFixture(input)
+    const prefix = kind === 'member' ? 'key_' : 'pky_'
+    expect(parseQuotaInsights(value, input).items[0].id).toBe(prefix + '01arz3ndektsv4rrffq69g5fav')
+    value.items[0].id = (kind === 'member' ? 'pky_' : 'key_') + '01arz3ndektsv4rrffq69g5fav'
+    expect(() => parseQuotaInsights(value, input)).toThrow()
+  },
+)

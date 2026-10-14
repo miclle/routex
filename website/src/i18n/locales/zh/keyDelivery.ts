@@ -33,6 +33,7 @@ export default {
   subjects: '允许的 Subject，每行一个精确值',
   subjectsHelp: '值区分大小写并原样保留，不执行名称、邮箱或数字身份转换。',
   reviewTemplate: '审核 JWT 模板',
+  reviewControllers: '查看投递控制器',
   profiles: '应用目标与 Profile',
   profilesHelp: '审核由所有者创建的现有目标。控制权批准、隔离声明与协调分别执行。',
   application: '应用 · 环境',

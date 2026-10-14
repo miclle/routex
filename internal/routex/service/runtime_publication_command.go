@@ -277,6 +277,12 @@ func (s *Service) PublishRuntimeCommand(ctx context.Context, auth *Authenticatio
 	if !created {
 		return s.runtimePublicationReceipt(row), nil
 	}
+	return s.dispatchRuntimePublication(ctx, auth, row, lease, nil, false)
+}
+
+// Dispatch is shared only after an acknowledged atomic claim. A retained claim
+// is never resumed; the optional authority check belongs to the new consumer.
+func (s *Service) dispatchRuntimePublication(ctx context.Context, auth *Authentication, row entity.RuntimePublicationCommand, lease *systemInstanceLease, authority func(*gorm.DB) error, tryAdmission bool) (*RuntimePublicationCommandReceipt, error) {
 	ticket := &runtimePublicationTicket{row: row, lease: lease, ctx: ctx}
 	if _, loaded := s.runtimePublicationCommands.LoadOrStore(row.RequestID, ticket); loaded {
 		return nil, runtimePublicationUnavailable
@@ -284,7 +290,7 @@ func (s *Service) PublishRuntimeCommand(ctx context.Context, auth *Authenticatio
 	defer s.runtimePublicationCommands.CompareAndDelete(row.RequestID, ticket)
 	// A claim is not authority. Serialize a fresh actor/Session/process check after
 	// claim commit; losing authority leaves an immutable claimed/unknown receipt.
-	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := lockGovernance(tx); err != nil {
 			return err
 		}
@@ -294,6 +300,11 @@ func (s *Service) PublishRuntimeCommand(ctx context.Context, auth *Authenticatio
 		if err := s.runtimePublicationProcess(tx, lease); err != nil {
 			return err
 		}
+		if authority != nil {
+			if err := authority(tx); err != nil {
+				return err
+			}
+		}
 		return ctx.Err()
 	})
 	if err != nil || ctx.Err() != nil {
@@ -302,7 +313,12 @@ func (s *Service) PublishRuntimeCommand(ctx context.Context, auth *Authenticatio
 		}
 		return nil, runtimePublicationError(err)
 	}
-	refreshErr := s.RefreshRuntime(ctx)
+	var refreshErr error
+	if tryAdmission {
+		refreshErr = s.refreshRuntime(ctx, true)
+	} else {
+		refreshErr = s.RefreshRuntime(ctx)
+	}
 	finalized := time.Now().UTC().Truncate(time.Microsecond)
 	outcome := "refresh_returned_nil"
 	var code *string

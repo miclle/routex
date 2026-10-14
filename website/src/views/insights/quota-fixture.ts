@@ -30,7 +30,12 @@ export function quotaFixture(input: QuotaInsightsInput = teamQuotaInput): QuotaI
     next_cursor: null,
     items: [
       {
-        id: (input.kind === 'team_quota' ? 'tea_' : 'key_') + '01arz3ndektsv4rrffq69g5fav',
+        id:
+          (input.kind === 'team_quota'
+            ? 'tea_'
+            : input.scope.kind === 'project'
+              ? 'pky_'
+              : 'key_') + '01arz3ndektsv4rrffq69g5fav',
         name: 'Reviewed quota account',
         status: 'active',
         shared_key_count: input.kind === 'key_quota' ? 2 : 0,

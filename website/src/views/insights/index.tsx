@@ -238,12 +238,23 @@ function InsightsContent({
   const ai = useInsightsAI({
     actor,
     authorityStamp,
-    authorized: providerReport ? providerAuthorized : authorized,
+    authorized: quotaKind ? quota.aiAuthorized : providerReport ? providerAuthorized : authorized,
     range: draft,
     question: 'text' in question ? question.text : undefined,
-    report: providerReport ? 'provider_quality' : 'tokens_by_model',
+    report:
+      quotaKind === 'team_quota'
+        ? 'team_quota_tokens'
+        : quotaKind === 'key_quota'
+          ? 'key_quota_tokens'
+          : providerReport
+            ? 'provider_quality'
+            : 'tokens_by_model',
+    teamQuotaPage: quota.aiPage,
     supported:
-      supported && !quotaKind && !input.trim() && (!providerReport || providerPermissionReady),
+      supported &&
+      (!quotaKind || !!quota.aiPage) &&
+      !input.trim() &&
+      (!providerReport || providerPermissionReady),
   })
   useLayoutEffect(() => {
     alive.current = true
@@ -555,7 +566,9 @@ function InsightsContent({
                   </form>
                 </>
               )}
-              {!quotaKind && (!providerReport || providerPermissionReady) && ai.controls}
+              {(!quotaKind || !!quota.aiPage) &&
+                (!providerReport || providerPermissionReady) &&
+                ai.controls}
               <form
                 aria-label={t('questionLabel')}
                 className="space-y-3"
@@ -570,7 +583,7 @@ function InsightsContent({
                     quota.exporting
                   )
                     return
-                  if (quotaKind) {
+                  if (quotaKind && !quota.aiPage) {
                     ai.invalidate()
                     setMessage('unsupported')
                     return
@@ -586,7 +599,8 @@ function InsightsContent({
                     setMessage('questionInvalid')
                     return
                   }
-                  clearReport()
+                  if (quotaKind) ai.invalidate()
+                  else clearReport()
                   setQuestion({ text: reviewedQuestion })
                   setInput('')
                   setSupported(!providerReport || providerAuthorized())
@@ -687,7 +701,9 @@ function InsightsContent({
                   )}
                 </>
               )}
-              {!quotaKind && (!providerReport || providerPermissionReady) && ai.answer}
+              {(!quotaKind || !!quota.aiPage) &&
+                (!providerReport || providerPermissionReady) &&
+                ai.answer}
             </CardContent>
           </Card>
         </div>

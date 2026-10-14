@@ -28,10 +28,12 @@ export function Targets({
   actor,
   generation,
   life,
+  onReviewControllers,
 }: {
   actor: string
   generation: string
   life: DeliveryLifetime
+  onReviewControllers: (target: string) => void
 }) {
   const { t } = useTranslation('keyDelivery')
   const [cursor, setCursor] = useState(''),
@@ -195,6 +197,13 @@ export function Targets({
           ) : (
             <div className="max-h-[70vh] space-y-4 overflow-y-auto">
               <SecurityTuple tuple={facts.security_tuple} />
+              <Button
+                variant="outline"
+                disabled={life.locked || !life.current('secrets.read')}
+                onClick={() => onReviewControllers(facts.id)}
+              >
+                {t('reviewControllers')}
+              </Button>
               <FormField label={t('reason')}>
                 <Textarea
                   value={reason}

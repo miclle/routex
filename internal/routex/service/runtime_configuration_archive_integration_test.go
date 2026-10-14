@@ -94,6 +94,7 @@ func runtimeArchiveIntegrationStore(t *testing.T, write string) *secretstore.Sto
 func testRuntimeArchiveDatabase(t *testing.T, driver string) {
 	db := runtimeArchiveIntegrationDB(t, driver)
 	ctx := t.Context()
+	t.Run("retention_v113_upgrade_and_partial_recovery", func(t *testing.T) { testRuntimeArchiveRetentionUpgrade(t, db) })
 	t.Run("released_upgrade_and_concurrent_startup", func(t *testing.T) {
 		if err := database.MigrateThrough(ctx, db, 111); err != nil {
 			t.Fatal("empty released V111 creation", err)
@@ -122,10 +123,12 @@ func testRuntimeArchiveDatabase(t *testing.T, driver string) {
 			t.Fatal("repeat current startup", err)
 		}
 		var versions int64
-		if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 112 {
-			t.Fatal("complete V112 ledger", err)
+		if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 116 {
+			t.Fatal("complete V116 ledger", err)
 		}
 	})
+	t.Run("cleanup_v115_migration_upgrade_and_recovery", func(t *testing.T) { testRuntimeArchiveCleanupMigration(t, db) })
+	t.Run("routing_rollback_v116_migration", func(t *testing.T) { testRuntimeArchiveRollbackMigration(t, db) })
 	store := runtimeArchiveIntegrationStore(t, "first")
 	svc := &Service{db: db, secrets: store}
 	document := configurationFixtureV1(t)
@@ -204,11 +207,17 @@ func testRuntimeArchiveDatabase(t *testing.T, driver string) {
 		}
 	})
 	t.Run("authorized_header_metadata", func(t *testing.T) { testRuntimeArchiveMetadataDatabase(t, db, svc, identity, document) })
+	// Validate the original retained fixture before capacity resets its inventory.
+	// Validation itself performs no storage write.
+	t.Run("authenticated_integrity_review", func(t *testing.T) { testRuntimeArchiveValidationDatabase(t, db, svc, identity) })
 	t.Run("failed_and_uncertain_commit_retry", func(t *testing.T) { testRuntimeArchiveCommitOutcomes(t, db, svc, document) })
 	t.Run("concurrent_identical_intent", func(t *testing.T) { testRuntimeArchiveConcurrentWrites(t, db, svc, document) })
 	t.Run("constraints_and_exact_order", func(t *testing.T) { testRuntimeArchiveConstraints(t, db, svc, identity) })
+	t.Run("durable_capture_dedupe_caps_and_actual_bytes", func(t *testing.T) { testRuntimeArchiveDurableCapture(t, db, svc) })
 	t.Run("root_epoch_cutover_inventory_cas_and_retired_readability", func(t *testing.T) { testRuntimeArchiveRootLifecycle(t, db, svc, identity, document) })
 	t.Run("partial_ddl_repeat_recovery", func(t *testing.T) { testRuntimeArchivePartialDDL(t, db, svc, identity) })
+	t.Run("administrator_preview_and_confirm_cleanup", func(t *testing.T) { testRuntimeArchiveCleanupDatabase(t, db, svc) })
+	t.Run("authenticated_routing_rollback", func(t *testing.T) { testRuntimeArchiveRollbackDatabase(t, db, svc) })
 }
 
 func testRuntimeArchiveConstraints(t *testing.T, db *gorm.DB, svc *Service, identity string) {
@@ -405,6 +414,7 @@ func testRuntimeArchiveRootLifecycle(t *testing.T, db *gorm.DB, svc *Service, id
 	if err := svc.storeRuntimeConfigurationArchiveV1(ctx, freshID, freshBirth, document); err != nil {
 		t.Fatal("current-root archive write", err)
 	}
+	testRuntimeArchiveAutomaticLifecycle(t, db, svc)
 }
 
 type runtimeArchivePartialTable struct {
@@ -424,10 +434,18 @@ func testRuntimeArchivePartialDDL(t *testing.T, db *gorm.DB, svc *Service, ident
 	ctx := t.Context()
 	// This isolated scenario intentionally removes only this worker's archive
 	// fixtures to reproduce empty interrupted nontransactional schema creation.
-	if err := db.Migrator().DropTable(&entity.RuntimeConfigurationArchiveChunk{}, &entity.RuntimeConfigurationArchive{}); err != nil {
+	// A successor receipt may be removed only with its complete empty overlay;
+	// retained controller identities or advisory reports must never be discarded.
+	for _, model := range []any{&entity.RuntimeArchiveRollback{}, &entity.RuntimeArchiveCleanup{}, &entity.APIKeyDeliveryControllerAcknowledgement{}, &entity.APIKeyDeliveryControllerGrant{}} {
+		var count int64
+		if !db.Migrator().HasTable(model) || db.Model(model).Count(&count).Error != nil || count != 0 {
+			t.Fatal("retained successor history prevents isolated archive fixture reconstruction")
+		}
+	}
+	if err := db.Migrator().DropTable(&entity.RuntimeArchiveRollback{}, &entity.RuntimeArchiveCleanup{}, &entity.APIKeyDeliveryControllerAcknowledgement{}, &entity.APIKeyDeliveryControllerGrant{}, &entity.RuntimeArchiveCapture{}, &entity.RuntimeArchiveContent{}, &entity.RuntimeArchiveRetention{}, &entity.RuntimeConfigurationArchiveChunk{}, &entity.RuntimeConfigurationArchive{}); err != nil {
 		t.Fatal(err)
 	}
-	if err := db.Where("version = ?", 112).Delete(&runtimeArchiveTestLedger{}).Error; err != nil {
+	if err := db.Where("version IN ?", []int{112, 113, 114, 115, 116}).Delete(&runtimeArchiveTestLedger{}).Error; err != nil {
 		t.Fatal(err)
 	}
 	if err := db.Migrator().CreateTable(&runtimeArchivePartialTable{}); err != nil {

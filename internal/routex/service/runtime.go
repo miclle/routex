@@ -172,8 +172,10 @@ func (s *Service) StartRuntime(ctx context.Context) error {
 	}
 	runCtx, cancel := context.WithCancel(ctx)
 	s.runtime = &gatewayRuntime{cancel: cancel, done: make(chan struct{})}
+	s.runtime.configurationCapture.archiveWriter.start(runCtx, s.writeRuntimeConfigurationCaptureV1)
 	if err := s.RefreshRuntime(runCtx); err != nil {
 		cancel()
+		s.runtime.configurationCapture.archiveWriter.stop()
 		close(s.runtime.done)
 		return err
 	}
@@ -203,6 +205,7 @@ func (s *Service) StopRuntime() {
 	if s.runtime != nil && s.runtime.cancel != nil {
 		s.runtime.configurationCapture.stop()
 		s.runtime.cancel()
+		s.runtime.configurationCapture.archiveWriter.stop()
 		<-s.runtime.done
 		if routes := s.runtime.routes.Load(); routes != nil {
 			closeRuntimeClients(routes.Models)

@@ -1,5 +1,13 @@
 import client from './client'
-import type { InsightsAnalysis, InsightsAnalysisInput, InsightsModel } from '@/types/insights'
+import type {
+  InsightsAnalysis,
+  InsightsAnalysisInput,
+  InsightsModel,
+  InsightsTeamQuotaInput,
+  InsightsTeamQuotaAnalysis,
+  InsightsKeyQuotaInput,
+  InsightsKeyQuotaAnalysis,
+} from '@/types/insights'
 
 const modelID = /^mdl_[0-7][0-9a-hjkmnp-tv-z]{25}$/
 const requestID = /^req_[0-7][0-9a-hjkmnp-tv-z]{25}$/
@@ -144,4 +152,272 @@ export async function analyzeInsights(
   )
     throw new Error('Invalid Insights analysis response')
   return value as unknown as InsightsAnalysis
+}
+
+// Compare the quota frame at nanosecond precision; Date alone drops the
+// journal's fractional digits and can admit mixed observation instants.
+function teamQuotaInstant(value: string): bigint | null {
+  if (!stamp(value)) return null
+  const match = value.match(
+    /^(\d{4})-(\d\d)-(\d\d)T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.(\d{1,9}))?(?:Z|[+-]\d\d:\d\d)$/,
+  )
+  if (!match) return null
+  const year = Number(match[1]),
+    month = Number(match[2]),
+    day = Number(match[3])
+  const days = [
+    31,
+    year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0) ? 29 : 28,
+    31,
+    30,
+    31,
+    30,
+    31,
+    31,
+    30,
+    31,
+    30,
+    31,
+  ]
+  if (month < 1 || month > 12 || day < 1 || day > days[month - 1]) return null
+  return (
+    BigInt(Date.parse(value.replace(/\.\d{1,9}/, ''))) * 1000000n +
+    BigInt((match[4] ?? '').padEnd(9, '0'))
+  )
+}
+function validTeamQuotaFrame(capture: Record<string, unknown>) {
+  const fields = ['coverage_start', 'baseline_from', 'baseline_to', 'month_from', 'month_reset']
+  if (capture.as_of === null) return fields.every((key) => capture[key] === null)
+  const asOf = teamQuotaInstant(capture.as_of as string)
+  const values = fields.map((key) =>
+    capture[key] === null ? null : teamQuotaInstant(capture[key] as string),
+  )
+  const [coverage, from, to, month, reset] = values
+  return (
+    asOf !== null &&
+    coverage !== null &&
+    coverage <= asOf &&
+    from !== null &&
+    from === asOf - 604800000000000n &&
+    to === asOf &&
+    month !== null &&
+    month <= asOf &&
+    reset !== null &&
+    reset > asOf
+  )
+}
+
+export async function analyzeTeamQuotaInsights(
+  input: InsightsTeamQuotaInput,
+  csrf: string,
+  signal: AbortSignal,
+): Promise<InsightsTeamQuotaAnalysis> {
+  if (
+    !exact(input as unknown as Record<string, unknown>, [
+      'report',
+      'model_id',
+      'language',
+      'cursor',
+      'limit',
+      ...(Object.hasOwn(input, 'question') ? ['question'] : []),
+    ]) ||
+    input.report !== 'team_quota_tokens' ||
+    !modelID.test(input.model_id) ||
+    !['en', 'zh'].includes(input.language) ||
+    !string(input.cursor, 160) ||
+    !/^[A-Za-z0-9_-]*$/.test(input.cursor) ||
+    !Number.isInteger(input.limit) ||
+    input.limit < 1 ||
+    input.limit > 50 ||
+    (Object.hasOwn(input, 'question') && !isInsightsQuestion(input.question)) ||
+    bytes(JSON.stringify(input)) > 2048 ||
+    !csrf
+  )
+    throw new Error('Invalid Team quota analysis request')
+  const response = await client.post(
+    '/admin/insights/analyze',
+    { ...input },
+    { signal, headers: { 'X-CSRF-Token': csrf } },
+  )
+  if (response.status !== 200) throw new Error('Invalid Team quota analysis status')
+  const value: unknown = response.data
+  if (
+    !object(value) ||
+    bytes(JSON.stringify(value)) > 1024 * 1024 ||
+    !exact(value, ['request_id', 'completion', 'text', 'quota_capture', 'labels']) ||
+    typeof value.request_id !== 'string' ||
+    !requestID.test(value.request_id) ||
+    typeof value.completion !== 'string' ||
+    !['unknown', 'completed', 'handoff', 'blocked', 'incomplete'].includes(value.completion) ||
+    (value.completion === 'completed'
+      ? !string(value.text, 16 * 1024) || !value.text.trim()
+      : value.text !== null) ||
+    !object(value.quota_capture)
+  )
+    throw new Error('Invalid Team quota analysis response')
+  const capture = value.quota_capture
+  if (
+    !exact(capture, [
+      'source',
+      'queried_at',
+      'cursor',
+      'limit',
+      'has_more',
+      'timezone',
+      'as_of',
+      'coverage_start',
+      'baseline_from',
+      'baseline_to',
+      'month_from',
+      'month_reset',
+      'baseline_basis',
+    ]) ||
+    capture.source !== 'local_quota_journal' ||
+    !stamp(capture.queried_at) ||
+    capture.cursor !== input.cursor ||
+    capture.limit !== input.limit ||
+    typeof capture.has_more !== 'boolean' ||
+    !string(capture.timezone, 100) ||
+    !capture.timezone ||
+    capture.timezone === 'Local' ||
+    capture.baseline_basis !== 'settled_admissions_168h' ||
+    !['as_of', 'coverage_start', 'baseline_from', 'baseline_to', 'month_from', 'month_reset'].every(
+      (key) => capture[key] === null || stamp(capture[key]),
+    ) ||
+    !validTeamQuotaFrame(capture) ||
+    !Array.isArray(value.labels) ||
+    value.labels.length > input.limit ||
+    !value.labels.every(
+      (item, i) =>
+        object(item) &&
+        exact(item, ['label', 'team_id', 'name', 'unknown']) &&
+        item.label === `T${i + 1}` &&
+        typeof item.team_id === 'string' &&
+        /^tea_[0-7][0-9a-hjkmnp-tv-z]{25}$/.test(item.team_id) &&
+        string(item.name, 1024) &&
+        item.unknown === false,
+    ) ||
+    new Set(value.labels.map((item) => item.team_id)).size !== value.labels.length
+  )
+    throw new Error('Invalid Team quota analysis capture')
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: capture.timezone })
+  } catch {
+    throw new Error('Invalid Team quota analysis timezone')
+  }
+  return value as unknown as InsightsTeamQuotaAnalysis
+}
+
+export async function analyzeKeyQuotaInsights(
+  input: InsightsKeyQuotaInput,
+  csrf: string,
+  signal: AbortSignal,
+): Promise<InsightsKeyQuotaAnalysis> {
+  if (
+    !exact(input as unknown as Record<string, unknown>, [
+      'report',
+      'model_id',
+      'language',
+      'scope_kind',
+      'scope_id',
+      'cursor',
+      'limit',
+      ...(Object.hasOwn(input, 'question') ? ['question'] : []),
+    ]) ||
+    input.report !== 'key_quota_tokens' ||
+    !modelID.test(input.model_id) ||
+    !['member', 'project'].includes(input.scope_kind) ||
+    typeof input.scope_id !== 'string' ||
+    !new RegExp(
+      `^${input.scope_kind === 'member' ? 'usr' : 'prj'}_[0-7][0-9a-hjkmnp-tv-z]{25}$`,
+    ).test(input.scope_id) ||
+    !['en', 'zh'].includes(input.language) ||
+    !string(input.cursor, 160) ||
+    !/^[A-Za-z0-9_-]*$/.test(input.cursor) ||
+    !Number.isInteger(input.limit) ||
+    input.limit < 1 ||
+    input.limit > 50 ||
+    (Object.hasOwn(input, 'question') && !isInsightsQuestion(input.question)) ||
+    bytes(JSON.stringify(input)) > 2048 ||
+    !csrf
+  )
+    throw new Error('Invalid Key quota analysis request')
+  const response = await client.post(
+    '/admin/insights/analyze',
+    { ...input },
+    { signal, headers: { 'X-CSRF-Token': csrf } },
+  )
+  if (response.status !== 200) throw new Error('Invalid Key quota analysis status')
+  const value: unknown = response.data
+  if (
+    !object(value) ||
+    bytes(JSON.stringify(value)) > 1024 * 1024 ||
+    !exact(value, ['request_id', 'completion', 'text', 'key_quota_capture', 'labels']) ||
+    typeof value.request_id !== 'string' ||
+    !requestID.test(value.request_id) ||
+    typeof value.completion !== 'string' ||
+    !['unknown', 'completed', 'handoff', 'blocked', 'incomplete'].includes(value.completion) ||
+    (value.completion === 'completed'
+      ? !string(value.text, 16 * 1024) || !value.text.trim()
+      : value.text !== null) ||
+    !object(value.key_quota_capture)
+  )
+    throw new Error('Invalid Key quota analysis response')
+  const capture = value.key_quota_capture
+  if (
+    !exact(capture, [
+      'source',
+      'queried_at',
+      'scope_kind',
+      'scope_id',
+      'cursor',
+      'limit',
+      'has_more',
+      'timezone',
+      'as_of',
+      'coverage_start',
+      'baseline_from',
+      'baseline_to',
+      'month_from',
+      'month_reset',
+      'baseline_basis',
+    ]) ||
+    capture.source !== 'local_quota_journal' ||
+    capture.scope_kind !== input.scope_kind ||
+    capture.scope_id !== input.scope_id ||
+    !stamp(capture.queried_at) ||
+    capture.cursor !== input.cursor ||
+    capture.limit !== input.limit ||
+    typeof capture.has_more !== 'boolean' ||
+    !string(capture.timezone, 100) ||
+    !capture.timezone ||
+    capture.timezone === 'Local' ||
+    capture.baseline_basis !== 'settled_admissions_168h' ||
+    !['as_of', 'coverage_start', 'baseline_from', 'baseline_to', 'month_from', 'month_reset'].every(
+      (key) => capture[key] === null || stamp(capture[key]),
+    ) ||
+    !validTeamQuotaFrame(capture) ||
+    !Array.isArray(value.labels) ||
+    value.labels.length > input.limit ||
+    !value.labels.every(
+      (item, i) =>
+        object(item) &&
+        exact(item, ['label', 'key_id', 'name', 'unknown']) &&
+        item.label === `K${i + 1}` &&
+        typeof item.key_id === 'string' &&
+        new RegExp(
+          `^${input.scope_kind === 'member' ? 'key' : 'pky'}_[0-7][0-9a-hjkmnp-tv-z]{25}$`,
+        ).test(item.key_id) &&
+        string(item.name, 1024) &&
+        item.unknown === false,
+    ) ||
+    new Set(value.labels.map((item) => item.key_id)).size !== value.labels.length
+  )
+    throw new Error('Invalid Key quota analysis capture')
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: capture.timezone })
+  } catch {
+    throw new Error('Invalid Key quota analysis timezone')
+  }
+  return value as unknown as InsightsKeyQuotaAnalysis
 }

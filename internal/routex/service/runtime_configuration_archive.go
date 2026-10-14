@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"database/sql"
@@ -14,6 +15,7 @@ import (
 	"github.com/miclle/routex/internal/routex/entity"
 	"github.com/miclle/routex/pkg/id"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const runtimeArchiveChunkBytes = 32 << 10
@@ -82,49 +84,66 @@ func runtimeArchiveHeadersEqual(a, b entity.RuntimeConfigurationArchive) bool {
 // caller owns a stable identity/birth for identical retries; this operation
 // neither proves coherent capture nor installs/activates any historical facts.
 func (s *Service) storeRuntimeConfigurationArchiveV1(ctx context.Context, identity string, birth time.Time, document runtimeConfigurationV1) error {
-	if ctx == nil || ctx.Err() != nil || s == nil || s.db == nil {
-		return errRuntimeArchive
-	}
-	raw, digest, err := encodeRuntimeConfigurationV1(ctx, document)
+	_, _, err := s.storeRuntimeArchiveIntentV1(ctx, identity, birth, document, nil)
 	if err != nil {
 		return errRuntimeArchive
 	}
+	return nil
+}
+
+// Exact-identity foundation calls preserve released private retry semantics.
+// Only the coherent-capture production path deduplicates canonical content.
+func (s *Service) storeRuntimeArchiveIntentV1(ctx context.Context, identity string, birth time.Time, document runtimeConfigurationV1, capture *runtimeConfigurationCaptureV1) (string, bool, error) {
+	if ctx == nil || ctx.Err() != nil || s == nil || s.db == nil {
+		return "", false, errRuntimeArchive
+	}
+	raw, digest, err := encodeRuntimeConfigurationV1(ctx, document)
+	if err != nil {
+		return "", false, errRuntimeArchive
+	}
 	defer clear(raw)
+	if capture != nil && (!runtimeArchiveCaptureProvenanceValidV1(capture) || !bytes.Equal(raw, capture.canonical) || digest != capture.contentDigest) {
+		return "", false, errRuntimeArchive
+	}
 	header := runtimeArchiveHeaderV1(identity, birth, document, len(raw), digest)
 	if !runtimeArchiveHeaderValid(header) {
-		return errRuntimeArchive
+		return "", false, errRuntimeArchive
 	}
 	epoch := s.secretEpoch()
 	chunks := make([]entity.RuntimeConfigurationArchiveChunk, 0, header.ChunkCount)
 	for ordinal, start := 0, 0; start < len(raw); ordinal, start = ordinal+1, start+runtimeArchiveChunkBytes {
 		if ctx.Err() != nil {
-			return errRuntimeArchive
+			return "", false, errRuntimeArchive
 		}
 		end := min(start+runtimeArchiveChunkBytes, len(raw))
 		c := entity.RuntimeConfigurationArchiveChunk{ID: fmt.Sprintf("%s-%03d", identity, ordinal), ArchiveID: identity, Ordinal: ordinal, PlaintextBytes: end - start, PlaintextDigest: runtimeArchiveByteDigest(raw[start:end])}
 		c.SecretGeneration = runtimeArchiveChunkGeneration(header, c)
 		reference, e := runtimeArchiveChunkReference(header, c)
 		if e != nil {
-			return errRuntimeArchive
+			return "", false, errRuntimeArchive
 		}
 		c.AuthCiphertext, e = s.sealSecret(reference, string(raw[start:end]))
 		if e != nil || len(c.AuthCiphertext) == 0 || len(c.AuthCiphertext) > runtimeArchiveEnvelopeBytes {
-			return errRuntimeArchive
+			return "", false, errRuntimeArchive
 		}
 		chunks = append(chunks, c)
 	}
+	storedID, deduplicated := identity, false
 	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
-		var existing entity.RuntimeConfigurationArchive
-		e := personalExact(tx, "id", identity).Take(&existing).Error
-		if e == nil {
-			if !runtimeArchiveHeadersEqual(header, existing) {
-				return errRuntimeArchive
+		var e error
+		if capture == nil {
+			var existing entity.RuntimeConfigurationArchive
+			e = personalExact(tx, "id", identity).Take(&existing).Error
+			if e == nil {
+				if !runtimeArchiveHeadersEqual(header, existing) {
+					return errRuntimeArchive
+				}
+				_, e = s.readRuntimeArchiveTx(ctx, tx, existing)
+				return e
 			}
-			_, e = s.readRuntimeArchiveTx(ctx, tx, existing)
-			return e
-		}
-		if !errors.Is(e, gorm.ErrRecordNotFound) {
-			return e
+			if !errors.Is(e, gorm.ErrRecordNotFound) {
+				return e
+			}
 		}
 		// Each guard takes the same singleton lock through commit. A cutover after
 		// preparation rejects the entire write, without resealing stale intent.
@@ -137,15 +156,72 @@ func (s *Service) storeRuntimeConfigurationArchiveV1(ctx context.Context, identi
 				return e
 			}
 		}
+		ledger, e := lockRuntimeArchiveRetention(tx)
+		if e != nil {
+			return e
+		}
+		if capture != nil {
+			var target entity.RuntimeArchiveContent
+			e = personalExact(tx, "content_digest", digest).Clauses(clause.Locking{Strength: "UPDATE"}).Take(&target).Error
+			if e == nil {
+				if target.ContentDigest != digest || !runtimeArchiveID.MatchString(target.ArchiveID) {
+					return errRuntimeArchive
+				}
+				var retained entity.RuntimeConfigurationArchive
+				if e = personalExact(tx, "id", target.ArchiveID).Take(&retained).Error; e != nil || retained.ID != target.ArchiveID || retained.ContentDigest != digest {
+					return errRuntimeArchive
+				}
+				facts, e := s.readRuntimeArchiveTx(ctx, tx, retained)
+				if e != nil {
+					return e
+				}
+				retainedRaw, retainedDigest, e := encodeRuntimeConfigurationV1(ctx, facts.Document)
+				if e != nil {
+					return e
+				}
+				defer clear(retainedRaw)
+				if retainedDigest != digest || !bytes.Equal(retainedRaw, raw) {
+					return errRuntimeArchive
+				}
+				storedID, deduplicated = retained.ID, true
+				return nil
+			}
+			if !errors.Is(e, gorm.ErrRecordNotFound) {
+				return e
+			}
+		}
+		encryptedBytes := int64(0)
+		for _, c := range chunks {
+			encryptedBytes += int64(len(c.AuthCiphertext))
+		}
+		if e = runtimeArchiveRetentionAdmission(ledger, encryptedBytes); e != nil {
+			return e
+		}
 		if e = tx.Create(&header).Error; e != nil {
 			return e
 		}
-		return tx.Omit("Archive").CreateInBatches(chunks, 16).Error
+		if e = tx.Omit("Archive").CreateInBatches(chunks, 16).Error; e != nil {
+			return e
+		}
+		target := entity.RuntimeArchiveContent{ContentDigest: digest, ArchiveID: identity}
+		if e = tx.Omit("Archive").Clauses(clause.OnConflict{DoNothing: true}).Create(&target).Error; e != nil {
+			return e
+		}
+		if capture != nil {
+			provenance := entity.RuntimeArchiveCapture{ArchiveID: identity, SnapshotID: capture.snapshotID, RoutesPublishedAt: capture.routesPublishedAt.UTC().Truncate(time.Microsecond), CapturedAt: capture.capturedAt.UTC().Truncate(time.Microsecond)}
+			if e = tx.Omit("Archive").Create(&provenance).Error; e != nil {
+				return e
+			}
+		}
+		return updateRuntimeArchiveRetention(tx, ledger.RetainedCount+1, ledger.EncryptedBytes+encryptedBytes)
 	})
 	if err != nil || ctx.Err() != nil {
-		return errRuntimeArchive
+		if err == nil {
+			err = errRuntimeArchive
+		}
+		return "", false, err
 	}
-	return nil
+	return storedID, deduplicated, nil
 }
 
 // readRuntimeConfigurationArchiveV1 returns private detached facts only. There

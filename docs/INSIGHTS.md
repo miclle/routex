@@ -143,7 +143,7 @@ the selected model, absolute dates/time zone, requested answer language and pers
 quota/cost disclosure before confirming one explicit analysis request. The page
 never starts or retries paid inference automatically.
 
-`POST /api/v1/admin/insights/analyze` accepts only
+For selected-range advice, `POST /api/v1/admin/insights/analyze` accepts only
 `report: tokens_by_model | provider_quality`,
 `model_id`, `from`, `to`, `timezone` and `language: en | zh`, plus an optional
 explicitly reviewed `question`, with the current
@@ -192,9 +192,37 @@ revoke prepared confirmation, abort obsolete work and reject late replies. Each
 submit reads current CSRF. Cancellation does not prove dispatched inference or
 charges were undone. Requested answer language is captured with the confirmed
 request; switching UI language does not replay or translate an existing answer.
-Team and Key quota reports remain outside AI advice. Saved-definition loading
+Money quota reports remain outside AI advice. Saved-definition loading
 only prepares the selected controls and clears previous reviews/results; it
 never invokes a model or restores a prior answer.
+
+## Current-page Team Token advice
+
+The existing assistant can review the selected Team Token page after an explicit
+report run. Its separate strict request is `report: team_quota_tokens`, canonical
+personal `model_id`, `language`, reviewed `cursor` (empty for the first page),
+`limit` (1–50), and optional exact `question`. Range fields and browser statistics
+are rejected. The server consumes the actor-bound cursor and captures only that
+page again; it neither automatically pages nor produces global totals.
+
+Only anonymous `T1` labels, stored own caps/behavior, settled Tokens, separate
+reservations, unknown coverage and already supplied estimates enter the aggregate
+projection. Team names, IDs, memberships and cursor remain outside it. Nullable
+facts remain unknown. Existing date estimates retain their trailing 168-hour
+settled-admission basis and monthly reset boundary; the assistant adds no new
+threshold calculation, prediction, parent allowance or enforcement claim.
+`quota_capture` replaces range `capture` in this response, with source
+`local_quota_journal`, exact cursor/limit, observation/calendar metadata and
+`has_more`; a transient private Team label map stays with the authorized caller.
+
+Fresh Session, report read and personal-model authority are checked independently
+of each captured Team's current scoped read and exact birth before dispatch and
+answer publication. Late revocation discards the private answer while preserving
+actual native usage and settlement. Page, dimension, refresh, permission, model
+or Session changes revoke confirmation and obsolete answers. No automatic paid
+inference, policy write or saved answer is added. Money quota advice remains
+unavailable. This phase's authored tests require separate qualification;
+source changes alone establish no browser or real-driver acceptance.
 
 ## Earlier isolated source checks (historical)
 
@@ -293,7 +321,9 @@ explicitly. Observations update when the page changes and never accumulate into
 global totals. They add no thresholds, forecast calculations, inference calls or
 policy writes, and establish neither actual request blocking nor parent allowance.
 
-Quota reports do not submit identities or result rows to optional AI advice.
+Quota identities and uncaptured data never enter optional AI advice. After explicit
+review, Team and Key Token advice may use only the captured page's anonymous quota
+facts; Money advice remains unavailable.
 Quota definitions extend the same owner-private Save, Load and confirmed Delete
 workflow in `d9af644`; frozen V111 preserves released V110 receipts and adds
 disjoint parameter constraints. The complete unfiltered PostgreSQL and MySQL
@@ -316,3 +346,26 @@ or external-model acceptance. A follow-up held-response exact personal-Model-gra
 revocation leaf passed 30 named tests on each PostgreSQL and MySQL driver with no
 failures or skips, preserving one dispatch and settlement while denying the revoked
 private answer.
+
+## Current-page Key Token advice
+
+The fixed `key_quota_tokens` analysis accepts canonical personal `model_id`,
+`language`, one explicitly reviewed `scope_kind` (`member` or `project`), canonical
+`scope_id`, `cursor`, `limit` (1–50), and optional exact `question`. Range fields,
+browser statistics and mixed report grammars are rejected. The server repeats the existing authorized Token
+quota query; it does not accept browser statistics, widen the scope or fetch other
+pages. Rotation descendants share their recorded root account. Only anonymous K
+labels, existing own-cap/behavior/settled/held/unknown facts and supplied estimates
+enter the closed upstream projection. No new forecast or threshold math is added.
+
+Key and owner IDs, names and cursor remain in the transient private capture and
+label map in `key_quota_capture` and `key_id` labels. Member roots use `key_`
+identities and Project roots use `pky_`; a different scope prefix is rejected.
+Exact owner/root birth and current scope read are checked independently
+from report read, current Session and personal-model authority before dispatch and
+answer publication. Late revocation suppresses the answer while actual native
+attempts and personal quota settlement remain recorded. Scope, target, page or
+authority changes invalidate the review and answer. Money advice stays unavailable.
+
+This source slice and its authored tests are not runtime, browser, external-model
+or delivery acceptance. It introduces no persistence, schema or policy writes.

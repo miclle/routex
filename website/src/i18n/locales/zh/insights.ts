@@ -48,7 +48,7 @@ export default {
     '需要平台调用读取权限。报表使用已记录调用、上游尝试及授权范围内的配额账本事实，不会更改配置或授予推理访问权限。',
   assistantTitle: '运营分析指引',
   introduction:
-    '选择固定报告，审阅日期或当前配额范围后手动运行。对于按模型统计 Token 或 Provider 质量，可准备问题并单独确认个人模型 AI 分析。问题不能改变报告范围。可保存已审阅的报告参数，以便之后手动使用；配额定义仅保留维度与有权读取的所有者范围。问题与 AI 回答不会保存。',
+    '选择固定报告，审阅日期或当前配额范围后手动运行。对于按模型统计 Token、Provider 质量或已审阅的团队或 Key Token 页面，可准备问题并单独确认个人模型 AI 分析。问题不能改变报告范围。可保存已审阅的报告参数，以便之后手动使用；配额定义仅保留维度与有权读取的所有者范围。问题与 AI 回答不会保存。',
 
   shortcutTokens: '按模型统计 Token',
   shortcutTeam: '分析团队用量',
@@ -57,7 +57,7 @@ export default {
   questionLabel: '分析问题',
   questionPlaceholder: '针对已选择的聚合报告提问…',
   questionHelp:
-    '问题适用于已选择的按模型统计 Token 或 Provider 质量报告，需单独确认个人模型调用。确认的问题原文会发送至上游，请勿粘贴凭证、私人身份信息或敏感内容。问题不能改变已审阅的查询范围。',
+    '问题适用于已选择的按模型统计 Token、Provider 质量报告或已审阅的团队 Token 页面，需单独确认个人模型调用。确认的问题原文会发送至上游，请勿粘贴凭证、私人身份信息或敏感内容。问题不能改变已审阅的查询范围。',
   questionPrepared: '问题已准备好。请审阅所选聚合报告的范围，并选择个人模型后确认 AI 分析。',
   questionTooLong: '问题不能超过 1,024 个 UTF-8 字节。',
   questionInvalid: '问题必须包含文本，允许换行符和制表符，不支持其他控制字符。',
@@ -140,7 +140,8 @@ export default {
   aiConfirmTitle: '使用个人配额运行 AI 分析？',
   aiConfirmDescription:
     '确认使用已审核模型与日期执行一次有界的原生 Chat 推理。此操作可能产生费用，并计入个人配额，不会自动重试。',
-  aiCaptureHelp: 'AI 会在服务端重新进行授权查询，其范围元数据与事实可能不同于当前用量报表或 CSV。',
+  aiCaptureHelp:
+    'AI 会在服务端重新进行授权查询，其范围或页面元数据与事实可能不同于当前用量报表或 CSV。',
   aiConfirm: '确认并运行 AI',
   aiLanguage: '请求的回答语言：{{language}}',
   aiEnglish: '英文',
@@ -322,4 +323,37 @@ export default {
   savedQuotaLoaded:
     '已载入配额参数供复核，并清除之前的结果和 AI 建议。显式运行前需确认当前范围权限；不会恢复历史配额数据。',
   savedCreatedAt: '创建时间：{{time}}',
+  aiTeamQuotaDisclosure:
+    '向所选个人模型发送当前已审阅团队 Token 页面的全新授权快照和您的原始问题。服务器仅补充临时 T 标签及配额聚合；团队身份和分页游标保持私密。此操作可能消耗个人配额并产生费用。不包含其他页面、全局总数或新预测。',
+  aiTeamQuotaPageReview:
+    '当前团队 Token 页面：{{page}}，最多 {{limit}} 个团队。服务器将使用当前权限重新读取此页。',
+  aiTeamQuotaFirstPage: '第一页',
+  aiTeamQuotaFollowingPage: '已审阅的后续页',
+  aiTeamQuotaSource: '来源：本地配额日志；仅包含当前授权的团队 Token 页面。',
+  aiTeamQuotaCurrentPage_one: '本次全新快照包含 {{count}} 个团队。{{more}}',
+  aiTeamQuotaCurrentPage_other: '本次全新快照包含 {{count}} 个团队。{{more}}',
+  aiTeamQuotaMore: '存在后续页，其内容不包含在本次建议中。',
+  aiTeamQuotaNoMore: '本次快照未记录后续页。',
+  aiTeamQuotaAsOf: '配额观测时间：{{time}}',
+  aiTeamQuotaBasis:
+    '提供的日期估计仅按过去 168 小时获准请求的已结算用量，以恒定速率估计至月重置。预留与未知覆盖单独保留；不会生成新预测、父级额度或阻断结论。',
+  aiTeamQuotaLabels: '本次回答的临时团队标签',
+  aiRecordedTeam: '当前可读团队',
+  aiTeamQuotaInvalid:
+    '无法读取已审阅的团队页面。请刷新当前范围并重新审阅页面，再手动确认其他分析。',
+  aiTeamQuotaOverflow:
+    '完整团队页面超出分析限制。不会发送截断页面，也不会替换为更广范围或全局报告。',
+  aiKeyQuotaDisclosure:
+    '将重新采集此已复核 Key Token 页的当前授权聚合，并将其与确切问题发送给所选个人模型。服务器只添加临时 K 标签和已有共享根账户 Token 聚合；Key、所有者身份和分页游标保留在私有响应中。这可能消耗个人配额并产生费用。不包含其他页、全局总数或新预测。',
+  aiKeyQuotaPageReview:
+    '当前所选范围的 Key Token 页：{{page}}，最多 {{limit}} 个根账户。服务器将按当前权限重新采集此确切页面。',
+  aiKeyQuotaSource: '来源：本地配额日志；仅限当前授权成员或项目的 Key Token 页。',
+  aiKeyQuotaCurrentPage_one: '此次新采集包含 {{count}} 个根 Key 账户。{{more}}',
+  aiKeyQuotaCurrentPage_other: '此次新采集包含 {{count}} 个根 Key 账户。{{more}}',
+  aiKeyQuotaLabels: '此回答的临时 Key 标签',
+  aiRecordedKey: '当前可读取的根 Key 账户',
+  aiKeyQuotaInvalid:
+    '无法采集此已复核 Key 页。请刷新当前所有者范围并重新复核页面，再明确确认另一项分析。',
+  aiKeyQuotaOverflow:
+    '完整 Key 页超出分析边界。不会发送截断页面，也不会替换为更广的所有者范围或全局报表。',
 }

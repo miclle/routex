@@ -279,15 +279,15 @@ func TestOAuthV95RootChecksPreserveV1V2V3(t *testing.T) {
 func TestMigrateThroughBoundsAndCurrentPrefix(t *testing.T) {
 	for _, dialect := range []string{"postgres", "mysql"} {
 		all := migrationSteps(dialect)
-		if len(all) != 112 || reflect.ValueOf(all[96]).Pointer() != reflect.ValueOf(samlMigration).Pointer() || reflect.ValueOf(all[95]).Pointer() != reflect.ValueOf(ldapMigration).Pointer() || reflect.ValueOf(all[93]).Pointer() != reflect.ValueOf(oidcMigration).Pointer() || reflect.ValueOf(all[94]).Pointer() != reflect.ValueOf(oauthMigration).Pointer() || reflect.ValueOf(all[97]).Pointer() != reflect.ValueOf(namedIdentityMigration).Pointer() || reflect.ValueOf(all[98]).Pointer() != reflect.ValueOf(googleIdentityMigration).Pointer() || reflect.ValueOf(all[99]).Pointer() != reflect.ValueOf(runtimeInstallationMigration).Pointer() || reflect.ValueOf(all[100]).Pointer() != reflect.ValueOf(discordIdentityMigration).Pointer() || reflect.ValueOf(all[101]).Pointer() != reflect.ValueOf(apiKeyDeliveryMigration).Pointer() || reflect.ValueOf(all[102]).Pointer() != reflect.ValueOf(forcedSSOMigration).Pointer() || reflect.ValueOf(all[103]).Pointer() != reflect.ValueOf(vaultCertificateMigration).Pointer() || reflect.ValueOf(all[104]).Pointer() != reflect.ValueOf(runtimePublicationCommandMigration).Pointer() || reflect.ValueOf(all[105]).Pointer() != reflect.ValueOf(telegramIdentityMigration).Pointer() {
+		if len(all) != 116 || reflect.ValueOf(all[96]).Pointer() != reflect.ValueOf(samlMigration).Pointer() || reflect.ValueOf(all[95]).Pointer() != reflect.ValueOf(ldapMigration).Pointer() || reflect.ValueOf(all[93]).Pointer() != reflect.ValueOf(oidcMigration).Pointer() || reflect.ValueOf(all[94]).Pointer() != reflect.ValueOf(oauthMigration).Pointer() || reflect.ValueOf(all[97]).Pointer() != reflect.ValueOf(namedIdentityMigration).Pointer() || reflect.ValueOf(all[98]).Pointer() != reflect.ValueOf(googleIdentityMigration).Pointer() || reflect.ValueOf(all[99]).Pointer() != reflect.ValueOf(runtimeInstallationMigration).Pointer() || reflect.ValueOf(all[100]).Pointer() != reflect.ValueOf(discordIdentityMigration).Pointer() || reflect.ValueOf(all[101]).Pointer() != reflect.ValueOf(apiKeyDeliveryMigration).Pointer() || reflect.ValueOf(all[102]).Pointer() != reflect.ValueOf(forcedSSOMigration).Pointer() || reflect.ValueOf(all[103]).Pointer() != reflect.ValueOf(vaultCertificateMigration).Pointer() || reflect.ValueOf(all[104]).Pointer() != reflect.ValueOf(runtimePublicationCommandMigration).Pointer() || reflect.ValueOf(all[105]).Pointer() != reflect.ValueOf(telegramIdentityMigration).Pointer() || reflect.ValueOf(all[112]).Pointer() != reflect.ValueOf(runtimeArchiveRetentionMigration).Pointer() || reflect.ValueOf(all[113]).Pointer() != reflect.ValueOf(apiKeyDeliveryControllerMigration).Pointer() || reflect.ValueOf(all[114]).Pointer() != reflect.ValueOf(runtimeArchiveCleanupMigration).Pointer() || reflect.ValueOf(all[115]).Pointer() != reflect.ValueOf(runtimeArchiveRollbackMigration).Pointer() {
 			t.Fatal("current migration suffix changed", dialect)
 		}
-		for _, bound := range []int{-1, 0, 113} {
+		for _, bound := range []int{-1, 0, 117} {
 			if _, err := migrationPrefix(all, bound); err == nil {
 				t.Fatal("invalid bound accepted", bound)
 			}
 		}
-		for _, bound := range []int{1, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112} {
+		for _, bound := range []int{1, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116} {
 			got, err := migrationPrefix(all, bound)
 			if err != nil || len(got) != bound {
 				t.Fatal("valid bound rejected", bound, err)

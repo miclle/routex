@@ -21,6 +21,10 @@ func TestGitHubRegistry197ExactPrefixAndSuffix(t *testing.T) {
 	for _, m := range matches {
 		names = append(names, m[1]+":"+m[2])
 	}
+	if !apiKeyDeliveryControllerDiscoveryRegistry227Current(names) {
+		t.Fatal("exact227 controller discovery successor required")
+	}
+	names = names[:224]
 	if !credentialInferenceRegistry224Current(names) {
 		t.Fatal("exact222 Insights successor required before historical221 checks")
 	}
@@ -29,7 +33,7 @@ func TestGitHubRegistry197ExactPrefixAndSuffix(t *testing.T) {
 		t.Fatal("exact214 forced SSO successor required before historical210 checks")
 	}
 	names = names[:210] // Preserve the exact predecessor guard and its historical controls.
-	if !apiKeyDeliveryRegistry210Current(names) || !strings.Contains(string(raw), "versions != 112") {
+	if !apiKeyDeliveryRegistry210Current(names) || !strings.Contains(string(raw), "versions != 116") {
 		t.Fatal("exact V102/210 current registry")
 	}
 	names = names[:197] // Exercise the unchanged historical V98 predicate below.

@@ -1,5 +1,741 @@
 # Current implementation handoff
 
+## Current execution summary (2026-10-15)
+
+The global goal remains active. The verified status matrix contains **16 completed
+and 14 partially completed capabilities**, and **2 completed and 18 partially
+completed acceptance scenarios**. Prepared source does not change those totals.
+
+| Work package | Current state | Next verification or action |
+| --- | --- | --- |
+| F24 Token advice, F29 Controller and F30 archive workflows | Main phase validated | Continue F17 isolated qualification, F24 Money tests and actual Vault Agent/browser acceptance. Global capability totals remain unchanged. |
+| F17 shared admission and single-account rate/executor sampling | Isolated source prepared; runtime remains dormant | Compile the exact composition, run focused race tests and dedicated real-driver workers after main delivery. |
+| F17 original calendar and data provenance | Private constructor and immutable-calendar reader composed, awaiting execution | Qualify frozen unregistered V120 and private SQL helpers; deployment exclusion, legacy transfer and runtime wiring remain open. |
+| F24 Money quota advice | Isolated source complete; tests pending | Qualify the exact 22-file successor with backend/frontend tests and both databases; preserve reviewed dimension, exact cap currencies, anonymous labels and personal-model quota. |
+| Temporary build output cleanup | Completed | Eleven obsolete binaries removed across three batches (372,954,525 logical bytes); retained replacements, source, original failures and development service preserved. Seven empty directories remain held by the Docker virtual machine. |
+| Browser acceptance | Pending | Chrome returned no window and application inventory timed out; continue independent backend and source work. |
+
+The original unchanged V116 full integration directly completed successfully in
+5,200.361 seconds: PostgreSQL and MySQL each passed 610/610 named tests, with
+zero failures or skips. Nonmatrix checks passed 10,584 named tests with eight
+explicit skips; archive checks passed 91/91. Root independently verified the
+complete registry, nine workers, 48 application groups, unchanged 2,804-path
+source, closed owned resources and preserved development/preexisting resources.
+Readback SHA-256: `1861e4d1f7f7f1f6304fd63ae11f99b8ad3ffab0fce9dfa3f7edd3aab7feac7d`.
+The earlier MySQL Google-flow failure remains retained and its cause unresolved.
+Reviewed source is now adopted on main, with three documentation-only corrections;
+fresh `go tool task check` and frontend formatting passed on main. These facts
+do not complete F29 actual-Agent acceptance, browser qualification or the global
+objective.
+
+The latest isolated F17 source tree is `4c86d13ed3cf123a401e0a14fe2fb7d0c96adcaa`
+(2,927 paths). Exactly five additions implement private fresh initialization,
+immutable-calendar reads, and test sources; the existing live calendar guard is
+preserved. All source bytes and modes were checked. Compilation and runtime
+acceptance remain pending; the next focused plan contains 36 required new
+controls and 13 explicit dedicated-driver skips. The source-derived inventory
+also includes the separately gated initial-authorization capture worker.
+
+Money advice source is frozen at tree `a343c1c2ee2f5907ee9e38cef448da713c635824`.
+The exact 22-file delta and working-tree hashes were checked. Formatting and
+source checks passed; compilation, tests, runtime and browser acceptance remain
+pending. The source-only local-v2 transfer assessment requires retaining original
+receipts, unknown births and historical holds; shared receipt coordinates cannot
+be synthesized from legacy local data. No transfer or cutover is implemented.
+
+## F17 SQL source composition checkpoint (2026-10-15)
+
+The original route reservation manifest and current SQL verifier are prepared
+and source-reviewed. Manifest tree `ed7ebd51a48876e0e62b505d5b938f48eb21104a`
+retains exact original candidate pairs, births, revisions, native input structure,
+price/FX basis and maximum hold. The verifier checks all original candidates for
+admission and only the selected original candidate for dispatch, without reducing
+the captured maximum. Root verified all 2,846 source paths and the exact four
+verifier additions; receipt SHA-256:
+`2a771793c59233315729aa2a41520c35e639ce0c14dd99298ec07e9330e8dd72`.
+The complete persisted admission must still fit the existing 128 KiB spool bound.
+
+Dormant V119 economic schema tree `78c0ef3b3b812a31b8ad89721a4d62c0b9ec30ca`
+adds seven frozen GORM tables without migration registration, seeding, coverage
+or activation. All 2,849 predecessor paths are unchanged and all 2,854 candidate
+source paths were verified. Root receipt SHA-256:
+`9ab684a4061ae3038c2c98908523ca0a308c3ba5f4ec5bef91cdccfe5a0e61cc`.
+Economic history retains immutable admission/attempt/checkpoint/terminal facts
+independently of expiring accounting projections and mutable authorization.
+
+The dormant SQL history adapter implements coherent `Read` and once-only
+`Checkpoint`, with exact canonical bytes and historical identity checks. Its
+new dedicated driver worker has 15 children covering real revocation/fencing,
+concurrent replay/conflict, corrupted history, terminal boundaries,
+rollback/cancellation and detached returned data. It uses three bounded test-only
+tables and does not qualify the frozen migration.
+
+These sources are composed in isolated qualification tree
+`3a17409f3e4b6265498bd8a5091cd7e7a87cd793`. The original focused race run directly joined exit zero in 97.547 seconds:
+483 named passes and five explicit gated SQL-worker skips. All three package
+terminals passed. The original real-driver sequence then directly joined exit
+one: five of eleven workers passed completely (authorization PostgreSQL,
+reservation PostgreSQL/MySQL, economic schema MySQL and history PostgreSQL).
+Six failed workers remain retained; no overall qualification is claimed.
+All owned test groups, eleven Compose projects, resources and ports closed,
+all 2,865 source paths stayed unchanged, and protected development resources
+were preserved. Physical readback receipt SHA-256:
+`da8cbd44818a60fb26c907f1dfa91f63ba907543031d88b7d54b73dd77116d30`.
+
+A reviewed seven-path successor `d0d5ba6a7e6d2c10c7ca94a3c14343f301c8baf3`
+addresses observed issues: wider unreleased V118 mode storage preserves padding
+for exact CHECK rejection; a partial-DDL fixture selects only its retained ID;
+authorization fixtures read actual persisted Project/Team/Project Key births;
+policy writers use the actual GORM ETag field; and the wrong-index fixture uses
+the existing portable DropIndex adapter. No released migration or production
+identity comparison is relaxed. Corrected-source focused race qualification
+passed 483 named nodes, with five explicit dedicated-driver skips. All eleven
+fresh PostgreSQL/MySQL workers then passed 243/243 named nodes without failures
+or skips; all original nodes remained, including four previously unreachable
+owner nodes. Root independently read the final receipt and verified SHA-256
+`edaadccf19c8796e2f41810a77675e0755c7eeeff1a214a7447876c07473d76f`.
+Owned processes, Compose resources and ports closed; development PID 723 and
+preexisting containers remained. This qualifies the corrected foundations only;
+the full project check and integration delivery remain required. `Accept`,
+`MarkDispatch`, settlement/projection runtime qualification, cutover and
+two-process acceptance remain unfinished.
+
+The next isolated source work adds bounded SQL projections and historical
+settlement. Independent read-only review found no concrete defect in exact
+terminal replay, independent Token/money/RPM/executor effects, sorted account
+locks, original-window expiry, known-zero updates or permanent original bound
+invalidation. No compilation or runtime acceptance of this new work is claimed.
+Projection test source covers retained-account absence, corruption rollback,
+4,097-row overflow, timer exclusion and competing row locks; separate tests must
+invoke the complete `Settle` transaction before qualifying terminal persistence
+or replay. Admission and dispatch remain unimplemented.
+
+A coherent projection/settlement/checker successor, tree
+`37a9856c1bb9c9afbafce636d570b0bbe44d5a0c`, passed focused race qualification:
+528 named passes and seven explicit dedicated-driver skips across three passing
+packages. The first four-worker matrix retained a PostgreSQL settlement
+failure: 31/38 nodes passed. The loaded account birth had a +08:00 offset while
+the original canonical contribution used UTC. Exact instant comparison passed,
+but serializing the offset produced different bytes. A three-path successor,
+`65df67e06681eae63d1d4d91c57b28b4e541c9cc`, normalizes only the constructor's
+serialized account birth to UTC, preserves exact identity/byte checks, and adds
+four offset regression controls. Its focused race passed 533 named nodes with
+seven explicit driver skips. The unchanged four-worker sequence then passed
+38/38 nodes with zero failures/skips: projection 10 and whole settlement 9 on
+each driver. Root read and verified final receipt SHA-256
+`9bfa8857e11ee84663321f5fe5106a669b08cf78514bd9a3d320f529c0bff0b3`.
+Owned processes, Compose resources and ports closed; protected development
+resources remained. The failed predecessor evidence is retained.
+
+A separate worktree now contains mandatory persisted reservation/process-birth
+binding and current SQL `Accept`/`MarkDispatch` transitions. New live authority
+construction recaptures the actual native payload and complete prepared plan;
+self-consistent supplied metadata or recovered receipts cannot replace those
+inputs. Complete admission still fits the existing 128 KiB bound, and logical
+unknown snapshot attribution stays distinct from exact attempt attribution.
+Frozen live-admission tree `869427eeb7e8cb97e2448bc2d368b754342364ba`
+passed its original focused race run in 95.726 seconds: 561 named passes,
+eight explicit dedicated SQL-worker skips and three passing package terminals.
+All 21 required controls passed, including original reservation/owner-birth
+binding and transient live-authority capture. Root read and verified receipt
+SHA-256 `85e3e8efd7aa8f97029f46bf57382132a75cc05ee8fa625c13017fb5dd06aa66`.
+Source, development PID 723 and preexisting containers remained unchanged; the
+owned test group closed. The Accept driver suite was compiled but explicitly
+skipped, so this is not real-driver admission/dispatch qualification.
+Shared admission remains dormant; cutover and two-process acceptance remain open.
+
+The unchanged V116 full integration gate is now running on original tree
+`bf567a1d45969de328a933225d44864fcf07e73f`, without diagnostic overlays or
+filtered driver tests. Its original Task process must join and the complete
+PostgreSQL/MySQL census must pass before source adoption or delivery.
+Independent source work is composed in frozen successor
+`78275dcf94dc2fcbacb3f2ecc242ba0b54509c0d`: exactly eleven paths add bounded
+pending enumeration, historical-only terminal recovery and the initial SQL
+authorization collector. Root verified every predecessor blob/mode outside the
+declared delta and all eleven file hashes/modes. Manifest SHA-256:
+`5aa8ff1a90b8d0d8cfa0195fe841a5f3b5263766339855f5bf61dbde65d5ef67`.
+Recovery interfaces omit admission/dispatch and require an original durable
+local terminal for settlement/readiness; absent terminal or SQL receipt never
+manufactures closure or usage. Source review found and fixed post-terminal
+reconciliation of an uncertain dispatch acknowledgement, preserving the real
+journal invariant; actual-file close/reopen and ordered-fallback controls were
+added. The collector shares the existing locked SQL loader and matches the four
+real transient principal proofs without persisting verifiers. None of these
+new source slices has been compiled or executed yet.
+A three-path test successor, `c6d112edd5b45bd99d6f847d71b1ff19f7829f8a`,
+adds seven real-SQL/real-file restart recovery cases plus one parent inside the
+existing Accept worker, before its original controls. It retains the original
+120-second context, actual runtime principal preparation and seven test-only
+economic tables. Production SQL settlement is called before losing an after-
+commit acknowledgement; before-commit faults never call it. Recovery uses only
+the historical store and reopened original spool. Manifest SHA-256:
+`c5171020dc8b2dc9cc9b317daa24dcff2e3f7fdc62e9c6ed6726915411ccef5d`.
+These additions remain uncompiled and unexecuted.
+Root independently verified the full successor: all 2,895 filesystem paths
+match the frozen Git blobs and modes, and the only delta above `78275dcf` is the
+three declared test/document paths. Source readback receipt SHA-256:
+`10784033a7c1390dae6a5d7f6cdd2c86ca9aac2a85f42d7c5a02b40d05c4d6f7`.
+This is source integrity evidence only, not test qualification.
+A further source-only composition, `ffd06b06428d3656014cafd6b6b1711ea7d7d3f1`,
+adds exactly eighteen paths above `c6d112ed`: bounded read-only local inspection,
+exact detached quota conversion, a recorded calendar-freeze guard for live shared
+economics, and mode-aware local recorder startup. Root verified all 2,909 paths,
+the declared deltas and file modes. Manifest SHA-256:
+`5263d3f3a0c5efadad5cd327952873657a83f362364a16fa8e701acae515b244`.
+Independent review found no concrete defect in the conversion or calendar guard.
+Startup review corrected a pre-validation file creation/reinitialization race:
+existing opens retain the exact regular nonempty inode without create/truncate,
+and fresh opens use exclusive creation. Added deterministic file-race tests.
+Identity commits precede file binding; local mode and initialization commit
+atomically afterward. No migration changed. Startup isolation provides no live
+cutover fence, and the calendar guard provides no import provenance. Compilation,
+focused/real-driver execution, domain construction and runtime activation remain
+pending. The original V116 gate continues unchanged; its closure and main phase
+adoption/check take priority over running these new sources.
+
+The source-only successor `5fb02db2001d373bd7cb3230ba5197823ba597c0`
+now includes the private coherent process ID/birth accessor and a transaction-
+scoped single-account RPM/executor sample. Root verified all 2,915 source paths
+and the exact seven-path composition; readback receipts have SHA-256
+`1e1cf123f386d859a550427ca4c264efac172c5c141faa026cb215c5c12d5ef7`
+and `899ed705473a1cfef9779aa7bc32e85772c4421a44985bec5f8a04800f1b4d11`.
+The sample requires caller-held governance and a real transaction, checks exact
+current shared mode/domain/account, applies bounded original expiry and advances
+the retained clock. Missing accounts remain unavailable and are never created;
+only a successful caller commit permits publishing the detached proof. It reads
+no token/money/calendar totals and grants no dispatch or resource authority.
+Compilation, dedicated real-driver tests and runtime wiring remain pending.
+
+The independently reviewed successor `79f83931750ca0eb95935239ee86dc853af0dcea`
+adds seven origin-storage/validation/test/document paths without changing any
+previous schema, history loader or runtime caller. Root verified all 2,922 paths;
+composition receipt SHA-256:
+`188297d329827c8a9c40cb979d79b69aaa1043ef7a8cbc512b19cb47ff610d58`.
+Unregistered frozen V120 owns only the new origin table. Its supported fresh
+format pins exact zone, historical freeze revision and equal positive original
+coverage/clock/boundary coordinates. Canonical body/digest checks establish
+consistency, never source authenticity or executor closure. No origin is seeded;
+legacy domains cannot gain provenance from current settings. Compilation,
+migration tests and mandatory checks remain pending. The next focused plan
+includes all new source controls and eleven explicit dedicated SQL-worker gates.
+Actual fresh initialization and verified local-history transfer remain open.
+
+Temporary maintenance removed six obsolete generated Python cache files and two
+empty cache directories, preserving all six original scripts and active task
+artifacts. Logical bytes removed: 134,827; no physical reclamation is claimed.
+Root read the receipt and verified SHA-256
+`5afe397f314bf2237a2f42b496bba451f8b1baa1656dbf7d56c576062965c618`.
+A further bounded cleanup removed one closed F29 generated binary, 48,998,578
+logical bytes. All 757 production Go/module inputs match committed main ancestor
+`3976e5a59f5397218c36249be79de4ae2dec23f8`; source, original accepted build records,
+build metadata and logs remain. Fresh process/open-file checks found no use.
+Root verified the binary absent, the ancestor relationship, development PID 723
+and receipt SHA-256
+`2c7897b5759a5a6987d526d54b5d3bf7cf5f6c8d7afe1dc33220aab0f8110d11`.
+Current qualification packets remain intact; no physical reclamation is claimed.
+A second bounded binary cleanup removed four more obsolete generated executables,
+218,855,960 logical bytes. Their complete retained source/build proofs, scripts,
+logs and receipts remain; proposed R3/R4 files were already absent. Root verified
+all four binaries absent and receipt SHA-256
+`a7aabfdadc3f830d44af23c16a9cb665a4a9b8529f722cd2ef4a73349ada4f6f`.
+Development PID 723 and active qualification artifacts remain preserved.
+One further obsolete V115 Python bytecode file and its empty cache directory
+were removed after checking that the file was not open; its original source
+script remains byte-identical. Logical bytes removed: 16,436. Development
+PID 723 and active qualification files remain. Cleanup receipt SHA-256:
+`395dd2858bd43d087fab96c47b26109b9a334b003db37d48641a8fac46ce6470`.
+
+A subsequent dependency review identified three superseded F24/F30 and V115
+production outputs as obsolete. Root verified their exact inode/hash, absence of
+open-file/process/container-mount references, retained source/assets/build
+receipts and current-plan independence before removing only those binaries.
+Logical bytes removed: 153,432,980; no physical reclamation is claimed. Original
+proofs, active V116, future JWKS/performance tooling and development PID 723 remain.
+Cleanup receipt SHA-256:
+`c9a29de946c856296caaec9147d06fff3319cf7c9a64c8174ce80e21ac9cb79a`.
+
+The browser surface inventory request timed out without returning a connected
+browser. Database qualification and source implementation continue independently;
+no new real-browser acceptance is claimed.
+
+Main is still `b36ea78`; no new commit/push and no completion-status promotion.
+
+## Source review and temporary maintenance (2026-10-15)
+
+The V118 historical-fixture composition is sealed as R2 and independently
+source-reviewed: exactly 93 existing test paths differ above the frozen owner
+foundation; all 2,835 filesystem hashes, modes and Git blobs match. The other
+2,742 paths, named tests, frozen GORM tags and migration-pointer assertions are
+unchanged. Read-only owner/mode preflights precede all historical teardown;
+retained owners, shared/revised/foreign modes and malformed receipts refuse it.
+Root receipt: `cb209f01d4628dbac26830e0837611933d8485355021c84244b567e357ffeaaa`.
+Compilation, ordinary checks and real-driver execution remain pending.
+
+The current SQL authorization candidate is also sealed and independently
+source-reviewed, tree `95e8eeace20129737e82c0baca6659aeb8edef32`: four new
+files, 2,832 complete source paths, and no existing-source changes. It retains
+caller-owned transaction locks for all four principals and checks managed
+acknowledgement and primary-authentication dependencies. The caller must use
+READ COMMITTED and acquire governance before owner fencing. Authored unit and
+opt-in PostgreSQL/MySQL revocation tests have not run. Root receipt:
+`2b7a324a2e5dbf9712ad4305c6f57cbf3018e22dbf0cdab5fcc0e66eed85d2dd`.
+No economic authority, migration, runtime wiring or activation is claimed.
+
+The original unfiltered diagnostic session 26383 directly joined exit zero
+at 5,345.656 seconds. The owner observed 610 runs and 610 passes on each real
+driver, without named failures. MySQL restoration returned HTTP 200; the
+original HTTP 503 remains unexplained. Strict inventory, all 2,805 source pins,
+all 48 owned application groups, nine workers, exact Compose resources and ports
+have positive closure readback. Protected development PID 723 and existing
+containers remain. Readback SHA-256:
+`1f90d5fdba64427ee3bf9172f315f4b4a647867236b11e6c2ce5089a58cb5dce`.
+Logging remains diagnostic-only and cannot replace unchanged-source V116
+acceptance. The lane is now allocated to F17 corrected-source qualification. Pure quota calculations retain
+local storage/read order while supporting the future SQL adapter.
+A separate owner/auth composition is now sealed, tree
+`c8c084bb923f1153d89efb1152f185380bf56123`. Root verified all 2,839 files and
+exactly 97 changes above the owner foundation: 93 reviewed test copies and four
+authorization additions. Runner sources remain unchanged. Receipt:
+`b7ee2376011ac94ed5f751d8dc1c3ae9ea81d2964ec3d1c5623f38817ccc22c2`.
+Qualification is pending; neither task runs heavy checks and the objective is active.
+
+The quota calculation extraction is now independently source-reviewed. Primitive
+tree `6b893e4c7ad6f4d0fef076fd276adf536769067c` retains all eight original
+calculation bodies; policy tree `5ae5c21886536cc90238333f5cdef9b189eed576`
+preserves lazy minute/five-hour/seven-day/month/money rejection order, the second
+month read, local birth persistence and exact integer-unit money representation.
+Captured policy and bound pointers are copied. Root policy source receipt:
+`3c427d10fd5b8e8ccd882802326733648f1a2e10e8e0d53c81f144a45407778d`.
+Seven primitive and nine policy test functions are authored, not executed.
+
+The current SQL policy checker is sealed above the owner/auth composition as
+`da07db8b46427d17735c48384fcb1c8603f1591d`: four additions and all 2,839
+base paths unchanged. Root source receipt:
+`1d77579f69a852391ebaa692719bfdf96efa251ef7e8239f39d3721758018842`.
+It requires successful authorization in the same READ COMMITTED transaction,
+compares exact independent parent/root policies and births, retains calendar and
+denomination locks, and checks separately supplied live canonical client IP.
+It creates no reusable authority token. Its four-principal and competing-writer
+real-driver tests remain unrun. A coherent owner/auth/policy/calculation source
+composition is prepared as `e8a062d95a26f9887daa163a6ba54b6e52d70397`.
+Compilation, focused/race/driver qualification, SQL economics, route reservation
+validation, runtime cutover and two-process acceptance remain pending.
+
+The shared counter-contribution source is prepared as
+`97300482e3060ce7866d8627966956d4b3d43159`. Its four-path delta extracts
+original local contribution arithmetic with parameter-only substitutions, adds
+validated copied-map deltas, and retains independent terminal known/unknown
+Token and money dimensions. It changes no RPM/concurrency authority. Four new
+focused test functions await execution. Compact source manifest SHA-256:
+`a9fa03554561523d9024edcdfd65ffb2be47ae6c2e25d0491576bc875909fc3d`.
+
+Fresh process, open-file, worktree and all-container mount checks permitted
+removal of six unneeded generated Python bytecode files from superseded Vault
+preparations R7/R8/R9 and their three empty cache directories. Original scripts,
+manifest-pinned artifacts, active R11/browser/controller preparations and failure
+evidence remain unchanged. Logical bytes removed: 135,336; no physical APFS
+reclamation is claimed. Cleanup receipt:
+`7ef707aaaac6074362602a14cfeb827e0edc26e657bd9a85c9a9b09549a7e8e3`.
+After the diagnostic owner confirmed no current dependency on 27 historical
+Google V99 empty scaffolds, fresh identity and live-reference checks permitted
+their removal with rmdir only. All nonempty evidence and the other seven
+live-referenced empty directories remain. Receipt:
+`57d298cdd88ffc98533313ec74e3017e88dcdaae947f9b7246a3d0f0a0f83ca4`.
+A subsequent fresh-reference and inode-guarded cleanup removed five unpinned
+TypeScript incremental caches from superseded F29 frontend preparations R1-R5:
+1,737,557 logical bytes. Root verified the receipt and all five paths absent;
+4,004 retained source paths were checked by the cleanup worker. Active dependencies,
+preparations, pinned artifacts and failure evidence remain. Receipt SHA-256:
+`3f48210412d8ec25423d8858006b0af0a86fa85e17dd2605b7ba4f4479695ff5`.
+
+A later guarded cleanup replaced the obsolete V116 production-build dependency
+copy with a link to compatible canonical dependencies. It removed 23,301 duplicate
+regular files, 32 internal aliases and 2,325 directories: 247,467,345 logical
+bytes. Matching complete lockfiles/package content and fresh process/open-file,
+incoming-link and container-mount checks preceded removal. Four qualified binary
+hashes, 124 production assets, source and existing receipts remain unchanged.
+No physical APFS reclamation is claimed. Root verified the replacement and receipt
+SHA-256 `6a7598c40f1c2ff1b7f863eaac7d646b7f46169206dfce6ea1b3450747297502`.
+
+Main remains `b36ea78`; no commit or push, and completion totals are unchanged.
+
+## Current failed qualification and next action (2026-10-15)
+
+The original unfiltered V116 R2 matrix (session 24862) ended with Task exit 201
+after 5,324 seconds. PostgreSQL passed all 610 named tests; MySQL recorded 610
+runs, 605 passes and five failed nodes: two Google children plus their three
+ancestors. No driver skips occurred. Nonmatrix recorded 10,584 passes and eight
+explicit skips; archive recorded 91 passes. This is a failed full gate, not
+phase delivery. Main remains `b36ea78`, with no new commit or push.
+
+Root independently verified complete driver inventories, all 2,804 source
+hashes/modes/names, ten worker groups and all 48 logged owned application groups.
+The exact Compose project, ports and temporary helpers are closed; development
+PID 723 and preexisting containers are preserved. Original failure and cleanup
+receipt: `f31bcdf44c8ac06a7202ad3ccee547bf22e1ea3fe8c41e9d97b24dc1c77bb89f`.
+Do not adopt or commit the candidate on this failed gate.
+
+The original isolated MySQL Google diagnostic (session 8763) directly joined zero
+in 198.486 seconds: all 13 exact names passed without skips. Restoration returned
+HTTP 200 in 717 ms, with no expired deadline or connection-pool wait. Root verified
+all 2,805 source pins and owned process/Compose closure, receipt SHA-256
+`7b87da1500c4195bf54f4231148a011b770d83ff79bffa935136c5009f543ecb`.
+The original HTTP 503 remains unexplained. The instrumented unfiltered successor
+is now running as original session 26383,
+owned outer group 87190 / supervisor 87197 and exact isolated Compose project
+`routex-test-1791999722-87197-4194`. It retains original assertions, order and
+7300-second supervisor / 7420-second outer bounds; no other heavy runtime runs.
+Its source tree is `250df2650c47f1f0b78eb0ede39fbae98603e74f`, all 2,805
+filesystem hashes/modes/Git blobs independently verified before launch, receipt
+`e9819ded78c9ab7b16f94c49d6700888dd5c06d18056377ea4db0c6f67e00341`.
+Only three sanitized diagnostic overlay paths differ from the original V116
+source. Logging can perturb timing; this remains diagnostic-only and pending,
+not unchanged-source V116 acceptance. Nonmatrix 10,584 passes/eight explicit
+skips and archive 91 passes are terminal; both real drivers remain in progress.
+
+The shared-spool source now passes its original focused race run (56/56 named
+tests) and complete local eventqueue regression race (171/171), with no failures
+or skips. Root verified all 2,826 unchanged source hashes/modes and exact seven
+paths, plus both direct terminal joins. Test/source readback SHA-256:
+`bbfb5e6a456a7d59c81a9d414e8a0d2b027fa98d1ab6e2ac4dfa3de010dc77d5`.
+The typed durable-authorization correction is now composed with that spool.
+Its focused race run (original session 61976) directly joined zero in 81.163
+seconds: 114/114 named tests passed, without failures or skips. Root verified all
+2,828 hashes/modes/Git blobs and exactly nine composed paths; source tree
+`97793b863ca8d6b4bb97f9e88685a086fbd32595`, readback SHA-256
+`4ba56e7cbadce24385577e866a03275dc97b51364c5e01671acfd3302db4afce`.
+These are focused source results, not mandatory checking, SQL authority or shared
+runtime activation. The dormant GORM V118 owner foundation is now sealed above
+that source, tree `6dbd58e389ed09731bf6ddb3647e1a8e5d2ed53c`: exactly nine paths,
+2,835 complete source hashes/modes/Git blobs verified, root readback SHA-256
+`e28fe55a83263767e139ef62c9e8ac7c47699ffa92cef4eaf27d05aa65b0ed0e`.
+It preserves exact original registration/fencing receipts independently of current
+owner authority, checks conditional one-row fencing and introduces no takeover,
+shared activation or executor-closure claim. All new execution remains pending.
+A separately approved 93-test-file composition updates only actual current-head
+and guarded schema-peeling assumptions for the additive V118 suffix; historical
+pointers and rejection assertions remain required, registry stays 227. The owner
+candidate remains frozen; the R2 fixture composition and private transaction-owned
+current four-principal authorization loader are now sealed and source-reviewed,
+with execution pending as recorded above. The loader intersects exact User/Key/Session,
+resource/grant/managed-delivery and primary-authentication writer locks, and does
+not implement quota economics, route/IP authority or runtime dispatch.
+
+The explicit same-slot Controller replacement candidate also passes the pinned
+`go tool task test-controller` race Task in 11.980 seconds. Mandatory checking,
+coherent dependency qualification and actual Agent acceptance remain pending;
+this is no completed phase or automatic-rotation claim.
+
+Temporary maintenance removed 913 old empty top-level scaffolds and 216,141 empty
+nested dependency directories after fresh process/open-path/worktree/mount and
+filesystem-identity checks. Root independently verified all removed paths absent.
+A subsequent fresh-reference/identity pass removed 3,613 obsolete dependency
+symlink aliases and 1,011 newly emptied directories; their targets and every
+parent packet remain. No regular files were removed. Exact final alias receipt:
+`fae096e309abb111a8e8783a8adc4a9524db6ba12d1c4a743e37cf6b37c4bee2`.
+Active dependency
+copies, sources and failed evidence remain preserved. Continuation receipt:
+`53df19fb261a20845927516ae80cac612e30419a4dc954d096517389d745b85c`.
+
+The first assertion at `google_integration_test.go:409` is the restoration POST
+binding/start response, HTTP 503 instead of 200. Secret replacement deletes the
+original member binding; failed restoration therefore explains the subsequent
+original-member login HTTP 401 instead of native MFA 202 at line 516. The first
+503's internal cause remains unproven: the original output has no stage timing,
+deadline or error category. The focused diagnostic retained the original
+assertions/deadlines and captured sanitized stage evidence without reproducing
+that failure. Its unfiltered successor is running. No production repair, timeout
+increase or successful-rerun explanation is established.
+
+Read-only shared-admission analysis also found no durable global uint64 mapping
+for the prototype PolicyGeneration/AuthGeneration fields. Actual policies use
+account births and stored revisions, calendar settings use their ETag, and
+current authorization requires exact Key/Session/subject/resource proof and row
+locks that intersect revocation writers. Runtime epochs are process-local;
+governance locking alone does not fence Session revocation. The original sealed
+prototype is retained as historical source. The separately verified composed
+source replaces those fields with typed, secret-free durable facts and passes
+114 focused race tests. Current SQL checks, complete economic authority and
+activation remain unfinished; the captured constructor alone authorizes no call.
+
+This section supersedes older live-matrix and pending-terminal statements below;
+original source/evidence checkpoints remain historical records. The complete
+F01–F30 / A01–A20 objective remains active, with completion totals unchanged.
+
+## Current qualification checkpoint (2026-10-15)
+
+Main remains at `b36ea78`; no new phase is committed or pushed. The Team/Key
+Token advice candidate passed focused race/frontend, mandatory and complete Task
+checks, but its original full integration failed: PostgreSQL 592/592 passed;
+MySQL 586 passed and six nodes failed, representing four business leaves and two
+ancestors. One candidate read returned runtime-unavailable 503 after a controlled
+audit rollback; three feature setups failed during migrations V94/V95/V101.
+Underlying causes are unproven. Original nonmatrix 10,413 passes/eight explicit
+skips and archive 35/35 do not replace that failed gate. Source and exact owned
+cleanup were independently verified, receipt SHA-256
+`77b7821b7af6608dca608106709658b743af5975da342cbf89367b014c22cfb7`.
+
+The isolated V116 archive/rollback original full matrix was stopped through its
+owned supervisor after PostgreSQL completed with eight failed named nodes:
+one stale unsupported-head probe and the already-repaired Controller fixture
+failures. MySQL remains incomplete (467 named runs). Original Task joined 201;
+root verified all 2,767 source pins and owned resources/processes/ports closed,
+SHA-256 `d8995434be1e6ee2d1e7524deba4e0e7a2fdd740fcc1757670eea2525582b7eb`.
+A new F24/F30/F29 V116 R2 composition retains the qualified Controller fixes and
+two test-only corrections. Its expanded eight-scenario focus passed all 25 named
+tests on each real driver; root source/closure receipt is
+`6ba2c33686f4117a60c9d86d506d5e35f67ef8c96e33bc86dffa8d4e20c968bf`.
+Fresh official auth lifecycle passed all four summaries and eight real application
+births, four per driver. Root verified all 2,804 source pins and owned closure,
+receipt `d75665329fb07f7aeca3fd8e8c2adafd31c849b12c2a8c4ed9e7aa71c43af2d6`.
+The earlier MySQL startup failure remains unexplained historical evidence.
+Predecessor mandatory, complete Task (7,710 frontend cases/286 files), native and
+Linux builds remain predecessor-bound results. Browser and actual Agent
+preparation are retained without runtime acceptance.
+Root verified the exact two-file test-only successor against both Git trees and
+the original terminal test/build logs and binary pins. Complete Task, Controller
+race and production-build evidence is reused for unchanged inputs, without a
+fresh R2 rerun claim; review SHA-256 is
+`d8b7275def01b3f432185537ce5a8f38c5662b00ede314b912da540eb23cf363`.
+This does not accept the pending full matrix or waive the fresh pre-commit check.
+
+The unfiltered official full integration is active on the frozen V116 R2 floor
+at `/private/tmp/routex-f29-controller-v116-r2-official-integration-r1` (original
+session 24862; owned supervisor 65244, outer group 65239). Do not launch another
+runtime topology or modify its candidate source. This is pending full acceptance.
+The V117 backend/UI local acknowledgement candidate separately passes focused
+backend/frontend, locale, lint and types; whole-source qualification remains open.
+No fleet acceptance is claimed.
+
+The PostgreSQL driver has now terminated successfully: 610 named runs and
+610 passes, zero failures/skips, unique balanced events, all 227 exact registry
+entries and four prelude constraint controls, and a passing handler package.
+Root independently verified this driver-only result, receipt
+`d29b4a2139ef660fa508ddf04bac5c58e17418f4971e32776493e89e6c2c8d94`.
+MySQL, the official outer join and complete owned cleanup remain pending; this
+is not overall full-matrix acceptance. Required terminal census is pinned in
+`/private/tmp/routex-f29-controller-v116-r2-official-integration-r1/root-required-driver-census.json`,
+SHA-256 `cfa950ba3ded1c3a1e6d4555caf37c4b67864116fe7dfd9777ef4202fe436fb8`.
+Both drivers must meet this complete inventory; balanced events alone cannot
+accept a skipped or incompletely selected matrix.
+
+Temporary maintenance removed completed dependency copies, reproducible caches
+and obsolete empty directories after canonical-path/reference checks. The latest
+pass removed 13 empty Python cache directories and reclaimed zero file bytes;
+active runtime, candidates and qualification evidence remain retained. A subsequent bounded pass
+removed 17 empty directories across four obsolete cache roots, reclaiming zero
+file bytes; shared dependency aliases were retained. Cleanup receipt SHA-256:
+`95efa3ac49c3fee934bb6c0c9a9ba7d01db8f5db63e90df06a2a4efd8ba1fe57`. A follow-up verified the five aliases/scaffolds were obsolete,
+unlinked 107 symlinks without following their targets, and removed three empty
+scaffold roots. All shared target identities remained unchanged; no regular
+source or dependency bytes were deleted. Receipt SHA-256:
+`bb1269b7336310f3781b26e048af7ca6dbacedb49e42d14c1271dbebf3bde67a`.
+
+Next: join and independently verify original session 24862 and its exact source,
+complete test census and owned cleanup without overlapping runtime topologies. Preserve
+original failed/cancelled evidence and distinguish historical diagnosis from a
+successful new run. Qualify exact composed source before phase commit/push and
+browser runtime. V117 local acknowledgement already passes focused Go/frontend,
+locale, lint and type checks; database/restart and complete gates remain pending.
+Its source-only composition plan is
+`/private/tmp/routex-v117-v116r2-composition-plan-20261014-r1/PLAN.md`:
+apply selective acknowledgement deltas after V116 delivery, retain the exact
+227-entry Controller-discovery registry and fixture corrections, and move only
+the unsupported future bound to 118 when schema 117 is adopted.
+A provisional successor has now been composed independently at
+`/Users/miclle/.codex/worktrees/routex-f30-local-ack-v117-controller-r3-20261014`,
+branch `codex/f30-local-ack-v117-controller-r3`, tree
+`1daf1cdd4148cc264dcccc339bdc466a0757550f`. Root verified 2,810 source pins,
+the exact 115-path dependency delta, unchanged prior migrations and preserved
+Controller/Team fixes, receipt
+`16c8c951030f6ccde70f21c2ab946563c3a3d0ee0b64e27f7e770a79ec7addbf`.
+See `/private/tmp/routex-f30-local-ack-v117-controller-r3-composition-20261014/COMPOSITION.md`.
+Formatting and structural/whitespace checks pass; no execution tests or builds
+ran on this successor. Its dependency is pending delivery: compare final main
+before freezing its qualification floor. Preserve the original candidate/receipts;
+do not substitute this unqualified successor for the active V116 full matrix.
+The latest R4 source adds the portable acknowledgement contract and corrects two
+related Runtime/rollback documents only, tree
+`30fb523a4943753c13132fc33f54de897c17744b`, 2,811 paths. Root verified the
+three-document delta and unchanged implementation/tests; receipt
+`d98467d6c19fcde36042f1b5e8fd63161ba22934c27d81962ae3fe4b6dbb6fca`.
+Packet: `/private/tmp/routex-f30-local-ack-v117-controller-r4-source-20261015`.
+The documents explicitly mark the candidate as unqualified; this adds no test,
+database, restart, browser or fleet acceptance.
+
+F29 same-slot Controller replacement is now sealed as a source candidate in
+`/Users/miclle/.codex/worktrees/routex-f29-controller-replace-20261015-r1`,
+branch `codex/f29-controller-replace-20261015-r1`, from frozen V116 R2.
+The existing executable accepts only initial output; a newly assigned revision
+currently cannot replace an existing slot file. The candidate adds an explicit
+replacement command with a shared slot lock, protected staging output, exact
+local inode review and atomic promotion after joined Agent execution. It keeps
+the original output until promotion and preserves report-only retry separately.
+The ten-path candidate contains eight modified and two new paths; the other
+2,796 parent paths are unchanged. Root independently verified the complete
+source hashes/modes and parent Git blobs, receipt
+`76f96a78ae13bb80ac8e6ba6eb63dcf56667f895c8b96ff4abe4082266d0fe75`.
+Packet: `/private/tmp/routex-f29-controller-replace-source-20261015-r1`.
+Eleven meaningful failure/crash test functions are authored. Gofmt and whitespace
+checks pass; compilation, tests, builds and runtime remain pending. After the
+active full-matrix lane closes, run the existing pinned `test-controller` race
+Task, then mandatory checking and controlled Vault/JWT/Agent replacement.
+No automatic scheduler, application adoption, native completion or retirement
+acceptance is claimed.
+The active V116 matrix and V117 acknowledgement source remain separate.
+
+Controlled actual-Agent replacement preparation is also sealed at
+`/private/tmp/routex-f29-controller-replace-actual-agent-preparation-20261015-r1`,
+manifest `e9899109ff0bf4da75e08ccf6532d16eaf5706ceaa8d2350353f56acf168088e`.
+Root verified all 24 artifacts and their modes, 12 unchanged inherited leaves,
+and ten Python syntax trees, receipt
+`227f97a9966d78a392630d80dee88a81e38fad8fc304f22917ebeee30f9b02aa`.
+Original initial lost-report/retry proof stays separate and unchanged. The
+successor prepares explicit same-target managed rotation, fresh reviewed
+assignment, three current machine pulls, private version-one comparison and
+prelaunch revoked-grant denial with retained installed inode. Five shell syntax
+checks and Go parsing/formatting pass; all authored controls remain unexecuted.
+The parent six and replacement three qualification inputs and root gate review
+remain null. Preserve the separate exact ten-path Controller source overlay;
+parent qualification cannot silently cover its changed binary. No topology,
+application adoption, native inference, retirement or fleet acceptance is claimed.
+
+
+The source-only primary adoption plan is
+`/private/tmp/routex-f29-controller-v116-composition-source-r2/primary-adoption-plan.json`,
+SHA-256 `81b49c26bd8b0c284a5495c3610fb327e7b19eaf58c6697170e05d8a0a21cc0c`.
+Against current primary files, 28 candidate paths already match, 211 await
+adoption, and the two frontend rule files require joint review. Preserve the
+root progress documents outside the candidate delta. Recheck every captured
+current hash before adoption. No primary implementation mutation has occurred;
+wait for the original full-matrix closure before qualified adoption. The observed
+Task/reflex pair (38204/38266) belongs to a separate repository, as confirmed by
+its process working directories; it is not a RouteX development watcher and
+must remain untouched.
+
+
+F17 multi-node admission is an implementation gap, not an acceptance-only gap:
+current `AdmitGatewayCall`, quota settlement, RPM/concurrency and usage proofs
+use `recorder.queue`, an exclusive local bbolt journal. Shared governance and
+runtime evidence do not provide shared economic counters. An independent
+V117-R4-dependent foundation is sealed at
+`/Users/miclle/.codex/worktrees/routex-f17-admission-boundary-20261015-r1`,
+branch `codex/f17-admission-boundary-20261015-r1`. It separates local admission
+authority from the durable call spool and preserves existing semantics through
+a narrow adapter. No shared backend or migration is activated/reserved yet.
+The complete required scope remains shared GORM atomic admission across every
+account/dimension, idempotent checkpoint/settlement, conservative crash recovery,
+global read/alert proofs, verified local-ledger conversion and real two-process
+PostgreSQL/MySQL contention, partition, restart and stale-policy qualification.
+No execution tests or runtime have launched for this foundation.
+
+A further bounded temporary cleanup removed ten historical empty top-level
+scaffolds with `rmdir` only, after fresh process/cwd/open-file, worktree and all
+container-mount reference checks. Root verified all ten paths absent and the
+receipt hash; no regular-file bytes were removed. Active qualification/source
+packets and development remain protected. Receipt SHA-256:
+`0fe04ec7244d2c13c0c2af928f5d1e1b4341668f682f7b01e59c60389bac12c4`.
+
+The local-adapter foundation is now sealed, tree
+`c8ffd42e512a7f98befa0fc4e71deebe0a5d96ec`, from V117 R4 dependency
+`30fb523a4943753c13132fc33f54de897c17744b`: 2,816 source paths and a
+62-path delta (59 Go files, three English documents). Root independently
+verified working-file hashes/modes, candidate Git blobs and exact dependency
+scope, receipt `aa97ca726aa92a00c627a509a81603b6a5f2c68f36ba36e7bc3549f52c0d5766`.
+Packet: `/private/tmp/routex-f17-admission-boundary-20261015-r1-source`.
+Five lifecycle/error tests are authored; gofmt and structural checks pass.
+Compilation, mandatory checking, complete tests, real drivers and runtime
+qualification remain pending. Eventqueue algorithms, database/schema 117,
+registry 227, frontend and dependencies remain unchanged. Shared GORM admission
+is still absent; this source preparation does not complete F17 or A11.
+
+The follow-on source coordinator is now being implemented independently; it is
+not wired or activated. Preserve the delivered concurrency meaning: a RouteX
+logical executor/transport lease is released on proven exact executor closure,
+independently of conservative unknown Token/money holds. Heartbeat expiry alone
+proves no closure. Do not replace this with a remote-upstream-work concurrency
+cap. This follows `QUOTA_LEDGER.md` completion/restart semantics; the coordinator
+will cover closed execution with unknown economics in a fault-injection test.
+
+The two-store follow-on must replace automatic local pending-record recovery for
+shared spools; `Queue.Open` cannot settle shared calls merely from local restart.
+
+The global objective remains active; capability and acceptance totals are unchanged.
+Historical sections below retain their original source and acceptance boundaries.
+
+
+## Remaining F24 qualification scope (2026-10-15)
+
+A bounded interaction/contract comparison found no additional required F24
+implementation gap beyond the existing candidate. Its four report intents cover
+Team limits, Key limits, Provider success rate and Tokens by Model. Deterministic
+quota reports already support Money; money-specific AI advice is not a defined
+requirement and is not inferred solely from its current unavailable state.
+Preserve the approved transient question/answer boundary and creator-private
+saved parameter definitions. Do not add a new monetary AI feature to substitute
+for qualifying the existing workflows.
+
+After the exact candidate passes both drivers and composed-primary checking,
+qualify all four shortcuts in a real authenticated browser, EN/ZH, current-page
+Team/Key advice with a controlled native model, explicit question/statistics/model/
+personal-quota confirmation, Save -> Load -> review, captured CSV and renewed
+Session/scope authority invalidation. Headless, native Chrome and external-model
+evidence remain separately classified; source checks alone cannot close this gate.
+
+## Source and maintenance checkpoint (2026-10-15)
+
+The shared-spool slice is actively being implemented in the isolated worktree
+`/Users/miclle/.codex/worktrees/routex-f17-shared-spool-20261015-r1`, branch
+`codex/f17-shared-spool-20261015-r1`, from coordinator tree `e93c9da6bf66256edb24b67473c0a21768f77c18`.
+It owns new opaque bbolt storage/transitions, the direct service adapter, real-file
+fault tests and an English contract. One bounded existing-file change rejects
+shared journal markers in `Queue.Open` before local initialization or recovery.
+The original local behavior is otherwise preserved. Implementation and test
+source review remain in progress; compilation, tests, runtime wiring and activation
+have not run. Do not mutate this worktree while its worker is preparing the seal.
+
+Primary V116 adoption preflight rechecked all 241 captured path hashes and found
+no drift; the index remains empty. Receipt:
+`5ddb4a2c7567ed84b58c7d6d10e45339e3abb0e0bee00d69b9a9596f33451247`.
+Recheck at actual adoption after complete original matrix closure. This preflight
+is neither execution qualification nor authorization to claim phase delivery.
+
+Two obsolete Python bytecode caches were also removed from superseded control
+preparations, preserving their source, manifests and parent packets. Exact inode,
+mode, digest, ancestor and fresh live-reference checks passed; 24,682 logical
+file bytes were removed. No physical APFS reclamation is claimed. Receipt:
+`98eb3b51caac1f286425a95dce007e2ee7815890bec0da124822404417c1587a`.
+
+Root reviewed the paired frontend rules for the V116 delivery. A blanket quota
+row exclusion still contradicted the implemented current-page anonymous Team/Key
+Token advice. Three documentation-only corrections are prepared for primary
+adoption, before its mandatory check; the frozen qualification source is unchanged.
+Review receipt: `826be2961780e4675513c477ce573c72d547379b3e6458352101f1134a4af923`.
+The corrections retain identity/uncaptured-data exclusions and unavailable Money
+advice. A fresh native Chrome selection still returned `cgWindowNotFound`;
+no browser acceptance is claimed, and independent source work continues.
+
+The F17 two-store coordinator is now sealed as an unwired source candidate,
+not an execution-qualified backend. Tree `e93c9da6bf66256edb24b67473c0a21768f77c18`
+contains exactly four new paths above the sealed local-adapter foundation:
+three service contract/coordinator/fault-test files and one English contract.
+Root independently verified all 2,820 file hashes, modes and Git blobs and the
+exact dependency delta, receipt SHA-256
+`c8894c7c675c44897ebd74e8fb3c3d00814d9d89342a9f0b3b192fcd0096b329`.
+Nine fault-test families are authored; compilation, tests and runtime remain
+pending. No SQL authority, spool adapter, migration, wiring or shared activation
+is included. Exact closed logical executors release gateway concurrency while
+unknown Token/money holds remain independently conservative. The next source
+slice implements explicit shared-mode durable spool transitions; pending shared
+records must not be automatically promoted or settled on reopen.
+
+A further bounded temporary cleanup removed 17 historical empty scaffolds with
+identity-checked `rmdir` only. Fresh process, open-file, worktree and all 21
+container-mount checks found no references. No regular-file bytes were deleted;
+PID 723, active qualification, source candidates and retained evidence remain
+protected. Receipt SHA-256:
+`3e98b683b1167e7f49e802cec13e8f3c9556ffe8b51ec785ed1754f738e30b99`.
+
 ## Current delivery and continuation (2026-10-14)
 
 The complete F01–F30 / A01–A20 goal remains active on this machine. Capability
@@ -209,7 +945,317 @@ unchanged primary frontend run failed one existing JWT fixture at its original
 five-second timeout; the subsequent identical six-file/two-worker run passed.
 The failed run remains retained and its historical cause is unproven.
 
+## Active isolated qualification (2026-10-14)
+
+Main remains at `b36ea78`; the following source candidates are not delivered.
+The global goal remains active, with 16 Completed / 14 Partial capabilities and
+2 Completed / 18 Partial acceptance items.
+
+- **F30 V113 writer:** the original dedicated archive run passed 41 named cases.
+  The corrected source candidate passed mandatory checking. The maintained full
+  integration run directly joined with Task exit 201 after 7,193.195 seconds:
+  10,407 nonmatrix names passed with eight explicit gate skips and no failures;
+  the archive repeat passed 37 of 41 names, with two actual MySQL failure leaves
+  and their parent failures. MySQL initial migration failed at V106 before any
+  of its 224 direct scenarios began. PostgreSQL started 148 of 224 scenarios;
+  76 remained unstarted when the original deadline ended the worker. Its terminal
+  test events were buffered, so no complete driver result is claimed. The full
+  gate remains failed and the historical failure cause is unproven. Independent
+  readback confirms all owned processes, Compose resources and ports closed,
+  2,697 source paths unchanged, and the development service preserved; receipt
+  SHA-256 `af95f245cf76a047d8e3f9938cfa04ec5e3ea3827564a5667534e131af87ebd5`.
+  A separate test-only MySQL stage/query timing diagnostic passed all 21 names,
+  preserving production deadlines and assertions. Fresh V112 migration took
+  55.547 seconds within its unchanged 60-second deadline; startup/refresh and
+  V113 recovery passed, with no observed cancellation or pool wait. This does
+  not establish the historical cause or replace complete integration acceptance.
+  The diagnostic's owned processes/resources/ports are closed and source is
+  unchanged. Its original preservation readback failed because one unrelated
+  pre-existing container disappeared; the cause is unknown. Separate owned-only
+  closure records that drift explicitly, SHA-256
+  `554a37522a9f788dc3ae5222f009b5c4ebb7ba40378faa28ba6c52f4d23b894c`.
+  The first PostgreSQL CI diagnostic selected a nonexistent registry child and
+  was stopped before any test began; its interrupted run and verified cleanup
+  remain retained. The corrected successor selects exactly
+  `TestIdentityIntegration/postgres/personal_key_quota_warning` and is now
+  complete with all three exact terminal nodes passed and no failures/skips.
+  The 10,000-Key review GET returned 200 in 679.498 ms; save PUT returned 200 in
+  4,769.419 ms total HTTP duration, which is not a measurement of the internal
+  runtime-refresh duration. Runtime remained ready with a live lease and zero
+  recorded pool waits. The historical 503 did not reproduce; no production fix
+  is justified by this diagnostic alone. Independent owned cleanup/source
+  readback passed, SHA-256
+  `dc503de8ccb405b2dd20ba1fbdbe82e173ba8886e6cb25bac62f6660dd5eb2a0`.
+- **F29 V114 controller:** the frozen source packet remains isolated. Database
+  and service focus passed; a handler compile failure from an unused import was
+  corrected, but its successor has not yet been tested. A separate eight-path
+  discovery successor adds bounded retained Slot/Controller lists and an exact
+  original-actor enrollment receipt with no recoverable bearer. Source formatting
+  passes; compiler, real-driver and mandatory qualification remain open. A separate
+  administrator UI successor reuses the existing Profile/target review dialogs;
+  no new layout or navigation is introduced. Its final hardened six-file suite
+  passed all 56 cases, with TypeScript, focused ESLint and Prettier passing.
+  The sealed eighteen-path successor retains exact Slot-birth/Controller scopes,
+  uncertain intent and guarded transient bearer handling. Server composition,
+  complete checks and browser/real Agent acceptance remain open.
+  Earlier lint and localized-label oracle failures remain retained. These source
+  results provide no server, real Vault or external-controller acceptance.
+- **F24 quota AI:** the frozen Team candidate passed 184 focused frontend cases,
+  focused Go and types. Mandatory checking timed out during staticcheck; its
+  cause is unproven and driver qualification is pending. A separate Key Token
+  source candidate extends the same current-page aggregate boundary and exact
+  member/Project authority. Its five unaffected focused frontend files passed
+  177 cases. Two localized-label tests failed because they inspected visible text
+  rather than the table's accessible label; the corrected quota UI file passed
+  all 59 cases. The original failure is retained. Whole TypeScript checking
+  subsequently passed on unchanged formatted source with a bounded 2 GiB heap;
+  all eight focused frontend/localization files passed 246 cases. The 512 MiB
+  and 1 GiB attempts explicitly exhausted the JavaScript heap and remain failed
+  evidence. All owned children joined and groups are absent. No Go or database
+  qualification is claimed for the Key delta.
+- **F30 V115 cleanup:** the isolated proposal adds explicit administrator preview,
+  a captured strong ETag, original UUID-bound confirmation/retry and atomic
+  encrypted-byte/count release with audit and retained receipts. Historical
+  fixture guards refuse retained cleanup receipts before DDL. Real migration
+  coverage and UI/API regression tests are authored but not accepted. An
+  unpaired-Unicode intent defect was found and corrected in source; its tests
+  remain pending. Source also rechecks Session expiry before returning the preview
+  and before committing cleanup or returning a saved receipt; controlled expiry
+  and registered-route/wire regression tests are authored but not run. This adds
+  no activation, rollback or fleet proof.
+
+The repaired V115 frontend focus passed all 54 cases, including parent renewal,
+held responses, independent write authority, exact retry, Unicode and language
+switching. The twelve sealed source paths and modes were unchanged afterward;
+backend and real-driver qualification remain pending. Earlier interrupted and
+failed frontend runs remain distinct historical evidence.
+
+Current-head CI `38524740493` failed its integration job: PostgreSQL's
+`personal_key_quota_warning` exact-10,000-Key positive control returned HTTP503;
+MySQL and the archive worker passed. Complete artifact inspection found one
+failed business leaf, with the driver/test/package failures as parents. The
+shared helper does not identify which GET/PUT stage returned503; its historical
+cause is unproven. Backend/frontend checks, Actionlint and GolangCI passed;
+Build Artifacts was skipped. Retain the failed run and diagnose with unchanged
+assertions/deadlines before any new delivery.
+
+Heavy Go, lint and database qualification is serialized while the original V113
+integration runner owns its disposable databases. Independent source work
+continues. No failed, interrupted or pending check is promoted to passing
+acceptance, and the earlier passing archive focus does not replace the failed
+full gate. The original runner has joined and owned cleanup is verified. The next action
+is bounded successor qualification before composition, primary checking and
+English phase commit/push. The successful test-only MySQL and PostgreSQL runs
+do not resolve their historical failures or provide complete matrix acceptance.
+
+The Key successor is formatted and includes explicit zero-personal-Token-quota
+controls for both member and Project Key reports: HTTP429, zero upstream dispatch,
+no successful Call or Attempt, unchanged settled/unknown usage and zero holds.
+These new backend controls have not run. The standalone finite controller source
+is also authored, including closed generated-HCL validation, exact final target
+revalidation, executable pin checks, joined process supervision and non-secret
+report-only recovery. All 21 standalone tests passed both ordinary and race
+qualification on unchanged Go source, with owned groups closed. These use local
+HTTP and fake Agent processes; mandatory checks, server-controller real-driver
+qualification and real Vault/JWT/Agent acceptance remain pending.
+
+V115 cleanup TypeScript checking identified an unsupported Button variant. The
+source now uses the existing System Status danger-button styling. Corrected
+types and all 63 focused frontend/localization cases passed, with unchanged source
+and closed owned groups. The separately bounded three-package cleanup Go race
+focus did not produce a complete supervisor receipt: its post-join process-group
+probe raised a permission error. The database frozen-schema leaf passed; service
+and handler qualification remains incomplete. Independent readback confirms the
+original owned group is absent and all 2,733 source paths are unchanged. No
+complete backend or real-driver pass is claimed. A separate corrected supervisor
+successor passed all 22 named tests across database, service and handler, with
+zero failures or skips, all package terminals passed and all 2,733 source paths
+unchanged. The original 280-second test timeout was preserved; the directly
+joined supervisor completed in 313.526 seconds including compilation.
+
+The first complete V115 archive dual-driver run failed: the retention upgrade
+fixture left successor V114/V115 ledger entries while deleting V112/V113,
+causing the following historical V111 upgrade to fail and later cases to cascade.
+This is an identified test-fixture defect. The original failed result is retained;
+owned processes, Compose resources and ports are closed, source is unchanged,
+and development/pre-existing containers are preserved. A new isolated successor
+checks empty successor facts and the exact ledger before reverse-order reset.
+The successor reached the archive behaviors, then failed 15 named nodes from
+54 passes across 69 started nodes (the complete source-derived inventory is 71).
+It exposed a production cleanup bug: a 36-byte UUID was written into the audit
+resource's 30-byte canonical-ID column, rolling back successful cleanup on both
+drivers. A new isolated R3 uses the first selected canonical archive as the audit
+target and keeps the complete selection, UUID, byte release and reason in audit
+details and the receipt; its regression verifies these facts. The PostgreSQL
+fixture also normalizes returned timestamp locations before exact field comparison,
+and child helpers now use the child's testing context. R2 source and failed evidence
+are retained; its owned cleanup and development preservation passed. R3 real-driver
+qualification remains pending; no production migration or deadline changed.
+This does not explain earlier unrelated timing failures.
+
+The composed Team/Key quota AI ordinary race focus passed all 31 named tests.
+An expanded successor including reused PersonalSession controls passed all 72
+names with zero failures/skips and both package terminals passed. All 2,697 source paths and
+thirty sealed candidate paths remain unchanged; the original owned process is
+joined and absent. Its thirty-two-name-per-driver qualification is now running in fresh disposable databases.
+The final real-Agent R2 preparation passed seven pure Python contract tests and
+fixture formatting. No real controller/Vault/Agent runtime acceptance is inferred.
+
+Temporary-file maintenance removed ten obsolete duplicated linter executables
+after exact-file open/process and registered-worktree reference checks. Their
+logical size totals 625,118,580 bytes; physical reclamation is not inferred.
+All enclosing source, failed/passing logs, manifests and receipts remain intact;
+the checkout-local linter and every active candidate are preserved. The local
+cleanup receipt is `/private/tmp/routex-obsolete-linter-cleanup-20261014-r1.json`.
+
+
+Archive successor R3 finished with 66 passes and seven failed parent/leaf nodes
+across 73 names. PostgreSQL's final cleanup receipt read reused a stale wildcard
+projection after test-only column recreation; integrity review followed a capacity
+fixture that had removed its archive. R4 changes only those test fixtures: an
+explicit complete receipt projection and integrity review before inventory reset.
+The earlier failures remain retained. R4 mandatory checking then failed with 38
+frontend lint errors in archive cleanup and its workspace owner. Rendering now
+uses state and guarded authority/selection resets while event-time refs preserve
+exact uncertain intent, duplicate guards and obsolete-operation fencing. Scoped
+ESLint and TypeScript passed. The unchanged-source single-worker frontend focus
+passed all 123 cases in seven files; the preceding two-worker run retained one
+existing System Status timeout. R4 real PostgreSQL/MySQL qualification passed all 73 exact names with zero
+failures or skips. Source/modes, owned process/resource/port closure, development
+and pre-existing-container preservation passed independent readback, SHA-256
+`502193be7ab61cf390895ecddc2f3f6e023dd4dd7375140a66c395c50b885ae0`.
+Mandatory R5 failed only because its 512 MiB Node heap exhausted during types;
+unchanged-source R6 passed with a bounded 2 GiB heap and no lint errors. Complete
+Task and full integration gates remain pending before main delivery.
+
+The Team/Key AI database retry is failed and physically closed. PostgreSQL ran
+32 names with 26 passes; MySQL failed during migration 77 and ran only three
+names. The fresh-request missing personal Model test expected 403 instead of the
+existing 404 contract, cascading into a sibling Key prerequisite. A precise test
+correction and independent Key setup are authorized; held-response revocation
+must still return 403. Other HTTP503 and migration-timeout causes remain unproven.
+Owned resources and development are preserved; unrelated container inventory
+changed externally, so broad pre-existing-container preservation is not claimed.
+The composed controller mandatory check also failed on eight error-string
+capitalization diagnostics. Its source correction is underway; full Task/build
+and real-controller acceptance remain pending.
+
+## Active candidate checkpoint (2026-10-14)
+
+The overall objective remains active. No new delivery commit or completion
+promotion is claimed by this checkpoint; main remains at `b36ea78`.
+
+- Archive V113 writer, V114 controller core and V115 cleanup/integrity are
+  composed in the isolated R5 candidate. The preceding complete Task R4 failed
+  in two handler registry fixtures: they applied historical 224-entry checks to
+  the full current 226-entry registry. R5 first validates the exact current
+  registry and V115 schema, then checks the unchanged historical prefix. The
+  original failure is retained. The R5 complete Task joined failed after 999.385
+  seconds: all Go packages passed, then 7,516 frontend cases passed and two
+  existing member-role permission-dialog cases failed. Source remained unchanged
+  and the owned process group closed. Script and production-asset stages were not
+  reached. The unchanged 29-case member-role focus subsequently passed at its
+  original deadlines; the full-run failure remains unexplained. Complete
+  integration and composed-main checks remain required before delivery.
+- Team/Key quota AI diagnostic results are PostgreSQL 32/32 passed and MySQL
+  28/32 passed. The Key held-advice request returned 503 before the Project-birth
+  barrier; unconditional restoration then produced a legitimate zero-row update.
+  R6 restores only after an actual mutation, retaining strict row-count assertions
+  for real mutation and restoration. The primary 503 remains unexplained. Safe
+  stage classification completed with all 32 names passing on each driver; no
+  projection guard, Gateway 503 or deadline failure reproduced. Original failures
+  remain unexplained. The unchanged R6 dual-driver qualification then passed all 32 exact names
+  on each driver, with source and owned closure independently verified. Its
+  mandatory R6/R7 runs subsequently failed on simplifiable conditional chains.
+  R8 replaces only those chains with equivalent switches; fresh 72-name race
+  qualification, formatting and mandatory checking passed on unchanged R8.
+  Its complete Task passed all Go packages, 7,481 frontend cases in 274 files,
+  5 frontend and 66 shell controls, production build and embedded assets. Fresh
+  R8 driver qualification is running. R6 driver evidence remains predecessor evidence
+  until the R8 driver check; original failures remain retained.
+- F29 executable, discovery and administrative UI now compose onto the V115
+  archive floor in a separate 192-path candidate. Current registration requires
+  exact 227 identities; released historical prefixes and V115 remain preserved.
+  The pinned official Vault 1.21.4 executable measures 490,358,435 bytes, beyond
+  the original 256 MiB controller bound. R2 raises the shared metadata/read bound
+  to 512 MiB, retaining checksum, version and filesystem identity checks, with
+  sparse boundary regressions. Its 71 standalone race cases and Staticcheck pass;
+  mandatory R2 subsequently failed on 11 unchecked cleanup calls and one
+  simplifiable delimiter chain. Localized successor fixes are being prepared;
+  complete checks remain pending. The bounded actual-Agent
+  supervisor preparation passes 33 pure/mock controls; this is no live Agent
+  authentication, delivery or application acceptance. Dual-driver controller
+  qualification and live Agent acceptance remain pending.
+- F30 rollback backend R3 preserves the explicit Gateway routing allowlist and
+  current protocol, including empty disabled Connections. Identity, secrets,
+  authorization, quotas, revocations and prices remain current. The 111-path
+  candidate has source review/formatting evidence only. Its race and 91-name
+  archive dual-driver qualification remain pending. The separate rollback UI
+  uses a transient reviewed preview, explicit confirmation and exact uncertain
+  intent, with historical publication distinct from fresh same-process proof.
+  The corrected three-file frontend focus passed all 88 cases and complete
+  frontend TypeScript checking passed on unchanged source. The earlier Axios
+  header-normalization and Base UI Switch observation fixture failures are
+  retained; both were corrected without changing product behavior. The composed candidate additionally rejects coerced enum arrays and
+  preserves supported legacy empty default egress with bilingual guidance. Its
+  100 frontend/localization cases and focused Go race qualification passed on
+  unchanged source. The first ordinary compile failed because a fixture referred
+  to nonexistent credential ciphertext in the deliberately secret-free source
+  DTO; it now changes the actual non-secret SourceProof field. The exclusive
+  first two real-driver runs failed: a fixture used unsupported Session method
+  `local`, then a stale-review fixture and production writer used the wrong
+  ETag column name. The fixture now uses canonical local Session semantics and
+  GORM field names; the writer uses explicit GORM field selection, preserving
+  zero/null updates. Two explicit struct conversions also repair the failed
+  mandatory Staticcheck S1016 diagnostics. Fresh R3 race passed all 96 names,
+  and PostgreSQL/MySQL archive R3 passed all 91 exact names with no failures or
+  skips. Independent readback confirmed all 2,759 source pins unchanged, closed
+  groups/resources/ports and preserved development/pre-existing containers,
+  SHA-256 `8c280ff7b590ae2a368d1cfb2fd2455e608d01b33383db840423f7531978188a`.
+  Mandatory R2 is running. Complete Task, full integration, composed-main and
+  browser qualification remain pending; predecessor failures are retained.
+  The exact composed complete Task is now running after the quota-AI frontend
+  matrix closed, with a finite 1,800-second outer bound.
+- Temporary maintenance removed 39 additional empty obsolete directories using
+  `rmdir` after fresh process/open-file checks. A subsequent pass found no new
+  deletable empty directories and retained three referenced directories. Three
+  selected old binary candidates differ from retained counterparts by SHA-256,
+  so none of those binaries was deleted. One additionally discovered obsolete
+  nested linter duplicate was removed after exact retained-copy hash and fresh
+  process/open-file/worktree/mount checks, releasing 62,478,834 logical bytes.
+  A second exact duplicate JWKS build-context helper was removed after fresh
+  checks, retaining its original Linux binary and releasing 9,852,579 logical bytes.
+  Active development, candidates and qualification evidence
+  remain preserved; no physical APFS reclamation is claimed. A later duplicate
+  tool cleanup failed because ancestor symlinks resolved to the retained primary
+  linter. That shared tool was restored using `go tool task update-tools` at
+  pinned v2.13.2/Go 1.27.1; rebuilt bytes differ from the predecessor, and no
+  additional duplicate-byte reclamation is claimed. Subsequent cleanup must
+  resolve every ancestor and exclude paths outside the intended temporary root.
+  Fresh canonical-path, process, open-file, worktree, mount and retained-hash
+  checks then allowed two obsolete R4 local-service fixture duplicates and three
+  regenerable Python cache files to be removed: 48,993,208 logical bytes. Original
+  R3/R5 binaries, Python sources and qualification evidence remain retained;
+  cleanup receipt SHA-256 is
+  `4d0b281de53183fdb8587769b1c8dabfc75b3ac3ffb0958899000d99105e2916`.
+
+Continue the current mandatory/complete checks, fresh R8 quota-AI driver
+qualification and bounded live Agent preparation. Serialize complete frontend
+matrices and database ownership. Keep independent source work progressing while
+tests run. These candidates are
+local-only until their verified phase artifacts are committed and pushed.
+
 ## Confirmed next-phase contracts (2026-10-14)
+
+- F30 first rollback uses an explicit Gateway routing-configuration allowlist:
+  Provider/Connection transport settings, Provider-model declarations and binding
+  weights. Changed addresses/transports require fresh verification. Current
+  identities, Keys, Sessions, grants, quotas, revocations, secrets and prices
+  remain authoritative. Historical verification is never application proof.
+  Authenticated preview, exact reviewed confirmation, retention protection and
+  current-authority publication are being implemented separately; no delivered
+  rollback or fleet acceptance is claimed.
+
 
 - F30 durable capture will retain at most 100 versions and 256 MiB of actual
   encrypted content, deduplicate exact content and pause new writes at either

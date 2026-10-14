@@ -21,7 +21,7 @@ func legacyModelDiscoveryBeforeV108(t *testing.T, db *gorm.DB) {
 }
 
 func modelDiscoveryPeelV108(db *gorm.DB, expected []personalKeyBehaviorMigrationEntry) error {
-	if len(expected) < 1 || len(expected) > 112 {
+	if len(expected) < 1 || len(expected) > 116 {
 		return errors.New("unsupported discovery fixture head")
 	}
 	for i, entry := range expected {
@@ -118,7 +118,7 @@ func (discoveryHistoricalSeverityV107) TableName() string { return "operational_
 func modelDiscoveryMigrationControls(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 112 || before[110].Version != 111 || before[109].Version != 110 {
+	if len(before) != 116 || before[110].Version != 111 || before[109].Version != 110 {
 		t.Fatal("exact discovery startup head required")
 	}
 	for _, change := range []func([]personalKeyBehaviorMigrationEntry){func(v []personalKeyBehaviorMigrationEntry) { v[107].Version = 109 }, func(v []personalKeyBehaviorMigrationEntry) { v[107].AppliedAt = "" }, func(v []personalKeyBehaviorMigrationEntry) { v[107].AppliedAt += "changed" }} {
@@ -140,7 +140,7 @@ func modelDiscoveryMigrationControls(t *testing.T, db *gorm.DB) {
 		}
 	}
 	after := personalKeyBehaviorLedger(t, db)
-	if len(after) != 112 || after[110].Version != 111 || after[109].Version != 110 || !reflect.DeepEqual(prefix, after[:107]) {
+	if len(after) != 116 || after[110].Version != 111 || after[109].Version != 110 || !reflect.DeepEqual(prefix, after[:107]) {
 		t.Fatal("discovery upgrade/repeat changed historical receipts")
 	}
 	legacyCredentialInferenceBeforeV109(t, db)

@@ -11,6 +11,57 @@ export interface InsightsAnalysisInput {
   timezone: string
   language: 'en' | 'zh'
 }
+export interface InsightsTeamQuotaInput {
+  report: 'team_quota_tokens'
+  model_id: string
+  language: 'en' | 'zh'
+  cursor: string
+  limit: number
+  question?: string
+}
+export interface InsightsTeamQuotaCapture {
+  source: 'local_quota_journal'
+  queried_at: string
+  cursor: string
+  limit: number
+  has_more: boolean
+  timezone: string
+  as_of: string | null
+  coverage_start: string | null
+  baseline_from: string | null
+  baseline_to: string | null
+  month_from: string | null
+  month_reset: string | null
+  baseline_basis: 'settled_admissions_168h'
+}
+export interface InsightsTeamQuotaAnalysis {
+  request_id: string
+  completion: InsightsCompletion
+  text: string | null
+  quota_capture: InsightsTeamQuotaCapture
+  labels: { label: string; team_id: string; name: string; unknown: false }[]
+}
+export interface InsightsKeyQuotaInput {
+  report: 'key_quota_tokens'
+  model_id: string
+  language: 'en' | 'zh'
+  scope_kind: 'member' | 'project'
+  scope_id: string
+  cursor: string
+  limit: number
+  question?: string
+}
+export interface InsightsKeyQuotaCapture extends InsightsTeamQuotaCapture {
+  scope_kind: 'member' | 'project'
+  scope_id: string
+}
+export interface InsightsKeyQuotaAnalysis {
+  request_id: string
+  completion: InsightsCompletion
+  text: string | null
+  key_quota_capture: InsightsKeyQuotaCapture
+  labels: { label: string; key_id: string; name: string; unknown: false }[]
+}
 export type InsightsCompletion = 'unknown' | 'completed' | 'handoff' | 'blocked' | 'incomplete'
 export interface InsightsAnalysis {
   request_id: string

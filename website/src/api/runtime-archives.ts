@@ -2,6 +2,7 @@ import client from './client'
 import type {
   RuntimeArchiveMetadataFilter,
   RuntimeArchiveMetadataPage,
+  RuntimeArchiveValidation,
 } from '@/types/runtime-archives'
 
 const object = (value: unknown): value is Record<string, unknown> =>
@@ -19,6 +20,41 @@ const utc = (value: unknown, precision: number) =>
   new Date(value).toISOString().slice(0, 19) === value.slice(0, 19)
 function invalid(): never {
   throw new Error('Invalid configuration archive metadata')
+}
+
+export async function validateRuntimeArchive(
+  archiveID: string,
+  signal?: AbortSignal,
+): Promise<RuntimeArchiveValidation> {
+  if (
+    typeof archiveID !== 'string' ||
+    !/^rcv_[0-7][0-9a-hjkmnp-tv-z]{25}$(?![\s\S])/.test(archiveID)
+  )
+    invalid()
+  const response = await client.get<unknown>(`/admin/runtime/archives/${archiveID}/validation`, {
+    signal,
+  })
+  const value = response.data
+  if (
+    response.status !== 200 ||
+    !object(value) ||
+    !keys(value, [
+      'scope',
+      'archive_id',
+      'archive_created_at',
+      'codec_version',
+      'observed_at',
+      'integrity',
+    ]) ||
+    value.scope !== 'archive_integrity_only' ||
+    value.archive_id !== archiveID ||
+    !utc(value.archive_created_at, 6) ||
+    value.codec_version !== 1 ||
+    !utc(value.observed_at, 9) ||
+    value.integrity !== 'authenticated'
+  )
+    invalid()
+  return value as unknown as RuntimeArchiveValidation
 }
 
 export async function getRuntimeArchives(

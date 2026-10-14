@@ -21,6 +21,9 @@ type InsightsQuotaScope struct {
 }
 
 type InsightsQuotaReport struct {
+	teamProofs    []insightsAITeamProof
+	keyProofs     []insightsAIKeyProof
+	keyScopeProof *insightsAIKeyScopeProof
 	Kind          string             `json:"kind"`
 	Dimension     string             `json:"dimension"`
 	Currency      string             `json:"currency"`

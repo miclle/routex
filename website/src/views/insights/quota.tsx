@@ -271,6 +271,27 @@ export function useQuotaInsights({
     report.isSuccess &&
     !report.isFetching &&
     !cache.getQueryState(reportKey)?.isInvalidated
+  const reportSnapshot = useCallback(() => {
+    const state = cache.getQueryState(reportKey)
+    return JSON.stringify([
+      state?.status,
+      state?.fetchStatus,
+      state?.isInvalidated,
+      state?.dataUpdateCount,
+    ])
+  }, [cache, reportKey])
+  const reportSubscribe = useCallback(
+    (changed: () => void) =>
+      cache.getQueryCache().subscribe((event) => {
+        if (
+          (event.type === 'updated' || event.type === 'removed') &&
+          JSON.stringify(event.query.queryKey) === JSON.stringify(reportKey)
+        )
+          changed()
+      }),
+    [cache, reportKey],
+  )
+  const reportStamp = useSyncExternalStore(reportSubscribe, reportSnapshot, reportSnapshot)
   const current: QuotaInsightsReport | undefined = ready ? report.data : undefined
   async function exportCSV() {
     if (!live() || !request || !current || exportLock.current) return
@@ -389,6 +410,28 @@ export function useQuotaInsights({
   const status = isAxiosError(report.error) ? report.error.response?.status : undefined
   return {
     clear,
+    aiPage:
+      current &&
+      request &&
+      (kind === 'team_quota' || kind === 'key_quota') &&
+      dimension === 'tokens'
+        ? {
+            cursor: request.input.cursor ?? '',
+            limit: 20,
+            stamp: JSON.stringify([request.id, reportStamp]),
+            ...(kind === 'key_quota' ? { scope_kind: scopeKind, scope_id: scopeID } : {}),
+          }
+        : null,
+    aiAuthorized: () =>
+      live() &&
+      !!request &&
+      (kind === 'team_quota' || kind === 'key_quota') &&
+      dimension === 'tokens' &&
+      scopeCurrent(request) &&
+      reportSnapshot() === reportStamp &&
+      cache.getQueryState(reportKey)?.status === 'success' &&
+      cache.getQueryState(reportKey)?.fetchStatus === 'idle' &&
+      !cache.getQueryState(reportKey)?.isInvalidated,
     captureDefinition,
     definitionStamp,
     loadDefinition,

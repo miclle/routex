@@ -259,7 +259,7 @@ func testRuntimePublicationCommandMigration(t *testing.T, db *gorm.DB) {
 		migrate()
 	}
 	checkLedger()
-	if database.MigrateThrough(ctx, db, 104) == nil || database.MigrateThrough(ctx, db, 113) == nil {
+	if database.MigrateThrough(ctx, db, 104) == nil || database.MigrateThrough(ctx, db, 117) == nil {
 		t.Fatal("historical/newer migration bound admitted")
 	}
 	if db.Model(model).Count(&count).Error != nil || count != 0 {

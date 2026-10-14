@@ -1,4 +1,93 @@
 export default {
+  archiveRollbackAction: 'Review rollback',
+  archiveRollbackIdentity: 'Review archive {{id}} rollback',
+  archiveRollbackTitle: 'Review Gateway routing rollback',
+  archiveRollbackBoundary:
+    'Restore only reviewed Connection transport, Provider Model input declarations and binding weights. Identities, Keys, Sessions, grants, quotas, revocations, secrets, prices, protocols, names and lifecycle states stay current.',
+  archiveRollbackTransportBoundary:
+    'Changed transport can be restored only to a disabled Connection. It requires a fresh real verification and separate explicit enablement. This operation does not verify or enable a Connection.',
+  archiveRollbackPreview: 'Load server rollback preview',
+  archiveRollbackPending: 'Reading or applying the reviewed rollback…',
+  archiveRollbackIssue_preview:
+    'The rollback preview could not be confirmed. Review again with fresh authority.',
+  archiveRollbackIssue_uncertain:
+    'The dispatched result is uncertain. Read the exact receipt or explicitly retry the original request; a failed response does not prove that nothing changed.',
+  archiveRollbackIssue_receipt:
+    'The original receipt could not be confirmed. The original request remains retained for explicit retry; missing history does not prove no change.',
+  archiveRollbackBlocked:
+    'The server reports a rollback blocker. Application is blocked; review current routing and transport configuration.',
+  archiveRollbackConnections: 'Reviewed Connection transport differences',
+  archiveRollbackDeclarations: 'Reviewed Provider Model input differences',
+  archiveRollbackWeights: 'Reviewed binding weight differences',
+  archiveRollbackConnection: 'Connection',
+  archiveRollbackBefore: 'Current value',
+  archiveRollbackAfter: 'Reviewed restored value',
+  archiveRollbackEnabled: 'Currently enabled',
+  archiveRollbackDisabled: 'Currently disabled',
+  archiveRollbackProviderModel: 'Provider Model ID',
+  archiveRollbackInputs: 'Image: {{image}}; PDF: {{pdf}}',
+  archiveRollbackYes: 'Supported',
+  archiveRollbackNo: 'Not supported',
+  archiveRollbackBinding: 'Binding / Model / Provider Model IDs',
+  archiveRollbackProtocol: 'Protocol',
+  archiveRollbackNoChanges: 'The server preview contains no configuration differences.',
+  archiveRollbackReason: 'Rollback reason',
+  archiveRollbackInvalidReason:
+    'Enter a reason of at most 1,000 Unicode characters without control characters or malformed Unicode.',
+  archiveRollbackRecorded: 'Exact rollback receipt recorded.',
+  archiveRollbackPublication_unknown: 'Original publication: unknown.',
+  archiveRollbackPublication_pending: 'Original publication: pending.',
+  archiveRollbackPublication_refresh_returned_nil:
+    'Original publication: runtime refresh returned without error.',
+  archiveRollbackPublication_refresh_returned_error:
+    'Original publication: runtime refresh reported an error.',
+  archiveRollbackSuperseded: 'Current state: this rollback has been superseded.',
+  archiveRollbackCurrentApplied:
+    'Current state: the serving process confirms this routing configuration.',
+  archiveRollbackCurrentUnknown: 'Current state: routing application is not confirmed.',
+  archiveRollbackReceiptBoundary:
+    'Original publication and fresh current-process proof are separate facts. Neither proves fleet convergence or paid inference success.',
+  archiveRollbackRefreshReceipt: 'Refresh exact receipt',
+  archiveRollbackRetry: 'Retry original rollback',
+  archiveRollbackConfirm: 'Confirm reviewed rollback',
+  archiveRollbackField_base_url: 'Base URL',
+  archiveRollbackField_protocol: 'Protocol',
+  archiveRollbackField_adapter: 'Adapter',
+  archiveRollbackField_api_version: 'API version',
+  archiveRollbackField_egress_mode: 'Egress mode',
+  archiveRollbackField_egress_id: 'Egress ID',
+  archiveRollbackNotSet: 'Not set',
+  archiveRollbackLegacyDefault: 'Default (stored legacy empty value)',
+  archiveValidate: 'Validate integrity',
+  archiveValidateIdentity: 'Validate archive {{id}} integrity',
+  archiveValidating: 'Validating integrity…',
+  archiveValidated: 'Encrypted content authenticated at {{time}}.',
+  archiveValidationFailed:
+    'Archive integrity could not be confirmed. Refresh authority and try again.',
+  archiveValidationBoundary:
+    'Administrators may validate complete encrypted content. This confirms one cold read only, not rollback readiness, current configuration, application or fleet acknowledgement.',
+
+  archiveCleanupSelect: 'Select for cleanup',
+  archiveCleanupSelectIdentity: 'Select archive {{id}} for cleanup',
+  archiveCleanupPreview: 'Preview selected archive cleanup',
+  archiveCleanupPending: 'Reviewing or removing selected archive storage…',
+  archiveCleanupPreviewFailed:
+    'The cleanup preview could not be confirmed. Refresh the history and review again.',
+  archiveCleanupCompleted_one: 'Removed {{count}} retained archive.',
+  archiveCleanupCompleted_other: 'Removed {{count}} retained archives.',
+  archiveCleanupTitle: 'Remove the reviewed archives?',
+  archiveCleanupBoundary:
+    'This permanently removes only the selected retained archive storage. Current routing is unchanged. It is not configuration activation or rollback.',
+  archiveCleanupCapacity:
+    'Retained: {{count}} versions, {{bytes}} encrypted bytes. This selection releases {{selectedBytes}} encrypted bytes. Limits: 100 versions and 256 MiB; reaching either limit pauses new archives.',
+  archiveCleanupReason: 'Reason',
+  archiveCleanupInvalidReason:
+    'Enter a nonblank reason of at most 1,000 characters without control characters.',
+  archiveCleanupUncertain:
+    'The outcome is not confirmed. Retry the original request to recover its exact receipt. Refreshing or missing rows does not prove deletion; closing discards this local retry intent.',
+  archiveCleanupRetry: 'Retry original cleanup request',
+  archiveCleanupConfirm: 'Confirm permanent archive cleanup',
+
   navTitle: 'System status',
   title: 'System status',
   description: 'Review authoritative process health, resource samples, and system work.',
@@ -118,7 +207,7 @@ export default {
   archiveMetadataBoundary:
     'Stored archive headers only. These records do not prove encrypted source integrity, coherent capture, publication, current installation, fleet application or rollback readiness.',
   archiveCaptureBoundary:
-    'Automatic durable configuration capture is not configured. Archive creation time records storage, not the original publisher or application time. Rows are ordered by archive ID.',
+    'Archive creation time records storage, not the original publisher or application time. Rows are ordered by archive ID.',
   archiveMetadataEmpty:
     'No retained configuration archive metadata. Routing and installation observations are separate records.',
   archiveMetadataFailed: 'Configuration archive metadata could not be loaded.',

@@ -216,7 +216,7 @@ func testModelDiscoveryNotices(t *testing.T, db *gorm.DB, svc *service.Service, 
 		t.Fatal("permission withdrawal rewrote read state", err)
 	}
 	ledger := personalKeyBehaviorLedger(t, db)
-	if len(ledger) != 112 || ledger[110].Version != 111 || ledger[109].Version != 110 {
+	if len(ledger) != 116 || ledger[110].Version != 111 || ledger[109].Version != 110 {
 		t.Fatal("retained discovery peel control requires exact current V109 head")
 	}
 	peelErr := modelDiscoveryPeelV108(db, ledger)

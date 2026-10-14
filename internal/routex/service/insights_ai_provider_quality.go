@@ -26,7 +26,7 @@ func projectInsightsAIProviderQuality(report *InsightsProviderQualityReport, inp
 		return nil, nil, insightsAITooLarge
 	}
 	capture := InsightsAICapture{Source: report.Source, From: input.From, To: input.To, Timezone: input.Timezone, QueriedAt: report.QueriedAt, LatestCompletedAt: report.LatestCompletedAt, MayLag: report.MayLag}
-	view := &InsightsAIResponse{Completion: "unknown", Capture: capture, Labels: []InsightsAILabel{}}
+	view := &InsightsAIResponse{Completion: "unknown", Capture: &capture, Labels: []InsightsAILabel{}}
 	projection := struct {
 		Capture            InsightsAICapture                `json:"capture"`
 		TotalAttempts      int64                            `json:"total_attempts"`

@@ -272,7 +272,7 @@ func testLDAPMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	assertDefault()
-	for _, bound := range []int{0, -1, 95, 113} {
+	for _, bound := range []int{0, -1, 95, 117} {
 		before := personalKeyBehaviorLedger(t, db)
 		if database.MigrateThrough(ctx, db, bound) == nil || !reflect.DeepEqual(before, personalKeyBehaviorLedger(t, db)) {
 			t.Fatal("bounded ledger rejection", bound)
@@ -532,7 +532,7 @@ func testLDAPMigration(t *testing.T, db *gorm.DB) {
 	// Current-head reads also verify the five newly added fields remain empty.
 	historicalPrimary = func(tx *gorm.DB) *gorm.DB { return tx }
 	finalLedger := personalKeyBehaviorLedger(t, db)
-	if len(finalLedger) != 112 || finalLedger[110].Version != 111 || finalLedger[109].Version != 110 || finalLedger[108].Version != 109 || finalLedger[107].Version != 108 || finalLedger[106].Version != 107 || finalLedger[105].Version != 106 || finalLedger[104].Version != 105 || finalLedger[103].Version != 104 || finalLedger[102].Version != 103 || finalLedger[100].Version != 101 || finalLedger[101].Version != 102 || finalLedger[99].Version != 100 || finalLedger[98].Version != 99 || finalLedger[97].Version != 98 || finalLedger[96].Version != 97 || !reflect.DeepEqual(beforeSuffix, finalLedger[:96]) {
+	if len(finalLedger) != 116 || finalLedger[110].Version != 111 || finalLedger[109].Version != 110 || finalLedger[108].Version != 109 || finalLedger[107].Version != 108 || finalLedger[106].Version != 107 || finalLedger[105].Version != 106 || finalLedger[104].Version != 105 || finalLedger[103].Version != 104 || finalLedger[102].Version != 103 || finalLedger[100].Version != 101 || finalLedger[101].Version != 102 || finalLedger[99].Version != 100 || finalLedger[98].Version != 99 || finalLedger[97].Version != 98 || finalLedger[96].Version != 97 || !reflect.DeepEqual(beforeSuffix, finalLedger[:96]) {
 		t.Fatal("LDAP historical closure lost retained V96 prefix or V97/V98 suffix")
 	}
 	retained("current_head")

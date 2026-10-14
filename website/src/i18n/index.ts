@@ -1,3 +1,5 @@
+import enKeyControllers from './locales/en/keyControllers'
+import zhKeyControllers from './locales/zh/keyControllers'
 import enAuthEnforcement from './locales/en/authEnforcement'
 import zhAuthEnforcement from './locales/zh/authEnforcement'
 import enKeyDelivery from './locales/en/keyDelivery'
@@ -133,6 +135,7 @@ void i18n.use(initReactI18next).init({
       modelCreation: enModelCreation,
       secrets: enSecrets,
       keyDelivery: enKeyDelivery,
+      keyControllers: enKeyControllers,
       keyDeliveryOwner: enKeyDeliveryOwner,
       overview: enOverview,
       personalModelRequests: enPersonalModelRequests,
@@ -177,6 +180,7 @@ void i18n.use(initReactI18next).init({
       modelCreation: zhModelCreation,
       secrets: zhSecrets,
       keyDelivery: zhKeyDelivery,
+      keyControllers: zhKeyControllers,
       keyDeliveryOwner: zhKeyDeliveryOwner,
       overview: zhOverview,
       personalModelRequests: zhPersonalModelRequests,

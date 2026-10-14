@@ -132,7 +132,10 @@ function row(value: unknown, input: QuotaInsightsInput): value is QuotaInsightsR
       'estimate_status',
       'estimate_within_seven_days',
     ]) ||
-    !id(value.id, input.kind === 'team_quota' ? 'tea' : 'key') ||
+    !id(
+      value.id,
+      input.kind === 'team_quota' ? 'tea' : input.scope.kind === 'project' ? 'pky' : 'key',
+    ) ||
     typeof value.name !== 'string' ||
     new TextEncoder().encode(value.name).length > 1024 ||
     !(

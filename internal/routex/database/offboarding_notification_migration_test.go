@@ -22,7 +22,7 @@ func TestOffboardingNotificationV107FrozenReceiptAndRegistration(t *testing.T) {
 	}
 	for _, driver := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(driver)
-		if len(steps) != 112 || reflect.ValueOf(steps[105]).Pointer() != reflect.ValueOf(telegramIdentityMigration).Pointer() || reflect.ValueOf(steps[106]).Pointer() != reflect.ValueOf(offboardingNotificationMigration).Pointer() {
+		if len(steps) != 116 || reflect.ValueOf(steps[105]).Pointer() != reflect.ValueOf(telegramIdentityMigration).Pointer() || reflect.ValueOf(steps[106]).Pointer() != reflect.ValueOf(offboardingNotificationMigration).Pointer() {
 			t.Fatal("V107 must append without rewriting released tail")
 		}
 	}

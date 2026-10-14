@@ -206,9 +206,89 @@ Deployment acknowledgement must identify the exact reviewed configuration
 version and delivery target. An acknowledgement is separate from successful
 native inference and does not satisfy replacement-Key retirement on its own.
 
-The existing explicit-copy configuration remains the delivered capability.
-Controller registration, authentication, acknowledgement and automatic rotation
-are future implementation work; this decision does not activate a coordinator.
+The existing explicit-copy configuration remains independent. The controller
+Control Plane foundation adds explicit administrator enrollment, configuration
+assignment, revocation, machine-only pull and advisory reporting. It does not
+install or launch an external controller/Agent, turn on automatic rotation, or
+change the existing descriptor's `not_configured` / `unknown` claims. Executable
+controller, real workload JWT/Agent output, application use and fleet acceptance
+remain separate work.
+
+### Independent controller enrollment and configuration
+
+Frozen GORM V114 follows V113 and stores only an independently generated bearer
+verifier, immutable scope/birth facts, reviewed assignment and finite reports.
+No bearer, inference Key, workload JWT, Vault Token or rendered configuration
+payload is stored in these tables. This bearer cannot authenticate a Session,
+Gateway call, Writer, Provisioner or Vault caller.
+
+Administrator routes remain under `/api/v1/admin/api-key-delivery` and require a
+current intrinsic administrator, Session and independent `secrets.read` or
+`secrets.write`. Writes additionally use the existing same-origin/CSRF/closed-JSON
+contract. Every review is actor/Session scoped; reasons are required.
+
+| Method and relative route | Purpose |
+| --- | --- |
+| `GET /slots/:slot_id/controller-configuration` | Review the current exact ready/acknowledged, active and runtime-published slot configuration |
+| `POST /slots/:slot_id/controllers` | Enroll an explicitly opted-in exact-slot controller with the reviewed `If-Match` |
+| `GET /controllers/:controller_id` | Review assigned/current configuration status and the last advisory report |
+| `PUT /controllers/:controller_id/configuration` | Explicitly assign the reviewed current replacement revision/digest |
+| `POST /controllers/:controller_id/revoke` | Revoke the exact grant, including when its owner/configuration is unavailable |
+
+Enrollment requires a stable UUIDv4 `request_id`, name, explicit `opt_in: true`,
+exact decimal-text descriptor revision, configuration digest, reason and
+microsecond-precise RFC3339 expiry. The remaining lifetime must be between one
+hour and 30 days. The created response displays its `rxdctl_` random bearer once;
+only the domain-separated SHA-256 verifier persists. An identical authorized
+retry returns the retained grant with `bearer: null` and
+`secret_status: not_recoverable`; it cannot recreate a lost credential. Changed
+intent under that UUID conflicts. Revoke the retained grant and enroll a new
+reviewed intent when the one-time response was lost.
+
+The grant pins exact owner kind/ID/birth/digest, slot ID/birth, profile ID/birth and
+principal ID/birth. Assignment pins descriptor revision, binding ID/birth, Key
+ID/birth and the canonical configuration digest. A replacement revision does not
+automatically advance a grant. Its read reports `review_required`, and machine
+pull/report rejects the stale assignment until an administrator explicitly
+reviews and saves the current concrete configuration. Assignment uses its own
+UUID-bound exact intent; an identical retry only reopens the current saved target
+and cannot claim application execution. A superseded earlier assignment conflicts.
+
+### Machine protocol and evidence boundary
+
+The separate machine routes are:
+
+- `GET /api/v1/api-key-delivery/controller/configuration`.
+- `POST /api/v1/api-key-delivery/controller/acknowledgements`.
+
+They require exactly one canonical `Authorization: Bearer rxdctl_...` field.
+Session cookies, CSRF, inference Keys and Vault credentials do not substitute.
+Query parameters and duplicate/ambiguous Authorization fields are rejected.
+Success and denial responses are `private, no-store` and `nosniff`. No Session or
+human authentication is fabricated for machine reads.
+
+Every operation rechecks grant expiry/revocation, exact current owner lifecycle,
+profile/principal readiness and isolation, infrastructure facts, active Key,
+acknowledged delivery, local runtime publication and the assigned revision/digest
+under the governance transaction. It performs no Vault I/O or inference dispatch.
+A configuration contains only non-secret facts and fixed paths. The Agent uses
+JWT authentication from `/var/run/secrets/routex/workload.jwt`, reads the exact
+KV-v2 `?version=1` path, and writes the exact slot file under
+`/var/run/secrets/routex/api-keys/` with mode `0600`, no backup, no token sink, no
+arbitrary command and fail-closed template errors. The digest binds canonical
+configuration plus retained identities/births and security tuple; it is not merely
+a hash of the HCL text. Endpoint/path/template injection is rejected before rendering.
+
+Acknowledgement requires a stable UUIDv4, the exact current descriptor revision
+and configuration digest, `agent_state` in `unknown/running/failed`, and
+`output_state` in `unknown/written/failed`. Identical UUID retries return the same
+server timestamp; changed intent conflicts. Reports are bounded to 1,000 per
+grant and are retained separately from native call history. A report explicitly
+returns `evidence_kind: controller_report`. Even `running` plus `written` proves
+only what that enrolled controller reported, not observed Agent execution,
+plaintext file correctness, application adoption, native-completed inference,
+replacement retirement or fleet convergence. Revocation prevents new pull/report
+but cannot recall a configuration or plaintext file already obtained externally.
 
 ## Replacement-call evidence
 

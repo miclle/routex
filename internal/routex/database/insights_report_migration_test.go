@@ -26,7 +26,7 @@ func TestInsightsReportV110FrozenAppendAndPrivateReceipt(t *testing.T) {
 	}
 	for _, driver := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(driver)
-		if len(steps) != 112 || reflect.ValueOf(steps[108]).Pointer() != reflect.ValueOf(credentialInferenceFailureMigration).Pointer() || reflect.ValueOf(steps[109]).Pointer() != reflect.ValueOf(insightsReportMigration).Pointer() {
+		if len(steps) != 116 || reflect.ValueOf(steps[108]).Pointer() != reflect.ValueOf(credentialInferenceFailureMigration).Pointer() || reflect.ValueOf(steps[109]).Pointer() != reflect.ValueOf(insightsReportMigration).Pointer() {
 			t.Fatal("V110 must append")
 		}
 	}

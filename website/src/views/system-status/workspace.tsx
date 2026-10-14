@@ -142,7 +142,8 @@ export function SystemStatusWorkspace() {
     refetchOnWindowFocus: false,
   })
   const routingAuthority = useRoutingReadAuthority()
-  const [archiveBasis, setArchiveBasis] = useState<string | null>(null)
+  const [archiveActorID, setArchiveActorID] = useState<string | null>(null)
+  if (archiveActorID && routingAuthority.actorID !== archiveActorID) setArchiveActorID(null)
   const [routingSelection, setRoutingSelection] = useState<{
     instanceID: string
     basis: string
@@ -341,7 +342,8 @@ export function SystemStatusWorkspace() {
                 variant="outline"
                 disabled={!routingAuthority.ready}
                 onClick={() => {
-                  if (routingAuthority.isCurrent()) setArchiveBasis(routingAuthority.basis)
+                  if (routingAuthority.isCurrent() && routingAuthority.actorID)
+                    setArchiveActorID(routingAuthority.actorID)
                 }}
               >
                 {t('archiveMetadataAction')}
@@ -386,18 +388,15 @@ export function SystemStatusWorkspace() {
         </Card>
       </div>
 
-      {archiveBasis &&
-        routingAuthority.ready &&
-        routingAuthority.actorID &&
-        archiveBasis === routingAuthority.basis && (
-          <ConfigurationArchivesDialog
-            key={archiveBasis}
-            actorID={routingAuthority.actorID}
-            authority={archiveBasis}
-            isCurrent={routingAuthority.isCurrent}
-            onClose={() => setArchiveBasis(null)}
-          />
-        )}
+      {archiveActorID && routingAuthority.actorID === archiveActorID && (
+        <ConfigurationArchivesDialog
+          key={archiveActorID}
+          actorID={archiveActorID}
+          authority={routingAuthority.basis}
+          isCurrent={routingAuthority.isCurrent}
+          onClose={() => setArchiveActorID(null)}
+        />
+      )}
 
       {routingSelection &&
         routingAuthority.ready &&

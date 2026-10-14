@@ -18,7 +18,7 @@ import (
 
 // Extend the existing real-driver Insights scenario and controlled upstream.
 // No fabricated historical settlements or additional runtime process are used.
-func testInsightsQuotaIntegration(t *testing.T, ctx context.Context, db *gorm.DB, svc *service.Service, router http.Handler, adminID, modelID string) {
+func testInsightsQuotaIntegration(t *testing.T, ctx context.Context, db *gorm.DB, svc *service.Service, router http.Handler, adminID, modelID string, native insightsAITeamNativeWitness) {
 	t.Helper()
 	login := identityRequest(router, "POST", "/api/v1/auth/login", `{"email":"insights-admin@example.invalid","password":"test-only-insights-password"}`, nil, "")
 	expectStatus(t, login, 200)
@@ -274,4 +274,7 @@ func testInsightsQuotaIntegration(t *testing.T, ctx context.Context, db *gorm.DB
 		expectStatus(t, request(analystCookie, analystSession.CSRFToken, "POST", "/api/v1/auth/logout", "", ""), 204)
 		expectStatus(t, request(analystCookie, "", "GET", teamPath, "", ""), 401)
 	})
+	testInsightsAITeamQuotaIntegration(t, ctx, db, svc, router, adminID, analyst.User.ID, role.Role.ID, team.ID, privateTeam.ID, modelID, native)
+	testInsightsAIKeyQuotaIntegration(t, ctx, db, svc, router, adminID, analyst.User.ID, role.Role.ID, project.ID, privateProject.ID, key.Record.Key.ID, modelID, native)
+
 }

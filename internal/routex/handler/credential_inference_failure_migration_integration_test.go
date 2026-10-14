@@ -35,7 +35,7 @@ func (credentialHistoricalModelDiscoveryOccurrenceV108) TableName() string {
 }
 
 func credentialInferencePeelV109(db *gorm.DB, expected []personalKeyBehaviorMigrationEntry) error {
-	if len(expected) < 1 || len(expected) > 112 {
+	if len(expected) < 1 || len(expected) > 116 {
 		return errors.New("unsupported Credential fixture head")
 	}
 	for i, entry := range expected {
@@ -176,7 +176,7 @@ func modelDiscoveryPartialCountControls(t *testing.T, db *gorm.DB) {
 	if err := database.Migrate(t.Context(), db); err != nil {
 		t.Fatal("valid empty partial count baseline rejected", err)
 	}
-	if got := personalKeyBehaviorLedger(t, db); len(got) != 112 || got[110].Version != 111 || got[109].Version != 110 || !reflect.DeepEqual(prefix, got[:107]) {
+	if got := personalKeyBehaviorLedger(t, db); len(got) != 116 || got[110].Version != 111 || got[109].Version != 110 || !reflect.DeepEqual(prefix, got[:107]) {
 		t.Fatal("valid partial count upgrade changed prefix")
 	}
 	legacyModelDiscoveryBeforeV108(t, db)
@@ -216,7 +216,7 @@ func testCredentialInferenceFailureMigration(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	ctx := t.Context()
 	head := personalKeyBehaviorLedger(t, db)
-	if len(head) != 112 || head[110].Version != 111 || head[109].Version != 110 {
+	if len(head) != 116 || head[110].Version != 111 || head[109].Version != 110 {
 		t.Fatal("exact V110 startup head required")
 	}
 	for _, change := range []func([]personalKeyBehaviorMigrationEntry){func(v []personalKeyBehaviorMigrationEntry) { v[108].Version = 110 }, func(v []personalKeyBehaviorMigrationEntry) { v[108].AppliedAt = "" }, func(v []personalKeyBehaviorMigrationEntry) { v[108].AppliedAt += "changed" }} {
@@ -252,7 +252,7 @@ func testCredentialInferenceFailureMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	after := personalKeyBehaviorLedger(t, db)
-	if len(after) != 112 || after[110].Version != 111 || after[109].Version != 110 || !reflect.DeepEqual(prefix, after[:108]) {
+	if len(after) != 116 || after[110].Version != 111 || after[109].Version != 110 || !reflect.DeepEqual(prefix, after[:108]) {
 		t.Fatal("observer upgrade changed historical prefix")
 	}
 	// Missing CHECKs represent interrupted MySQL DDL, not a different version.

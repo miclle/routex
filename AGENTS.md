@@ -1358,7 +1358,6 @@ Status dispatch synchronously locks its selected target before HTTP I/O. Close
 and retarget callbacks consult that live lock and exact selection, so callbacks
 captured before React renders cannot discard or replace a dispatched intent.
 
-
 Provider Connection row menus offer Add model through the registered guided
 creation URL with the exact encoded Connection ID. Fresh Provider read and
 models.read_all permit read-only review; models.write remains the destination's
@@ -1607,7 +1606,6 @@ Observer bookkeeping and pending query creation can occur during render and must
 not notify another component. Keep Session/permission invalidation, cancellation,
 and uncertain-intent fences synchronous for actual state transitions.
 
-
 LDAP sign-in uses the existing authentication card, method configuration drawer,
 and Account Security card/dialogs, with a paired `ldap` namespace. Require an
 explicit stable entryUUID or objectGUID selection and system-trusted LDAPS;
@@ -1623,7 +1621,6 @@ allowed. Secret inventory V5 appends LDAP service-password coverage while
 retaining exact historical V1–V4 scopes; typed LDAP audit changes render only
 server-projected reasons.
 
-
 SAML uses the existing authentication card, method drawer and Account Security
 card/dialogs with paired `saml` translations. Keep the clean completion route
 outside AuthGate and require manual completion after a fresh Session read.
@@ -1636,7 +1633,6 @@ passwords, proofs and one-time results in transient component state, fence late
 responses by actor/Session lifetime, and settle the real Session after revoking
 writes. Explicit abandonment confirms cookie cleanup only. SAML does not satisfy
 the OIDC/LDAP-only enforced-SSO policy.
-
 
 GitHub uses the existing sign-in card, independent authentication settings drawer
 and Account Security card/dialogs, with paired `github` translations. Its fixed
@@ -1652,7 +1648,6 @@ tokens stay transient and out of query/mutation caches and browser storage.
 Actor/Session/permission changes fence stale responses. Root inventory V6 appends
 named-provider credentials while preserving V1–V5 meanings. GitHub does not satisfy
 the OIDC/LDAP-only enforced-SSO policy.
-
 
 Google uses the existing sign-in card, independent authentication settings drawer and Account Security composition with paired `google` translations. An internal finite GitHub/Google UI adapter may share identical state and authority handling, while each method retains exact endpoints, namespace, callback and transient state. Changing methods destroys obsolete state and fences late replies. Keep the Google setup guide, actual-origin copy, explicit saved-callback copy and separately confirmed enablement Switch. Never infer verification or enablement from saving.
 
@@ -1691,7 +1686,6 @@ not provision accounts, infer email ownership or satisfy enforced SSO. Typed
 Discord audit display renders only the server-projected reason as text.
 
 API-Key delivery uses the existing Personal/Project Key create and rotation dialogs and the Secrets policy/card/target-review composition, with paired English/Chinese copy. Treat stored manual/managed_vault modes as immutable and missing legacy mode as Unknown. Resolve exact owner application/environment/Principal targets explicitly; control approval, revocable operator isolation and server READY reconciliation remain separate. Keep independent intrinsic-admin secrets.read/write/test gates, current owner/manager authority, reviewed If-Match and reason, and synchronous actor/Session/permission/resource/option-generation fences. A renewed read never proves historical success: retain the original UUID/body/review for explicit uncertain retry, and hide stale private facts. Managed rotation sends empty server-owned metadata and preserves predecessor scope, expiry and enabled/disabled state; it never retires the predecessor. Managed receipts contain no secret; distinguish Vault acknowledgement, exact local publication and unknown caller/coordinator application. Acknowledged-only recovery uses the original UUID/current receipt review and performs no Vault write. Tokens and one-time secrets remain component-local, outside Query/Mutation caches, browser storage, confirmations and logs; discard on dismissal/actor change/unmount and expire captured administrative Token material. Use existing local Base UI dialogs/tables/cards, explicit conflict review and live bilingual guidance; no manual READY override, plaintext fallback or inferred native-completed retirement.
-
 
 Forced SSO uses the existing Authentication methods hierarchy and an exact reviewed policy drawer. Management requires a fresh intrinsic administrator and independent registration.write; emergency administrator entry uses canonical ID plus a candidate-specific authorized review, never an ungranted member directory. A fresh no-query review is required to disable; enable/replacement requires the exact selected ID review. Preserve original body/ETag for explicit uncertain retries. Public policy renewal/error hides stale password, registration and method choices; only verified OIDC/LDAP remain allowed while enforced. Emergency password success is always a transient native MFA202 challenge, never a Session.
 
@@ -1805,7 +1799,6 @@ Use local Menu/Dialog wrappers for row actions and deletion confirmation. Fence
 private lists, original save intents and late completions by actor, Session and
 current authority; use paired insights translations and transient state for writes.
 
-
 Administrative Model configured input cells use only the independently Provider-authorized
 configured_input_capabilities projection, with per-native-protocol image/PDF intersections.
 Keep the existing list/detail composition and label these as configured input, never
@@ -1852,9 +1845,18 @@ calls.read_all and providers.read checks before capture, dispatch and private an
 Send only bounded authorized aggregates and temporary P labels, keeping unknown attribution
 and duration coverage distinct. Never forward Provider/model identities, raw attempts, members
 or secrets. An optional exact question is reviewed untrusted text, not a report selector.
-Report-kind changes revoke reviews and obsolete answers; Team/Key quota reports remain
-outside AI advice. Loading saved definitions only prepares controls. Do not add persistence
-or policy writes, infer live health, or treat attempt success as native completion.
+Report-kind changes revoke reviews and obsolete answers. Current-page Team Token advice
+uses a fresh authorized capture of the reviewed cursor and limit, anonymous T labels and
+only existing quota facts and supplied estimates. Recheck exact captured Team birth and
+scoped read authority before dispatch and answer publication, independently of report read,
+Session and personal-model/quota authority. Cursor and identities never enter upstream
+aggregates. Current-page Key Token advice uses the independently authorized member or
+Project scope, anonymous K labels and the existing shared root-account facts. Capture and
+recheck exact owner/root birth and current scope read before dispatch and publication; no
+Key secret, owner identity or cursor enters upstream data. Scope/target/page/refresh/dimension
+changes revoke reviews and answers. Money quota advice remains unavailable. Loading saved
+definitions only prepares controls. Do not add persistence or policy writes, infer live
+health, or treat attempt success as native completion.
 
 Offboarding completion uses the existing recipient notification menu with a closed
 privacy-bounded completion envelope and paired localized copy. It carries no Case,
@@ -1898,7 +1900,8 @@ and a positive rate, and stop at monthly reset; retained terminal reservations
 also prove incomplete actual usage even if an unknown counter is zero. Keep them
 separate from active pending reservations. Forecasts do not predict parent limits
 or actual request blocking. Preserve actor/Session/permission/target freshness and
-abort stale reads/exports. Keep quota identities and result rows out of optional AI advice.
+abort stale reads/exports. Optional AI advice uses only explicitly reviewed current-page
+Token facts with anonymous T/K labels; quota identities and uncaptured data remain excluded.
 
 The existing quota reading-guidance card may derive deterministic observations
 only from the captured page's recorded levels, stored cap behavior and server
@@ -1924,5 +1927,74 @@ jobs and response generations for reads, visibility and retained callbacks.
 Default pagination follows archive IDs, not historical capture or installation
 time. Original document bytes are not encrypted retention bytes. No source,
 secrets, integrity, rollback-readiness, current application or fleet claim is
-implied. Automatic durable capture remains unconfigured; render an honest empty
-state and keep routing/installation histories separate. Pair English/Chinese copy.
+implied. Render retained headers and empty states without inferring writer or
+retention status; keep routing/installation histories separate. Pair English/Chinese copy.
+
+Administrator archive cleanup stays inside the existing archive-history dialog.
+Require fresh intrinsic administrator, system.read and system.write authority.
+Select at most 20 exact visible archive IDs, capture the server preview and strong
+ETag, and require a reason and explicit destructive confirmation. Show actual
+stored encrypted bytes separately from original document size. Keep the UUID,
+selection, reason and ETag identical on an uncertain retry; missing rows or a
+refreshed list never prove deletion. Only the exact authorized cleanup receipt
+confirms storage release, never activation, rollback or fleet application. Hide
+private review and completion facts during renewed reads and discard obsolete
+callbacks. Keep the actor-owned dialog mounted across same-actor Session,
+permission, jobs and list renewal; release obsolete pending ownership while
+retaining the exact dispatched intent. Explicit replay requires fresh independent
+authority, a successful current list read and current CSRF. Actor change,
+dismissal or parent unmount discards local intent. Validate the trimmed reason
+before capture: at most 1,000 Unicode characters, no control characters or
+malformed Unicode, with a localized accessible error. Selection/page/refresh
+controls stay locked during a dispatched or uncertain intent. Use local
+Table/Switch/Input and paired English/Chinese copy, without a separate page layout.
+
+Archive integrity validation uses an explicit administrator read inside the existing
+archive-history table. Require a current exact admin Session and independent
+system.read; no system.write or CSRF is needed for the GET. Render only the closed
+integrity-only DTO after complete authenticated cold reconstruction. Never expose
+source contents, secret-derived digests or rollback/readiness/application claims.
+Keep validation results transient and bound to exact actor, Session/permission/jobs/
+list generation, archive ID and birth. Refresh, errors, renewal, actor/target change
+and unmount hide old facts and reject late callbacks; reads never auto-retry.
+
+Gateway routing rollback stays in the existing archive-history Table and local
+Base UI Dialog. Preview and exact receipt reads require intrinsic administrator
+and independent system.read/providers.read/models.read_all authority; dispatch
+also requires system.write/providers.write/models.write and fresh CSRF. Show only
+server-derived transport, input-declaration and binding-weight differences, a
+required reason and explicit confirmation; unknown blockers fail closed. Changed
+transport requires a disabled Connection, fresh real Verify and separate explicit
+Enable. Preserve current identity, access, lifecycle, protocol, secrets and prices.
+Keep the actor/target-birth-owned review mounted outside the Table across renewed
+Session, permission and list reads. Hide obsolete facts and release stale pending
+ownership while retaining the original dispatched UUID, reason and ETag for
+identical explicit retry. Actor or target-birth change, dismissal and unmount clear
+local intent. A failed dispatch or missing receipt remains uncertain. Receipt
+reads do not redispatch and must match exact actor, archive birth and original
+intent. Original publication status, fresh current-process proof and supersession
+are separate facts; no fleet or inference-success claim follows. Selection, cleanup
+and pagination stay locked until explicit dismissal. Render basis-owned state;
+operation refs serve event-time fences and synchronous duplicate guards only.
+Keep responses and intents outside query/mutation caches and browser storage,
+with paired English/Chinese copy.
+
+Archive rollback previews retain the supported legacy empty egress mode as an
+exact stored value. Display its default semantics with localized legacy guidance;
+never coerce non-string egress modes or publication states into valid enums.
+
+Administrative delivery Controller navigation stays inside the existing Profile
+review workflow, using local Tables and Base UI dialogs for exact retained Slots,
+Controller summaries, configuration review, enrollment, assignment and revocation.
+Keep intrinsic administrator authority and independent secrets.read/secrets.write
+checks fresh. Lifecycle and Controller reports remain advisory and never prove
+application delivery, native completion, retirement or fleet convergence.
+The Controller lifetime must survive same-actor Session renewal with the exact
+already-dispatched UUID/body/original If-Match preserved as uncertain, while
+clearing one-time bearers and discarding old authority. Actor/resource changes,
+dismissal and unmount clear transient material; obsolete completions cannot
+populate queries, reveal bearers or report success. Bearers stay only in local
+component state, outside Query/mutation caches and browser storage. Retained
+original-actor enrollment metadata cannot recover a bearer or reconcile a body;
+only an identical explicit enrollment retry confirms that captured intent.
+Register paired English/Chinese keyControllers copy with English as the default.

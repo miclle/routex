@@ -213,3 +213,43 @@ func TestInsightsAIQuestionDecoderPreservesOptionalStrictGrammar(t *testing.T) {
 		t.Fatal("legacy omitted-question contract changed", err)
 	}
 }
+
+func TestInsightsAITeamQuotaDecoderKeepsExactPageGrammar(t *testing.T) {
+	valid := `{"report":"team_quota_tokens","model_id":"mdl_01j00000000000000000000000","language":"en","cursor":"","limit":20}`
+	input, err := decodeInsightsAIInput([]byte(valid))
+	if err != nil || input.Report != "team_quota_tokens" || input.Cursor != "" || input.Limit != 20 {
+		t.Fatal("current page grammar rejected", err)
+	}
+	for _, raw := range []string{
+		strings.Replace(valid, `,"cursor":""`, "", 1), strings.Replace(valid, `,"limit":20`, "", 1), strings.Replace(valid, `"limit":20`, `"limit":"20"`, 1), strings.Replace(valid, `"limit":20`, `"limit":20.1`, 1), strings.Replace(valid, `"limit":20`, `"limit":null`, 1), strings.TrimSuffix(valid, "}") + `,"from":""}`, strings.TrimSuffix(valid, "}") + `,"timezone":"UTC"}`, strings.TrimSuffix(valid, "}") + `,"cursor":"other"}`, strings.TrimSuffix(valid, "}") + `,"curs\u006fr":"other"}`, strings.TrimSuffix(valid, "}") + `,"team_id":"tea_private"}`, strings.TrimSuffix(valid, "}") + `,"statistics":{}}`, strings.Replace(valid, `"team_quota_tokens"`, `"tokens_by_model"`, 1),
+	} {
+		if _, err := decodeInsightsAIInput([]byte(raw)); err == nil {
+			t.Fatal("alternate page grammar admitted", raw)
+		}
+	}
+	question := `  Explain T1 without changing policy  `
+	input, err = decodeInsightsAIInput([]byte(strings.TrimSuffix(valid, "}") + `,"question":` + insightsAIJSONString(question) + `}`))
+	if err != nil || input.Question == nil || *input.Question != question {
+		t.Fatal("exact reviewed question changed", err)
+	}
+}
+
+func TestInsightsAIKeyQuotaDecoderRequiresExactOwnerPageGrammar(t *testing.T) {
+	valid := `{"report":"key_quota_tokens","model_id":"mdl_01arz3ndektsv4rrffq69g5fav","language":"en","scope_kind":"member","scope_id":"usr_01arz3ndektsv4rrffq69g5fav","cursor":"","limit":20}`
+	input, err := decodeInsightsAIInput([]byte(valid))
+	if err != nil || input.ScopeKind != "member" || input.ScopeID != "usr_01arz3ndektsv4rrffq69g5fav" || input.Limit != 20 {
+		t.Fatal("exact owner page grammar rejected", err)
+	}
+	for _, raw := range []string{
+		strings.Replace(valid, `"scope_kind":"member",`, "", 1), strings.Replace(valid, `"scope_id":"usr_01arz3ndektsv4rrffq69g5fav",`, "", 1), strings.Replace(valid, `"cursor":"",`, "", 1), strings.Replace(valid, `"limit":20`, `"limit":"20"`, 1), strings.TrimSuffix(valid, "}") + `,"scope_id":"usr_other"}`, strings.TrimSuffix(valid, "}") + `,"scope_\u0069d":"usr_other"}`, strings.TrimSuffix(valid, "}") + `,"from":"2026-10-01T00:00:00Z"}`, strings.TrimSuffix(valid, "}") + `,"statistics":{}}`, strings.TrimSuffix(valid, "}") + `,"key":"private"}`, strings.TrimSuffix(valid, "}") + `,"messages":[]}`, strings.TrimSuffix(valid, "}") + `,"question":null}`,
+	} {
+		if _, err := decodeInsightsAIInput([]byte(raw)); err == nil {
+			t.Fatal("alternate owner page grammar accepted", raw)
+		}
+	}
+	for _, kind := range []string{"team_quota_tokens", "tokens_by_model"} {
+		if _, err := decodeInsightsAIInput([]byte(strings.Replace(valid, "key_quota_tokens", kind, 1))); err == nil {
+			t.Fatal("Key scope leaked into other report kind")
+		}
+	}
+}

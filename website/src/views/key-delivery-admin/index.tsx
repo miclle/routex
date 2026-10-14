@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import ControllerWorkspace from '@/views/key-delivery-controllers'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { getKeyCallerTemplate, getKeyDeliveryPolicy } from '@/api/key-delivery'
@@ -51,6 +52,7 @@ function Workspace(props: KeyDeliveryAdminWorkspaceProps) {
     refetchOnMount: 'always',
   })
   const [reason, setReason] = useState('')
+  const [controllerTarget, setControllerTarget] = useState('')
   const ready =
     canRead &&
     !policy.isFetching &&
@@ -185,7 +187,12 @@ function Workspace(props: KeyDeliveryAdminWorkspaceProps) {
               </Button>
             </CardContent>
           </Card>
-          <Targets actor={props.actor} generation={generation} life={life} />
+          <Targets
+            actor={props.actor}
+            generation={generation}
+            life={life}
+            onReviewControllers={setControllerTarget}
+          />
           <PolicyForm policy={policy.data!} options={options} life={life} />
           <div className="grid gap-4 md:grid-cols-2">
             <IdentityForm
@@ -206,6 +213,11 @@ function Workspace(props: KeyDeliveryAdminWorkspaceProps) {
           <TemplateForm template={template.data!} life={life} />
         </div>
       )}
+      <ControllerWorkspace
+        authority={props}
+        target={controllerTarget}
+        onClose={() => setControllerTarget('')}
+      />
       <Dialog
         open={!!life.intent && ready && life.selectionCurrent(life.intent)}
         title={t(life.uncertain ? 'uncertainTitle' : 'confirmTitle')}
