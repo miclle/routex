@@ -13,15 +13,15 @@ completed acceptance scenarios**. Prepared source does not change those totals.
 | F17 original calendar and data provenance | V120 Origin passed on both drivers; corrected Fresh checks pending | Qualify the coherent successor; deployment exclusion, legacy transfer and runtime wiring remain open. |
 | F24 Money quota advice | Delivered in `0ccc663`; focused, mandatory and complete ordinary retry passed | Continue browser/external model acceptance; retain initial unrelated deadline failures. |
 | Temporary build output cleanup | Completed | Thirteen obsolete executables removed across five batches (384,377,025 logical bytes); retained replacements, source, original failures and development service preserved. Seven empty directories remain held by the Docker virtual machine. |
-| F30 local dispatch revocation | Four-protocol race regression running | Check original caller and selected route before and after the durable attempt checkpoint; preserve dispatched history and local-only limitations. |
+| F30 local dispatch revocation | Gateway and whole-backend race regressions and main check passed | Deliver the verified increment; keep current-process and cross-process guarantees separate. |
 | Browser acceptance | Pending | Chrome returned no window and application inventory timed out; continue independent backend and source work. |
 
 The latest feature commit `0ccc6637fbaff8640e7c3f504c8f58f9722be993` is pushed;
 fresh remote main readback matches. It adds Money advice to the previously
 qualified V116 delivery `14a75fe`. Nine documentation-only main edits reconcile
-delivered contracts and open acceptance. The heavy lane now runs the local F30
-Gateway revocation regression; repaired F17, original-local transfer and F29
-replacement sources remain isolated pending their own qualification.
+delivered contracts and open acceptance. The F30 Gateway revocation increment passed its focused, whole-backend and
+mandatory main checks. The heavy lane is released to repaired F17 qualification;
+original-local transfer and F29 replacement sources retain independent gates.
 
 The original unchanged V116 full integration directly completed successfully in
 5,200.361 seconds: PostgreSQL and MySQL each passed 610/610 named tests, with
@@ -69,7 +69,7 @@ Physical readback verifies 42 owned groups gone, 42 resource inventories empty,
 14 ports closed, all 2,927 source paths unchanged, and development PID 723 and
 preexisting containers preserved. Readback SHA-256:
 `9f0e9de75ebb6d480ce2623d25f627a91959568d64e0e86a8b58b222ca03e07d`.
-The heavy lane now validates the local F30 dispatch-revocation increment. Complete F17 SQL,
+The heavy lane now qualifies the coherent repaired F17 source. Complete F17 SQL,
 runtime, transfer and multi-process acceptance remain open.
 
 Independent source-only review of the six-file local-v2 transfer validator found
@@ -139,6 +139,25 @@ and reconstructs/revalidates evidence with bounded framing while retaining every
 incomplete-transfer boundary. Compilation, tests, SQL ingestion, deployment
 exclusion, cutover and runtime activation remain unqualified. This source and its
 preparation receipt are local-only; it is not included in the delivered commits.
+
+The first F30 Gateway race run (session 25610) directly joined exit one: 519 named
+nodes, 506 passes and 13 failed nodes (eight leaves). All failures belong to the
+new reservation fixture, which incorrectly expected active pending holds in the
+separate settled five-hour counter. Production accounting correctly retained the
+hold only in Active. The new successor tree
+`1a052b9fdae3508b6e09d28e2c574692f0a5d9ac` changes that assertion only, requiring
+the exact original Active hold, zero unknown Tokens and zero settled-window
+counters. Runtime rules, deadlines and prior source remain unchanged. Race
+qualification session 28924 passed all 519 named Gateway nodes, including all
+144 new nodes. Whole Service/Handler race session 19343 passed 7,534 nodes with
+nine explicit dedicated-database skips and zero failures. Three source paths are
+adopted on main while preserving status edits. Main check session 81355 rejected
+a new test protocol branch with Staticcheck QF1003; the test-only style successor
+uses a tagged switch with unchanged responses. Gateway requalification session
+24225 passed all 519 Gateway nodes with no failures/skips. Fresh mandatory main
+check session 60131 directly joined exit zero, including formatting, backend
+checks, frontend lint/types and module consistency. Both original failed logs
+remain retained.
 
 ## F17 SQL source composition checkpoint (2026-10-15)
 

@@ -20,6 +20,16 @@ Gateway authentication, name resolution, route selection, and credential selecti
 
 Every native request captures a detached route plan from one immutable routing snapshot. Before each dispatch, RouteX rechecks the current Key, personal or Project owner, model grant, provider-model and credential authorization, route snapshot, egress generation/revision, limit policy, quota capacity, price evidence, and process-local health. A revocation or changed admission boundary stops the run; it never selects another route to bypass current policy.
 
+Quota admission alone does not authorize dispatch. The original caller and selected route are checked again inside the local publication guard, before creating attempt evidence and after the durable checkpoint, immediately before releasing that guard for upstream HTTP. A reduction present at either check prevents upstream work without repeating quota admission. These checks use the current process-local authorization snapshot and tombstones; they do not provide a cross-process revocation guarantee. Not every revocation writer acquires the publication guard, so this recheck does not establish atomic commit-to-dispatch ordering for every mutation: a reduction racing after the final check can still follow a permitted dispatch. Already dispatched attempts retain their captured identity and settlement obligations.
+
+The dispatch-revocation regression covers all four native protocols, Personal and
+Project callers, reductions before and after the durable attempt checkpoint,
+original finite Token reservations, zero-work restart recovery and preservation
+of already received upstream attempts. The focused Gateway race run passes 519
+named nodes, including 144 new nodes; the containing Service/Handler race run
+passes 7,534 nodes with nine explicit dedicated-database skips. These controlled
+checks do not establish cross-process mutation-to-dispatch ordering.
+
 Positive-weight eligible routes retain their configured proportions. Credential priority applies inside a selected route. Proven pre-request Connection failures and explicit native credential rejection create bounded process-local cooldowns; a successful response admission clears the relevant health evidence. Native rate rejection excludes that Connection only within the current request. Health is intentionally not persisted or coordinated between nodes.
 
 A valid `2xx` response transfers ownership to the protocol handler and ends route selection. Ordinary parsing, streaming finality, client writes, usage parsing, and cancellation after that boundary cannot trigger another attempt. See [Native attempt planning](ROUTE_ATTEMPTS.md) for the exact evidence matrix, attempt limit, and durable checkpoint contract.

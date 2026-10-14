@@ -136,7 +136,7 @@ func (s *Service) gatewayNativeAttempts(ctx context.Context, requestID string, r
 			if current == nil {
 				return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.Unknown}, routeattempt.ErrExecution
 			}
-			outcome, public, executeErr := s.executeGatewayAttempt(ctx, requestID, result, attempt, current)
+			outcome, public, executeErr := s.executeGatewayAttempt(ctx, requestID, plan, result, attempt, current)
 			lastPublic = public
 			current = nil
 			return outcome, executeErr
@@ -456,7 +456,18 @@ func applyGatewayAttemptRoute(result *GatewayResult, route *gatewayRoute) {
 	result.PriceBasis = clonePriceBasis(route.PriceBasis)
 }
 
-func (s *Service) executeGatewayAttempt(ctx context.Context, requestID string, result *GatewayResult, attempt routeattempt.Attempt, prepared *preparedGatewayAttempt) (routeattempt.Outcome, error, error) {
+func (s *Service) reauthorizePreparedGatewayAttempt(ctx context.Context, plan *gatewayAttemptPlan, result *GatewayResult, attempt routeattempt.Attempt) error {
+	eligible, err := s.gatewayAttemptEligible(ctx, plan, attempt)
+	if err != nil {
+		return err
+	}
+	if !eligible {
+		return runtimeUnavailable
+	}
+	return s.reauthorizeGatewayPublicName(ctx, result)
+}
+
+func (s *Service) executeGatewayAttempt(ctx context.Context, requestID string, plan *gatewayAttemptPlan, result *GatewayResult, attempt routeattempt.Attempt, prepared *preparedGatewayAttempt) (routeattempt.Outcome, error, error) {
 	if err := s.reauthorizeGatewayPublicName(ctx, result); err != nil {
 		return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, err, routeattempt.ErrExecution
 	}
@@ -465,6 +476,11 @@ func (s *Service) executeGatewayAttempt(ctx context.Context, requestID string, r
 		return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, runtimeUnavailable, routeattempt.ErrExecution
 	}
 	defer release()
+	// Quota admission does not authorize a later dispatch. Recheck the original
+	// caller and selected route under the existing local publication guard.
+	if err := s.reauthorizePreparedGatewayAttempt(ctx, plan, result, attempt); err != nil {
+		return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, err, routeattempt.ErrExecution
+	}
 	if !prepared.holder.admitUse() {
 		return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, runtimeUnavailable, routeattempt.ErrExecution
 	}
@@ -478,7 +494,7 @@ func (s *Service) executeGatewayAttempt(ctx context.Context, requestID string, r
 	if err := s.CheckpointGatewayCall(requestID, result); err != nil {
 		return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, err, routeattempt.ErrExecution
 	}
-	if err := s.reauthorizeGatewayPublicName(ctx, result); err != nil {
+	if err := s.reauthorizePreparedGatewayAttempt(ctx, plan, result, attempt); err != nil {
 		result.AttemptID = ""
 		result.AttemptStartedAt = time.Time{}
 		if checkpointErr := s.CheckpointGatewayCall(requestID, result); checkpointErr != nil {
