@@ -1,5 +1,87 @@
 # Current implementation handoff
 
+## Handoff snapshot (2026-10-16T16:48:11+08:00)
+
+- **Status:** paused; the global RouteX objective remains partial.
+- **Repository:** `/Users/miclle/github/miclle/routex`.
+- **Branch and HEAD:** `main` at `87022c9c402c973cd5a2930850ad661d4417e87a`.
+- **Upstream:** `origin/main`, 0 commits ahead and 0 behind at the last check.
+- **Last pushed state:** `87022c9c402c973cd5a2930850ad661d4417e87a`.
+- **Current owner:** RouteX implementation agent; **next owner:** unassigned.
+- **Transfer state:** the implementation commits are transferable; this
+  documentation refresh is local-only until the two modified documentation
+  files are reviewed and committed.
+
+### Objective boundary
+
+Continue implementing the remaining Mockup-backed RouteX capabilities while
+preserving the English documentation, GORM-first portability, Compose database
+qualification, shadcn/ui/Base UI implementation and evidence boundaries. This
+handoff closes the current window after the active packages were validated as
+far as their available gates allow; it does not declare the global objective
+complete.
+
+### Completed in this window
+
+- F29 helper and evidence commands are on `main` in `7dbf441`; host race tests,
+  Linux/arm64 builds, 28 packet controls and the pinned Linux file-safety test
+  passed.
+- F11/F23 role-fixture checks and F17 shared-admission/spool-rejection focused
+  checks passed on the composed source; `go tool task check` passed with the
+  repository's two existing ESLint warnings.
+- English RouteX and roadmap documentation was refreshed in the preceding
+  delivery commits `87022c9` and `25c1e4a`.
+
+### Partial and unmerged
+
+- The composed F11/F23/F17 source is in the detached worktree
+  `/Users/miclle/.codex/worktrees/routex-f17-gateway-executor-20261016-r1` at
+  `76d7a44`. Its complete dual-driver qualification is not accepted: PostgreSQL
+  reached 615 named nodes with 597 passes and 18 failures after a migration
+  timeout and bad connection; MySQL had no observed failures before fail-fast
+  cancellation and no complete readback.
+- F29 native application use, the SQLSTATE read-only pair and external workload
+  acceptance remain pending. The maintained source worktree was clean at
+  `66a30e9` when checked.
+
+### First action after resume
+
+Start a fresh owned dual-database qualification from the composed F11/F23/F17
+source. Completion requires both drivers to produce complete readback with no
+failures or unaccounted skips, followed by the existing F17 gates. Do not start
+shared-runtime activation, history transfer or later roadmap features before
+that condition is met.
+
+### Working tree and preservation rules
+
+The main RouteX worktree was clean before this documentation refresh; the
+current documentation edits are intentionally uncommitted until reviewed.
+The dotfiles checkout likewise has the RouteX roadmap edit from this refresh
+uncommitted; its unrelated `zsh/.zshrc` modification is pre-existing and must
+remain untouched.
+The F17 detached worktree contains the prepared source: its broad composition
+is staged, while the shared-admission rejection/spool fix and related guide
+updates are unstaged. Preserve those changes and do not reset or cherry-pick
+them without fresh qualification. Preserve development PID 723, unrelated
+`/Users/miclle/dotfiles/zsh/.zshrc` changes, and evidence-bearing
+`/private/tmp/routex-*` paths. Only the confirmed empty obsolete test directory
+was removed.
+
+### Verification and open gates
+
+The raw dual-driver packet and logs remain at
+`/private/tmp/routex-f11-f23-composed-qualification-20261016-r1`; its
+`independent-inspect.py` must not be treated as green without a generated
+`readback.json`. The F29 source-only R4 packet is at
+`/private/tmp/routex-f29-controller-native-use-preparation-20261016-r4`.
+Actual application-use and SQLSTATE evidence must be rebound to the current
+source and binary hashes; historical Agent delivery evidence does not substitute
+for those gates.
+
+The dated sections below are historical qualification records. Their words such
+as "active" or "pending" describe the state at the recorded date and do not
+override this snapshot.
+
 ## Execution continuation (2026-10-16)
 
 The global goal remains active: **16 Completed / 14 Partial capabilities** and

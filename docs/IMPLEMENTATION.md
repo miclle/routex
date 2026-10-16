@@ -36,6 +36,10 @@ fresh owned project, then run the composed F17 checks and the bounded F29 native
 application-use successor. Do not start deferred shared-runtime activation,
 history transfer, or other roadmap features before these packages are closed.
 
+The dated records below are historical evidence. Any statement that a matrix
+was active or awaiting a terminal applies to its recorded date; the closeout
+above is the current status.
+
 ### Parallel implementation ownership
 
 Use all four available active slots: three agents plus the coordinator. Work
