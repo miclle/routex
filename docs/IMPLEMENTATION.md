@@ -314,12 +314,48 @@ controlled-Personal audit SHA-256:
 Failed R1 and its original kit/receipts remain immutable. This controlled fixture
 proves bounded installed-Key application use, not external application adoption.
 
-Next compose and qualify the separately reviewed eight-file Project helper
-extension: explicit disjoint Project ownership/birth proof, safe connection-secret
-consumption, canonical owner discriminator and bounded Project bearer support.
-Then build a new Project coordinator and fresh artifacts, retaining projected
-HTTP status receipts and supplemental full-ID snapshots before cleanup.
-Personal evidence cannot prove Project ownership. Controlled Project/bilingual
+The separately reviewed Project helper phase is published as
+**`777048e6a685d56c78565545d1fe94099486668f`** on the unmerged candidate branch,
+with exact local/tracking/remote SHA parity and a clean worktree. Its exact eight
+maintained-tool files add explicit disjoint Project ownership/birth proof, safe
+connection-secret consumption, canonical owner discriminators and bounded
+Project bearer support while preserving Personal compatibility: 605 insertions,
+55 deletions, with no production/frontend/schema change.
+
+Formatting and mandatory `go tool task check` passed. Focused helper races passed
+**119/119 named nodes**, two packages, no failures/skips/stderr. Complete ordinary
+Task joined with exit **0**: all five stages once in order, 33 backend plus one
+production Go package terminal, 288 frontend files / 7,789 tests, and Node
+5/5 plus 66/66, with no failures/cancellation/skips/todo. All 2,978 source files
+retained manifest
+`600a0006b0a2cc3500fbb0ecb7c87b40717a997ec78e75b16a4efb8b979d0c0b`.
+The actual candidate command environment is Node 26.8.2 / npm 11.19.1; the primary
+checkout uses Node 24.19.0 / npm 11.17.0. Both meet the recorded >=22.22.0 engine.
+Independent ordinary audit SHA-256:
+`ce47e6821738a81591827f41b9393765ccd22a6f60ceca20b7287bf6baf65738`.
+
+Before committing, a fresh offline UID0 container compiled and ran both complete
+helper packages from two exact read-only candidate source mounts: **160/160 named
+passes**, including all Project installed/private-probe file-owner cases, with
+zero failures/skips and two package passes. Its 27 host commands joined with
+exit zero; the original adapter/groups and exact container were observed closed.
+Source stayed unchanged. The pinned same-target-host compiler image was only a
+build dependency; no old runtime binary or Project application-image proof was
+used. Independent Linux unit audit SHA-256:
+`a72cb6e789ce697d0e87a722da7b41d7d22ed734c7c19b20838100c328b98a21`.
+
+The new private Project kit is source-reviewed at
+`/private/tmp/routex-f29-project-target-successor-20261017-source-r1`:
+44 coordinator controls and six Python syntax checks passed; its new helper
+qualification supervisor passed fourteen refusal controls. The reviewed dependency
+input pins the full published helper commit and all eight exact helper hashes.
+Next build completely fresh Project binaries/images and runtime inputs, qualify
+those images, then execute O/A/B current-manager/native/SQLSTATE/retirement and
+explicit English/Chinese browser acceptance. This successor retains projected
+HTTP status receipts and supplemental full-ID/state snapshots before cleanup.
+The optional explicit browser gate remains within the original 900-second
+lifetime; no browser result is automatic. Personal evidence cannot prove Project
+ownership, and source/control passes cannot prove that future runtime. Controlled Project/bilingual
 UI and other independent roadmap acceptance can continue without the still
 unidentified real external application/runtime/issuer. External adoption remains
 its own dependent gate.
