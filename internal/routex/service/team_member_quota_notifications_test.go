@@ -124,7 +124,7 @@ func TestTeamMemberQuotaRequiresOneCurrentPublishedPair(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			current, _ := memberMonthlyNotificationFixture(t)
 			child, parent := limitAccount("team_member", current.Row.ScopeID), limitAccount("team", current.Team.ID)
-			svc := &Service{runtime: &gatewayRuntime{}, recorder: &callRecorder{}}
+			svc := &Service{admission: admissionTestStore(t), runtime: &gatewayRuntime{}, recorder: &callRecorder{}}
 			auth := &runtimeAuthorization{ValidUntil: time.Now().Add(time.Minute), Teams: map[string]runtimeTeam{current.Team.ID: {CreatedAt: current.Team.CreatedAt, Members: map[string]string{current.Member.UserID: current.Member.ID}}}, Quota: &runtimeQuotaData{Setting: entity.QuotaSetting{TimeZone: "UTC", ETag: "quota_current"}, Currency: "USD", Revisions: map[string]string{child: current.Row.ETag, parent: current.ParentRow.ETag}}, LimitPolicies: map[string]limits.Policy{child: current.Stored, parent: current.Parent}}
 			switch name {
 			case "missing_team":
@@ -200,7 +200,7 @@ func TestTeamMemberQuotaRequiresOneCurrentPublishedPair(t *testing.T) {
 	current, _ := memberMonthlyNotificationFixture(t)
 	current.ParentRow = entity.ResourceLimit{ScopeKind: "team", ScopeID: current.Team.ID, ETag: "0"}
 	current.Parent, _ = policyFromRow(current.ParentRow)
-	svc := &Service{runtime: &gatewayRuntime{}, recorder: &callRecorder{}}
+	svc := &Service{admission: admissionTestStore(t), runtime: &gatewayRuntime{}, recorder: &callRecorder{}}
 	child := limitAccount("team_member", current.Row.ScopeID)
 	auth := &runtimeAuthorization{ValidUntil: time.Now().Add(time.Minute), Teams: map[string]runtimeTeam{current.Team.ID: {CreatedAt: current.Team.CreatedAt, Members: map[string]string{current.Actor.ID: current.Member.ID}}}, Quota: &runtimeQuotaData{Setting: entity.QuotaSetting{TimeZone: "UTC", ETag: "quota_current"}, Currency: "USD", Revisions: map[string]string{child: current.Row.ETag}}, LimitPolicies: map[string]limits.Policy{child: current.Stored}}
 	svc.runtime.auth.Store(auth)

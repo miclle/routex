@@ -70,10 +70,10 @@ func (s *Service) ReconcileMonthlyQuotaNotifications(ctx context.Context) error 
 // StartQuotaNotifications returns a cancellation-and-join function. Call it
 // after recorder/runtime startup and join it before closing the durable journal.
 func (s *Service) StartQuotaNotifications(ctx context.Context) (func(), error) {
-	if s.recorder == nil || s.runtime == nil {
+	if s.recorder == nil || s.admission == nil || s.runtime == nil {
 		return nil, runtimeUnavailable
 	}
-	if _, err := s.recorder.queue.QuotaStatus(); err != nil {
+	if _, err := s.admission.QuotaStatus(ctx); err != nil {
 		return nil, runtimeUnavailable
 	}
 	runCtx, cancel := context.WithCancel(ctx)

@@ -39,6 +39,7 @@ func TestRuntimeAdmissionRechecksReducedPolicyAndIP(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = queue.Close() }()
+	svc.admission = newLocalAdmissionStore(queue)
 	svc.recorder = &callRecorder{queue: queue}
 	result := func() *GatewayResult {
 		return &GatewayResult{UserID: "usr_one", KeyID: "key_one", ModelID: "mdl_one", ModelName: "public-model"}
@@ -99,6 +100,7 @@ func TestRuntimeConcurrentAggregateAndRotatedKey(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = queue.Close() }()
+	svc.admission = newLocalAdmissionStore(queue)
 	svc.recorder = &callRecorder{queue: queue}
 	var wg sync.WaitGroup
 	results := make(chan error, 2)

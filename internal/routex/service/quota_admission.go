@@ -35,6 +35,9 @@ func (s *Service) preflightGatewayQuota(ctx context.Context, requestID string, r
 	if err != nil {
 		return err
 	}
+	if s.recorder != nil && s.admission == nil {
+		return callQueueUnavailable
+	}
 	if s.recorder == nil {
 		for _, policy := range policies {
 			if policy.Tokens5H != nil || policy.Tokens7D != nil || policy.TokensMonth != nil || policy.TPM != nil || policy.MoneyMonth != nil || policy.RPM != nil || policy.Concurrency != nil {
@@ -43,7 +46,7 @@ func (s *Service) preflightGatewayQuota(ctx context.Context, requestID string, r
 		}
 		return nil
 	}
-	if err := s.recorder.queue.PreflightWithQuota(requestID, policies, bound, data.Setting.TimeZone, time.Now().UTC()); err != nil {
+	if err := s.admission.PreflightWithQuota(ctx, requestID, policies, bound, data.Setting.TimeZone, time.Now().UTC()); err != nil {
 		return quotaGatewayError(err)
 	}
 	return nil

@@ -99,7 +99,7 @@ func testVaultSavedCertificateMigration(t *testing.T, db *gorm.DB) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
 	defer cancel()
 	currentEntry := personalKeyBehaviorLedger(t, db)
-	if len(currentEntry) != 116 || currentEntry[110].Version != 111 || currentEntry[109].Version != 110 || currentEntry[108].Version != 109 || currentEntry[107].Version != 108 || currentEntry[106].Version != 107 || currentEntry[105].Version != 106 || currentEntry[104].Version != 105 || currentEntry[103].Version != 104 {
+	if len(currentEntry) != 118 || currentEntry[110].Version != 111 || currentEntry[109].Version != 110 || currentEntry[108].Version != 109 || currentEntry[107].Version != 108 || currentEntry[106].Version != 107 || currentEntry[105].Version != 106 || currentEntry[104].Version != 105 || currentEntry[103].Version != 104 {
 		t.Fatal("exact V105 startup required")
 	}
 	legacyRuntimePublicationBeforeV104(t, db)
@@ -300,7 +300,7 @@ func testVaultSavedCertificateMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal("restore current105 after bounded certificate scenario")
 	}
 	current := personalKeyBehaviorLedger(t, db)
-	if len(current) != 116 || current[110].Version != 111 || current[109].Version != 110 || current[108].Version != 109 || current[107].Version != 108 || current[106].Version != 107 || current[105].Version != 106 || current[104].Version != 105 || !reflect.DeepEqual(beforeCurrent, current[:104]) {
+	if len(current) != 118 || current[110].Version != 111 || current[109].Version != 110 || current[108].Version != 109 || current[107].Version != 108 || current[106].Version != 107 || current[105].Version != 106 || current[104].Version != 105 || !reflect.DeepEqual(beforeCurrent, current[:104]) {
 		t.Fatal("current105 restoration changed bounded V104 receipts")
 	}
 	preserved()

@@ -183,7 +183,7 @@ func (s *Service) defaultLimitResetRecord(tx *gorm.DB, state *defaultLimitResetS
 	return record, nil
 }
 func (s *Service) defaultUserLimitApplied(state *defaultLimitResetState) bool {
-	if s.runtime == nil || s.recorder == nil {
+	if s.runtime == nil || s.recorder == nil || s.admission == nil {
 		return false
 	}
 	auth := s.runtime.auth.Load()

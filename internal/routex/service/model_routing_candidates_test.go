@@ -405,3 +405,50 @@ func TestModelRoutingReviewedInsertCurrentAuthorityAndAtomicAudit(t *testing.T) 
 		})
 	}
 }
+
+func TestExactRoutingCandidateSnapshotAndIndependentAuthority(t *testing.T) {
+	for _, permission := range []string{"", "models.read_all", "providers.read", "prices.read"} {
+		t.Run(permission, func(t *testing.T) {
+			s, f := routingSQLService(t, 1)
+			if permission != "" {
+				f.roles.deny[permission] = true
+			}
+			review, err := s.GetModelRoutingCandidate(context.Background(), "usr_admin", "mdl_target", "openai_chat", "prv_one", f.models[0].ID)
+			if permission == "models.read_all" || permission == "providers.read" {
+				if !errors.Is(err, apperrors.ErrForbidden) || review != nil || len(f.queries) != 0 {
+					t.Fatal("independent read denied too late", err)
+				}
+				return
+			}
+			if err != nil || review.ModelID != f.model.ID || review.ModelName != "Public" || review.Candidate.ID != f.models[0].ID || review.Routes == nil || len(review.Routes) != 0 {
+				t.Fatal("exact snapshot lost identity", err)
+			}
+			if len(f.options) != 1 || !f.options[0].ReadOnly || f.options[0].Isolation != driver.IsolationLevel(sql.LevelRepeatableRead) || len(f.roles.writes) != 0 {
+				t.Fatal("review is not one readonly snapshot")
+			}
+			if permission == "prices.read" && review.Candidate.Prices != nil {
+				t.Fatal("price read denial ignored")
+			}
+			for _, query := range f.queries {
+				if strings.Contains(query, "FROM provider_models AS pm") && strings.Contains(query, "LIKE") {
+					t.Fatal("exact review borrowed a name search")
+				}
+			}
+		})
+	}
+}
+
+func TestExactRoutingCandidateNeverBorrowsAnotherSource(t *testing.T) {
+	s, f := routingSQLService(t, 1)
+	for _, source := range []string{"pmd_other", "pmd_A", "PMD_a", "pmd_a\n"} {
+		got, err := s.GetModelRoutingCandidate(context.Background(), "usr_admin", "mdl_target", "openai_chat", "prv_one", source)
+		if err == nil || got != nil {
+			t.Fatal("missing or aliased source borrowed another candidate", source)
+		}
+	}
+	f.models = nil
+	got, err := s.GetModelRoutingCandidate(context.Background(), "usr_admin", "mdl_target", "openai_chat", "prv_one", "pmd_missing")
+	if !errors.Is(err, apperrors.ErrNotFound) || got != nil {
+		t.Fatal("missing source invented a review", err)
+	}
+}

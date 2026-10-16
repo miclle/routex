@@ -7,12 +7,8 @@ import (
 	"net/netip"
 	"time"
 
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
-
 	"github.com/miclle/routex/internal/routex/entity"
 	"github.com/miclle/routex/pkg/eventqueue"
-	"github.com/miclle/routex/pkg/id"
 	"github.com/miclle/routex/pkg/limits"
 )
 
@@ -286,41 +282,6 @@ func (s *Service) gatewayLimits(ctx context.Context, result *GatewayResult) ([]e
 	}
 	return output, nil
 }
-func (s *Service) bindLimitJournal(ctx context.Context, queue *eventqueue.Queue) error {
-	// Commit the immutable identity before writing it to a separate durable file.
-	// A crash after filesystem binding can then retry the same identity even if
-	// the final SQL Initialized acknowledgment did not commit.
-	if err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
-		var binding entity.LimitInstallation
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&binding, 1).Error; err != nil {
-			return err
-		}
-		if binding.JournalID != "" {
-			return nil
-		}
-		if binding.Initialized {
-			return limits.ErrInvalid
-		}
-		journalID, err := id.NewPrefixed("led")
-		if err != nil {
-			return err
-		}
-		return tx.Model(&binding).Update("JournalID", journalID).Error
-	}); err != nil {
-		return err
-	}
-	return s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
-		var binding entity.LimitInstallation
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&binding, 1).Error; err != nil {
-			return err
-		}
-		if err := queue.BindInstallation(binding.JournalID, binding.Initialized); err != nil {
-			return err
-		}
-		return tx.Model(&binding).Update("Initialized", true).Error
-	})
-}
-
 func gatewayLimitError(err error) error {
 	if errors.Is(err, eventqueue.ErrRateLimit) {
 		return gatewayError(429, "rate_limit_exceeded", "The request rate limit has been reached.")
@@ -350,5 +311,5 @@ func (s *Service) admitLimitedGatewayCall(ctx context.Context, requestID string,
 	result.admissionQuota = quotaPolicies
 	result.quotaBound = bound
 	result.quotaTimeZone = quotaData.Setting.TimeZone
-	return s.AdmitGatewayCall(requestID, result)
+	return s.admitGatewayCall(ctx, requestID, result)
 }

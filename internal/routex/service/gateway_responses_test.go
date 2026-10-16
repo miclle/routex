@@ -135,6 +135,7 @@ func TestResponsesDispatchAdmissionAndNativeErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = queue.Close() }()
+	svc.admission = newLocalAdmissionStore(queue)
 	svc.recorder = &callRecorder{queue: queue}
 	result, err := svc.GatewayResponses(context.Background(), bearer, []byte(`{"model":"public-model","input":"hello"}`), "req_native")
 	if result != nil && result.Response != nil {

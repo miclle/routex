@@ -26,7 +26,7 @@ func testTeamRollingQuotaWarningMigration(t *testing.T, db *gorm.DB) {
 		AppliedAt string
 	}
 	var original []ledger
-	if e := db.Table("schema_migrations").Order("version").Find(&original).Error; e != nil || len(original) != 116 || original[110].Version != 111 || original[109].Version != 110 || original[108].Version != 109 || original[107].Version != 108 || original[106].Version != 107 || original[105].Version != 106 || original[104].Version != 105 || original[103].Version != 104 || original[102].Version != 103 || original[100].Version != 101 || original[101].Version != 102 || original[99].Version != 100 || original[98].Version != 99 || original[97].Version != 98 || original[96].Version != 97 || original[95].Version != 96 || original[94].Version != 95 || original[93].Version != 94 || original[92].Version != 93 || original[91].Version != 92 || original[90].Version != 91 || original[89].Version != 90 || original[88].Version != 89 || original[87].Version != 88 || original[86].Version != 87 || original[85].Version != 86 || original[84].Version != 85 || original[82].Version != 83 || original[83].Version != 84 {
+	if e := db.Table("schema_migrations").Order("version").Find(&original).Error; e != nil || len(original) != 118 || original[110].Version != 111 || original[109].Version != 110 || original[108].Version != 109 || original[107].Version != 108 || original[106].Version != 107 || original[105].Version != 106 || original[104].Version != 105 || original[103].Version != 104 || original[102].Version != 103 || original[100].Version != 101 || original[101].Version != 102 || original[99].Version != 100 || original[98].Version != 99 || original[97].Version != 98 || original[96].Version != 97 || original[95].Version != 96 || original[94].Version != 95 || original[93].Version != 94 || original[92].Version != 93 || original[91].Version != 92 || original[90].Version != 91 || original[89].Version != 90 || original[88].Version != 89 || original[87].Version != 88 || original[86].Version != 87 || original[85].Version != 86 || original[84].Version != 85 || original[82].Version != 83 || original[83].Version != 84 {
 		t.Fatal("exact87 ledger", e)
 	}
 	for i, row := range original {
@@ -158,7 +158,7 @@ func testTeamRollingQuotaWarningMigration(t *testing.T, db *gorm.DB) {
 	remove()
 	migrate()
 	var after []ledger
-	if e := db.Table("schema_migrations").Order("version").Find(&after).Error; e != nil || len(after) != 116 || after[110].Version != 111 || after[109].Version != 110 || after[108].Version != 109 || after[107].Version != 108 || after[106].Version != 107 || after[105].Version != 106 || after[104].Version != 105 || after[103].Version != 104 || after[102].Version != 103 || after[100].Version != 101 || after[101].Version != 102 || after[99].Version != 100 || after[98].Version != 99 || after[97].Version != 98 || after[96].Version != 97 || after[95].Version != 96 || after[94].Version != 95 || after[93].Version != 94 || after[92].Version != 93 || after[91].Version != 92 || after[90].Version != 91 || after[89].Version != 90 || after[88].Version != 89 || after[87].Version != 88 || after[86].Version != 87 || after[85].Version != 86 || after[84].Version != 85 || !reflect.DeepEqual(after[:83], original[:83]) || !reflect.DeepEqual(after[84:], original[84:]) {
+	if e := db.Table("schema_migrations").Order("version").Find(&after).Error; e != nil || len(after) != 118 || after[110].Version != 111 || after[109].Version != 110 || after[108].Version != 109 || after[107].Version != 108 || after[106].Version != 107 || after[105].Version != 106 || after[104].Version != 105 || after[103].Version != 104 || after[102].Version != 103 || after[100].Version != 101 || after[101].Version != 102 || after[99].Version != 100 || after[98].Version != 99 || after[97].Version != 98 || after[96].Version != 97 || after[95].Version != 96 || after[94].Version != 95 || after[93].Version != 94 || after[92].Version != 93 || after[91].Version != 92 || after[90].Version != 91 || after[89].Version != 90 || after[88].Version != 89 || after[87].Version != 88 || after[86].Version != 87 || after[85].Version != 86 || after[84].Version != 85 || !reflect.DeepEqual(after[:83], original[:83]) || !reflect.DeepEqual(after[84:], original[84:]) {
 		t.Fatal("original83 ledger changed", e)
 	}
 	for i, row := range after {
@@ -270,7 +270,7 @@ func TestTeamRollingWarningExact162RegistryAnd160Prefix(t *testing.T) {
 		t.Fatal("exact V93/181 successor changed")
 	}
 	names = names[:179]
-	if len(names) != 179 || !strings.Contains(string(raw), "versions != 116") {
+	if len(names) != 179 || !strings.Contains(string(raw), "versions != 118") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if _, ok := teamRollingWarningRegistryParent(names); !ok {

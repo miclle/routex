@@ -32,7 +32,7 @@ func TestRuntimeInstallationRegistry203ExactPrefixAndSuffix(t *testing.T) {
 		t.Fatal("exact214 forced SSO successor required before historical210 checks")
 	}
 	names = names[:210] // Preserve the exact predecessor guard and its historical controls.
-	if !apiKeyDeliveryRegistry210Current(names) || !strings.Contains(string(raw), "versions != 116") {
+	if !apiKeyDeliveryRegistry210Current(names) || !strings.Contains(string(raw), "versions != 118") {
 		t.Fatal("current V102/210 registry changed")
 	}
 	names = names[:203] // Preserve every exact historical V100 registry control below.

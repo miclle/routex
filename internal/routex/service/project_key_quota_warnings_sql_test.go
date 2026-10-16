@@ -127,6 +127,7 @@ func TestProjectKeyWarningObserverFixedQueryBudgetNoFabricatedBirth(t *testing.T
 			if err = queue.EnableQuota("UTC", time.Now().Add(-time.Hour)); err != nil {
 				t.Fatal(err)
 			}
+			s.admission = newLocalAdmissionStore(queue)
 			s.recorder = &callRecorder{queue: queue}
 			start := time.Now()
 			err = s.observeMonthlyProjectKeyQuotaWarning(context.Background(), "key", root.ID)

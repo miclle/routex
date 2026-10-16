@@ -227,7 +227,7 @@ func TestVaultSavedAppRoleExactRegistry150(t *testing.T) {
 		t.Fatal("exact V93/181 successor changed")
 	}
 	names = names[:179]
-	if len(names) != 179 || !strings.Contains(string(raw), "versions != 116") {
+	if len(names) != 179 || !strings.Contains(string(raw), "versions != 118") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	valid := func(values []string) bool {
@@ -253,7 +253,7 @@ func TestVaultSavedAppRoleExactRegistry150(t *testing.T) {
 			t.Fatal("changed/missing/reordered/extra registry accepted")
 		}
 	}
-	if !strings.Contains(string(raw), "versions != 116") {
+	if !strings.Contains(string(raw), "versions != 118") {
 		t.Fatal("current V78 harness not bound")
 	}
 }

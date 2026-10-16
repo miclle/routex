@@ -21,8 +21,8 @@ func TestAPIKeyDeliveryControllerDiscoveryRegistry227ExactAppend(t *testing.T) {
 	for _, match := range regexp.MustCompile(`\{"([a-z0-9_]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, match[1]+":"+match[2])
 	}
-	if !apiKeyDeliveryControllerDiscoveryRegistry227Current(names) || !strings.Contains(string(raw), "versions != 116") {
-		t.Fatal("exact V116/227 discovery registry required")
+	if !apiKeyDeliveryControllerDiscoveryRegistry227Current(names) || !strings.Contains(string(raw), "versions != 118") {
+		t.Fatal("exact V118/227 discovery registry required")
 	}
 	if !apiKeyDeliveryControllerRegistry226Current(names[:226]) || apiKeyDeliveryControllerRegistry226Current(names) || apiKeyDeliveryControllerDiscoveryRegistry227Current(names[:226]) {
 		t.Fatal("historical226 boundary changed")

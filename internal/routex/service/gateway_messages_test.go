@@ -70,6 +70,7 @@ func TestMessagesNativeDispatchAndProtocolIsolation(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = queue.Close() }()
+	svc.admission = newLocalAdmissionStore(queue)
 	svc.recorder = &callRecorder{queue: queue}
 	result, err := svc.GatewayMessages(context.Background(), bearer, []byte(`{"model":"public-model","messages":[{"role":"user","content":"hello"}],"max_tokens":8}`), "req_messages", MessagesHeaders{"2023-06-01", "test-beta"})
 	if result != nil && result.Response != nil {

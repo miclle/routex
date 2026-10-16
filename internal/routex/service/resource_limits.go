@@ -243,7 +243,7 @@ func (s *Service) resourceLimitRecord(db *gorm.DB, target LimitTarget, resolved 
 	if err != nil {
 		return nil, err
 	}
-	result := &LimitRecord{Kind: target.Kind, ID: target.ID, AccountID: limitAccount(resolved.kind, resolved.id), ETag: row.ETag, Stored: stored, Effective: effectiveQuotaValues(stored, limits.Policy{}), IPPolicies: []limits.Policy{stored}, Enforced: s.recorder != nil && s.runtime != nil && s.RuntimeStatus().Ready}
+	result := &LimitRecord{Kind: target.Kind, ID: target.ID, AccountID: limitAccount(resolved.kind, resolved.id), ETag: row.ETag, Stored: stored, Effective: effectiveQuotaValues(stored, limits.Policy{}), IPPolicies: []limits.Policy{stored}, Enforced: s.recorder != nil && s.admission != nil && s.runtime != nil && s.RuntimeStatus().Ready}
 	// Resource readers need the denomination for a new budget, even when the
 	// local policy is unlimited. Do not expose the protected price catalogue.
 	var pricingSetting entity.PricingSetting
@@ -283,8 +283,8 @@ func (s *Service) resourceLimitRecord(db *gorm.DB, target LimitTarget, resolved 
 			}
 		}
 	}
-	if s.recorder != nil {
-		rpm, active, err := s.recorder.queue.AccountUsage(result.AccountID, time.Now())
+	if s.recorder != nil && s.admission != nil {
+		rpm, active, err := s.admission.AccountUsage(db.Statement.Context, result.AccountID, time.Now())
 		if err != nil {
 			return nil, err
 		}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/base64"
-	"errors"
 	"slices"
 	"strings"
 	"time"
@@ -63,19 +62,15 @@ func insightsQuotaTeams(tx *gorm.DB, actorID, after string, limit int) ([]insigh
 	if err != nil {
 		return nil, false, err
 	}
-	all, err := exactGovernancePermission(tx, actor, "teams.read_all")
-	if err != nil {
-		return nil, false, err
+	platformRead := false
+	for _, permission := range []string{"teams.read_all", "teams.tokens.write", "teams.money.write", "teams.rates.write"} {
+		allowed, err := exactGovernancePermissionForAdmittedActor(tx, actor, permission)
+		if err != nil {
+			return nil, false, err
+		}
+		platformRead = platformRead || allowed
 	}
-	editable, err := teamLimitEditableFields(tx, actor, "team")
-	if err != nil {
-		return nil, false, err
-	}
-	query := tx.Model(&entity.Team{})
-	if !all && len(editable) == 0 {
-		members := tx.Model(&entity.TeamMembership{}).Select("team_id").Where(database.ExactText(tx, clause.Column{Name: "user_id"}, actorID)).Where(database.ExactText(tx, clause.Column{Name: "status"}, entity.ResourceActive)).Where(clause.Or(database.ExactText(tx, clause.Column{Name: "role"}, entity.TeamOwner), database.ExactText(tx, clause.Column{Name: "role"}, entity.TeamMember)))
-		query = query.Where("id IN (?)", members).Where(database.ExactText(tx, clause.Column{Name: "status"}, entity.ResourceActive))
-	}
+	query := insightsQuotaTeamQuery(tx, actorID, platformRead)
 	if after != "" {
 		query = query.Where("id > ?", after)
 	}
@@ -89,32 +84,15 @@ func insightsQuotaTeams(tx *gorm.DB, actorID, after string, limit int) ([]insigh
 	}
 	targets := make([]insightsQuotaTarget, 0, len(teams))
 	for _, team := range teams {
-		// The final exact resource read is independent of directory discovery
-		// and rejects collation aliases, invalid memberships and inactive scope.
-		current, err := loadTeamLimitContext(tx, actorID, team.ID, "", false)
-		if err != nil {
-			return nil, false, err
-		}
-		if !validCatalogLabel(team.Name) || team.CreatedAt.IsZero() || team.Status != entity.ResourceActive && team.Status != entity.ResourceDisabled && team.Status != entity.ResourceArchived {
+		if !safeTeamSessionID(team.ID) || !validCatalogLabel(team.Name) || team.CreatedAt.IsZero() || team.Status != entity.ResourceActive && team.Status != entity.ResourceDisabled && team.Status != entity.ResourceArchived {
 			return nil, false, apperrors.ErrInternal
 		}
-		targets = append(targets, insightsQuotaTarget{row: InsightsQuotaRow{ID: team.ID, Name: team.Name, Status: team.Status}, kind: "team", created: team.CreatedAt, policy: current.Stored})
+		targets = append(targets, insightsQuotaTarget{row: InsightsQuotaRow{ID: team.ID, Name: team.Name, Status: team.Status}, kind: "team", created: team.CreatedAt})
+	}
+	if err := hydrateInsightsQuotaPolicies(tx, targets); err != nil {
+		return nil, false, err
 	}
 	return targets, more, nil
-}
-
-func insightsQuotaKeyPolicy(tx *gorm.DB, id string) (limits.Policy, error) {
-	row := entity.ResourceLimit{ScopeKind: "key", ScopeID: id, ETag: "0"}
-	err := tx.Where(database.ExactText(tx, clause.Column{Name: "scope_kind"}, "key")).Where(database.ExactText(tx, clause.Column{Name: "scope_id"}, id)).Take(&row).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return limits.Policy{}, err
-	}
-	if row.ScopeKind != "key" || row.ScopeID != id {
-		return limits.Policy{}, apperrors.ErrNotFound
-	}
-	// The complete exact-owner graph is established before this call. A Key's
-	// local monthly behavior is independent of its owner's conjunctive limits.
-	return decodeLimitPolicy(row, true)
 }
 
 func insightsQuotaKeys(tx *gorm.DB, actor string, input InsightsQuotaInput, after string, now time.Time) ([]insightsQuotaTarget, bool, error) {
@@ -196,15 +174,15 @@ func insightsQuotaKeys(tx *gorm.DB, actor string, input InsightsQuotaInput, afte
 		} else if target.row.Status == entity.KeyActive {
 			target.row.Status = entity.KeyDisabled
 		}
-		policy, err := insightsQuotaKeyPolicy(tx, target.row.ID)
-		if err != nil {
-			return nil, false, err
-		}
-		target.policy = policy
 		selected = append(selected, target)
 		if len(selected) > input.Limit {
 			break
 		}
+	}
+	// Include the lookahead root, as the previous per-root reads did, so an
+	// invalid stored policy cannot be hidden just beyond the returned page.
+	if err := hydrateInsightsQuotaPolicies(tx, selected); err != nil {
+		return nil, false, err
 	}
 	more := len(selected) > input.Limit
 	if more {
@@ -272,23 +250,27 @@ func (s *Service) InsightsQuota(ctx context.Context, actor string, input Insight
 			return err
 		}
 		result.TimeZone = calendar.TimeZone
-		if input.Dimension == "money" {
+		// Team reads historically require the pricing row even for Tokens.
+		// Capture it once for the selected page, rather than once per Team.
+		if input.Dimension == "money" || !keys && len(targets) != 0 {
 			var setting entity.PricingSetting
 			if err := tx.Select("platform_currency").Take(&setting, 1).Error; err != nil {
 				return err
 			}
-			if !pricing.Currency(setting.PlatformCurrency) {
-				return apperrors.ErrInternal
+			if input.Dimension == "money" {
+				if !pricing.Currency(setting.PlatformCurrency) {
+					return apperrors.ErrInternal
+				}
+				result.Currency = setting.PlatformCurrency
 			}
-			result.Currency = setting.PlatformCurrency
 		}
 		accounts := make([]string, len(targets))
 		for i, target := range targets {
 			accounts[i] = limitAccount(target.kind, target.row.ID)
 		}
 		var batch *eventqueue.QuotaUsageProofBatch
-		if len(accounts) != 0 && s.recorder != nil {
-			batch, _ = s.recorder.queue.AccountQuotaUsageProofBatch(accounts, now)
+		if len(accounts) != 0 && s.recorder != nil && s.admission != nil {
+			batch, _ = s.admission.AccountQuotaUsageProofBatch(ctx, accounts, now)
 		}
 		if batch != nil && batch.Active && batch.TimeZone == calendar.TimeZone {
 			start, reset, valid := insightsQuotaCalendar(batch.AsOf, batch.TimeZone)

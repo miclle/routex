@@ -86,8 +86,11 @@ authoritative state rather than applying a reviewed configuration version.
 
 The receipt has exactly `request_id`, `actor_id`, `reason`,
 `claim_instance_id`, `claim_instance_started_at`, `claimed_at`,
-`finalized_at`, `status` and `failure_code`. `finalized_at` and
-`failure_code` are explicit null when absent.
+`finalized_at`, `status`, `failure_code` and `acknowledgement`.
+`finalized_at`, `failure_code` and `acknowledgement` are explicit null when absent.
+The [V117 acknowledgement source candidate](RUNTIME_PUBLICATION_ACKNOWLEDGEMENT.md)
+adds optional historical local installation evidence; its qualification remains
+pending and is independent from the existing command acceptance below.
 
 | Status | HTTP | Meaning |
 | --- | --- | --- |
@@ -110,9 +113,10 @@ renewed budget or detached finalizer is added. Terminal receipt and terminal
 audit commit together and cannot be rewritten. Restart never resumes claimed
 work; without the original positive local ticket and context, it remains unknown.
 
-A receipt records the original function outcome. It attributes no snapshot,
-installation observation or fleet acknowledgement and provides no rollback or
-no-effects guarantee. A failed refresh may already publish fresh revocation.
+The original outcome records only the function return and provides no rollback
+or no-effects guarantee. The V117 source candidate adds a separate nullable
+command-bound local installation acknowledgement; it does not attribute current
+or fleet application. A failed refresh may already publish fresh revocation.
 Current runtime and application observations remain separate APIs. Existing
 runtime qualification below retains its original historical scope. This command's
 strict HTTP/body, idempotency, authority/birth, claim/finalization fault and portable

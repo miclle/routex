@@ -88,6 +88,7 @@ func (ctrl *Ctrl) GatewayGemini(c *fox.Context) {
 
 func (ctrl *Ctrl) finishGatewayGemini(c *fox.Context, ctx context.Context, requestID string, started time.Time, body []byte, result *service.GatewayResult, callErr error) {
 	usage := observeGatewayUsage(service.GatewayUsage{})
+	// LIFO defers close the native response before exact-executor finalization.
 	defer func() { ctrl.recordGatewayCall(ctx, requestID, started, result, usage, callErr) }()
 	if result != nil && result.Response != nil {
 		defer func() { _ = result.Response.Body.Close() }()

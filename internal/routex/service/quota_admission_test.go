@@ -208,6 +208,7 @@ func TestQuotaRuntimePolicyReductionPrecedesAdmission(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = queue.Close() }()
+	svc.admission = newLocalAdmissionStore(queue)
 	svc.recorder = &callRecorder{queue: queue}
 	now := time.Now().UTC()
 	if err := queue.EnableQuota("UTC", now.Add(-time.Minute)); err != nil {

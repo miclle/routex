@@ -134,7 +134,7 @@ func (s *Service) observeMonthlyPersonalKeyQuotaWarning(ctx context.Context, kin
 
 // Both warning families use the same bounded original-owner and applied graph proof.
 func (s *Service) observePersonalKeyQuotaWarning(ctx context.Context, kind, rootID string, persist func(*gorm.DB, entity.ResourceLimit, entity.APIKey, entity.User, *eventqueue.QuotaUsageProofBatch, string) error) error {
-	if kind != "key" || !memberKeyID.MatchString(rootID) || s.recorder == nil || s.recorder.queue == nil || s.runtime == nil {
+	if kind != "key" || !memberKeyID.MatchString(rootID) || s.recorder == nil || s.admission == nil || s.runtime == nil {
 		return nil
 	}
 	ctx, cancel := context.WithTimeout(ctx, runtimeRefreshTimeout)
@@ -232,7 +232,7 @@ func (s *Service) observePersonalKeyQuotaWarning(ctx context.Context, kind, root
 		if !s.personalKeyWarningApplied(ctx, auth, owner, apps, keys, rootID, row, policy, calendar, prices.PlatformCurrency) {
 			return nil
 		}
-		frame, err := s.recorder.queue.AccountQuotaUsageProofBatch([]string{limitAccount("key", rootID)}, time.Now())
+		frame, err := s.admission.AccountQuotaUsageProofBatch(ctx, []string{limitAccount("key", rootID)}, time.Now())
 		if err != nil {
 			return runtimeUnavailable
 		}

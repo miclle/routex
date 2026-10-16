@@ -47,7 +47,7 @@ func (extraPrefixCredentialAttemptIndexV93) TableName() string { return "call_at
 func testCredentialAttemptStatisticsMigration(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 116 || before[110].Version != 111 || before[109].Version != 110 || before[108].Version != 109 || before[107].Version != 108 || before[106].Version != 107 || before[105].Version != 106 || before[104].Version != 105 || before[103].Version != 104 || before[102].Version != 103 || before[100].Version != 101 || before[101].Version != 102 || before[99].Version != 100 || before[98].Version != 99 || before[97].Version != 98 || before[96].Version != 97 || before[95].Version != 96 || before[94].Version != 95 || before[93].Version != 94 || before[92].Version != 93 || before[91].Version != 92 {
+	if len(before) != 118 || before[110].Version != 111 || before[109].Version != 110 || before[108].Version != 109 || before[107].Version != 108 || before[106].Version != 107 || before[105].Version != 106 || before[104].Version != 105 || before[103].Version != 104 || before[102].Version != 103 || before[100].Version != 101 || before[101].Version != 102 || before[99].Version != 100 || before[98].Version != 99 || before[97].Version != 98 || before[96].Version != 97 || before[95].Version != 96 || before[94].Version != 95 || before[93].Version != 94 || before[92].Version != 93 || before[91].Version != 92 {
 		t.Fatal("exact V93 ledger")
 	}
 	const index = "idx_attempts_credential_time"
@@ -94,7 +94,7 @@ func testCredentialAttemptStatisticsMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal("index migration rewrote retained attempt")
 		}
 		currentLedger := personalKeyBehaviorLedger(t, db)
-		if len(currentLedger) != 116 || currentLedger[110].Version != 111 || currentLedger[109].Version != 110 || currentLedger[108].Version != 109 || currentLedger[107].Version != 108 || currentLedger[106].Version != 107 || currentLedger[105].Version != 106 || currentLedger[104].Version != 105 || currentLedger[103].Version != 104 || currentLedger[102].Version != 103 || currentLedger[100].Version != 101 || currentLedger[101].Version != 102 || currentLedger[99].Version != 100 || currentLedger[98].Version != 99 || currentLedger[97].Version != 98 || currentLedger[96].Version != 97 || currentLedger[95].Version != 96 || currentLedger[94].Version != 95 || currentLedger[93].Version != 94 || currentLedger[92].Version != 93 || !reflect.DeepEqual(before[:92], currentLedger[:92]) || !reflect.DeepEqual(before[93:], currentLedger[93:]) {
+		if len(currentLedger) != 118 || currentLedger[110].Version != 111 || currentLedger[109].Version != 110 || currentLedger[108].Version != 109 || currentLedger[107].Version != 108 || currentLedger[106].Version != 107 || currentLedger[105].Version != 106 || currentLedger[104].Version != 105 || currentLedger[103].Version != 104 || currentLedger[102].Version != 103 || currentLedger[100].Version != 101 || currentLedger[101].Version != 102 || currentLedger[99].Version != 100 || currentLedger[98].Version != 99 || currentLedger[97].Version != 98 || currentLedger[96].Version != 97 || currentLedger[95].Version != 96 || currentLedger[94].Version != 95 || currentLedger[93].Version != 94 || currentLedger[92].Version != 93 || !reflect.DeepEqual(before[:92], currentLedger[:92]) || !reflect.DeepEqual(before[93:], currentLedger[93:]) {
 			t.Fatal("released migration prefix changed")
 		}
 	}

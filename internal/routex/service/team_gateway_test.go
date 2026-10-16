@@ -126,6 +126,7 @@ func TestTeamGatewayRevocationAfterAdmissionPreventsCheckpointAndDispatch(t *tes
 		t.Fatal(err)
 	}
 	defer func() { _ = queue.Close() }()
+	svc.admission = newLocalAdmissionStore(queue)
 	svc.recorder = &callRecorder{queue: queue}
 	svc.afterGatewayAdmission = func() {
 		svc.runtime.deniedTeamMembers.Store(teamMemberRuntimeKey(identity.TeamID, identity.UserID), uint64(1))
@@ -163,6 +164,7 @@ func TestTeamGatewayNativeAdmissionAndJournalRestartKeepPersonalLedgerUntouched(
 	if err != nil {
 		t.Fatal(err)
 	}
+	svc.admission = newLocalAdmissionStore(queue)
 	svc.recorder = &callRecorder{queue: queue}
 	result, err := svc.TeamGatewayChat(context.Background(), identity, []byte(`{"model":"public-model","messages":[{"role":"user","content":"hi"}]}`), "req_team_completed")
 	if err != nil || result.Response == nil || result.KeyID != "" || result.ProjectID != "" || calls.Load() != 1 {

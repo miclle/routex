@@ -196,7 +196,7 @@ func (s *Service) teamQuotaWarningApplied(ctx context.Context, row entity.Resour
 	return auth != nil && auth.Quota != nil && auth.Quota.Setting.ETag == calendar.ETag && auth.Quota.Setting.AccountingStarted == calendar.AccountingStarted && s.quotaNotificationResourceApplied(row, team.CreatedAt, policy, calendar.TimeZone, currency) && ctx.Err() == nil && s.runtime.auth.Load() == auth && !runtimeDenied(&s.runtime.deniedTeams, team.ID) && !runtimeDenied(&s.runtime.deniedLimits, limitAccount("team", team.ID)) && !runtimeDenied(&s.runtime.deniedLimits, "quota_settings") && time.Now().Before(auth.ValidUntil)
 }
 func (s *Service) observeMonthlyTeamQuotaWarning(ctx context.Context, kind, teamID string) error {
-	if kind != "team" || !safeTeamSessionID(teamID) || s.recorder == nil || s.runtime == nil {
+	if kind != "team" || !safeTeamSessionID(teamID) || s.recorder == nil || s.admission == nil || s.runtime == nil {
 		return nil
 	}
 	s.limitMu.RLock()
@@ -243,14 +243,14 @@ func (s *Service) observeMonthlyTeamQuotaWarning(ctx context.Context, kind, team
 			return nil
 		}
 		auth := s.runtime.auth.Load()
-		status, err := s.recorder.queue.QuotaStatus()
+		status, err := s.admission.QuotaStatus(ctx)
 		if err != nil {
 			return runtimeUnavailable
 		}
 		if !status.Active {
 			return nil
 		}
-		usage, err := s.recorder.queue.AccountQuotaUsage(limitAccount("team", teamID), time.Now())
+		usage, err := s.admission.AccountQuotaUsage(ctx, limitAccount("team", teamID), time.Now())
 		if err != nil {
 			return runtimeUnavailable
 		}

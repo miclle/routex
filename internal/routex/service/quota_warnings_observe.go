@@ -142,7 +142,7 @@ func (s *Service) quotaWarningApplied(ctx context.Context, row entity.ResourceLi
 	return auth != nil && auth.Quota != nil && auth.Quota.Setting.ETag == calendar.ETag && auth.Quota.Setting.AccountingStarted == calendar.AccountingStarted && s.registrationAdvisoryPublished(auth, user, applications) && s.quotaNotificationResourceApplied(row, user.CreatedAt, policy, calendar.TimeZone, currency) && ctx.Err() == nil && s.runtime.auth.Load() == auth
 }
 func (s *Service) observeMonthlyQuotaWarning(ctx context.Context, kind, ownerID string) error {
-	if kind != "user" || !safeTeamSessionID(ownerID) || s.recorder == nil || s.runtime == nil {
+	if kind != "user" || !safeTeamSessionID(ownerID) || s.recorder == nil || s.admission == nil || s.runtime == nil {
 		return nil
 	}
 	s.limitMu.RLock()
@@ -196,14 +196,14 @@ func (s *Service) observeMonthlyQuotaWarning(ctx context.Context, kind, ownerID 
 		if !s.quotaWarningApplied(ctx, row, user, applications, policy, calendar, pricingSetting.PlatformCurrency) {
 			return nil
 		}
-		status, err := s.recorder.queue.QuotaStatus()
+		status, err := s.admission.QuotaStatus(ctx)
 		if err != nil {
 			return runtimeUnavailable
 		}
 		if !status.Active {
 			return nil
 		}
-		usage, err := s.recorder.queue.AccountQuotaUsage(limitAccount("user", ownerID), time.Now())
+		usage, err := s.admission.AccountQuotaUsage(ctx, limitAccount("user", ownerID), time.Now())
 		if err != nil {
 			return runtimeUnavailable
 		}

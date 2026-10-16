@@ -64,6 +64,7 @@ func personalSessionJournal(t *testing.T, svc *Service, data *runtimeData) (*eve
 	if err := queue.EnableQuota("UTC", data.Users[0].CreatedAt.Add(-time.Minute)); err != nil {
 		t.Fatal(err)
 	}
+	svc.admission = newLocalAdmissionStore(queue)
 	svc.recorder = &callRecorder{queue: queue}
 	return queue, journal
 }
@@ -229,6 +230,7 @@ func TestPersonalSessionNativeChatBindsCanonicalModelAndTrueAttribution(t *testi
 	}
 	t.Cleanup(func() { _ = recovered.Close() })
 	svc.recorder.queue = recovered
+	svc.admission = newLocalAdmissionStore(recovered)
 	entries, readErr := recovered.Read(10)
 	var pending CallFact
 	if readErr != nil || len(entries) != 1 || json.Unmarshal(entries[0].Payload, &pending) != nil || pending.UserID != "usr_one" || pending.KeyID != "" || pending.ProjectID != "" || pending.TeamID != "" || len(pending.Attempts) != 1 || pending.Attempts[0].CredentialID != "crd_one" || pending.Attempts[0].SnapshotID != "cfg_test" {
@@ -284,6 +286,7 @@ func TestPersonalSessionAdmissionUsesOnlyUserQuotaAndIP(t *testing.T) {
 	if err := queue.EnableQuota("UTC", data.Users[0].CreatedAt.Add(-time.Minute)); err != nil {
 		t.Fatal(err)
 	}
+	svc.admission = newLocalAdmissionStore(queue)
 	svc.recorder = &callRecorder{queue: queue}
 	requireTeamSessionError(t, svc.admitLimitedGatewayCall(ctx, "req_personal_zero_quota", result), 429, "quota_exceeded")
 	if depth, _ := queue.Depth(); depth != 0 {

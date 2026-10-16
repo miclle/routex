@@ -172,7 +172,7 @@ func TestAzureExact152RegistryAndRetained150Prefix(t *testing.T) {
 		t.Fatal("exact V93/181 successor changed")
 	}
 	names = names[:179]
-	if len(names) != 179 || !strings.Contains(string(raw), "versions != 116") {
+	if len(names) != 179 || !strings.Contains(string(raw), "versions != 118") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if _, ok := azureDeploymentRegistryParent(names); !ok {

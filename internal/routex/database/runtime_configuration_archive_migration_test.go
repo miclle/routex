@@ -71,7 +71,7 @@ func TestRuntimeArchiveV112RootGuardsAreExplicitAdditions(t *testing.T) {
 	}
 	for _, driver := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(driver)
-		if len(steps) != 116 || reflect.ValueOf(steps[111]).Pointer() != reflect.ValueOf(runtimeConfigurationArchiveMigration).Pointer() || reflect.ValueOf(steps[110]).Pointer() != reflect.ValueOf(insightsQuotaReportMigration).Pointer() {
+		if len(steps) != 118 || reflect.ValueOf(steps[111]).Pointer() != reflect.ValueOf(runtimeConfigurationArchiveMigration).Pointer() || reflect.ValueOf(steps[110]).Pointer() != reflect.ValueOf(insightsQuotaReportMigration).Pointer() {
 			t.Fatal("immutable migration append")
 		}
 	}

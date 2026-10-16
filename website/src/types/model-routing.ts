@@ -48,3 +48,21 @@ export interface RoutingBindingInput {
   protocol: RoutingProtocol
   review_etag: string
 }
+
+export interface RoutingConfiguredRoute {
+  id: string
+  provider_id: string
+  provider_name: string
+  connection_id: string
+  connection_name: string
+  provider_model_id: string
+  upstream_name: string
+  protocol: RoutingProtocol
+  weight: number
+}
+export interface RoutingCandidateReview {
+  model_id: string
+  model_name: string
+  candidate: RoutingCandidate
+  routes: RoutingConfiguredRoute[]
+}

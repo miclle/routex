@@ -43,9 +43,19 @@ const saved = {
     finalized_at: null,
     status: 'unknown',
     failure_code: null,
+    acknowledgement: null,
   },
   runtime_applied: false,
   superseded: false,
+}
+const acknowledgement = {
+  scope: 'single_process_gateway_admission',
+  installation_id: 'rin_00000000000000000000000001',
+  instance_id: saved.publication.claim_instance_id,
+  instance_started_at: date,
+  snapshot_id: 'cfg_00000000000000000000000001',
+  routes_published_at: date,
+  acknowledged_at: date,
 }
 let body: unknown, etag: string, calls: number
 beforeEach(() => {
@@ -69,6 +79,47 @@ afterEach(() => {
 })
 
 describe('archive rollback transient wire boundary', () => {
+  it('retains historical local acknowledgement independently of original outcome and supersession', async () => {
+    body = {
+      ...saved,
+      superseded: true,
+      publication: { ...saved.publication, acknowledgement },
+    }
+    const result = await getRuntimeArchiveRollbackReceipt(id, requestID)
+    expect(result.publication.acknowledgement).toEqual(acknowledgement)
+    expect(result.publication.status).toBe('unknown')
+    expect(result.runtime_applied).toBe(false)
+    expect(result.superseded).toBe(true)
+  })
+  it.each([
+    { scope: 'fleet_applied' },
+    { scope: ['single_process_gateway_admission'] },
+    { instance_id: 'another-process' },
+    { instance_started_at: '2026-10-14T09:01:00.123455Z' },
+    { installation_id: 'rin_wrong' },
+    { snapshot_id: 'cfg_wrong' },
+    { acknowledged_at: '2026-10-14T09:01:00.123455999Z' },
+    { routes_published_at: '2026-10-14T09:01:00.123456001Z' },
+    { routes_published_at: '2026-10-14T09:01:00.123455999Z' },
+    { acknowledged_at: '2026-02-30T09:01:00Z' },
+    { authorization_digest: 'private' },
+  ])('rejects stronger, crossed or inconsistent acknowledgement %j', async (change) => {
+    body = {
+      ...saved,
+      publication: { ...saved.publication, acknowledgement: { ...acknowledgement, ...change } },
+    }
+    await expect(getRuntimeArchiveRollbackReceipt(id, requestID)).rejects.toBeInstanceOf(
+      RuntimeArchiveRollbackError,
+    )
+  })
+  it('requires the recorded nullable acknowledgement field without inferring it from current application', async () => {
+    const publication: Record<string, unknown> = { ...saved.publication }
+    delete publication.acknowledgement
+    body = { ...saved, runtime_applied: true, publication }
+    await expect(getRuntimeArchiveRollbackReceipt(id, requestID)).rejects.toBeInstanceOf(
+      RuntimeArchiveRollbackError,
+    )
+  })
   it('reads the exact selected archive and returns its reviewed strong token', async () => {
     const signal = new AbortController().signal
     client.defaults.adapter = async (config) => {

@@ -94,6 +94,7 @@ func teamNativeFixture(t *testing.T, base, protocol string) (*Service, *TeamSess
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = queue.Close(); svc.upstream.CloseIdleConnections() })
+	svc.admission = newLocalAdmissionStore(queue)
 	svc.recorder = &callRecorder{queue: queue}
 	return svc, identity
 }

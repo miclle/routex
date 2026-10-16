@@ -21,7 +21,7 @@ func (s *Service) teamCreationApplication(receipt entity.TeamCreationReceipt, cu
 	if current.Status != entity.ResourceActive || !current.CreatedAt.Equal(receipt.TeamCreatedAt) || current.Name != snapshot.Name || current.Description != snapshot.Description {
 		return false, "superseded"
 	}
-	if s.runtime == nil || s.recorder == nil {
+	if s.runtime == nil || s.recorder == nil || s.admission == nil {
 		return false, "pending"
 	}
 	auth := s.runtime.auth.Load()

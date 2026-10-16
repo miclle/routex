@@ -70,6 +70,7 @@ func gatewayModel(key *KeyRecord, id string, created int64, metadata gatewayMode
 type GatewayResult struct {
 	Protocol           string
 	identity           gatewayIdentity
+	sharedExecution    *sharedGatewayExecution
 	TeamID             string
 	TeamMembershipID   string
 	admissionQuota     []eventqueue.QuotaLimit
@@ -271,6 +272,9 @@ func (s *Service) gatewayNativeIdentity(ctx context.Context, identity gatewayIde
 	result.ModelID = name.ModelID
 	if s.runtime != nil {
 		return s.gatewayNativeAttempts(ctx, requestID, result, payload, attachmentPlan, options...)
+	}
+	if s.sharedGateway != nil {
+		return result, runtimeUnavailable
 	}
 	var route *gatewayRoute
 	var credential string
@@ -515,6 +519,11 @@ func parseGatewayChat(body []byte) (map[string]json.RawMessage, string, bool, er
 }
 
 type gatewayRoute struct {
+	ModelID                       string    `gorm:"-"`
+	ModelBirth                    time.Time `gorm:"-"`
+	BindingBirth                  time.Time
+	CredentialBirth               time.Time
+	ConnectionRevision            string
 	ProviderModelBirth            time.Time
 	CapabilityTransportGeneration string
 	ProviderModelRevision         string
@@ -574,6 +583,7 @@ func selectGatewayProtocolRoute(db *gorm.DB, modelID, protocol string) (*gateway
 	}
 	route := routes[choice]
 	route.CredentialID = credentials[choice].ID
+	route.CredentialBirth = credentials[choice].CreatedAt.UTC()
 	route.Ciphertext = credentials[choice].Ciphertext
 	return &route, nil
 }
@@ -630,7 +640,7 @@ func chooseAvailableGatewayRoute(weights []int, available []bool) (int, error) {
 // dispatchCheckpointedGatewayRequest retains exact attempt evidence before the
 // compatibility path can consume upstream resources without a runtime snapshot.
 func (s *Service) dispatchCheckpointedGatewayRequest(requestID string, result *GatewayResult, client *http.Client, request *http.Request) (*http.Response, error) {
-	if err := s.CheckpointGatewayCall(requestID, result); err != nil {
+	if err := s.checkpointGatewayCall(request.Context(), requestID, result); err != nil {
 		result.AttemptID = ""
 		result.AttemptStartedAt = time.Time{}
 		return nil, err

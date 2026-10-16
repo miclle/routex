@@ -361,12 +361,12 @@ func (s *Service) ListMemberSummaries(ctx context.Context, actorID string, filte
 			auth = s.runtime.auth.Load()
 		}
 		var batch *eventqueue.QuotaUsageBatch
-		if s.recorder != nil && len(ids) > 0 {
+		if s.recorder != nil && s.admission != nil && len(ids) > 0 {
 			accounts := make([]string, len(ids))
 			for i, id := range ids {
 				accounts[i] = limitAccount("user", id)
 			}
-			batch, _ = s.recorder.queue.AccountQuotaUsageBatch(accounts, result.ObservedAt)
+			batch, _ = s.admission.AccountQuotaUsageBatch(ctx, accounts, result.ObservedAt)
 		}
 		if err := ctx.Err(); err != nil {
 			return err

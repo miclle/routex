@@ -243,6 +243,27 @@ func routingCandidate(model entity.Model, bindings []entity.ModelProviderBinding
 	return row
 }
 func (s *Service) ListModelRoutingCandidates(ctx context.Context, actor, modelID, protocol, providerID string, filter ModelCreationFilter) (*ModelRoutingCandidatePage, error) {
+	return s.modelRoutingCandidates(ctx, actor, modelID, protocol, providerID, "", filter, nil)
+}
+
+// GetModelRoutingCandidate reviews one exact source without name search or page scans.
+func (s *Service) GetModelRoutingCandidate(ctx context.Context, actor, modelID, protocol, providerID, providerModelID string) (*ModelRoutingCandidateReview, error) {
+	if !modelCreationID(providerModelID, "pmd") {
+		return nil, apperrors.ErrBadRequest
+	}
+	review := &ModelRoutingCandidateReview{}
+	page, err := s.modelRoutingCandidates(ctx, actor, modelID, protocol, providerID, providerModelID, ModelCreationFilter{Limit: 1}, review)
+	if err != nil {
+		return nil, err
+	}
+	if len(page.Items) != 1 || page.Items[0].ID != providerModelID {
+		return nil, apperrors.ErrNotFound
+	}
+	review.Candidate = page.Items[0]
+	return review, nil
+}
+
+func (s *Service) modelRoutingCandidates(ctx context.Context, actor, modelID, protocol, providerID, exactID string, filter ModelCreationFilter, review *ModelRoutingCandidateReview) (*ModelRoutingCandidatePage, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	f, pattern, err := routingFilter(modelID, protocol, filter, "pmd")
@@ -262,7 +283,12 @@ func (s *Service) ListModelRoutingCandidates(ctx context.Context, actor, modelID
 		if provider.ID != providerID {
 			return apperrors.ErrNotFound
 		}
-		q := routingCandidateQuery(tx, modelID, protocol).Select("pm.*").Where(database.ExactText(tx, clause.Column{Table: "p", Name: "id"}, providerID)).Where("LOWER(pm.upstream_name) LIKE ? ESCAPE '!'", pattern)
+		q := routingCandidateQuery(tx, modelID, protocol).Select("pm.*").Where(database.ExactText(tx, clause.Column{Table: "p", Name: "id"}, providerID))
+		if exactID != "" {
+			q = q.Where(database.ExactText(tx, clause.Column{Table: "pm", Name: "id"}, exactID))
+		} else {
+			q = q.Where("LOWER(pm.upstream_name) LIKE ? ESCAPE '!'", pattern)
+		}
 		if f.Cursor != "" {
 			q = q.Where("pm.id > ?", f.Cursor)
 		}
@@ -305,6 +331,11 @@ func (s *Service) ListModelRoutingCandidates(ctx context.Context, actor, modelID
 		}
 		for i := range result.Items {
 			result.Items[i].Prices = prices[result.Items[i].ID]
+		}
+		if review != nil && len(result.Items) == 1 {
+			if err := captureModelRoutingReview(tx, model, bindings, review); err != nil {
+				return err
+			}
 		}
 		result.Items, result.NextCursor = modelCreationPage(result.Items, f.Limit, func(row ModelRoutingCandidate) string { return row.ID })
 		return nil

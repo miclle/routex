@@ -8,11 +8,12 @@ import (
 )
 
 type gatewayAttemptCandidate struct {
-	attempt    routeattempt.Attempt
-	route      gatewayRoute
-	credential string
-	priority   int
-	holder     *credentialSourceHolder
+	attempt               routeattempt.Attempt
+	route                 gatewayRoute
+	credential            string
+	priority              int
+	holder                *credentialSourceHolder
+	reservationCredential GatewayReservationCredential
 }
 
 type gatewayAttemptPlan struct {
@@ -81,13 +82,15 @@ func (s *Service) gatewayAttemptPlanWithDraw(modelID, protocol string, draw func
 			route := candidate.Route
 			route.PriceBasis = clonePriceBasis(candidate.Route.PriceBasis)
 			route.CredentialID = credential.ID
+			route.CredentialBirth = credential.CreatedAt.UTC()
 			route.SnapshotID = routes.ID
 			detached = append(detached, gatewayAttemptCandidate{
-				attempt:    routeattempt.Attempt{TargetID: route.BindingID, ConnectionID: route.ConnectionID, CredentialID: credential.ID, Protocol: protocol},
-				route:      route,
-				credential: credential.Plaintext,
-				priority:   credential.Priority,
-				holder:     holder,
+				attempt:               routeattempt.Attempt{TargetID: route.BindingID, ConnectionID: route.ConnectionID, CredentialID: credential.ID, Protocol: protocol},
+				route:                 route,
+				credential:            credential.Plaintext,
+				priority:              credential.Priority,
+				holder:                holder,
+				reservationCredential: GatewayReservationCredential{Identity: GatewayReservationIdentity{credential.ID, credential.CreatedAt.UTC()}, Priority: credential.Priority, Enabled: credential.Enabled, VerificationStatus: credential.VerificationStatus, VerifiedTransportGeneration: credential.VerifiedTransportGeneration, CoverageRevision: credential.CoverageRevision, DeploymentIdentity: candidate.CoverageIdentities[credential.ID]},
 			})
 		}
 		targets = append(targets, routeattempt.Target{ID: candidate.Route.BindingID, ConnectionID: candidate.Route.ConnectionID, Protocol: protocol, Weight: candidate.Route.Weight, Credentials: credentials})

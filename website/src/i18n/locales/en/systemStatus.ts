@@ -35,6 +35,11 @@ export default {
   archiveRollbackInvalidReason:
     'Enter a reason of at most 1,000 Unicode characters without control characters or malformed Unicode.',
   archiveRollbackRecorded: 'Exact rollback receipt recorded.',
+  archiveRollbackAcknowledgementUnknown: 'Historical local installation acknowledgement: unknown.',
+  archiveRollbackAcknowledgementRecorded:
+    'Historical local installation recorded for process {{instance}} and routing snapshot {{snapshot}}.',
+  archiveRollbackAcknowledgementBoundary:
+    'This records routing and authorization installed by the original process. Current application and other nodes require separate proof.',
   archiveRollbackPublication_unknown: 'Original publication: unknown.',
   archiveRollbackPublication_pending: 'Original publication: pending.',
   archiveRollbackPublication_refresh_returned_nil:

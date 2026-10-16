@@ -298,7 +298,7 @@ func (s *Service) teamQuotaContext(tx *gorm.DB, current *teamQuotaSubject, dimen
 	if !applied {
 		context.Blockers = append(context.Blockers, "policy_unpublished")
 	}
-	if s.recorder != nil {
+	if s.recorder != nil && s.admission != nil {
 		context.MemberUsage, err = s.resourceQuotaUsage(tx, resolvedLimitTarget{kind: "team_member", id: teamMemberLimitScopeID(current.Team.ID, current.User.ID), teamID: current.Team.ID})
 		if err != nil {
 			return nil, err

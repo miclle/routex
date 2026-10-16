@@ -27,6 +27,7 @@ func TestQuotaNativeAdmissionPreparesScopesBeforeAndAfterActivation(t *testing.T
 		t.Fatal(err)
 	}
 	defer func() { _ = queue.Close() }()
+	svc.admission = newLocalAdmissionStore(queue)
 	svc.recorder = &callRecorder{queue: queue}
 	// An internal legacy caller can prepare a format1 fact before activation.
 	legacy := &GatewayResult{UserID: "usr_legacy", KeyID: "key_legacy", ModelID: "mdl_one", ModelName: "legacy"}

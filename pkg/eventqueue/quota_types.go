@@ -3,9 +3,6 @@ package eventqueue
 import (
 	"encoding/json"
 	"errors"
-	"math/big"
-	"regexp"
-	"strings"
 	"time"
 )
 
@@ -84,7 +81,11 @@ type quotaMetadata struct {
 	TimeZone      string
 	CoverageStart int64
 }
-type quotaCounter struct {
+
+// QuotaCounter is a validated storage snapshot. Money maps contain canonical
+// nonnegative integer units (10^-18), not public decimal display amounts.
+// Readers retain responsibility for validation and transaction consistency.
+type QuotaCounter struct {
 	TokensUsed    int64             `json:"tokens_used"`
 	TokensHeld    int64             `json:"tokens_held"`
 	TokensUnknown int64             `json:"tokens_unknown"`
@@ -92,6 +93,8 @@ type quotaCounter struct {
 	MoneyHeld     map[string]string `json:"money_held"`
 	MoneyUnknown  int64             `json:"money_unknown"`
 }
+
+type quotaCounter = QuotaCounter
 
 // QuotaUsage keeps settled facts distinct from conservative holds. Values are
 // decimal strings; unknown counts identify unbounded holds, not free requests.
@@ -108,43 +111,9 @@ type AccountQuotaUsage struct {
 	Minute, FiveHours, SevenDays, Month QuotaUsage
 }
 
-var quotaDecimal = regexp.MustCompile(`^(0|[1-9][0-9]{0,59})(\.[0-9]{1,18})?$`)
-
-func quotaUnits(value string) (*big.Int, error) {
-	if !quotaDecimal.MatchString(value) {
-		return nil, ErrInvalid
-	}
-	whole, fraction, _ := strings.Cut(value, ".")
-	digits := whole + fraction + strings.Repeat("0", 18-len(fraction))
-	number, ok := new(big.Int).SetString(digits, 10)
-	if !ok {
-		return nil, ErrInvalid
-	}
-	return number, nil
-}
-func quotaDecimalValue(units *big.Int) string {
-	value := units.String()
-	if len(value) <= 18 {
-		value = strings.Repeat("0", 19-len(value)) + value
-	}
-	return strings.TrimRight(strings.TrimRight(value[:len(value)-18]+"."+value[len(value)-18:], "0"), ".")
-}
 func cloneReceipt(receipt QuotaReceipt) QuotaReceipt {
 	raw, _ := json.Marshal(receipt)
 	var copy QuotaReceipt
 	_ = json.Unmarshal(raw, &copy)
 	return copy
-}
-func quotaMonth(instant int64, zone string) (int64, int64, error) {
-	location, err := time.LoadLocation(zone)
-	if err != nil {
-		return 0, 0, ErrInvalid
-	}
-	now := time.Unix(0, instant).In(location)
-	start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, location)
-	end := start.AddDate(0, 1, 0)
-	if start.UnixNano() < 0 || end.UnixNano() <= instant {
-		return 0, 0, ErrInvalid
-	}
-	return start.UnixNano(), end.UnixNano(), nil
 }

@@ -29,7 +29,7 @@ func TestInsightsRegistry222ExactPrefixAndSuffix(t *testing.T) {
 		t.Fatal("exact224 Credential observer successor required")
 	}
 	names = names[:222]
-	if !insightsRegistry222Current(names) || !strings.Contains(string(raw), "versions != 116") {
+	if !insightsRegistry222Current(names) || !strings.Contains(string(raw), "versions != 118") {
 		t.Fatal("exact V107/222 Insights registry required")
 	}
 	if !telegramRegistry221Current(names[:221]) || insightsRegistry222Current(names[:221]) || telegramRegistry221Current(names) {

@@ -18,6 +18,7 @@ import (
 // This helper is test-only and never removes retained rollback/publication facts.
 func peelRuntimeArchiveRollbackFixture(t *testing.T, db *gorm.DB) {
 	t.Helper()
+	peelRuntimePublicationAcknowledgementFixture(t, db)
 	var before []runtimeArchiveCleanupLedger
 	if err := db.Order("version").Find(&before).Error; err != nil || len(before) != 116 {
 		t.Fatal("V116 complete ledger required for bounded peel", err)
@@ -71,6 +72,12 @@ func peelRuntimeArchiveRollbackFixture(t *testing.T, db *gorm.DB) {
 
 func testRuntimeArchiveRollbackMigration(t *testing.T, db *gorm.DB) {
 	t.Helper()
+	peelRuntimePublicationAcknowledgementFixture(t, db)
+	t.Cleanup(func() {
+		if err := database.Migrate(context.WithoutCancel(t.Context()), db); err != nil {
+			t.Error("restore current head after frozen V116 fixture", err)
+		}
+	})
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
 	defer cancel()
 	var original []runtimeArchiveCleanupLedger
@@ -106,7 +113,7 @@ func testRuntimeArchiveRollbackMigration(t *testing.T, db *gorm.DB) {
 	}
 	migrate := func(t *testing.T) {
 		t.Helper()
-		if e := database.Migrate(ctx, db); e != nil {
+		if e := database.MigrateThrough(ctx, db, 116); e != nil {
 			t.Fatal("V116 startup", e)
 		}
 		check(t)
@@ -119,7 +126,7 @@ func testRuntimeArchiveRollbackMigration(t *testing.T, db *gorm.DB) {
 		var wg sync.WaitGroup
 		failures := make(chan error, 2)
 		for range 2 {
-			wg.Go(func() { failures <- database.Migrate(ctx, db) })
+			wg.Go(func() { failures <- database.MigrateThrough(ctx, db, 116) })
 		}
 		wg.Wait()
 		close(failures)
@@ -228,7 +235,7 @@ func testRuntimeArchiveRollbackMigration(t *testing.T, db *gorm.DB) {
 		if e := db.Migrator().DropColumn(&entity.RuntimeArchiveRollback{}, "Reason"); e != nil {
 			t.Fatal(e)
 		}
-		if e := database.Migrate(ctx, db); e == nil || db.Migrator().HasColumn(&entity.RuntimeArchiveRollback{}, "Reason") || !reflect.DeepEqual(ledger(t), prefix) {
+		if e := database.MigrateThrough(ctx, db, 116); e == nil || db.Migrator().HasColumn(&entity.RuntimeArchiveRollback{}, "Reason") || !reflect.DeepEqual(ledger(t), prefix) {
 			t.Fatal("nonempty partial intent was synthesized")
 		}
 		if e := db.Delete(&row).Error; e != nil {

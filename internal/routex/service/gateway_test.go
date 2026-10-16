@@ -76,7 +76,7 @@ func TestDirectGatewayCheckpointFailurePreventsDispatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	result.AttemptID, result.AttemptStartedAt = "att_direct_failed", time.Now().UTC()
-	svc := &Service{recorder: &callRecorder{queue: queue}}
+	svc := &Service{admission: newLocalAdmissionStore(queue), recorder: &callRecorder{queue: queue}}
 	request, err := http.NewRequestWithContext(context.Background(), http.MethodPost, upstream.URL, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -114,7 +114,7 @@ func TestDirectGatewayCheckpointRecoversInterruptedAttempt(t *testing.T) {
 		t.Fatal(err)
 	}
 	result.AttemptID, result.AttemptStartedAt = "att_direct_held", time.Now().UTC()
-	svc := &Service{recorder: &callRecorder{queue: queue}}
+	svc := &Service{admission: newLocalAdmissionStore(queue), recorder: &callRecorder{queue: queue}}
 	request, err := http.NewRequestWithContext(context.Background(), http.MethodPost, upstream.URL, nil)
 	if err != nil {
 		t.Fatal(err)

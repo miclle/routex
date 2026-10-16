@@ -1,5 +1,9 @@
 # Token and monetary quotas
 
+The [admission authority source candidate](ADMISSION_AUTHORITY.md) separates local
+enforcement operations from recorder delivery without changing node scope or
+claiming shared admission. Qualification remains pending.
+
 Version 19 adds quota policy storage and gateway admission to the [durable ledger foundation](QUOTA_LEDGER.md). This is a single-process enforcement implementation. Source tests, dual-database acceptance, browser evidence, and measured production capacity are separate checkpoints. [Team Session policies](TEAM_LIMITS.md) extend this ledger with separate aggregate and stable member accounts. [Monthly Team member requests](TEAM_REQUESTS.md) separately review owner/platform quota increases. [User and Team defaults](DEFAULT_LIMITS.md) provide atomic creation snapshots and explicit reviewed policy resets that preserve usage and IP restrictions. Named policy templates, broader alerts and distributed enforcement remain separate scope.
 
 ## Policy API

@@ -149,6 +149,7 @@ describe('archive metadata in the existing System jobs card', () => {
               finalized_at: null,
               status: 'unknown',
               failure_code: null,
+              acknowledgement: null,
             },
             runtime_applied: true,
             superseded: false,

@@ -143,6 +143,7 @@ func TestPersonalKeyWarningObserverFixedQueryBudgetNoFabricatedBirth(t *testing.
 			if err = queue.EnableQuota("UTC", time.Now().Add(-time.Hour)); err != nil {
 				t.Fatal(err)
 			}
+			s.admission = newLocalAdmissionStore(queue)
 			s.recorder = &callRecorder{queue: queue}
 			start := time.Now()
 			err = s.observeMonthlyPersonalKeyQuotaWarning(context.Background(), "key", root.ID)
@@ -204,6 +205,7 @@ func TestPersonalKeyRollingWarningObserverFixedQueryBudgetNoFabricatedBirth(t *t
 			if err = queue.EnableQuota("UTC", time.Now().Add(-time.Hour)); err != nil {
 				t.Fatal(err)
 			}
+			s.admission = newLocalAdmissionStore(queue)
 			s.recorder = &callRecorder{queue: queue}
 			start := time.Now()
 			err = s.observePersonalKeyRollingQuotaWarnings(context.Background(), "key", root.ID)

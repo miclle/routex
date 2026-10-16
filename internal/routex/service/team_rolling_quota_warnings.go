@@ -134,7 +134,7 @@ func (s *Service) teamRollingWarningApplied(ctx context.Context, auth *runtimeAu
 }
 
 func (s *Service) observeTeamRollingQuotaWarnings(ctx context.Context, kind, teamID string) error {
-	if kind != "team" || !teamRollingID(teamID) || s.recorder == nil || s.runtime == nil {
+	if kind != "team" || !teamRollingID(teamID) || s.recorder == nil || s.admission == nil || s.runtime == nil {
 		return nil
 	}
 	bounded, cancel := context.WithTimeout(ctx, runtimeRefreshTimeout)
@@ -182,7 +182,7 @@ func (s *Service) observeTeamRollingQuotaWarnings(ctx context.Context, kind, tea
 		if !s.teamRollingWarningApplied(bounded, auth, row, team, policy, calendar, pricing.PlatformCurrency) {
 			return nil
 		}
-		frame, err := s.recorder.queue.AccountQuotaUsageProofBatch([]string{limitAccount("team", teamID)}, time.Now())
+		frame, err := s.admission.AccountQuotaUsageProofBatch(ctx, []string{limitAccount("team", teamID)}, time.Now())
 		if err != nil {
 			return runtimeUnavailable
 		}

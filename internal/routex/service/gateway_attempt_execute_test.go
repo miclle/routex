@@ -157,6 +157,7 @@ func TestGatewayAttemptCheckpointRecoversOneAdmissionWithOrderedEvidence(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
+	svc.admission = newLocalAdmissionStore(queue)
 	svc.recorder = &callRecorder{queue: queue}
 	result, err := svc.GatewayChat(context.Background(), bearer, []byte(`{"model":"public-model","messages":[{"role":"user","content":"hello"}]}`), "req_attempt_recovery")
 	if err != nil || result.Response == nil {
@@ -223,6 +224,7 @@ func TestGatewayCancellationAfterAdmissionPersistsNoWorkEconomics(t *testing.T) 
 	if err := queue.EnableQuota("UTC", now.Add(-2*time.Minute)); err != nil {
 		t.Fatal(err)
 	}
+	svc.admission = newLocalAdmissionStore(queue)
 	svc.recorder = &callRecorder{queue: queue}
 	ctx, cancel := context.WithCancel(context.Background())
 	svc.afterGatewayAdmission = cancel
@@ -284,6 +286,7 @@ func TestGatewayAttemptFinalizesOneReceiptAfterRetry(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = queue.Close() }()
+	svc.admission = newLocalAdmissionStore(queue)
 	svc.recorder = &callRecorder{queue: queue}
 	result, err := svc.GatewayChat(context.Background(), bearer, []byte(`{"model":"public-model","messages":[{"role":"user","content":"hello"}]}`), "req_attempt_final")
 	if err != nil || result.Response == nil {

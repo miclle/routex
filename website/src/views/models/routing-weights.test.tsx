@@ -527,12 +527,12 @@ describe('Protocol-grouped routing weight drafts', () => {
       await cache.refetchQueries({ queryKey: ['admin', 'models', 'detail'] })
     })
     await until(() => expect(form()).not.toBeNull())
-    expect(container.textContent).toContain('The current route identities have changed')
+    expect(container.textContent).toContain('The reviewed routing configuration has changed')
     expect(save().disabled).toBe(true)
     await submit()
     expect(writes()).toHaveLength(0)
     await act(async () => i18n.changeLanguage('zh'))
-    expect(container.textContent).toContain('当前路由身份已变更')
+    expect(container.textContent).toContain('已复核的路由配置已变更')
     await act(async () => i18n.changeLanguage('en'))
     const review = Array.from(container.querySelectorAll('button')).find(
       (b) => b.textContent === 'Review current routes',

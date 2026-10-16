@@ -131,18 +131,23 @@ type runtimeRoutes struct {
 }
 
 type runtimeRoute struct {
-	Route       gatewayRoute
-	Credentials []runtimeCredential
+	Route              gatewayRoute
+	Credentials        []runtimeCredential
+	CoverageIdentities map[string]string
 }
 
 type runtimeCredential struct {
-	StorageSource string
-	SourceKey     credentialSourceKey
-	ID            string
-	CipherHash    string
-	Plaintext     string
-	Priority      int
-	CreatedAt     time.Time
+	Enabled                     bool
+	VerificationStatus          string
+	VerifiedTransportGeneration string
+	CoverageRevision            int64
+	StorageSource               string
+	SourceKey                   credentialSourceKey
+	ID                          string
+	CipherHash                  string
+	Plaintext                   string
+	Priority                    int
+	CreatedAt                   time.Time
 }
 
 // RuntimeStatus exposes publication metadata without keys or routing secrets.
@@ -222,6 +227,12 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 // Lifecycle reconciliation must not queue behind uncancellable mutex waits.
 // Existing refresh callers retain their serialized, blocking admission.
 func (s *Service) refreshRuntime(ctx context.Context, tryAdmission bool) error {
+	return s.refreshRuntimeWithPublication(ctx, tryAdmission, nil)
+}
+
+// Only the positively committed original command supplies a ticket. Background
+// refreshes and retries cannot attribute a later installation to old intent.
+func (s *Service) refreshRuntimeWithPublication(ctx context.Context, tryAdmission bool, ticket *runtimePublicationTicket) error {
 	runtime := s.runtime
 	if runtime == nil {
 		return nil
@@ -368,6 +379,10 @@ func (s *Service) refreshRuntime(ctx context.Context, tryAdmission bool) error {
 	// Projection and both bounded recorders consume the same deadline. Route
 	// preparation can exhaust it; it never receives a renewed recording budget.
 	s.recordRuntimeObservations(evidenceCtx, runtime.routes.Load(), auth, generation)
+	if ticket != nil {
+		// Missing evidence cannot undo actual installation or alter its return.
+		_ = s.recordRuntimePublicationAcknowledgement(evidenceCtx, ticket, runtime.routes.Load(), auth, generation)
+	}
 	// Operational reporting is best effort and follows the already bounded
 	// installation evidence. It must not consume that evidence's remaining time.
 	s.recordRuntimeStatusMetadata(ctx, started, "", status)
@@ -560,6 +575,7 @@ func (s *Service) runtimeProtocolRoute(modelID, protocol string) (*gatewayRoute,
 		if auth.Credentials[credential.ID] && auth.CredentialAccess[credential.ID][candidate.Route.ProviderModelID] && !runtimeDenied(&runtime.deniedCredentials, credential.ID) {
 			route := candidate.Route
 			route.CredentialID = credential.ID
+			route.CredentialBirth = credential.CreatedAt.UTC()
 			route.SnapshotID = routes.ID
 			return &route, credential.Plaintext, nil
 		}
@@ -896,6 +912,14 @@ func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRou
 		}
 		connections[connection.ID] = connection
 	}
+	modelBirths := map[string]time.Time{}
+	for _, model := range data.Models {
+		modelBirths[model.ID] = model.CreatedAt.UTC()
+	}
+	coverageIdentities := map[[2]string]string{}
+	for _, row := range data.Attestations {
+		coverageIdentities[[2]string{row.CredentialID, row.ProviderModelID}] = row.Identity
+	}
 	providerModels := map[string]entity.ProviderModel{}
 	for _, model := range data.ProviderModels {
 		providerModels[model.ID] = model
@@ -934,7 +958,7 @@ func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRou
 		if keyErr != nil {
 			continue
 		}
-		credentials[credential.ConnectionID] = append(credentials[credential.ConnectionID], runtimeCredential{ID: credential.ID, CipherHash: credentialSourceProof(credential), Plaintext: plaintext, Priority: credential.Priority, CreatedAt: credential.CreatedAt, StorageSource: credential.StorageSource, SourceKey: key})
+		credentials[credential.ConnectionID] = append(credentials[credential.ConnectionID], runtimeCredential{Enabled: credential.Enabled, VerificationStatus: credential.VerificationStatus, VerifiedTransportGeneration: credential.VerifiedTransportGeneration, CoverageRevision: credential.CoverageRevision, ID: credential.ID, CipherHash: credentialSourceProof(credential), Plaintext: plaintext, Priority: credential.Priority, CreatedAt: credential.CreatedAt, StorageSource: credential.StorageSource, SourceKey: key})
 	}
 	for connectionID := range credentials {
 		sort.Slice(credentials[connectionID], func(i, j int) bool {
@@ -966,10 +990,13 @@ func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRou
 			return nil, runtimeUnavailable
 		}
 		_, egressRevision, _ := runtimeEgressSelection(data, connection)
-		candidate := runtimeRoute{Route: gatewayRoute{ProviderModelBirth: pm.CreatedAt.UTC(), CapabilityTransportGeneration: pm.CapabilityTransportGeneration, ProviderModelRevision: pm.ETag, ConnectionTransportGeneration: connection.TransportGeneration, CapabilitiesTransportCurrent: capabilityTransportCurrent(pm, connection), Client: clients[connection.ID], EgressGeneration: data.EgressGeneration, EgressRevision: egressRevision, Adapter: entity.ConnectionAdapter(connection), APIVersion: connection.APIVersion, Protocol: connection.Protocol, PriceBasis: runtimePriceBasis(data.Pricing, pm.ID, connection.Protocol), BindingID: binding.ID, Weight: binding.Weight, ProviderID: connection.ProviderID, ProviderBirth: provider.CreatedAt.UTC(), ProviderEnabled: provider.Enabled, ProviderRevision: provider.ETag, ProviderName: provider.Name, ProviderModelID: pm.ID, ConnectionID: connection.ID, ConnectionBirth: connection.CreatedAt.UTC(), ConnectionEnabled: connection.Enabled, Disabled: pm.Disabled, ConnectionName: connection.Name, UpstreamName: pm.UpstreamName, BaseURL: connection.BaseURL, SupportsImageInput: pm.SupportsImageInput, SupportsPDFInput: pm.SupportsPDFInput}}
+		candidate := runtimeRoute{CoverageIdentities: map[string]string{}, Route: gatewayRoute{ModelID: binding.ModelID, ModelBirth: modelBirths[binding.ModelID], BindingBirth: binding.CreatedAt.UTC(), ConnectionRevision: connection.ETag, ProviderModelBirth: pm.CreatedAt.UTC(), CapabilityTransportGeneration: pm.CapabilityTransportGeneration, ProviderModelRevision: pm.ETag, ConnectionTransportGeneration: connection.TransportGeneration, CapabilitiesTransportCurrent: capabilityTransportCurrent(pm, connection), Client: clients[connection.ID], EgressGeneration: data.EgressGeneration, EgressRevision: egressRevision, Adapter: entity.ConnectionAdapter(connection), APIVersion: connection.APIVersion, Protocol: connection.Protocol, PriceBasis: runtimePriceBasis(data.Pricing, pm.ID, connection.Protocol), BindingID: binding.ID, Weight: binding.Weight, ProviderID: connection.ProviderID, ProviderBirth: provider.CreatedAt.UTC(), ProviderEnabled: provider.Enabled, ProviderRevision: provider.ETag, ProviderName: provider.Name, ProviderModelID: pm.ID, ConnectionID: connection.ID, ConnectionBirth: connection.CreatedAt.UTC(), ConnectionEnabled: connection.Enabled, Disabled: pm.Disabled, ConnectionName: connection.Name, UpstreamName: pm.UpstreamName, BaseURL: connection.BaseURL, SupportsImageInput: pm.SupportsImageInput, SupportsPDFInput: pm.SupportsPDFInput}}
 		for _, credential := range credentials[connection.ID] {
 			if access[credential.ID][pm.ID] {
 				candidate.Credentials = append(candidate.Credentials, credential)
+				if identity, exists := coverageIdentities[[2]string{credential.ID, pm.ID}]; exists {
+					candidate.CoverageIdentities[credential.ID] = identity
+				}
 			}
 		}
 		result[binding.ModelID] = append(result[binding.ModelID], candidate)

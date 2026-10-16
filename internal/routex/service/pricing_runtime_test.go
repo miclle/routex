@@ -105,7 +105,7 @@ func TestCallPriceJournalRestartsWithAcceptedReceipt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	svc := &Service{recorder: &callRecorder{queue: queue}}
+	svc := &Service{admission: newLocalAdmissionStore(queue), recorder: &callRecorder{queue: queue}}
 	basis := testPriceBasis()
 	basis.Adapter = pricing.MultimodalAdapter
 	basis.Schedule.Rates = append(basis.Schedule.Rates,

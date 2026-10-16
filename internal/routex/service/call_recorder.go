@@ -30,23 +30,21 @@ type callRecorder struct {
 // StartCallRecorder replays fsynced facts independently of the gateway hot path.
 // Pending admissions recovered by Open already contain an interruption fallback.
 func (s *Service) StartCallRecorder(ctx context.Context, path string) error {
-	if s.recorder != nil {
+	if s.recorder != nil || s.admission != nil || s.sharedGateway != nil {
 		return errors.New("call recorder is already started")
 	}
-	queue, err := eventqueue.Open(path, callQueueCapacity, callQueuePayloadLimit)
+	queue, err := s.openLocalRecorderJournal(ctx, path)
 	if err != nil {
 		return errors.New("open durable call buffer failed")
 	}
-	if err := s.bindLimitJournal(ctx, queue); err != nil {
-		_ = queue.Close()
-		return errors.New("bind durable call buffer failed")
-	}
-	if err := s.validateQuotaJournal(ctx, queue); err != nil {
+	authority := newLocalAdmissionStore(queue)
+	if err := s.validateQuotaJournal(ctx, authority); err != nil {
 		_ = queue.Close()
 		return errors.New("validate quota journal failed")
 	}
 	runCtx, cancel := context.WithCancel(ctx)
 	recorder := &callRecorder{queue: queue, cancel: cancel, done: make(chan struct{})}
+	s.admission = authority
 	s.recorder = recorder
 	go func() {
 		defer close(recorder.done)
@@ -75,6 +73,9 @@ func (s *Service) StartCallRecorder(ctx context.Context, path string) error {
 }
 
 func (s *Service) StopCallRecorder() error {
+	if s.sharedGateway != nil {
+		s.sharedGateway.stop()
+	}
 	if s.recorder == nil {
 		return nil
 	}
@@ -86,6 +87,16 @@ func (s *Service) StopCallRecorder() error {
 // AdmitGatewayCall must run before the first upstream dispatch. Capacity or
 // filesystem failures reject the request before consuming provider resources.
 func (s *Service) AdmitGatewayCall(requestID string, result *GatewayResult) error {
+	return s.admitGatewayCall(context.Background(), requestID, result)
+}
+
+func (s *Service) admitGatewayCall(ctx context.Context, requestID string, result *GatewayResult) error {
+	if s.sharedGateway != nil {
+		return callQueueUnavailable
+	}
+	if s.recorder != nil && s.admission == nil {
+		return callQueueUnavailable
+	}
 	if result != nil && (result.TeamID != "" || result.identity.personal != nil) && s.recorder == nil {
 		return callQueueUnavailable
 	}
@@ -117,7 +128,7 @@ func (s *Service) AdmitGatewayCall(requestID string, result *GatewayResult) erro
 		// Compatibility for callers preparing legacy format1 facts. Native gateway
 		// dispatch always prepares quota scopes, including before first activation.
 		// The journal atomically rejects this entry point once format2 is active.
-		if err := s.recorder.queue.ReserveWithLimits(requestID, payload, result.admissionLimits, now); err != nil {
+		if err := s.admission.ReserveWithLimits(ctx, requestID, payload, result.admissionLimits, now); err != nil {
 			return quotaGatewayError(err)
 		}
 		return nil
@@ -125,10 +136,10 @@ func (s *Service) AdmitGatewayCall(requestID string, result *GatewayResult) erro
 	if result.quotaTimeZone == "" {
 		return callQueueUnavailable
 	}
-	if err := s.ensureQuotaActive(result.quotaTimeZone, now); err != nil {
+	if err := s.ensureQuotaActive(ctx, result.quotaTimeZone, now); err != nil {
 		return quotaGatewayError(err)
 	}
-	if err := s.recorder.queue.ReserveWithQuotaRecovery(requestID, payload, result.admissionQuota, result.quotaBound, zeroQuotaSettlement(result.quotaBound), now); err != nil {
+	if err := s.admission.ReserveWithQuotaRecovery(ctx, requestID, payload, result.admissionQuota, result.quotaBound, zeroQuotaSettlement(result.quotaBound), now); err != nil {
 		return quotaGatewayError(err)
 	}
 	return nil
@@ -137,6 +148,16 @@ func (s *Service) AdmitGatewayCall(requestID string, result *GatewayResult) erro
 // CheckpointGatewayCall fsyncs the latest ordered attempt evidence without
 // changing the single logical admission, quota receipt, RPM, or concurrency.
 func (s *Service) CheckpointGatewayCall(requestID string, result *GatewayResult) error {
+	return s.checkpointGatewayCall(context.Background(), requestID, result)
+}
+
+func (s *Service) checkpointGatewayCall(ctx context.Context, requestID string, result *GatewayResult) error {
+	if s.sharedGateway != nil {
+		return callQueueUnavailable
+	}
+	if s.recorder != nil && s.admission == nil {
+		return callQueueUnavailable
+	}
 	if s.recorder == nil {
 		return nil
 	}
@@ -145,12 +166,12 @@ func (s *Service) CheckpointGatewayCall(requestID string, result *GatewayResult)
 		return callQueueUnavailable
 	}
 	if len(result.admissionQuota) != 0 {
-		if err := s.recorder.queue.UpdatePendingQuota(requestID, payload, gatewayInterruptedSettlement(result)); err != nil {
+		if err := s.admission.UpdatePendingQuota(ctx, requestID, payload, gatewayInterruptedSettlement(result)); err != nil {
 			return callQueueUnavailable
 		}
 		return nil
 	}
-	if s.recorder.queue.UpdatePending(requestID, payload) != nil {
+	if s.admission.UpdatePending(ctx, requestID, payload) != nil {
 		return callQueueUnavailable
 	}
 	return nil
@@ -223,9 +244,15 @@ func gatewayFallbackPayload(requestID string, result *GatewayResult, now time.Ti
 }
 
 func (s *Service) PersistGatewayCall(ctx context.Context, fact CallFact) error {
+	if s.sharedGateway != nil {
+		return callQueueUnavailable
+	}
 	finalizeCallPricing(&fact)
 	if s.recorder == nil {
 		return s.RecordCall(ctx, fact)
+	}
+	if s.admission == nil {
+		return callQueueUnavailable
 	}
 	if err := validateCallFact(fact); err != nil {
 		return err
@@ -234,17 +261,17 @@ func (s *Service) PersistGatewayCall(ctx context.Context, fact CallFact) error {
 	if err != nil {
 		return apperrors.ErrInternal
 	}
-	status, statusErr := s.recorder.queue.QuotaStatus()
+	status, statusErr := s.admission.QuotaStatus(ctx)
 	if statusErr != nil {
 		return callQueueUnavailable
 	}
 	if status.Active {
-		_, err = s.recorder.queue.CompleteQuota(fact.RequestID, payload, quotaCallSettlement(fact), time.Now().UTC())
+		_, err = s.admission.CompleteQuota(ctx, fact.RequestID, payload, quotaCallSettlement(fact), time.Now().UTC())
 	} else {
-		err = s.recorder.queue.Complete(fact.RequestID, payload)
+		err = s.admission.Complete(ctx, fact.RequestID, payload)
 	}
 	if errors.Is(err, eventqueue.ErrMissing) {
-		err = s.recorder.queue.Complete(fact.RequestID, payload)
+		err = s.admission.Complete(ctx, fact.RequestID, payload)
 	}
 	if errors.Is(err, eventqueue.ErrMissing) {
 		// Rejected requests may finish before the upstream admission boundary.
@@ -262,6 +289,9 @@ func (s *Service) PersistGatewayCall(ctx context.Context, fact CallFact) error {
 // FlushCallRecorder acknowledges only after an idempotent primary transaction.
 // A failed delivery remains durable and is retried by the next cycle or restart.
 func (s *Service) FlushCallRecorder(ctx context.Context) (runErr error) {
+	if s.sharedGateway != nil {
+		return s.flushSharedGatewayCalls(ctx)
+	}
 	if s.recorder == nil {
 		return nil
 	}

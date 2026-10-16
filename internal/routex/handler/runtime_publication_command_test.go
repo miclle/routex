@@ -216,7 +216,7 @@ func TestRuntimePublicationCommandReceiptHTTPContract(t *testing.T) {
 			expected := map[string]any{
 				"request_id": runtimePublicationTestID, "actor_id": "usr_owned", "reason": "Reviewed",
 				"claim_instance_id": "ins_owned", "claim_instance_started_at": claimed.Add(-time.Minute),
-				"claimed_at": claimed, "finalized_at": tc.finalized, "status": tc.status, "failure_code": tc.failure,
+				"claimed_at": claimed, "finalized_at": tc.finalized, "status": tc.status, "failure_code": tc.failure, "acknowledgement": nil,
 			}
 			if json.Unmarshal(rec.Body.Bytes(), &fields) != nil || len(fields) != len(expected) {
 				t.Fatal("receipt wire fields are not closed")
@@ -227,6 +227,25 @@ func TestRuntimePublicationCommandReceiptHTTPContract(t *testing.T) {
 					t.Fatal("receipt field or explicit null changed", key)
 				}
 			}
+			// A durable local installation does not promote the original
+			// pending/unknown/error outcome into successful publication.
+			receipt.Acknowledgement = &service.RuntimePublicationAcknowledgementReceipt{Scope: "single_process_gateway_admission", InstallationID: "rin_01m36yee4gkbns18pfcqqc75a3", InstanceID: receipt.ClaimInstanceID, InstanceStartedAt: receipt.ClaimInstanceStartedAt, SnapshotID: "cfg_01m36yee4gkbns18pfcqqc75a3", RoutesPublishedAt: claimed.Add(-time.Second), AcknowledgedAt: finalized}
+			acknowledged := httptest.NewRecorder()
+			router.ServeHTTP(acknowledged, httptest.NewRequest("GET", "/receipt", nil))
+			var withProof map[string]json.RawMessage
+			if acknowledged.Code != tc.want || json.Unmarshal(acknowledged.Body.Bytes(), &withProof) != nil || len(withProof) != 10 || string(withProof["status"]) != string(fields["status"]) || string(withProof["finalized_at"]) != string(fields["finalized_at"]) || string(withProof["failure_code"]) != string(fields["failure_code"]) {
+				t.Fatal("local acknowledgement reinterpreted original outcome")
+			}
+			var proof map[string]json.RawMessage
+			if json.Unmarshal(withProof["acknowledgement"], &proof) != nil || len(proof) != 7 {
+				t.Fatal("local acknowledgement is not a closed nonsecret object")
+			}
+			for _, key := range []string{"scope", "installation_id", "instance_id", "instance_started_at", "snapshot_id", "routes_published_at", "acknowledged_at"} {
+				if _, exists := proof[key]; !exists {
+					t.Fatal("missing acknowledgement field", key)
+				}
+			}
+
 		})
 	}
 	for _, receipt := range []*service.RuntimePublicationCommandReceipt{nil, {Status: "applied"}} {

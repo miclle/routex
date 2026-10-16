@@ -259,7 +259,7 @@ func testRuntimePublicationCommandMigration(t *testing.T, db *gorm.DB) {
 		migrate()
 	}
 	checkLedger()
-	if database.MigrateThrough(ctx, db, 104) == nil || database.MigrateThrough(ctx, db, 117) == nil {
+	if database.MigrateThrough(ctx, db, 104) == nil || database.MigrateThrough(ctx, db, 119) == nil {
 		t.Fatal("historical/newer migration bound admitted")
 	}
 	if db.Model(model).Count(&count).Error != nil || count != 0 {
@@ -345,6 +345,7 @@ func testRuntimePublicationCommandLifecycle(t *testing.T, db *gorm.DB) {
 		"test:manual-publication-final-ack-v105":          nil,
 		"test:manual-publication-final-write-v105":        nil,
 		"test:manual-publication-revoke-after-claim-v105": nil,
+		"test:manual-publication-local-ack-v117":          nil,
 	}
 	setFault := func(name string, callback func(*gorm.DB)) error {
 		faultMu.Lock()
@@ -365,6 +366,7 @@ func testRuntimePublicationCommandLifecycle(t *testing.T, db *gorm.DB) {
 		{"test:manual-publication-final-ack-v105", db.Callback().Update().After("gorm:update").Register},
 		{"test:manual-publication-final-write-v105", db.Callback().Update().Before("gorm:update").Register},
 		{"test:manual-publication-revoke-after-claim-v105", db.Callback().Create().After("gorm:create").Register},
+		{"test:manual-publication-local-ack-v117", db.Callback().Create().After("gorm:create").Register},
 	} {
 		if err := hook.register(hook.name, func(tx *gorm.DB) {
 			faultMu.RLock()
@@ -468,6 +470,18 @@ func testRuntimePublicationCommandLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal("original immutable command changed")
 		}
 	}
+	requireAcknowledgement := func(t *testing.T, receipt *service.RuntimePublicationCommandReceipt) {
+		t.Helper()
+		if receipt == nil || receipt.Acknowledgement == nil {
+			t.Fatal("missing exact local installation acknowledgement")
+		}
+		ack := receipt.Acknowledgement
+		var stored entity.RuntimePublicationAcknowledgement
+		var installation entity.RuntimeInstallationObservation
+		if db.Where("request_id = ?", receipt.RequestID).Take(&stored).Error != nil || db.Where("id = ?", ack.InstallationID).Take(&installation).Error != nil || stored.RequestID != receipt.RequestID || stored.InstallationID != ack.InstallationID || !stored.AcknowledgedAt.Equal(ack.AcknowledgedAt) || ack.Scope != "single_process_gateway_admission" || installation.ID != ack.InstallationID || installation.InstanceID != receipt.ClaimInstanceID || ack.InstanceID != receipt.ClaimInstanceID || !installation.InstanceStartedAt.Equal(receipt.ClaimInstanceStartedAt) || !ack.InstanceStartedAt.Equal(receipt.ClaimInstanceStartedAt) || installation.SnapshotID != ack.SnapshotID || !installation.RoutesPublishedAt.Equal(ack.RoutesPublishedAt) || stored.AcknowledgedAt.Before(receipt.ClaimedAt) || stored.AcknowledgedAt.Before(installation.FirstObservedAt) {
+			t.Fatal("acknowledgement did not bind exact command/process birth/installed observation")
+		}
+	}
 	t.Run("exact_replay_changed_and_foreign_intent", func(t *testing.T) {
 		in := next("Publish current authority once")
 		before := loads.Load()
@@ -475,6 +489,7 @@ func testRuntimePublicationCommandLifecycle(t *testing.T, db *gorm.DB) {
 		if err != nil || receipt == nil || receipt.Status != "refresh_returned_nil" || receipt.FinalizedAt == nil || receipt.FailureCode != nil || loads.Load() != before+1 {
 			t.Fatal("original successful refresh not recorded exactly once")
 		}
+		requireAcknowledgement(t, receipt)
 		stored := runtimePublicationStoredV105(t, db, in.RequestID)
 		runtimePublicationAuditV105(t, db, stored, 1)
 		// Read the genuine transactional events through the authorized audit API
@@ -531,6 +546,66 @@ func testRuntimePublicationCommandLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal("independent later publication failed")
 		}
 		unchanged(stored)
+		// An evidence write failure does not discard the real installation or
+		// relabel its original return. Neither exact retry nor a later ordinary
+		// refresh may fill the command's missing acknowledgement.
+		noAck := next("Retain actual installation when evidence storage fails")
+		var injected atomic.Int64
+		hook := "test:manual-publication-local-ack-v117"
+		if setFault(hook, func(tx *gorm.DB) {
+			if tx.Statement.Schema != nil && tx.Statement.Schema.Table == "runtime_publication_acknowledgements" {
+				injected.Add(1)
+				_ = tx.AddError(errors.New("controlled local evidence storage failure"))
+			}
+		}) != nil {
+			t.Fatal("arm preinstalled local acknowledgement fault")
+		}
+		defer func() {
+			if err := setFault(hook, nil); err != nil {
+				t.Error("release local acknowledgement fault", err)
+			}
+		}()
+		countBefore := loads.Load()
+		noProof, e := svc.PublishRuntimeCommand(ctx, admin, noAck)
+		if e != nil || noProof == nil || noProof.Status != "refresh_returned_nil" || noProof.Acknowledgement != nil || injected.Load() != 1 || loads.Load() != countBefore+1 {
+			t.Fatal("failed evidence write changed original installation outcome", e)
+		}
+		if setFault(hook, nil) != nil {
+			t.Fatal("disarm local acknowledgement fault")
+		}
+		if svc.RefreshRuntime(ctx) != nil {
+			t.Fatal("later ordinary refresh")
+		}
+		countBefore = loads.Load()
+		retried, e := svc.PublishRuntimeCommand(ctx, admin, noAck)
+		if e != nil || !reflect.DeepEqual(retried, noProof) || loads.Load() != countBefore {
+			t.Fatal("missing acknowledgement was backfilled or redispatched", e)
+		}
+		// A lost acknowledgement of its transaction can still leave actual
+		// immutable evidence; returning that recovered row makes no claim about
+		// the lost storage return or any other process.
+		lostInput := next("Read genuine committed local acknowledgement")
+		var lost atomic.Bool
+		if setFault(hook, func(tx *gorm.DB) {
+			if tx.Statement.Schema != nil && tx.Statement.Schema.Table == "runtime_publication_acknowledgements" {
+				if real, ok := tx.Statement.ConnPool.(*runtimePublicationAckTxV105); ok {
+					real.loseAck = true
+					real.lost = &lost
+				} else {
+					_ = tx.AddError(errors.New("missing real acknowledgement transaction"))
+				}
+			}
+		}) != nil {
+			t.Fatal("arm local evidence commit-response loss")
+		}
+		recovered, e := svc.PublishRuntimeCommand(ctx, admin, lostInput)
+		if setFault(hook, nil) != nil {
+			t.Fatal("disarm local evidence commit-response loss")
+		}
+		if e != nil || !lost.Load() || recovered == nil || recovered.Status != "refresh_returned_nil" {
+			t.Fatal("local acknowledgement commit response reinterpreted refresh", e)
+		}
+		requireAcknowledgement(t, recovered)
 	})
 	t.Run("owned_pending_has_one_dispatch_and_joins", func(t *testing.T) {
 		in := next("Review exact owned in-flight work")
@@ -624,7 +699,7 @@ func testRuntimePublicationCommandLifecycle(t *testing.T, db *gorm.DB) {
 		}
 		stored := runtimePublicationStoredV105(t, db, in.RequestID)
 		receipt, err := svc.GetRuntimePublicationCommand(ctx, admin, in.RequestID)
-		if err != nil || receipt.Status != "unknown" || stored.Outcome != "claimed" || stored.FinalizedAt != nil {
+		if err != nil || receipt.Status != "unknown" || receipt.Acknowledgement != nil || stored.Outcome != "claimed" || stored.FinalizedAt != nil {
 			t.Fatal("uncertain claim fabricated original outcome")
 		}
 		runtimePublicationAuditV105(t, db, stored, 0)
@@ -701,6 +776,11 @@ func testRuntimePublicationCommandLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal("uncommitted final outcome fabricated")
 		}
 		runtimePublicationAuditV105(t, db, stored, 0)
+		originalProof, e := svc.GetRuntimePublicationCommand(ctx, admin, in.RequestID)
+		if e != nil || originalProof.Status != "unknown" {
+			t.Fatal("original unknown return changed", e)
+		}
+		requireAcknowledgement(t, originalProof)
 		first := svc.CurrentSystemInstanceID()
 		stop()
 		start()
@@ -714,6 +794,11 @@ func testRuntimePublicationCommandLifecycle(t *testing.T, db *gorm.DB) {
 		if err != nil || receipt.Status != "unknown" {
 			t.Fatal("reconstruction restored unsupported pending ownership")
 		}
+		requireAcknowledgement(t, receipt)
+		if !reflect.DeepEqual(receipt.Acknowledgement, originalProof.Acknowledgement) {
+			t.Fatal("reconstruction rewrote original local acknowledgement")
+		}
+
 		receipt, err = svc.PublishRuntimeCommand(ctx, admin, in)
 		if err != nil || receipt.Status != "unknown" || loads.Load() != before {
 			t.Fatal("reconstruction replay resumed original command")
@@ -793,6 +878,27 @@ func testRuntimePublicationCommandLifecycle(t *testing.T, db *gorm.DB) {
 		if native() != 200 {
 			t.Fatal("native Key was not admitted before revocation")
 		}
+		activeReceipt, e := svc.PublishRuntimeCommand(ctx, admin, next("Observe current routing and active Key authority"))
+		if e != nil {
+			t.Fatal("publish active authority", e)
+		}
+		requireAcknowledgement(t, activeReceipt)
+		snapshotBefore := svc.RuntimeStatus().SnapshotID
+		if db.Model(&entity.APIKey{}).Where("id = ?", keyID).Update("status", entity.KeyRevoked).Error != nil {
+			t.Fatal("persist unchanged-routing revocation")
+		}
+		reducedReceipt, e := svc.PublishRuntimeCommand(ctx, admin, next("Acknowledge current denial on unchanged routing"))
+		if e != nil {
+			t.Fatal("publish reduced authority", e)
+		}
+		requireAcknowledgement(t, reducedReceipt)
+		if native() != 401 || svc.RuntimeStatus().SnapshotID != snapshotBefore || reducedReceipt.Acknowledgement.SnapshotID != activeReceipt.Acknowledgement.SnapshotID || reducedReceipt.Acknowledgement.InstallationID == activeReceipt.Acknowledgement.InstallationID {
+			t.Fatal("acknowledgement ignored actual authorization reduction on unchanged routing")
+		}
+		if db.Model(&entity.APIKey{}).Where("id = ?", keyID).Update("status", entity.KeyActive).Error != nil || svc.RefreshRuntime(ctx) != nil || native() != 200 {
+			t.Fatal("restore exact valid positive control before invalid-route scenario")
+		}
+
 		provider, connection, pm, model, binding := fresh("prv"), fresh("con"), fresh("pmd"), fresh("mdl"), fresh("bnd")
 		for _, row := range []any{&entity.Provider{ID: provider, Name: "Invalid manual route", Enabled: true, ETag: "0", CreatedAt: birth}, &entity.ProviderConnection{ID: connection, ProviderID: provider, Name: "No dispatch", BaseURL: "https://manual-publication.invalid/v1", Protocol: entity.ProtocolOpenAIChat, Adapter: "native", Enabled: true, TransportGeneration: "0", CreatedAt: birth}, &entity.ProviderModel{ID: pm, ConnectionID: connection, UpstreamName: "invalid-total", CapabilityTransportGeneration: "0", CreatedAt: birth}, &entity.Model{ID: model, Status: entity.ResourceActive, CreatedAt: birth}, &entity.ModelProviderBinding{ID: binding, ModelID: model, ProviderModelID: pm, Weight: 99, CreatedAt: birth}} {
 			if db.Create(row).Error != nil {
@@ -805,7 +911,7 @@ func testRuntimePublicationCommandLifecycle(t *testing.T, db *gorm.DB) {
 		in := next("Publish fresh denial despite invalid routes")
 		before := loads.Load()
 		receipt, err := svc.PublishRuntimeCommand(ctx, admin, in)
-		if err != nil || receipt.Status != "refresh_returned_error" || receipt.FinalizedAt == nil || receipt.FailureCode == nil || *receipt.FailureCode != "runtime_refresh_failed" || loads.Load() != before+1 {
+		if err != nil || receipt.Status != "refresh_returned_error" || receipt.Acknowledgement != nil || receipt.FinalizedAt == nil || receipt.FailureCode == nil || *receipt.FailureCode != "runtime_refresh_failed" || loads.Load() != before+1 {
 			t.Fatal("failed refresh outcome not retained")
 		}
 		if native() != 401 {

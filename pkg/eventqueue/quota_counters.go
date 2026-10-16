@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"math"
 	"math/big"
 	"strings"
 	"time"
@@ -33,91 +32,12 @@ func readQuotaCounter(tx *bolt.Tx, account, window string) (quotaCounter, error)
 	}
 	return counter, nil
 }
-func addToken(total *int64, value, sign int64) error {
-	if value < 0 || sign != 1 && sign != -1 {
-		return ErrInvalid
-	}
-	if sign == 1 {
-		if *total > math.MaxInt64-value {
-			return ErrInvalid
-		}
-		*total += value
-	} else {
-		if *total < value {
-			return ErrInvalid
-		}
-		*total -= value
-	}
-	return nil
-}
-func addMoney(totals map[string]string, currency, value string, sign int64) error {
-	units, err := quotaUnits(value)
-	if err != nil {
-		return err
-	}
-	previous := new(big.Int)
-	if raw, ok := totals[currency]; ok {
-		var valid bool
-		previous, valid = previous.SetString(raw, 10)
-		if !valid || previous.Sign() < 0 {
-			return ErrInvalid
-		}
-	}
-	if sign == 1 {
-		previous.Add(previous, units)
-	} else {
-		previous.Sub(previous, units)
-	}
-	if previous.Sign() < 0 {
-		return ErrInvalid
-	}
-	if previous.Sign() == 0 {
-		delete(totals, currency)
-	} else {
-		totals[currency] = previous.String()
-	}
-	return nil
-}
 func applyQuotaCounter(tx *bolt.Tx, account, window string, entry QuotaReceipt, sign int64) error {
 	counter, err := readQuotaCounter(tx, account, window)
 	if err != nil {
 		return err
 	}
-	tokens, money, currency := entry.Bound.Tokens, entry.Bound.Money, entry.Bound.Currency
-	tokenSettled, moneySettled := false, false
-	if entry.State != "active" {
-		if entry.Actual.Tokens != nil {
-			tokens = entry.Actual.Tokens
-			tokenSettled = true
-		}
-		if entry.Actual.Money != nil {
-			money = entry.Actual.Money
-			currency = entry.Actual.Currency
-			moneySettled = true
-		}
-	}
-	tokenTarget := &counter.TokensHeld
-	if tokenSettled {
-		tokenTarget = &counter.TokensUsed
-	}
-	if tokens == nil {
-		err = addToken(&counter.TokensUnknown, 1, sign)
-	} else {
-		err = addToken(tokenTarget, *tokens, sign)
-	}
-	if err != nil {
-		return err
-	}
-	moneyTarget := counter.MoneyHeld
-	if moneySettled {
-		moneyTarget = counter.MoneyUsed
-	}
-	if money == nil {
-		err = addToken(&counter.MoneyUnknown, 1, sign)
-	} else {
-		err = addMoney(moneyTarget, currency, *money, sign)
-	}
-	if err != nil {
+	if err := applyQuotaCounterDelta(&counter, entry.Bound, entry.Actual, entry.State != "active", sign); err != nil {
 		return err
 	}
 	encoded, err := json.Marshal(counter)

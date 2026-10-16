@@ -29,7 +29,8 @@ func TestModelRoutingCandidateHTTPRejectsScopeExpansion(t *testing.T) {
 	router := fox.New()
 	router.GET("/providers", ctrl.ListModelRoutingProviders)
 	router.GET("/candidates", ctrl.ListModelRoutingCandidates)
-	for _, path := range []string{"/providers?actor=usr_other", "/providers?provider_id=prv_one", "/candidates?protocol=x&protocol=y", "/providers?limit=0", "/providers?limit=51", "/providers?limit=01", "/providers?cursor=", "/providers?q=%ff", "/candidates?q=x&q=y", "/candidates?offset=1"} {
+	router.GET("/exact", ctrl.GetModelRoutingCandidate)
+	for _, path := range []string{"/providers?actor=usr_other", "/providers?provider_id=prv_one", "/candidates?protocol=x&protocol=y", "/providers?limit=0", "/providers?limit=51", "/providers?limit=01", "/providers?cursor=", "/providers?q=%ff", "/candidates?q=x&q=y", "/candidates?offset=1", "/exact?q=x", "/exact?cursor=pmd_other", "/exact?limit=1", "/exact?protocol=x&protocol=y", "/exact?actor=usr_other"} {
 		r := httptest.NewRecorder()
 		router.ServeHTTP(r, httptest.NewRequest("GET", path, nil))
 		if r.Code != 400 || r.Header().Get("Cache-Control") != "private, no-store" || r.Header().Get("X-Content-Type-Options") != "nosniff" {

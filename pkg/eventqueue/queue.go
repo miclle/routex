@@ -36,18 +36,38 @@ type Entry struct {
 // process become replayable fallback facts; callers supply that fallback when
 // reserving a slot. Default synchronous commits must never be disabled.
 func Open(path string, capacity, maxPayload int) (*Queue, error) {
+	return openQueue(path, capacity, maxPayload, nil)
+}
+
+func openQueue(path string, capacity, maxPayload int, startup *localQueueStartup) (*Queue, error) {
 	if path == "" || capacity < 1 || maxPayload < 1 {
 		return nil, ErrInvalid
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
-		return nil, err
+	if startup == nil || startup.absent {
+		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+			return nil, err
+		}
 	}
-	db, err := bolt.Open(path, 0600, &bolt.Options{Timeout: time.Second})
+	options := &bolt.Options{Timeout: time.Second}
+	if startup != nil {
+		options.OpenFile = startup.openFile
+	}
+	db, err := bolt.Open(path, 0600, options)
 	if err != nil {
 		return nil, err
 	}
 	q := &Queue{db: db, capacity: capacity, maxPayload: maxPayload, quotaCapacity: quotaHistoryCapacity}
 	err = db.Update(func(tx *bolt.Tx) error {
+		if startup != nil {
+			if err := validateLocalQueueStartup(tx, *startup); err != nil {
+				return err
+			}
+		}
+		for _, name := range sharedSpoolBuckets() {
+			if tx.Bucket(name) != nil {
+				return ErrSharedSpoolMode
+			}
+		}
 		if err := initLimits(tx); err != nil {
 			return err
 		}
@@ -81,6 +101,12 @@ func Open(path string, capacity, maxPayload int) (*Queue, error) {
 			if err := pending.Delete(key); err != nil {
 				return err
 			}
+		}
+		if startup != nil {
+			if err := startup.ctx.Err(); err != nil {
+				return err
+			}
+			return tx.Bucket(limitMetaBucket).Put([]byte("installation"), []byte(startup.identity))
 		}
 		return nil
 	})

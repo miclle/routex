@@ -63,7 +63,7 @@ func TestAPIKeyDeliveryV102KeepsReleasedTailAndRootHistory(t *testing.T) {
 	}
 	for _, driver := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(driver)
-		if len(legacyMigrationSQL(driver)) != 4 || len(steps) != 116 || len(old) != 97 || reflect.ValueOf(steps[105]).Pointer() != reflect.ValueOf(telegramIdentityMigration).Pointer() {
+		if len(legacyMigrationSQL(driver)) != 4 || len(steps) != 118 || len(old) != 97 || reflect.ValueOf(steps[105]).Pointer() != reflect.ValueOf(telegramIdentityMigration).Pointer() {
 			t.Fatal("exact V101 prefix/V102 length")
 		}
 		for i, expected := range old {

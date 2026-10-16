@@ -26,7 +26,7 @@ func testAPIKeyDeliveryControllerMigration(t *testing.T, db *gorm.DB) {
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
 	defer cancel()
 	ledger := personalKeyBehaviorLedger(t, db)
-	if len(ledger) != 116 {
+	if len(ledger) != 118 {
 		t.Fatal("controller migration requires exact V116 registry before successor peel")
 	}
 	// This bounded V114 scenario must not retain a successor receipt while
@@ -53,7 +53,7 @@ func testAPIKeyDeliveryControllerMigration(t *testing.T, db *gorm.DB) {
 			t.Error("restore cleanup successor", err)
 			return
 		}
-		if current := personalKeyBehaviorLedger(t, db); len(current) != 116 || !reflect.DeepEqual(current[:113], ledger[:113]) {
+		if current := personalKeyBehaviorLedger(t, db); len(current) != 118 || !reflect.DeepEqual(current[:113], ledger[:113]) {
 			t.Error("cleanup successor restore changed retained prefix")
 		}
 	})

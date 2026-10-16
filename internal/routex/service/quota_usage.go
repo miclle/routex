@@ -35,7 +35,10 @@ func quotaWindowRecord(value eventqueue.QuotaUsage, covered bool) *QuotaWindowRe
 	return &QuotaWindowRecord{Covered: covered, TokensUsed: value.TokensUsed, TokensHeld: value.TokensHeld, TokensUnknown: value.TokensUnknown, MoneyUsed: value.MoneyUsed, MoneyHeld: value.MoneyHeld, MoneyUnknown: value.MoneyUnknown}
 }
 func (s *Service) resourceQuotaUsage(db *gorm.DB, resolved resolvedLimitTarget) (*QuotaUsageRecord, error) {
-	status, err := s.recorder.queue.QuotaStatus()
+	if s.admission == nil {
+		return nil, runtimeUnavailable
+	}
+	status, err := s.admission.QuotaStatus(db.Statement.Context)
 	if err != nil {
 		return nil, runtimeUnavailable
 	}
@@ -57,7 +60,7 @@ func (s *Service) resourceQuotaUsage(db *gorm.DB, resolved resolvedLimitTarget) 
 	if err != nil {
 		return nil, err
 	}
-	usage, err := s.recorder.queue.AccountQuotaUsage(limitAccount(resolved.kind, resolved.id), now)
+	usage, err := s.admission.AccountQuotaUsage(db.Statement.Context, limitAccount(resolved.kind, resolved.id), now)
 	if err != nil {
 		return nil, runtimeUnavailable
 	}
@@ -113,7 +116,10 @@ func (s *Service) guardQuotaCurrencyChange(tx *gorm.DB) error {
 		}
 		return nil
 	}
-	held, err := s.recorder.queue.HasLiveMoneyHolds(time.Now())
+	if s.admission == nil {
+		return runtimeUnavailable
+	}
+	held, err := s.admission.HasLiveMoneyHolds(tx.Statement.Context, time.Now())
 	if err != nil {
 		return runtimeUnavailable
 	}

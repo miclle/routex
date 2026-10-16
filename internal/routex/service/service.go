@@ -20,6 +20,8 @@ import (
 
 // Service holds the database connection and provides business logic methods.
 type Service struct {
+	admission                     admissionStore
+	sharedGateway                 *sharedGatewayRuntime
 	apiKeyDeliveryValidator       APIKeyDeliveryValidator
 	namedIdentityTransportFactory NamedIdentityTransportFactory
 	db                            *gorm.DB

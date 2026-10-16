@@ -45,6 +45,16 @@ export interface RuntimeArchiveRollbackInput {
   reason: string
 }
 
+export interface RuntimePublicationAcknowledgement {
+  scope: 'single_process_gateway_admission'
+  installation_id: string
+  instance_id: string
+  instance_started_at: string
+  snapshot_id: string
+  routes_published_at: string
+  acknowledged_at: string
+}
+
 export interface RuntimeArchiveRollbackReceipt {
   scope: 'gateway_routing_configuration'
   request_id: string
@@ -63,6 +73,7 @@ export interface RuntimeArchiveRollbackReceipt {
     finalized_at: string | null
     status: 'unknown' | 'pending' | 'refresh_returned_nil' | 'refresh_returned_error'
     failure_code: 'runtime_refresh_failed' | null
+    acknowledgement: RuntimePublicationAcknowledgement | null
   }
   runtime_applied: boolean
   superseded: boolean

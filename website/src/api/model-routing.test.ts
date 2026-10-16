@@ -3,6 +3,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import client from './client'
 import {
   addRoutingBinding,
+  getRoutingWeightReview,
+  saveReviewedRoutingWeights,
+  getRoutingCandidate,
   decodeRoutingSupply,
   listRoutingCandidates,
   listRoutingProviders,
@@ -10,6 +13,7 @@ import {
 const original = client.defaults.adapter
 let data: unknown
 let status: number
+let etag: string | undefined
 let calls: InternalAxiosRequestConfig[]
 const supply = {
   provider_name: 'Exact Provider',
@@ -34,10 +38,11 @@ const candidate = {
 beforeEach(() => {
   calls = []
   status = 200
+  etag = undefined
   data = { items: [structuredClone(candidate)], next_cursor: null }
   client.defaults.adapter = async (config) => {
     calls.push(config)
-    return { config, status, statusText: '', headers: new AxiosHeaders(), data }
+    return { config, status, statusText: '', headers: new AxiosHeaders(etag ? { etag } : {}), data }
   }
 })
 afterEach(() => {
@@ -207,5 +212,124 @@ describe('protocol-scoped candidate wire', () => {
     status = 201
     ;(data as { bindings: { weight: number }[] }).bindings[0].weight = 100
     await expect(addRoutingBinding('mdl_one', intent, 'fresh-csrf')).rejects.toThrow()
+  })
+})
+
+const exactReview = () => ({
+  model_id: 'mdl_one',
+  model_name: 'Public/model',
+  candidate: structuredClone(candidate),
+  routes: [
+    {
+      id: 'bnd_old',
+      provider_id: 'prv_old',
+      provider_name: 'Old supplier',
+      connection_id: 'con_old',
+      connection_name: 'Old connection',
+      provider_model_id: 'pmd_old',
+      upstream_name: 'old',
+      protocol: 'openai_chat',
+      weight: 100,
+    },
+  ],
+})
+describe('exact source routing review', () => {
+  it('uses exact resource identity without name or pagination and preserves stored weights', async () => {
+    data = exactReview()
+    const signal = new AbortController().signal
+    const got = await getRoutingCandidate('mdl_one', 'openai_chat', 'prv_one', 'pmd_one', signal)
+    expect(calls[0].url).toBe('/admin/models/mdl_one/routing-candidates/pmd_one')
+    expect(calls[0].params).toEqual({ protocol: 'openai_chat', provider_id: 'prv_one' })
+    expect(calls[0].signal).toBe(signal)
+    expect(got.routes[0].weight).toBe(100)
+    expect(got.candidate.prices?.input[0].amount).toBe('0.123456789123456789')
+  })
+  it.each([
+    { model_id: 'mdl_other' },
+    { model_name: '' },
+    { routes: null },
+    { extra: true },
+    { candidate: { ...candidate, id: 'pmd_other' } },
+    { candidate: { ...candidate, protocol: 'openai_responses' } },
+    { routes: Array.from({ length: 201 }, () => exactReview().routes[0]) },
+    { routes: [{ ...exactReview().routes[0], weight: 101 }] },
+    { routes: [{ ...exactReview().routes[0], provider_id: 'prv_one' }] },
+    { routes: [{ ...exactReview().routes[0], provider_model_id: 'pmd_one' }] },
+    { routes: [{ ...exactReview().routes[0], connection_name: 'private\nvalue' }] },
+    { routes: [exactReview().routes[0], exactReview().routes[0]] },
+  ])('rejects mismatched/unbounded/private review %j', async (patch) => {
+    data = { ...exactReview(), ...patch }
+    await expect(
+      getRoutingCandidate('mdl_one', 'openai_chat', 'prv_one', 'pmd_one'),
+    ).rejects.toThrow()
+  })
+})
+
+function weightReview() {
+  return {
+    review_etag: 'b'.repeat(64),
+    runtime_applied: false,
+    model: {
+      id: 'mdl_one',
+      name: 'Recorded',
+      status: 'active',
+      names: [],
+      granted_user_ids: [],
+      bindings: [
+        {
+          id: 'bnd_one',
+          provider_model_id: 'pmd_one',
+          provider_id: 'prv_one',
+          connection_id: 'con_one',
+          upstream_name: 'Recorded upstream',
+          protocol: 'openai_chat',
+          weight: 100,
+          ready: true,
+        },
+      ],
+    },
+  }
+}
+describe('reviewed complete weights', () => {
+  it('uses separate read and strong reviewed write, with exact full-set response checking', async () => {
+    data = weightReview()
+    etag = `"${'b'.repeat(64)}"`
+    expect((await getRoutingWeightReview('mdl_one')).runtime_applied).toBe(false)
+    const weights = [{ binding_id: 'bnd_one', weight: 100 }]
+    await saveReviewedRoutingWeights('mdl_one', weights, 'a'.repeat(64), 'csrf')
+    expect(calls[1].url).toBe('/admin/models/mdl_one/weights/reviewed')
+    expect(calls[1].headers.get('If-Match')).toBe(`"${'a'.repeat(64)}"`)
+    expect(calls[1].headers.get('X-CSRF-Token')).toBe('csrf')
+    expect(JSON.parse(calls[1].data)).toEqual({ weights })
+    await expect(
+      saveReviewedRoutingWeights(
+        'mdl_one',
+        [{ binding_id: 'bnd_one', weight: 0 }],
+        'a'.repeat(64),
+        'csrf',
+      ),
+    ).rejects.toThrow()
+  })
+  it.each([
+    'missing-header',
+    'weak-header',
+    'wrong-model',
+    'foreign-binding',
+    'unbounded',
+    'unknown-runtime',
+    'extra-field',
+  ])('rejects %s in current-state weight proof', async (kind) => {
+    const value = weightReview()
+    data = value
+    etag = `"${'b'.repeat(64)}"`
+    if (kind === 'missing-header') etag = undefined
+    else if (kind === 'weak-header') etag = `W/${etag}`
+    else if (kind === 'wrong-model') value.model.id = 'mdl_other'
+    else if (kind === 'foreign-binding') value.model.bindings[0].connection_id = 'private'
+    else if (kind === 'unbounded')
+      value.model.bindings = Array.from({ length: 201 }, () => value.model.bindings[0])
+    else if (kind === 'unknown-runtime') data = { ...value, runtime_applied: null }
+    else data = { ...value, secret: 'private' }
+    await expect(getRoutingWeightReview('mdl_one')).rejects.toThrow()
   })
 })

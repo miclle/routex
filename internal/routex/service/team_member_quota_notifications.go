@@ -77,7 +77,7 @@ func (s *Service) teamMemberQuotaNotificationApplied(current *teamLimitContext, 
 		!validTeamMemberQuotaTarget(teamMemberQuotaTarget{current.Member.ID, current.Team.ID, current.Member.UserID}) ||
 		current.Row.ScopeKind != "team_member" || current.Row.ScopeID != teamMemberLimitScopeID(current.Team.ID, current.Member.UserID) ||
 		current.Resolved.kind != current.Row.ScopeKind || current.Resolved.id != current.Row.ScopeID ||
-		current.Team.Status != entity.ResourceActive || s.runtime == nil || s.recorder == nil {
+		current.Team.Status != entity.ResourceActive || s.runtime == nil || s.recorder == nil || s.admission == nil {
 		return false
 	}
 	auth := s.runtime.auth.Load()
@@ -155,7 +155,7 @@ func loadTeamMemberQuotaContext(tx *gorm.DB, target teamMemberQuotaTarget) (*tea
 }
 
 func (s *Service) observeTeamMemberMonthlyQuotaNotification(ctx context.Context, target teamMemberQuotaTarget) error {
-	if !validTeamMemberQuotaTarget(target) || s.recorder == nil || s.runtime == nil {
+	if !validTeamMemberQuotaTarget(target) || s.recorder == nil || s.admission == nil || s.runtime == nil {
 		return nil
 	}
 	s.limitMu.RLock()
@@ -181,14 +181,14 @@ func (s *Service) observeTeamMemberMonthlyQuotaNotification(ctx context.Context,
 		if !s.teamMemberQuotaNotificationApplied(current, setting) {
 			return nil
 		}
-		status, err := s.recorder.queue.QuotaStatus()
+		status, err := s.admission.QuotaStatus(ctx)
 		if err != nil {
 			return runtimeUnavailable
 		}
 		if !status.Active {
 			return nil
 		}
-		usage, err := s.recorder.queue.AccountQuotaUsage(limitAccount(current.Row.ScopeKind, current.Row.ScopeID), time.Now())
+		usage, err := s.admission.AccountQuotaUsage(ctx, limitAccount(current.Row.ScopeKind, current.Row.ScopeID), time.Now())
 		if err != nil {
 			return runtimeUnavailable
 		}

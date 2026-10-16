@@ -378,7 +378,7 @@ func (s *Service) teamResourceLimitRecord(tx *gorm.DB, current *teamLimitContext
 }
 
 func (s *Service) teamLimitApplied(current *teamLimitContext) bool {
-	if s.runtime == nil || s.recorder == nil {
+	if s.runtime == nil || s.recorder == nil || s.admission == nil {
 		return false
 	}
 	auth := s.runtime.auth.Load()

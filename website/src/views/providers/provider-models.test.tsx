@@ -189,7 +189,11 @@ beforeEach(async () => {
     else if (/^\/admin\/providers\/prv_(first|second)\/model-bindings$/.test(config.url!)) {
       response.data = structuredClone(bindingPages[config.url!.split('/')[3]])
       response.headers.set('Cache-Control', 'no-store')
-    } else throw new Error(`Unexpected directory request: ${config.url}`)
+    } else if (
+      /^\/admin\/connections\/con_[A-Za-z0-9_-]+\/model-creation\/models$/.test(config.url!)
+    )
+      response.data = { items: [], next_cursor: null }
+    else throw new Error(`Unexpected directory request: ${config.url}`)
     if (
       (permissionError && config.url === '/auth/permissions') ||
       (catalogueError && config.url === '/admin/providers') ||
@@ -902,7 +906,7 @@ it('blocks dispatch from obsolete confirmation DOM immediately upon Session inva
   await click('Cancel')
   await until(() => expect(document.activeElement).toBe(alphaActions()))
 })
-it('keeps non-administrator unbound menus scoped to details and status', async () => {
+it('offers non-administrators an independently authorized read-only unbound review', async () => {
   permissions.push('models.read_all')
   await mount()
   await until(() => expect(logicalNames()).toHaveLength(3))
@@ -912,6 +916,7 @@ it('keeps non-administrator unbound menus scoped to details and status', async (
   expect([...menu.querySelectorAll('[role="menuitem"]')].map((item) => item.textContent)).toEqual([
     'View model details',
     'Disable model',
+    'Add to model',
   ])
   expect(requests.some((request) => request.url === '/admin/models')).toBe(false)
 })
@@ -1309,17 +1314,21 @@ function captureAddModel() {
   return fiber!.memoizedProps!.onAddModel!
 }
 async function mountUnboundEntry() {
-  role = 'admin'
+  role = 'member'
   permissions = ['providers.read', 'models.read_all']
   await mount()
   await until(() => expect(logicalNames()).toHaveLength(3))
 }
-it('opens an exact unbound Connection review with independent reads and no write permission or mutation', async () => {
+it('opens an exact row binding review with independent reads and no write permission or mutation', async () => {
   await mountUnboundEntry()
   await unboundMenu()
   await click('Add to model')
-  expect(router.state.location.pathname).toBe('/admin/models/new')
-  expect(router.state.location.search).toBe('?connectionId=con_secondary')
+  await until(() =>
+    expect(document.querySelector('[role=dialog]')?.textContent).toContain('Add Alpha to a model'),
+  )
+  expect(router.state.location.pathname).toBe('/admin/providers/prv_first')
+  expect(button('Add candidate route').hasAttribute('disabled')).toBe(true)
+  expect(router.state.location.pathname).toBe('/admin/providers/prv_first')
   expect(requests.every((request) => request.method === 'get')).toBe(true)
   expect(requests.some((request) => request.url === '/admin/models')).toBe(false)
 })
@@ -1353,7 +1362,10 @@ it('localizes the row shortcut live and permits disabled recorded configuration 
   await act(async () => i18n.changeLanguage('zh'))
   expect(button('添加到模型')).toBeTruthy()
   await click('添加到模型')
-  expect(router.state.location.search).toBe('?connectionId=con_secondary')
+  await until(() =>
+    expect(document.querySelector('[role=dialog]')?.textContent).toContain('literal %_[test]'),
+  )
+  expect(router.state.location.pathname).toBe('/admin/providers/prv_first')
   expect(requests.every((request) => request.method === 'get')).toBe(true)
 })
 it('uses the exact canonical Connection identity without name matching', async () => {
@@ -1364,7 +1376,12 @@ it('uses the exact canonical Connection identity without name matching', async (
   await mountUnboundEntry()
   await unboundMenu()
   await click('Add to model')
-  expect(router.state.location.search).toBe(`?connectionId=${encodeURIComponent(id)}`)
+  await until(() =>
+    expect(
+      requests.some((request) => request.url === `/admin/connections/${id}/model-creation/models`),
+    ).toBe(true),
+  )
+  expect(document.querySelector('[role=dialog]')?.textContent).toContain('Alpha')
 })
 it.each(['session', 'permission', 'catalogue', 'bindings'] as const)(
   'rejects a captured unbound shortcut immediately during %s renewal and after an obsolete reply',

@@ -61,6 +61,7 @@ func TestGeminiNativeDispatchAndErrorIsolation(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = queue.Close() }()
+	svc.admission = newLocalAdmissionStore(queue)
 	svc.recorder = &callRecorder{queue: queue}
 	result, err := svc.GatewayGemini(context.Background(), bearer, []byte(`{"contents":[{"parts":[{"text":"hi"}]}]}`), "req_gemini", "public-model", true)
 	if result != nil && result.Response != nil {

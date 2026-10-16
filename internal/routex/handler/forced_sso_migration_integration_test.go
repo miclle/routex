@@ -177,7 +177,7 @@ func legacyForcedSSOBeforeV102(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	// Direct migration callers also enter through the two finite newer overlays.
 	switch len(personalKeyBehaviorLedger(t, db)) {
-	case 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116:
+	case 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118:
 		legacyRuntimePublicationBeforeV104(t, db)
 		legacySavedCertificateBeforeV103(t, db)
 	}
@@ -247,7 +247,7 @@ func testForcedSSOMigration(t *testing.T, db *gorm.DB) {
 	defer cancel()
 	db = db.WithContext(ctx)
 	original := personalKeyBehaviorLedger(t, db)
-	if len(original) != 116 || original[110].Version != 111 || original[109].Version != 110 || original[108].Version != 109 || original[107].Version != 108 || original[106].Version != 107 || original[105].Version != 106 || original[104].Version != 105 || original[103].Version != 104 || original[102].Version != 103 {
+	if len(original) != 118 || original[110].Version != 111 || original[109].Version != 110 || original[108].Version != 109 || original[107].Version != 108 || original[106].Version != 107 || original[105].Version != 106 || original[104].Version != 105 || original[103].Version != 104 || original[102].Version != 103 {
 		t.Fatal("migration requires exact current105")
 	}
 	// Bound the newer pristine overlays before the strict V103-only assertion.
@@ -310,8 +310,8 @@ func testForcedSSOMigration(t *testing.T, db *gorm.DB) {
 	if !reflect.DeepEqual(complete, personalKeyBehaviorLedger(t, db)) {
 		t.Fatal("repeat rewrote103 receipt")
 	}
-	if database.MigrateThrough(ctx, db, 117) == nil || !reflect.DeepEqual(complete, personalKeyBehaviorLedger(t, db)) {
-		t.Fatal("unsupported117 admitted or rewrote history")
+	if database.MigrateThrough(ctx, db, 119) == nil || !reflect.DeepEqual(complete, personalKeyBehaviorLedger(t, db)) {
+		t.Fatal("unsupported119 admitted or rewrote history")
 	}
 	remove103 := func() {
 		t.Helper()
@@ -522,7 +522,7 @@ func testForcedSSOMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal("restore current105 after bounded forced SSO scenario")
 	}
 	current := personalKeyBehaviorLedger(t, db)
-	if len(current) != 116 || current[110].Version != 111 || current[109].Version != 110 || current[108].Version != 109 || current[107].Version != 108 || current[106].Version != 107 || current[105].Version != 106 || current[104].Version != 105 || current[103].Version != 104 || !reflect.DeepEqual(beforeCurrent, current[:103]) {
+	if len(current) != 118 || current[110].Version != 111 || current[109].Version != 110 || current[108].Version != 109 || current[107].Version != 108 || current[106].Version != 107 || current[105].Version != 106 || current[104].Version != 105 || current[103].Version != 104 || !reflect.DeepEqual(beforeCurrent, current[:103]) {
 		t.Fatal("current105 restoration changed bounded V103 receipts")
 	}
 }

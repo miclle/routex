@@ -163,7 +163,7 @@ func (s *Service) observeMonthlyQuotaNotification(ctx context.Context, kind, sco
 	if kind != "user" && kind != "project" && kind != "team" || scopeID == "" || len(scopeID) > 30 || !safeCallID.MatchString(scopeID) {
 		return nil
 	}
-	if s.recorder == nil || s.runtime == nil {
+	if s.recorder == nil || s.admission == nil || s.runtime == nil {
 		return nil
 	}
 	s.limitMu.RLock()
@@ -237,14 +237,14 @@ func (s *Service) observeMonthlyQuotaNotification(ctx context.Context, kind, sco
 		if !s.quotaNotificationResourceApplied(row, created, policy, setting.TimeZone, pricingSetting.PlatformCurrency) {
 			return nil
 		}
-		status, err := s.recorder.queue.QuotaStatus()
+		status, err := s.admission.QuotaStatus(ctx)
 		if err != nil {
 			return runtimeUnavailable
 		}
 		if !status.Active {
 			return nil
 		}
-		usage, err := s.recorder.queue.AccountQuotaUsage(limitAccount(kind, scopeID), time.Now())
+		usage, err := s.admission.AccountQuotaUsage(ctx, limitAccount(kind, scopeID), time.Now())
 		if err != nil {
 			return runtimeUnavailable
 		}

@@ -636,6 +636,7 @@ func configureGatewayAttachmentQuota(t *testing.T, svc *Service, data *runtimeDa
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = queue.Close() })
+	svc.admission = newLocalAdmissionStore(queue)
 	svc.recorder = &callRecorder{queue: queue}
 }
 

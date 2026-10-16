@@ -322,13 +322,13 @@ func (s *Service) MemberOverviewAccounts(ctx context.Context, actorID string, fi
 			auth = s.runtime.auth.Load()
 		}
 		var batch *eventqueue.QuotaUsageBatch
-		if s.recorder != nil {
+		if s.recorder != nil && s.admission != nil {
 			accounts := make([]string, len(targets))
 			for i, target := range targets {
 				accounts[i] = limitAccount(target.kind, target.id)
 			}
 			// A journal outage leaves persisted policies visible and usage unknown.
-			batch, _ = s.recorder.queue.AccountQuotaUsageBatch(accounts, result.ObservedAt)
+			batch, _ = s.admission.AccountQuotaUsageBatch(ctx, accounts, result.ObservedAt)
 		}
 		if err := ctx.Err(); err != nil {
 			return err

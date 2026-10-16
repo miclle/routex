@@ -5,9 +5,11 @@ import (
 	"database/sql/driver"
 	"io"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/miclle/routex/internal/routex/entity"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -105,5 +107,59 @@ func TestMemberRolesSQLFixtureDoesNotMultiplyRepeatedPredicateBinds(t *testing.T
 	}
 	if !reflect.DeepEqual(got, map[string]string{"rol_a": "members.read", "rol_b": "roles.read"}) {
 		t.Fatal("complete recorded permissions changed")
+	}
+}
+
+func TestMemberRolesSQLFixtureRoleSelectionIsExactAndDeduplicated(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		ids  []string
+		want []string
+	}{
+		{"lowercase", []string{"rol_exact", "rol_exact"}, []string{"rol_exact"}},
+		{"uppercase", []string{"ROL_EXACT", "ROL_EXACT"}, []string{"ROL_EXACT"}},
+		{"both", []string{"rol_exact", "ROL_EXACT", "rol_exact", "ROL_EXACT"}, []string{"ROL_EXACT", "rol_exact"}},
+		{"missing", []string{"rol_missing", "rol_missing"}, []string{}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			f := &rolesSQLFixture{data: rolesSQLData{roles: map[string]entity.Role{
+				"rol_exact": {ID: "rol_exact"}, "ROL_EXACT": {ID: "ROL_EXACT"}, "rol_other": {ID: "rol_other"},
+			}}}
+			c := &rolesSQLConnection{f: f}
+			args := []driver.NamedValue{}
+			for _, id := range test.ids {
+				args = append(args, driver.NamedValue{Ordinal: len(args) + 1, Value: id})
+			}
+			args = append(args, driver.NamedValue{Ordinal: len(args) + 1, Value: int64(100001)})
+			query := `SELECT * FROM "roles" WHERE "id" IN (?) AND ("id" = ?) LIMIT ?`
+			rows, err := c.QueryContext(context.Background(), query, args)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() { _ = rows.Close() }()
+			idColumn := slices.Index(rows.Columns(), "id")
+			if idColumn < 0 {
+				t.Fatal("missing role identity column")
+			}
+			got := []string{}
+			values := make([]driver.Value, len(rows.Columns()))
+			for {
+				err := rows.Next(values)
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				id, ok := values[idColumn].(string)
+				if !ok {
+					t.Fatal("invalid role identity")
+				}
+				got = append(got, id)
+			}
+			if !reflect.DeepEqual(got, test.want) || !reflect.DeepEqual(f.queries, []string{query}) || len(f.writes) != 0 {
+				t.Fatal("exact selected role rows or read-only query recording changed", got)
+			}
+		})
 	}
 }

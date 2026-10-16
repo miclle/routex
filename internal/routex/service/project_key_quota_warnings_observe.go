@@ -34,7 +34,7 @@ func (s *Service) observeMonthlyProjectKeyQuotaWarning(ctx context.Context, kind
 
 // Both warning families use the exact retained Project root and applied graph proof.
 func (s *Service) observeProjectKeyQuotaWarning(ctx context.Context, kind, rootID string, persist func(*gorm.DB, entity.ResourceLimit, entity.ProjectKey, entity.Project, *eventqueue.QuotaUsageProofBatch, string, *runtimeAuthorization) ([]projectQuotaWarningRecipient, error)) error {
-	if kind != "key" || !projectWarningKeyID(rootID) || s.recorder == nil || s.recorder.queue == nil || s.runtime == nil {
+	if kind != "key" || !projectWarningKeyID(rootID) || s.recorder == nil || s.admission == nil || s.runtime == nil {
 		return nil
 	}
 	ctx, cancel := context.WithTimeout(ctx, runtimeRefreshTimeout)
@@ -113,7 +113,7 @@ func (s *Service) observeProjectKeyQuotaWarning(ctx context.Context, kind, rootI
 		if !s.projectKeyWarningApplied(ctx, auth, project, keys, rootID, row, policy, calendar, prices.PlatformCurrency) {
 			return nil
 		}
-		frame, err := s.recorder.queue.AccountQuotaUsageProofBatch([]string{limitAccount("key", rootID)}, time.Now())
+		frame, err := s.admission.AccountQuotaUsageProofBatch(ctx, []string{limitAccount("key", rootID)}, time.Now())
 		if err != nil {
 			return runtimeUnavailable
 		}

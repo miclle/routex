@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { listProviders } from '@/api/catalog'
@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge'
 import { protocolLabel } from '@/lib/protocols'
 import { useConnectionQueryRevision } from './connection-authority'
 import { ProviderModelRowMenu, ProviderModelStatusConfirmation } from './provider-model-row-actions'
+import ProviderModelBinding, { type ProviderModelBindingSource } from './provider-model-binding'
 
 interface Props {
   providerId: string
@@ -32,7 +33,6 @@ export default function ProviderModelTable(props: Props) {
 function Models({ providerId, session, onAdd }: Props) {
   const { t } = useTranslation('catalog')
   const cache = useQueryClient()
-  const navigate = useNavigate()
   const actor = session.data?.user.id ?? ''
   const authState = cache.getQueryState<Session | null>(sessionKey)
   const generation = authState?.dataUpdateCount ?? 0
@@ -127,6 +127,8 @@ function Models({ providerId, session, onAdd }: Props) {
   const [statusOpen, setStatusOpen] = useState(false)
   const [statusLocked, setStatusLocked] = useState(false)
   const [statusSaved, setStatusSaved] = useState(false)
+  const [bindingSource, setBindingSource] = useState<ProviderModelBindingSource | null>(null)
+  const bindingActivity = useRef(false)
   const statusSelection = useRef<string | null>(null)
   const statusVisible = useRef(false)
   const statusActivity = useRef({ pending: false, uncertain: false })
@@ -191,8 +193,7 @@ function Models({ providerId, session, onAdd }: Props) {
       ?.items.find((item) => item.provider_model_id === modelId)
     return (
       currentBindings() &&
-      auth?.user.role === 'admin' &&
-      !!auth.csrf_token &&
+      !!auth?.csrf_token &&
       currentConnection?.provider_models.some((item) => item.id === modelId) === true &&
       row?.connection_id === connectionId &&
       row.binding_count === 0 &&
@@ -440,14 +441,21 @@ function Models({ providerId, session, onAdd }: Props) {
                           ? () => {
                               const owner = navigationOwner.current
                               if (
+                                !bindingActivity.current &&
                                 owner?.actor === actor &&
                                 owner.providerId === providerId &&
                                 owner.generation === generation &&
                                 canReviewUnboundModel(model.id, item.id)
                               )
-                                void navigate(
-                                  `/admin/models/new?connectionId=${encodeURIComponent(item.id)}`,
-                                )
+                                setBindingSource({
+                                  providerID: providerId,
+                                  providerName: provider.name,
+                                  connectionID: item.id,
+                                  connectionName: item.name,
+                                  modelID: model.id,
+                                  upstreamName: model.upstream_name,
+                                  protocol: item.protocol,
+                                })
                             }
                           : undefined
                       }
@@ -480,6 +488,44 @@ function Models({ providerId, session, onAdd }: Props) {
             </tbody>
           </Table>
         </>
+      )}
+      {bindingSource && (
+        <ProviderModelBinding
+          key={`${actor}:${providerId}:${bindingSource.modelID}`}
+          actor={actor}
+          source={bindingSource}
+          revision={`${authority.revision}:${context.revision}:${bindingRevision.revision}`}
+          readReady={() => {
+            const owner = navigationOwner.current
+            const connection = cache
+              .getQueryData<Provider[]>(catalogueKey)
+              ?.find((item) => item.id === bindingSource.providerID)
+              ?.connections.find((item) => item.id === bindingSource.connectionID)
+            return (
+              owner?.actor === actor &&
+              owner.providerId === providerId &&
+              owner.generation === generation &&
+              currentBindings() &&
+              connection?.protocol === bindingSource.protocol &&
+              connection.provider_models.some((item) => item.id === bindingSource.modelID) === true
+            )
+          }}
+          writeReady={() => fresh() && access.data?.includes('models.write') === true}
+          onClose={() => {
+            bindingActivity.current = false
+            setBindingSource(null)
+          }}
+          onActivity={(locked) => {
+            bindingActivity.current = locked
+          }}
+          onSaved={() => {
+            bindingActivity.current = false
+            setBindingSource(null)
+            setStatusSaved(true)
+            void bindings.refetch()
+          }}
+          finalFocus={() => actionTriggers.current.get(bindingSource.modelID) ?? false}
+        />
       )}
       {statusTarget && (
         <ProviderModelStatusConfirmation

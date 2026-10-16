@@ -155,6 +155,7 @@ func TestGatewayRejectsDispatchWhenJournalUnavailable(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer func() { _ = queue.Close() }()
+			svc.admission = newLocalAdmissionStore(queue)
 			svc.recorder = &callRecorder{queue: queue}
 			if failure == "closed" {
 				if err := queue.Close(); err != nil {
@@ -188,6 +189,7 @@ func TestGatewayReservesJournalBeforeUpstreamDispatch(t *testing.T) {
 	defer server.Close()
 	svc, _, bearer := runtimeFixture(t, server.URL+"/v1")
 	defer svc.upstream.CloseIdleConnections()
+	svc.admission = newLocalAdmissionStore(queue)
 	svc.recorder = &callRecorder{queue: queue}
 	result, err := svc.GatewayChat(context.Background(), bearer, []byte(`{"model":"public-model","messages":[{"role":"user","content":"hello"}]}`), "req_admitted")
 	if err != nil {

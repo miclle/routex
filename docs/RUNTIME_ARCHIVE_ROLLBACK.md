@@ -70,8 +70,11 @@ configuration facts, a non-null original publication receipt, and fresh
 `refresh_returned_nil` or `refresh_returned_error`. `pending` requires a matching
 live local ticket; it is neither durable completion nor current application
 proof. A superseding configuration is not undone
-by an old request. No receipt claims historical installation, current route
-health, automatic verification, distributed acknowledgement or fleet rollback.
+by an old request. The [V117 acknowledgement source candidate](RUNTIME_PUBLICATION_ACKNOWLEDGEMENT.md)
+adds nullable command-bound historical local installation evidence separately
+from original publication outcome and fresh application facts. Its qualification
+is pending. The receipt does not establish current route health, automatic
+verification, distributed acknowledgement or fleet rollback.
 
 Each write, dispatch and final receipt phase is bounded to three seconds;
 publication admission is nonblocking. The maintained exclusive PostgreSQL/MySQL

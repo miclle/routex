@@ -25,7 +25,7 @@ func TestCredentialInferenceRegistry224ExactPrefixAndSuffix(t *testing.T) {
 		t.Fatal("exact227 controller discovery successor required")
 	}
 	names = names[:224]
-	if !credentialInferenceRegistry224Current(names) || !strings.Contains(string(raw), "versions != 116") {
+	if !credentialInferenceRegistry224Current(names) || !strings.Contains(string(raw), "versions != 118") {
 		t.Fatal("exact V109/224 Credential registry required")
 	}
 	if !insightsRegistry222Current(names[:222]) || credentialInferenceRegistry224Current(names[:222]) || insightsRegistry222Current(names) {

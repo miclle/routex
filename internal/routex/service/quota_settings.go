@@ -39,9 +39,12 @@ func (s *Service) GetQuotaSettings(ctx context.Context, actor string) (*QuotaSet
 	if err := s.authDB(ctx).First(&setting, 1).Error; err != nil {
 		return nil, catalogError(err)
 	}
+	if s.recorder != nil && s.admission == nil {
+		return nil, runtimeUnavailable
+	}
 	result := &QuotaSettingsRecord{TimeZone: setting.TimeZone, ETag: setting.ETag}
-	if s.recorder != nil {
-		status, err := s.recorder.queue.QuotaStatus()
+	if s.recorder != nil && s.admission != nil {
+		status, err := s.admission.QuotaStatus(ctx)
 		if err != nil {
 			return nil, runtimeUnavailable
 		}
@@ -59,7 +62,7 @@ func (s *Service) WriteQuotaSettings(ctx context.Context, actor, etag string, in
 	}
 	s.limitMu.Lock()
 	defer s.limitMu.Unlock()
-	if s.recorder == nil {
+	if s.recorder == nil || s.admission == nil {
 		return nil, runtimeUnavailable
 	}
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
@@ -79,7 +82,7 @@ func (s *Service) WriteQuotaSettings(ctx context.Context, actor, etag string, in
 			}
 			return errLimitConflict
 		}
-		status, err := s.recorder.queue.QuotaStatus()
+		status, err := s.admission.QuotaStatus(ctx)
 		if err != nil {
 			return runtimeUnavailable
 		}
@@ -112,7 +115,7 @@ func (s *Service) WriteQuotaSettings(ctx context.Context, actor, etag string, in
 	}
 	return s.GetQuotaSettings(ctx, actor)
 }
-func (s *Service) validateQuotaJournal(ctx context.Context, queue *eventqueue.Queue) error {
+func (s *Service) validateQuotaJournal(ctx context.Context, authority admissionStore) error {
 	var setting entity.QuotaSetting
 	if err := s.authDB(ctx).First(&setting, 1).Error; err != nil {
 		return err
@@ -123,7 +126,7 @@ func (s *Service) validateQuotaJournal(ctx context.Context, queue *eventqueue.Qu
 	if _, err := time.LoadLocation(setting.TimeZone); err != nil {
 		return err
 	}
-	status, err := queue.QuotaStatus()
+	status, err := authority.QuotaStatus(ctx)
 	if err != nil {
 		return err
 	}
@@ -133,10 +136,13 @@ func (s *Service) validateQuotaJournal(ctx context.Context, queue *eventqueue.Qu
 	return nil
 }
 
-func (s *Service) ensureQuotaActive(zone string, now time.Time) error {
+func (s *Service) ensureQuotaActive(ctx context.Context, zone string, now time.Time) error {
+	if s.recorder == nil || s.admission == nil {
+		return runtimeUnavailable
+	}
 	s.recorder.quotaActivation.Lock()
 	defer s.recorder.quotaActivation.Unlock()
-	status, err := s.recorder.queue.QuotaStatus()
+	status, err := s.admission.QuotaStatus(ctx)
 	if err != nil {
 		return err
 	}
@@ -168,5 +174,5 @@ func (s *Service) ensureQuotaActive(zone string, now time.Time) error {
 			return runtimeUnavailable
 		}
 	}
-	return s.recorder.queue.EnableQuota(zone, now)
+	return s.admission.EnableQuota(ctx, zone, now)
 }

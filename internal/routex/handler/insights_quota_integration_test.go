@@ -276,5 +276,7 @@ func testInsightsQuotaIntegration(t *testing.T, ctx context.Context, db *gorm.DB
 	})
 	testInsightsAITeamQuotaIntegration(t, ctx, db, svc, router, adminID, analyst.User.ID, role.Role.ID, team.ID, privateTeam.ID, modelID, native)
 	testInsightsAIKeyQuotaIntegration(t, ctx, db, svc, router, adminID, analyst.User.ID, role.Role.ID, project.ID, privateProject.ID, key.Record.Key.ID, modelID, native)
-
+	testInsightsQuotaBatchIntegration(t, db, adminID, privateTeam.ID, func(path string) *httptest.ResponseRecorder {
+		return request(adminCookie, "", "GET", path, "", "")
+	})
 }

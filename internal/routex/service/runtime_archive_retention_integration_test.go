@@ -147,18 +147,22 @@ func testRuntimeArchiveRetentionUpgrade(t *testing.T, db *gorm.DB) {
 		version int
 		models  []any
 	}{
+		{117, []any{&entity.RuntimePublicationAcknowledgement{}}},
 		{116, []any{&entity.RuntimeArchiveRollback{}}},
 		{115, []any{&entity.RuntimeArchiveCleanup{}}},
 		{114, []any{&entity.APIKeyDeliveryControllerAcknowledgement{}, &entity.APIKeyDeliveryControllerGrant{}}},
 	}
 	var before []runtimeArchiveCleanupLedger
-	if err := db.Order("version").Find(&before).Error; err != nil || len(before) != 116 {
+	if err := db.Order("version").Find(&before).Error; err != nil || len(before) != 118 {
 		t.Fatal("retention reset requires complete current ledger", err)
 	}
 	for i, row := range before {
 		if row.Version != i+1 || row.AppliedAt == "" {
 			t.Fatal("retention reset requires exact contiguous ledger")
 		}
+	}
+	if err := admissionOwnerFixtureV118(db, len(before)); err != nil {
+		t.Fatal(err)
 	}
 	for _, successor := range successors {
 		for _, model := range successor.models {
@@ -167,6 +171,9 @@ func testRuntimeArchiveRetentionUpgrade(t *testing.T, db *gorm.DB) {
 				t.Fatal("retained or missing successor prevents retention reset")
 			}
 		}
+	}
+	if err := peelAdmissionOwnerFixtureV118(db, before); err != nil {
+		t.Fatal(err)
 	}
 	for _, successor := range successors {
 		if err := db.Migrator().DropTable(successor.models...); err != nil {

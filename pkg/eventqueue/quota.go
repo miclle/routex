@@ -5,18 +5,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"math"
-	"math/big"
-	"regexp"
-	"strings"
-
-	"github.com/miclle/routex/pkg/limits"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
 )
-
-var quotaCurrency = regexp.MustCompile(`^[A-Z]{3}$`)
-var quotaDigest = regexp.MustCompile(`^[a-f0-9]{64}$`)
 
 // EnableQuota is an explicit deployment boundary. Opening an old journal alone
 // never asserts complete coverage while callers still use legacy admissions.
@@ -115,37 +107,6 @@ func readQuotaReceipt(tx *bolt.Tx, id string) (QuotaReceipt, error) {
 	}
 	return entry, nil
 }
-func validQuotaBound(bound QuotaBound) error {
-	if bound.Tokens != nil && *bound.Tokens < 0 {
-		return ErrInvalid
-	}
-	if bound.Money != nil {
-		if _, err := quotaUnits(*bound.Money); err != nil {
-			return err
-		}
-		if !quotaCurrency.MatchString(bound.Currency) {
-			return ErrInvalid
-		}
-	}
-	if bound.Revision != "" && !validKey.MatchString(bound.Revision) || len(bound.PriceRevision) > 64 || bound.BasisDigest != "" && !quotaDigest.MatchString(bound.BasisDigest) {
-		return ErrInvalid
-	}
-	return nil
-}
-func validQuotaSettlement(actual QuotaSettlement) error {
-	if actual.Tokens != nil && *actual.Tokens < 0 {
-		return ErrInvalid
-	}
-	if actual.Money != nil {
-		if _, err := quotaUnits(*actual.Money); err != nil {
-			return err
-		}
-		if !quotaCurrency.MatchString(actual.Currency) {
-			return ErrInvalid
-		}
-	}
-	return nil
-}
 func storeQuotaReceipt(tx *bolt.Tx, entry QuotaReceipt) error {
 	raw, err := json.Marshal(entry)
 	if err != nil {
@@ -231,24 +192,6 @@ func (q *Queue) UpdatePendingQuota(id string, fallback []byte, interrupted Quota
 	})
 }
 
-func validQuotaRecovery(bound QuotaBound, recovery QuotaSettlement) error {
-	if recovery.Tokens != nil && bound.Tokens != nil && *recovery.Tokens > *bound.Tokens {
-		return ErrQuotaBound
-	}
-	if recovery.Money == nil || bound.Money == nil {
-		return nil
-	}
-	if recovery.Currency != bound.Currency {
-		return ErrQuotaCurrency
-	}
-	observed, _ := quotaUnits(*recovery.Money)
-	reserved, _ := quotaUnits(*bound.Money)
-	if observed.Cmp(reserved) > 0 {
-		return ErrQuotaBound
-	}
-	return nil
-}
-
 // PreflightWithQuota durably checks whether an admission would definitely be
 // rejected without consuming RPM, creating a lease/fact, or holding quota. An
 // inactive quota journal is modeled at its future activation boundary; only
@@ -326,46 +269,12 @@ func (q *Queue) checkQuotaAdmission(tx *bolt.Tx, id string, policies []QuotaLimi
 	return entry, limitAccounts, nil
 }
 
-// Aggregate monthly accounts use bounded ASCII identities. Team-member pair
-// digests require the separate trusted current-membership proof; an account
-// prefix alone never enables their monthly modes.
-func monthlyBehaviorAccount(account string) bool {
-	if suffix, ok := strings.CutPrefix(account, "project_"); ok {
-		return strings.HasPrefix(suffix, "prj_") && len(suffix) > len("prj_") && len(suffix) <= 30 && validKey.MatchString(suffix)
-	}
-	if strings.HasPrefix(account, "user_") && len(account) > len("user_") {
-		return true
-	}
-	suffix, ok := strings.CutPrefix(account, "team_")
-	return ok && !strings.HasPrefix(account, "team_member_") && len(suffix) > 0 && len(suffix) <= 30 && validKey.MatchString(suffix)
-}
-
-func projectKeyBehaviorAccount(account string) bool {
-	suffix, ok := strings.CutPrefix(account, "key_")
-	return ok && strings.HasPrefix(suffix, "pky_") && len(suffix) > len("pky_") && len(suffix) <= 30 && validKey.MatchString(suffix)
-}
-
-func personalKeyBehaviorAccount(account string) bool {
-	suffix, ok := strings.CutPrefix(account, "key_")
-	return ok && len(suffix) > 0 && len(suffix) <= 30 && validKey.MatchString(suffix)
-}
-
 func checkQuota(tx *bolt.Tx, policy QuotaLimit, bound QuotaBound, metadata quotaMetadata, instant, monthStart int64, activeJournal, establish bool) error {
-	tokenBehavior, tokenErr := limits.CanonicalMonthlyBehavior(policy.TokensMonthBehavior)
-	moneyBehavior, moneyErr := limits.CanonicalMonthlyBehavior(policy.MoneyMonthBehavior)
-	if tokenErr != nil || moneyErr != nil || policy.PersonalKey && policy.ProjectKey || policy.TeamMember && (policy.PersonalKey || policy.ProjectKey) || (tokenBehavior != "" || moneyBehavior != "") && !monthlyBehaviorAccount(policy.Account) && (!policy.PersonalKey || !personalKeyBehaviorAccount(policy.Account)) && (!policy.ProjectKey || !projectKeyBehaviorAccount(policy.Account)) && (!policy.TeamMember || !teamMemberBehaviorAccount(policy.Account)) {
-		return ErrInvalid
+	rules, err := newQuotaPolicyRules(policy, bound, QuotaDecisionFrame{Instant: instant, MonthStart: monthStart, CoverageStart: metadata.CoverageStart})
+	if err != nil {
+		return err
 	}
-	if !validKey.MatchString(policy.Revision) {
-		return ErrInvalid
-	}
-	created := int64(0)
-	if !policy.CreatedAt.IsZero() {
-		created = policy.CreatedAt.UnixNano()
-		if created <= 0 || created > instant {
-			return ErrInvalid
-		}
-	}
+	created := rules.created
 	if activeJournal {
 		accountBucket := tx.Bucket(quotaAccountBucket)
 		var prior int64
@@ -388,107 +297,18 @@ func checkQuota(tx *bolt.Tx, policy QuotaLimit, bound QuotaBound, metadata quota
 			return err
 		}
 	}
-	constrained := false
-	for _, window := range []struct {
-		name    string
-		start   int64
-		ceiling *int64
-	}{{"minute", instant - int64(time.Minute), policy.TPM}, {"five_hours", instant - int64(5*time.Hour), policy.Tokens5H}, {"seven_days", instant - int64(7*24*time.Hour), policy.Tokens7D}, {monthWindow(monthStart), monthStart, policy.TokensMonth}} {
-		if window.ceiling == nil {
-			continue
-		}
-		constrained = true
-		if *window.ceiling < 0 {
-			return ErrInvalid
-		}
-		soft := window.name == monthWindow(monthStart) && tokenBehavior == limits.MonthlyBehaviorAlertOnly
-		if *window.ceiling == 0 && !soft {
-			return ErrQuotaTokens
-		}
-		if window.start < metadata.CoverageStart && created < metadata.CoverageStart {
-			return ErrQuotaCoverage
-		}
-		if bound.Tokens == nil {
-			return ErrQuotaBound
-		}
-		used := quotaCounter{MoneyUsed: map[string]string{}, MoneyHeld: map[string]string{}}
-		if activeJournal {
-			var err error
-			used, err = readQuotaCounter(tx, policy.Account, window.name)
-			if err != nil {
-				return err
+	return rules.Check(QuotaPolicyView{
+		Active: active,
+		Window: func(window string) (QuotaCounter, error) {
+			if activeJournal {
+				return readQuotaCounter(tx, policy.Account, window)
 			}
-		}
-		if used.TokensUnknown > 0 || active.TokensUnknown > 0 {
-			return ErrQuotaUnknown
-		}
-		if !soft {
-			remaining := *window.ceiling
-			for _, amount := range []int64{used.TokensUsed, used.TokensHeld, active.TokensUsed, active.TokensHeld, *bound.Tokens} {
-				if amount > remaining {
-					return ErrQuotaTokens
-				}
-				remaining -= amount
-			}
-		}
-	}
-	if policy.MoneyMonth != nil {
-		constrained = true
-		maximum, err := quotaUnits(*policy.MoneyMonth)
-		if err != nil {
-			return err
-		}
-		soft := moneyBehavior == limits.MonthlyBehaviorAlertOnly
-		if maximum.Sign() == 0 && !soft {
-			return ErrQuotaMoney
-		}
-		if !quotaCurrency.MatchString(policy.Currency) {
-			return ErrInvalid
-		}
-		if monthStart < metadata.CoverageStart && created < metadata.CoverageStart {
-			return ErrQuotaCoverage
-		}
-		if bound.Money == nil {
-			return ErrQuotaBound
-		}
-		if bound.Currency != policy.Currency {
-			return ErrQuotaCurrency
-		}
-		used := quotaCounter{MoneyUsed: map[string]string{}, MoneyHeld: map[string]string{}}
-		if activeJournal {
-			var err error
-			used, err = readQuotaCounter(tx, policy.Account, monthWindow(monthStart))
-			if err != nil {
-				return err
-			}
-		}
-		if used.MoneyUnknown > 0 || active.MoneyUnknown > 0 {
-			return ErrQuotaUnknown
-		}
-		for _, totals := range []map[string]string{used.MoneyUsed, used.MoneyHeld, active.MoneyUsed, active.MoneyHeld} {
-			for currency, raw := range totals {
-				if currency != policy.Currency {
-					return ErrQuotaCurrency
-				}
-				amount, ok := new(big.Int).SetString(raw, 10)
-				if !ok {
-					return ErrInvalid
-				}
-				maximum.Sub(maximum, amount)
-			}
-		}
-		reservation, _ := quotaUnits(*bound.Money)
-		if maximum.Cmp(reservation) < 0 && !soft {
-			return ErrQuotaMoney
-		}
-	}
-	if constrained {
-		invalidBound := activeJournal && tx.Bucket(quotaInvalidBoundBucket).Get([]byte(bound.Revision)) != nil
-		if bound.Revision == "" || invalidBound {
-			return ErrQuotaBound
-		}
-	}
-	return nil
+			return QuotaCounter{MoneyUsed: map[string]string{}, MoneyHeld: map[string]string{}}, nil
+		},
+		InvalidBound: func(revision string) (bool, error) {
+			return activeJournal && tx.Bucket(quotaInvalidBoundBucket).Get([]byte(revision)) != nil, nil
+		},
+	})
 }
 
 // CompleteQuota settles each proven dimension separately. Missing dimensions

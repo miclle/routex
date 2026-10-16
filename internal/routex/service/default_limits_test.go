@@ -154,7 +154,7 @@ func TestDefaultLimitResetAppliedProofRequiresExactRevisionLeaseAndCurrency(t *t
 	money := "5"
 	policy, _ := limits.Normalize(limits.Policy{MoneyMonth: &money, Currency: "USD"})
 	state := &defaultLimitResetState{Target: LimitTarget{Kind: "user", ID: "usr_proof"}, User: entity.User{ID: "usr_proof"}, Row: entity.ResourceLimit{ETag: "lim_proof"}, Stored: policy, Pricing: entity.PricingSetting{PlatformCurrency: "USD"}}
-	s := &Service{runtime: &gatewayRuntime{}, recorder: &callRecorder{}}
+	s := &Service{admission: admissionTestStore(t), runtime: &gatewayRuntime{}, recorder: &callRecorder{}}
 	auth := &runtimeAuthorization{ValidUntil: time.Now().Add(time.Hour), LimitPolicies: map[string]limits.Policy{"user_usr_proof": policy}, Quota: &runtimeQuotaData{Revisions: map[string]string{"user_usr_proof": "lim_proof"}, Currency: "USD"}}
 	s.runtime.auth.Store(auth)
 	if !s.defaultUserLimitApplied(state) {

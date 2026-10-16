@@ -359,7 +359,7 @@ func testOAuthMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	assertDefault()
-	for _, bound := range []int{0, -1, 117, 94} {
+	for _, bound := range []int{0, -1, 118, 94} {
 		before := personalKeyBehaviorLedger(t, db)
 		if err := database.MigrateThrough(ctx, db, bound); err == nil {
 			t.Fatal("invalid/newer-ledger bound accepted", bound)
@@ -895,7 +895,7 @@ func testOAuthMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal("restore current after bounded OAuth fixture", err)
 	}
 	finalLedger := personalKeyBehaviorLedger(t, db)
-	if len(finalLedger) != 116 || finalLedger[110].Version != 111 || finalLedger[109].Version != 110 || finalLedger[108].Version != 109 || finalLedger[107].Version != 108 || finalLedger[106].Version != 107 || finalLedger[105].Version != 106 || finalLedger[104].Version != 105 || finalLedger[103].Version != 104 || finalLedger[102].Version != 103 || finalLedger[100].Version != 101 || finalLedger[101].Version != 102 || finalLedger[99].Version != 100 || finalLedger[98].Version != 99 || finalLedger[97].Version != 98 || finalLedger[96].Version != 97 || !reflect.DeepEqual(ledger[:94], finalLedger[:94]) || finalLedger[94].Version != 95 || finalLedger[95].Version != 96 {
+	if len(finalLedger) != 118 || finalLedger[110].Version != 111 || finalLedger[109].Version != 110 || finalLedger[108].Version != 109 || finalLedger[107].Version != 108 || finalLedger[106].Version != 107 || finalLedger[105].Version != 106 || finalLedger[104].Version != 105 || finalLedger[103].Version != 104 || finalLedger[102].Version != 103 || finalLedger[100].Version != 101 || finalLedger[101].Version != 102 || finalLedger[99].Version != 100 || finalLedger[98].Version != 99 || finalLedger[97].Version != 98 || finalLedger[96].Version != 97 || !reflect.DeepEqual(ledger[:94], finalLedger[:94]) || finalLedger[94].Version != 95 || finalLedger[95].Version != 96 {
 		t.Fatal("historical OAuth closure lost current suffix or retained prefix")
 	}
 }

@@ -217,7 +217,7 @@ func (s *Service) projectQuotaWarningApplied(ctx context.Context, row entity.Res
 	return exists && state.Project.ID == project.ID && state.Project.Status == entity.ResourceActive && state.Project.CreatedAt.Equal(project.CreatedAt) && auth.Quota != nil && calendar.ETag != "" && calendar.AccountingStarted && auth.Quota.Setting.ETag == calendar.ETag && auth.Quota.Setting.AccountingStarted == calendar.AccountingStarted && s.quotaNotificationResourceApplied(row, project.CreatedAt, policy, calendar.TimeZone, currency) && ctx.Err() == nil && s.runtime.auth.Load() == auth && !runtimeDenied(&s.runtime.deniedProjects, project.ID) && !runtimeDenied(&s.runtime.deniedLimits, limitAccount("project", project.ID)) && !runtimeDenied(&s.runtime.deniedLimits, "quota_settings") && time.Now().Before(auth.ValidUntil)
 }
 func (s *Service) observeMonthlyProjectQuotaWarning(ctx context.Context, kind, projectID string) error {
-	if kind != "project" || !safeTeamSessionID(projectID) || s.recorder == nil || s.runtime == nil {
+	if kind != "project" || !safeTeamSessionID(projectID) || s.recorder == nil || s.admission == nil || s.runtime == nil {
 		return nil
 	}
 	s.limitMu.RLock()
@@ -264,14 +264,14 @@ func (s *Service) observeMonthlyProjectQuotaWarning(ctx context.Context, kind, p
 			return nil
 		}
 		auth := s.runtime.auth.Load()
-		status, err := s.recorder.queue.QuotaStatus()
+		status, err := s.admission.QuotaStatus(ctx)
 		if err != nil {
 			return runtimeUnavailable
 		}
 		if !status.Active {
 			return nil
 		}
-		usage, err := s.recorder.queue.AccountQuotaUsage(limitAccount("project", projectID), time.Now())
+		usage, err := s.admission.AccountQuotaUsage(ctx, limitAccount("project", projectID), time.Now())
 		if err != nil {
 			return runtimeUnavailable
 		}

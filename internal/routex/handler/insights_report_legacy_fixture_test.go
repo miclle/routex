@@ -17,7 +17,7 @@ type insightsReportDefinitionCheckV110 struct {
 func (insightsReportDefinitionCheckV110) TableName() string { return "insights_reports" }
 
 func insightsReportsPeelV111(db *gorm.DB, expected []personalKeyBehaviorMigrationEntry) error {
-	if len(expected) < 1 || len(expected) > 116 {
+	if len(expected) < 1 || len(expected) > 118 {
 		return errors.New("unsupported quota report fixture head")
 	}
 	for i, row := range expected {
@@ -45,7 +45,7 @@ func insightsReportsPeelV111(db *gorm.DB, expected []personalKeyBehaviorMigratio
 	if err := db.Model(model).Where("OCTET_LENGTH(dimension) <> 0 OR OCTET_LENGTH(scope_kind) <> 0 OR OCTET_LENGTH(scope_id) <> 0").Count(&count).Error; err != nil || count != 0 {
 		return errors.New("retained quota report definition prevents historical peel")
 	}
-	if len(expected) == 112 || len(expected) == 113 || len(expected) == 114 || len(expected) == 115 || len(expected) == 116 {
+	if len(expected) == 112 || len(expected) == 113 || len(expected) == 114 || len(expected) == 115 || len(expected) == 116 || len(expected) == 117 || len(expected) == 118 {
 		if err := runtimeArchivePeelV112(db, expected); err != nil {
 			return err
 		}

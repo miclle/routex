@@ -34,7 +34,7 @@ func TestRuntimeArchiveRollbackV116FrozenIntentAndProtection(t *testing.T) {
 	}
 	for _, driver := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(driver)
-		if len(steps) != 116 || reflect.ValueOf(steps[114]).Pointer() != reflect.ValueOf(runtimeArchiveCleanupMigration).Pointer() || reflect.ValueOf(steps[115]).Pointer() != reflect.ValueOf(runtimeArchiveRollbackMigration).Pointer() {
+		if len(steps) != 118 || reflect.ValueOf(steps[114]).Pointer() != reflect.ValueOf(runtimeArchiveCleanupMigration).Pointer() || reflect.ValueOf(steps[115]).Pointer() != reflect.ValueOf(runtimeArchiveRollbackMigration).Pointer() {
 			t.Fatal("V116 is not an exact additive suffix")
 		}
 	}

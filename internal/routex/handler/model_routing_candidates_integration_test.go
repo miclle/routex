@@ -36,6 +36,20 @@ func testModelRoutingCandidates(t *testing.T, db *gorm.DB, svc *service.Service,
 	if len(page.Items) != 2 || page.NextCursor != nil {
 		t.Fatal("bounded exact case-distinct supply missing")
 	}
+
+	exactPath := path + "/routing-candidates/" + page.Items[0].ID + "?protocol=openai_chat&provider_id=" + provider.ID
+	exact := decodeCatalogResponse[service.ModelRoutingCandidateReview](t, request("GET", exactPath, nil), 200)
+	if exact.ModelID != modelID || exact.ModelName == "" || !reflect.DeepEqual(exact.Candidate, page.Items[0]) || len(exact.Routes) == 0 {
+		t.Fatal("exact source/target/topology review did not match the stored snapshot")
+	}
+	for _, route := range exact.Routes {
+		if route.ProviderModelID == exact.Candidate.ID || route.ProviderID == provider.ID && route.Protocol == "openai_chat" {
+			t.Fatal("review included an already bound source")
+		}
+	}
+	expectStatus(t, request("GET", strings.Replace(exactPath, page.Items[0].ID, strings.ToUpper(page.Items[0].ID), 1), nil), 400)
+	expectStatus(t, request("GET", strings.Replace(exactPath, page.Items[0].ID, "pmd_missing", 1), nil), 404)
+	expectStatus(t, request("GET", exactPath+"&q=other", nil), 400)
 	for _, row := range page.Items {
 		if row.ProviderID != provider.ID || row.ConnectionID != c.ID || row.ConnectionName != c.Name || !row.ConfiguredAvailable || !row.VerificationCovered || !row.Selectable {
 			t.Fatal("candidate inferred/omitted recorded eligibility")
@@ -67,6 +81,10 @@ func testModelRoutingCandidates(t *testing.T, db *gorm.DB, svc *service.Service,
 	// Read independently of write; write without either read authority cannot use the new branch.
 	_, readCookie, _ := createSystemStatusMember(t, svc, router, actor, "routing-read", []string{"models.read_all", "providers.read"})
 	read := decodeCatalogResponse[service.ModelRoutingCandidatePage](t, identityRequest(router, "GET", candidatesPath, "", readCookie, ""), 200)
+	readExact := decodeCatalogResponse[service.ModelRoutingCandidateReview](t, identityRequest(router, "GET", exactPath, "", readCookie, ""), 200)
+	if readExact.Candidate.Prices != nil || readExact.Candidate.ID != page.Items[0].ID {
+		t.Fatal("exact review borrowed another actor's price authority")
+	}
 	if read.Items[0].Prices != nil {
 		t.Fatal("prices borrowed from administrative actor")
 	}
@@ -81,6 +99,7 @@ func testModelRoutingCandidates(t *testing.T, db *gorm.DB, svc *service.Service,
 		}
 	}
 	expectStatus(t, identityRequest(router, "GET", candidatesPath, "", modelCookie, ""), 403)
+	expectStatus(t, identityRequest(router, "GET", exactPath, "", modelCookie, ""), 403)
 	// A captured Chat supply cannot be inserted into another protocol.
 	intent["protocol"] = "openai_responses"
 	expectStatus(t, request("POST", path+"/bindings", intent), 409)
@@ -151,5 +170,56 @@ func testModelRoutingCandidates(t *testing.T, db *gorm.DB, svc *service.Service,
 	}
 	if _, err := svc.GetAdminModel(context.Background(), actor, modelID); err != nil {
 		t.Fatal("post-insertion exact resource read failed", err)
+	}
+	// The second stage reviews a complete real Model and applies one separately
+	// confirmed atomic set. It must never reuse the insertion proof.
+	_, editorCookie, editorCSRF := createSystemStatusMember(t, svc, router, actor, "routing-weight-editor", []string{"models.read_all", "providers.read", "models.write"})
+	weightPath := path + "/weights/review"
+	weightResponse := identityRequest(router, "GET", weightPath, "", editorCookie, "")
+	weightReview := decodeCatalogResponse[ModelWeightEditResponse](t, weightResponse, 200)
+	if weightReview.Model.ID != modelID || len(weightReview.Model.Bindings) != len(inserted.Bindings) || weightResponse.Header().Get("ETag") != `"`+weightReview.ReviewETag+`"` {
+		t.Fatal("complete strong weight review missing")
+	}
+	expectStatus(t, identityRequest(router, "GET", weightPath, "", modelCookie, ""), 403)
+	expectStatus(t, identityRequest(router, "GET", weightPath+"?actor=other", "", editorCookie, ""), 400)
+	decodeCatalogResponse[ModelWeightEditResponse](t, identityRequest(router, "GET", weightPath, "", readCookie, ""), 200)
+	weights := []map[string]any{}
+	for _, binding := range weightReview.Model.Bindings {
+		weight := binding.Weight
+		if binding.Protocol == "openai_chat" {
+			weight = 0
+			if binding.ProviderModelID == first.ID {
+				weight = 100
+			}
+		}
+		weights = append(weights, map[string]any{"binding_id": binding.ID, "weight": weight})
+	}
+	bodyBytes, _ := json.Marshal(map[string]any{"weights": weights})
+	dispatch := func(etag string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest("PUT", "http://routex.test"+path+"/weights/reviewed", strings.NewReader(string(bodyBytes)))
+		req.AddCookie(editorCookie)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-CSRF-Token", editorCSRF)
+		req.Header.Set("If-Match", `"`+etag+`"`)
+		out := httptest.NewRecorder()
+		router.ServeHTTP(out, req)
+		return out
+	}
+	changed := decodeCatalogResponse[ModelWeightEditResponse](t, dispatch(weightReview.ReviewETag), 200)
+	for _, binding := range changed.Model.Bindings {
+		for _, old := range weightReview.Model.Bindings {
+			if old.ID == binding.ID && old.Protocol != "openai_chat" && old.Weight != binding.Weight {
+				t.Fatal("protocol-scoped edit rewrote another protocol")
+			}
+		}
+		if binding.ProviderModelID == first.ID && binding.Weight != 100 {
+			t.Fatal("second stage did not apply explicit weight")
+		}
+	}
+	expectStatus(t, dispatch(weightReview.ReviewETag), 409)
+	// Matching current state is a new review, never historical replay acknowledgement.
+	currentWeight := decodeCatalogResponse[ModelWeightEditResponse](t, identityRequest(router, "GET", weightPath, "", editorCookie, ""), 200)
+	if currentWeight.ReviewETag == weightReview.ReviewETag {
+		t.Fatal("changed weights retained stale write proof")
 	}
 }

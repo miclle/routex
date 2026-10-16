@@ -33,6 +33,11 @@ export default {
   archiveRollbackInvalidReason:
     '请输入最多 1,000 个 Unicode 字符的理由，不得包含控制字符或无效 Unicode。',
   archiveRollbackRecorded: '已记录对应的回滚回执。',
+  archiveRollbackAcknowledgementUnknown: '历史本地安装确认：未知。',
+  archiveRollbackAcknowledgementRecorded:
+    '已记录进程 {{instance}} 对路由快照 {{snapshot}} 的历史本地安装。',
+  archiveRollbackAcknowledgementBoundary:
+    '此记录仅证明原始进程当时安装了路由和授权；当前应用状态及其他节点需要独立证据。',
   archiveRollbackPublication_unknown: '原始发布：未知。',
   archiveRollbackPublication_pending: '原始发布：待完成。',
   archiveRollbackPublication_refresh_returned_nil: '原始发布：运行时刷新已返回，未报告错误。',

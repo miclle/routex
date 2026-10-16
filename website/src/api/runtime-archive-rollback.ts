@@ -34,6 +34,46 @@ const protocol = (v: unknown) =>
   ['openai_chat', 'openai_responses', 'anthropic_messages', 'gemini_generate_content'].includes(v)
 const weight = (v: unknown) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 100
 
+// Keep the server's sub-millisecond ordering at this proof boundary.
+function instant(value: string): bigint {
+  const fraction = value.match(/\.(\d+)Z$/)?.[1] ?? ''
+  return BigInt(Date.parse(value.slice(0, 19) + 'Z')) * 1_000_000n + BigInt(fraction.padEnd(9, '0'))
+}
+
+function acknowledgement(value: unknown, publication: Record<string, unknown>): boolean {
+  if (value === null) return true
+  if (
+    !record(value) ||
+    !keys(value, [
+      'scope',
+      'installation_id',
+      'instance_id',
+      'instance_started_at',
+      'snapshot_id',
+      'routes_published_at',
+      'acknowledged_at',
+    ]) ||
+    value.scope !== 'single_process_gateway_admission' ||
+    !text(value.installation_id, 100) ||
+    !/^rin_[0-7][0-9a-hjkmnp-tv-z]{25}$(?![\s\S])/.test(value.installation_id) ||
+    value.instance_id !== publication.claim_instance_id ||
+    value.instance_started_at !== publication.claim_instance_started_at ||
+    !text(value.snapshot_id, 100) ||
+    !/^cfg_[0-7][0-9a-hjkmnp-tv-z]{25}$(?![\s\S])/.test(value.snapshot_id) ||
+    !utc(value.routes_published_at) ||
+    !utc(value.acknowledged_at)
+  )
+    return false
+  const acknowledgedAt = instant(value.acknowledged_at as string)
+  return (
+    acknowledgedAt >= instant(publication.claimed_at as string) &&
+    acknowledgedAt >= instant(publication.claim_instance_started_at as string) &&
+    instant(value.routes_published_at as string) >=
+      instant(publication.claim_instance_started_at as string) &&
+    acknowledgedAt >= instant(value.routes_published_at as string)
+  )
+}
+
 export function validRuntimeArchiveRollbackReason(value: string) {
   return (
     value.length > 0 &&
@@ -219,6 +259,7 @@ function receipt(v: unknown, id: string, requestID: string): RuntimeArchiveRollb
         'finalized_at',
         'status',
         'failure_code',
+        'acknowledgement',
       ]) ||
       p.request_id !== requestID ||
       p.reason !== v.reason ||
@@ -232,6 +273,7 @@ function receipt(v: unknown, id: string, requestID: string): RuntimeArchiveRollb
         p.status,
       ) ||
       !(p.failure_code === null || p.failure_code === 'runtime_refresh_failed') ||
+      !acknowledgement(p.acknowledgement, p) ||
       ((p.status === 'unknown' || p.status === 'pending') &&
         (p.finalized_at !== null || p.failure_code !== null)) ||
       (p.status === 'refresh_returned_nil' &&

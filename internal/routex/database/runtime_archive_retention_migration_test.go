@@ -33,7 +33,7 @@ func TestRuntimeArchiveV113FrozenRetentionAndProvenance(t *testing.T) {
 	}
 	for _, driver := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(driver)
-		if len(steps) != 116 || reflect.ValueOf(steps[112]).Pointer() != reflect.ValueOf(runtimeArchiveRetentionMigration).Pointer() || reflect.ValueOf(steps[111]).Pointer() != reflect.ValueOf(runtimeConfigurationArchiveMigration).Pointer() {
+		if len(steps) != 118 || reflect.ValueOf(steps[112]).Pointer() != reflect.ValueOf(runtimeArchiveRetentionMigration).Pointer() || reflect.ValueOf(steps[111]).Pointer() != reflect.ValueOf(runtimeConfigurationArchiveMigration).Pointer() {
 			t.Fatal("immutable V113 append")
 		}
 	}

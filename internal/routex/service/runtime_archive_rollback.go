@@ -116,7 +116,11 @@ func (s *Service) GetRuntimeArchiveRollback(ctx context.Context, auth *Authentic
 		if _, err = s.runtimeArchiveRollbackActor(tx, auth, false); err != nil {
 			return err
 		}
-		result = &RuntimeArchiveRollbackReceipt{Scope: "gateway_routing_configuration", RequestID: row.RequestID, ArchiveID: row.ArchiveID, ArchiveCreatedAt: row.ArchiveCreatedAt.UTC(), AppliedAt: row.AppliedAt.UTC(), Changed: row.Changed, Reason: row.Reason, Publication: s.runtimePublicationReceipt(publication), RuntimeApplied: applied, Superseded: superseded}
+		publicationReceipt, err := s.runtimePublicationReceiptWithAcknowledgement(tx, publication)
+		if err != nil {
+			return err
+		}
+		result = &RuntimeArchiveRollbackReceipt{Scope: "gateway_routing_configuration", RequestID: row.RequestID, ArchiveID: row.ArchiveID, ArchiveCreatedAt: row.ArchiveCreatedAt.UTC(), AppliedAt: row.AppliedAt.UTC(), Changed: row.Changed, Reason: row.Reason, Publication: publicationReceipt, RuntimeApplied: applied, Superseded: superseded}
 		return ctx.Err()
 	})
 	if err != nil {

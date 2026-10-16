@@ -123,9 +123,10 @@ func testRuntimeArchiveDatabase(t *testing.T, driver string) {
 			t.Fatal("repeat current startup", err)
 		}
 		var versions int64
-		if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 116 {
-			t.Fatal("complete V116 ledger", err)
+		if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 118 {
+			t.Fatal("complete V118 ledger", err)
 		}
+		testRuntimePublicationAcknowledgementMigration(t, db)
 	})
 	t.Run("cleanup_v115_migration_upgrade_and_recovery", func(t *testing.T) { testRuntimeArchiveCleanupMigration(t, db) })
 	t.Run("routing_rollback_v116_migration", func(t *testing.T) { testRuntimeArchiveRollbackMigration(t, db) })
@@ -436,16 +437,26 @@ func testRuntimeArchivePartialDDL(t *testing.T, db *gorm.DB, svc *Service, ident
 	// fixtures to reproduce empty interrupted nontransactional schema creation.
 	// A successor receipt may be removed only with its complete empty overlay;
 	// retained controller identities or advisory reports must never be discarded.
-	for _, model := range []any{&entity.RuntimeArchiveRollback{}, &entity.RuntimeArchiveCleanup{}, &entity.APIKeyDeliveryControllerAcknowledgement{}, &entity.APIKeyDeliveryControllerGrant{}} {
+	var before []runtimeArchiveCleanupLedger
+	if err := db.Order("version").Find(&before).Error; err != nil || len(before) != 118 {
+		t.Fatal("archive reconstruction requires exact V118 ledger", err)
+	}
+	if err := admissionOwnerFixtureV118(db, len(before)); err != nil {
+		t.Fatal(err)
+	}
+	for _, model := range []any{&entity.RuntimePublicationAcknowledgement{}, &entity.RuntimeArchiveRollback{}, &entity.RuntimeArchiveCleanup{}, &entity.APIKeyDeliveryControllerAcknowledgement{}, &entity.APIKeyDeliveryControllerGrant{}} {
 		var count int64
 		if !db.Migrator().HasTable(model) || db.Model(model).Count(&count).Error != nil || count != 0 {
 			t.Fatal("retained successor history prevents isolated archive fixture reconstruction")
 		}
 	}
-	if err := db.Migrator().DropTable(&entity.RuntimeArchiveRollback{}, &entity.RuntimeArchiveCleanup{}, &entity.APIKeyDeliveryControllerAcknowledgement{}, &entity.APIKeyDeliveryControllerGrant{}, &entity.RuntimeArchiveCapture{}, &entity.RuntimeArchiveContent{}, &entity.RuntimeArchiveRetention{}, &entity.RuntimeConfigurationArchiveChunk{}, &entity.RuntimeConfigurationArchive{}); err != nil {
+	if err := peelAdmissionOwnerFixtureV118(db, before); err != nil {
 		t.Fatal(err)
 	}
-	if err := db.Where("version IN ?", []int{112, 113, 114, 115, 116}).Delete(&runtimeArchiveTestLedger{}).Error; err != nil {
+	if err := db.Migrator().DropTable(&entity.RuntimePublicationAcknowledgement{}, &entity.RuntimeArchiveRollback{}, &entity.RuntimeArchiveCleanup{}, &entity.APIKeyDeliveryControllerAcknowledgement{}, &entity.APIKeyDeliveryControllerGrant{}, &entity.RuntimeArchiveCapture{}, &entity.RuntimeArchiveContent{}, &entity.RuntimeArchiveRetention{}, &entity.RuntimeConfigurationArchiveChunk{}, &entity.RuntimeConfigurationArchive{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Where("version IN ?", []int{112, 113, 114, 115, 116, 117}).Delete(&runtimeArchiveTestLedger{}).Error; err != nil {
 		t.Fatal(err)
 	}
 	if err := db.Migrator().CreateTable(&runtimeArchivePartialTable{}); err != nil {

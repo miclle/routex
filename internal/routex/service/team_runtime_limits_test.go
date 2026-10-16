@@ -76,6 +76,7 @@ func teamFiniteAdmissionFixture(t *testing.T, parent, child limits.Policy) (*Ser
 	if err := queue.EnableQuota("UTC", time.Now().Add(-2*time.Hour)); err != nil {
 		t.Fatal(err)
 	}
+	svc.admission = newLocalAdmissionStore(queue)
 	svc.recorder = &callRecorder{queue: queue}
 	result := (gatewayIdentity{team: identity}).result(entity.ProtocolOpenAIChat, "public-model", false)
 	result.ModelID, result.ProviderModelID = "mdl_one", "pmd_one"

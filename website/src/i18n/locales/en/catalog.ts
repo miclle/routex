@@ -364,6 +364,54 @@ export default {
       'The earlier request remains unconfirmed. The new change requires a separate reason and confirmation.',
     current: '{{name}} is currently recorded as {{status}}.',
   },
+  providerModelBinding: {
+    createFull: 'Open full Model creation',
+    createHelp:
+      'No eligible target is available in this complete list. The full creation workflow uses this Connection as a hint; select and review the upstream model again.',
+    title: 'Add {{name}} to a model',
+    description:
+      'Choose an existing model and review this exact upstream model before adding a zero-weight route.',
+    search: 'Find an existing model',
+    targets: 'Existing model choices',
+    select: 'Select model',
+    selected: 'Selected model',
+    ineligible: 'This model cannot accept another route from this Provider for this protocol.',
+    empty: 'No matching models.',
+    first: 'First page',
+    next: 'Next page',
+    preview: 'Routing review: {{name}}',
+    routes: 'Reviewed protocol routing',
+    weight: 'Stored weight',
+    newRoute: 'New candidate',
+    weightHelp:
+      'This route starts at 0%. Existing weights remain as shown. After insertion, configure this protocol and explicitly save its complete weights here.',
+    notReady:
+      'The recorded source is not currently eligible. Review its configuration and verification separately.',
+    uncertain:
+      'The insertion result is uncertain. Retry the original target, source and review token. A current read does not prove the original operation succeeded.',
+    add: 'Add candidate route',
+    saving: 'Adding candidate…',
+    retry: 'Retry exact insertion',
+    saved:
+      'The configured route was added at 0%. This does not confirm routing health or live traffic.',
+    weightsHelp:
+      'Edit this protocol only. Every other protocol keeps its reviewed weights; saving sends one complete atomic routing set. Each protocol must total 100%.',
+    weightsUncertain:
+      'The weight save is unconfirmed. Retry its original exact request, or explicitly discard that local retry and review current state. A matching current configuration does not acknowledge the earlier request.',
+    retryWeights: 'Retry exact weight save',
+    weightsSaving: 'Saving complete weights…',
+    reviewWeights: 'Discard local retry and review current weights',
+    weightsApplied:
+      'The complete weights were saved and observed in this process runtime. This does not prove live traffic or fleet convergence.',
+    weightsSaved: 'The complete weights were saved. Current runtime application is not confirmed.',
+    currentApplied:
+      'Current reviewed weights are observed in this process runtime; this does not acknowledge an earlier request.',
+    currentConfigured:
+      'Current reviewed weights are configuration only; runtime application is not confirmed.',
+    weightsSourceChanged:
+      'The inserted route is no longer present with its reviewed identity. Close and review the current model.',
+    done: 'Done',
+  },
   providerModels: {
     currentStatus: 'Currently recorded: {{status}}',
     reviewSeparate: 'Review a separate status change',
@@ -1254,7 +1302,7 @@ export default {
     weightsUnavailable:
       'Current routing is unavailable. The server checks credential eligibility when saving; configured weights do not establish availability.',
     weightsRoutesChanged:
-      'The current route identities have changed. Review current routes to replace this draft before saving.',
+      'The reviewed routing configuration has changed. Review current routes and weights to replace this draft before saving.',
     weightsReviewCurrent: 'Review current routes',
     weightsConfiguredHelp:
       'Draft totals describe configured weights, not routing availability. Zero-weight bindings receive no traffic.',

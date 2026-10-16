@@ -27,6 +27,8 @@ export default function RoutingWeights({
   historyTriggerRef,
   onAddBinding,
   onGrants,
+  editableProtocol,
+  showPrices = true,
   refreshDetail,
 }: {
   model: Model
@@ -45,8 +47,10 @@ export default function RoutingWeights({
   onHistory?: () => void
   historyTriggerRef?: Ref<HTMLButtonElement>
   onSave: (weights: { binding_id: string; weight: number }[]) => void
-  onAddBinding: (protocol?: string) => void
-  onGrants: () => void
+  onAddBinding?: (protocol?: string) => void
+  onGrants?: () => void
+  editableProtocol?: string
+  showPrices?: boolean
   refreshDetail: () => void
 }) {
   const { t } = useTranslation('catalog')
@@ -139,8 +143,12 @@ export default function RoutingWeights({
                   <th>{t('routingCandidates.connection')}</th>
                   <th>{t('routingCandidates.verification')}</th>
                   <th>{t('routingCandidates.availability')}</th>
-                  <th>{t('adminModels.inputBasePrice')}</th>
-                  <th>{t('adminModels.outputBasePrice')}</th>
+                  {showPrices && (
+                    <>
+                      <th>{t('adminModels.inputBasePrice')}</th>
+                      <th>{t('adminModels.outputBasePrice')}</th>
+                    </>
+                  )}
                   <th>{t('adminModels.weight')}</th>
                 </tr>
               </thead>
@@ -172,14 +180,16 @@ export default function RoutingWeights({
                           : 'routingCandidates.unknownFact',
                       )}
                     </td>
-                    <RoutePrices
-                      actor={actor}
-                      modelID={model.id}
-                      generation={generation}
-                      binding={binding}
-                      readable={pricesReadable}
-                      refreshDetail={refreshDetail}
-                    />
+                    {showPrices && (
+                      <RoutePrices
+                        actor={actor}
+                        modelID={model.id}
+                        generation={generation}
+                        binding={binding}
+                        readable={pricesReadable}
+                        refreshDetail={refreshDetail}
+                      />
+                    )}
                     <td>
                       <div className="flex items-center gap-2">
                         <Input
@@ -193,7 +203,13 @@ export default function RoutingWeights({
                           ref={binding.id === model.bindings[0]?.id ? firstWeight : undefined}
                           value={draft[binding.id] ?? ''}
                           onValueChange={(value) => onDraftChange(binding.id, value)}
-                          disabled={pending || !canWrite || reviewRequired}
+                          disabled={
+                            pending ||
+                            !canWrite ||
+                            reviewRequired ||
+                            (editableProtocol !== undefined &&
+                              binding.protocol !== editableProtocol)
+                          }
                           className="w-24"
                         />
                         %
@@ -204,15 +220,17 @@ export default function RoutingWeights({
               </tbody>
             </Table>
             <div className="space-y-1 p-4 text-sm">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={pending || !canAdd}
-                onClick={() => onAddBinding(group.protocol)}
-                aria-label={t('routingCandidates.addProtocol', { protocol })}
-              >
-                {t('adminModels.addBinding')}
-              </Button>
+              {onAddBinding && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={pending || !canAdd}
+                  onClick={() => onAddBinding(group.protocol)}
+                  aria-label={t('routingCandidates.addProtocol', { protocol })}
+                >
+                  {t('adminModels.addBinding')}
+                </Button>
+              )}
               <p
                 aria-label={t('adminModels.weightsTotalLabel', { protocol })}
                 aria-live="polite"
@@ -227,23 +245,29 @@ export default function RoutingWeights({
           </section>
         )
       })}
-      <p className="text-xs text-muted-foreground">{t('adminModels.routePriceHelp')}</p>
+      {showPrices && (
+        <p className="text-xs text-muted-foreground">{t('adminModels.routePriceHelp')}</p>
+      )}
       <div className="flex items-center justify-between gap-4">
-        <Button
-          type="button"
-          disabled={pending || !canAdd}
-          variant="outline"
-          onClick={() => onAddBinding()}
-        >
-          {t('adminModels.addBinding')}
-        </Button>
+        {onAddBinding && (
+          <Button
+            type="button"
+            disabled={pending || !canAdd}
+            variant="outline"
+            onClick={() => onAddBinding()}
+          >
+            {t('adminModels.addBinding')}
+          </Button>
+        )}
         <p className="text-sm text-muted-foreground">{t('adminModels.weightsConfiguredHelp')}</p>
       </div>
       <ErrorNotice error={error} />
       <div className="flex justify-end gap-3">
-        <Button disabled={pending || !canWrite} variant="outline" onClick={onGrants}>
-          {t('adminModels.grant')}
-        </Button>
+        {onGrants && (
+          <Button disabled={pending || !canWrite} variant="outline" onClick={onGrants}>
+            {t('adminModels.grant')}
+          </Button>
+        )}
         {onHistory && (
           <Button
             ref={historyTriggerRef}

@@ -363,6 +363,8 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.POST("/admin/teams/creation-model-review", memberMetadataResponseHeaders, ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.ReviewTeamCreationModels)
 
 	// Routing history has entered private headers before every denial boundary.
+	identity.GET("/admin/models/:model_id/weights/review", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.RequirePermission("models.read_all"), ctrl.RequirePermission("providers.read"), ctrl.ReviewModelWeightEdit)
+	identity.PUT("/admin/models/:model_id/weights/reviewed", memberMetadataResponseHeaders, ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("models.read_all"), ctrl.RequirePermission("providers.read"), ctrl.RequirePermission("models.write"), ctrl.SetReviewedModelWeights)
 	identity.GET("/admin/models/:model_id/weight-versions", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.RequirePermission("models.read_all"), ctrl.ListModelWeightVersions)
 	identity.GET("/admin/models/:model_id/weight-versions/:version_id", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.RequirePermission("models.read_all"), ctrl.GetModelWeightVersion)
 	identity.GET("/admin/models/:model_id/weights/rollback-review", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.RequirePermission("models.read_all"), ctrl.ReviewModelWeightRollback)
@@ -529,6 +531,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.GET("/models/:model_id", ctrl.RequirePermission("models.read_all"), ctrl.GetAdminModel)
 	admin.GET("/models/:model_id/routing-providers", ctrl.RequirePermission("models.read_all"), ctrl.RequirePermission("providers.read"), ctrl.ListModelRoutingProviders)
 	admin.GET("/models/:model_id/routing-candidates", ctrl.RequirePermission("models.read_all"), ctrl.RequirePermission("providers.read"), ctrl.ListModelRoutingCandidates)
+	admin.GET("/models/:model_id/routing-candidates/:provider_model_id", ctrl.RequirePermission("models.read_all"), ctrl.RequirePermission("providers.read"), ctrl.GetModelRoutingCandidate)
 	admin.GET("/model-grantees", ctrl.RequirePermission("models.write"), ctrl.ListModelGrantees)
 	admin.POST("/providers", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("providers.write"), ctrl.CreateProvider)
 	admin.POST("/providers/:provider_id/connections", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("providers.write"), ctrl.CreateConnection)

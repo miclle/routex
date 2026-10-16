@@ -1,5 +1,9 @@
 # Durable quota ledger foundation
 
+The [admission authority source candidate](ADMISSION_AUTHORITY.md) separates local
+enforcement operations from recorder delivery without changing node scope or
+claiming shared admission. Qualification remains pending.
+
 This document describes the independently testable journal and arithmetic foundation. The version 19 gateway and policy integration is specified in [QUOTAS.md](QUOTAS.md); source availability and acceptance evidence remain separate. Opening a journal never establishes quota history by itself. Team contexts, templates, approvals, and alerts remain separate resource-limit roadmap slices.
 
 ## Authority and activation

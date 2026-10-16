@@ -1976,8 +1976,13 @@ ownership while retaining the original dispatched UUID, reason and ETag for
 identical explicit retry. Actor or target-birth change, dismissal and unmount clear
 local intent. A failed dispatch or missing receipt remains uncertain. Receipt
 reads do not redispatch and must match exact actor, archive birth and original
-intent. Original publication status, fresh current-process proof and supersession
-are separate facts; no fleet or inference-success claim follows. Selection, cleanup
+intent. Original publication status, immutable historical local installation
+acknowledgement, fresh current-process proof and supersession are separate facts.
+The nullable acknowledgement binds the original command to its exact process
+birth and recorded routing/authorization installation; missing proof remains
+unknown. Validate its closed wire shape and precise timestamp ordering. Render
+historical guidance in the existing receipt card without extra queries or writes;
+no current, fleet or inference-success claim follows. Selection, cleanup
 and pagination stay locked until explicit dismissal. Render basis-owned state;
 operation refs serve event-time fences and synchronous duplicate guards only.
 Keep responses and intents outside query/mutation caches and browser storage,
@@ -2002,3 +2007,25 @@ component state, outside Query/mutation caches and browser storage. Retained
 original-actor enrollment metadata cannot recover a bearer or reconcile a body;
 only an identical explicit enrollment retry confirms that captured intent.
 Register paired English/Chinese keyControllers copy with English as the default.
+
+Provider Model **Add to model** opens a local Base UI review dialog for the exact
+row. Reuse the bounded authorized Connection-specific target picker and the exact
+routing-candidate review resource; candidate and configured routing preview must
+come from one server snapshot. Preserve exact Provider/Connection/ProviderModel/
+protocol identities, independent Model/Provider reads and Model write authority.
+Add only a zero-weight relation through the existing reviewed write, then retain
+the actual Binding ID and freshly read the real complete Model for the separate
+explicit in-dialog routing stage. Reuse RoutingWeights with selected-protocol
+editing and every other protocol's reviewed IDs/weights preserved in the complete
+atomic save; require per-protocol 100. Reviewed weight writes use their separate
+strong If-Match and independent read/write authority, preserving the legacy API.
+Keep insertion and weight uncertainty separate. Explicit current-state review may
+discard the local retry but never acknowledge its history; compare complete
+returned desired weights and claim current-process runtime application only from
+the server proof. A complete unfiltered target list with no eligible option may
+open full Model creation with a Connection hint only and explicit source reselection.
+Do not expose unrelated Add/Grant/price controls inside this scoped composition. Initial option/review and
+late-response lifetimes must be current. Retain the original target/body/token
+through uncertain same-owner renewals and identical explicit retries; never infer
+historical success from GET, rejection or current presence. Keep private drafts
+transient, pair live English/Chinese copy, and preserve safe modal focus.

@@ -194,6 +194,7 @@ func TestRuntimeAccountingActivationPreservesPreparedDispatch(t *testing.T) {
 				}
 			}()
 			// No delivery worker: the normal admission itself owns activation/fsync.
+			svc.admission = newLocalAdmissionStore(queue)
 			svc.recorder = &callRecorder{queue: queue}
 			digest := accountingRouteDigest(t, data)
 			initial := *svc.runtime.routes.Load()

@@ -79,6 +79,7 @@ func (ctrl *Ctrl) GatewayChat(c *fox.Context) {
 
 func (ctrl *Ctrl) finishGatewayChat(c *fox.Context, ctx context.Context, requestID string, started time.Time, body []byte, result *service.GatewayResult, callErr error) {
 	usage := observeGatewayUsage(service.GatewayUsage{})
+	// LIFO defers close the native response before exact-executor finalization.
 	defer func() { ctrl.recordGatewayCall(ctx, requestID, started, result, usage, callErr) }()
 	if result != nil && result.Response != nil {
 		defer func() { _ = result.Response.Body.Close() }()
@@ -172,7 +173,7 @@ func (ctrl *Ctrl) recordGatewayCall(ctx context.Context, requestID string, start
 	}
 	recordCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
 	defer cancel()
-	if err := ctrl.service.PersistGatewayCall(recordCtx, fact); err != nil {
+	if err := ctrl.service.FinalizeGatewayCall(recordCtx, result, fact); err != nil {
 		// The response may already be streaming. A bounded failure cannot be
 		// reported as successful persistence or change the completed response.
 		log.Printf("gateway call recording failed (request_id=%s)", requestID)

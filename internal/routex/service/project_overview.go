@@ -204,7 +204,7 @@ func (s *Service) ProjectOverview(ctx context.Context, actorID, projectID string
 				TokensMonth: policy.TokensMonth, MoneyMonth: policy.MoneyMonth, Currency: policy.Currency,
 				PlatformCurrency: pricing.PlatformCurrency, PolicyETag: row.ETag,
 			}
-			if s.recorder != nil {
+			if s.recorder != nil && s.admission != nil {
 				usage, err := s.resourceQuotaUsage(tx, resolvedLimitTarget{kind: "project", id: projectID})
 				if err != nil && !errors.Is(err, runtimeUnavailable) {
 					return err

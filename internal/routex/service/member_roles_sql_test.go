@@ -159,13 +159,18 @@ func (c *rolesSQLConnection) QueryContext(ctx context.Context, q string, args []
 		return effectiveSQLRows(rows[:min(len(rows), rolesSQLLimit(args))])
 	case strings.Contains(q, `FROM "roles"`):
 		rows := []entity.Role{}
+		// Repeated exact/index binds select rows once without a quadratic fixture scan.
+		selected := make(map[string]struct{}, len(values))
+		for _, id := range values {
+			selected[id] = struct{}{}
+		}
 		for _, row := range d.roles {
 			if strings.Contains(q, `WHERE ("builtin" =`) {
 				kind, err := roleAssignmentKind(row)
 				if err != nil || kind == RoleAssignmentExplicit {
 					rows = append(rows, row)
 				}
-			} else if slices.Contains(values, row.ID) {
+			} else if _, ok := selected[row.ID]; ok {
 				rows = append(rows, row)
 			}
 		}

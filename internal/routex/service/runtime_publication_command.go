@@ -27,18 +27,19 @@ type RuntimePublicationCommandInput struct {
 	Reason    string `json:"reason"`
 }
 
-// This receipt describes the original function outcome only. It never attributes
-// a later RuntimeStatus, installation observation or authoritative DB snapshot.
+// The original function outcome and optional command-bound local installation
+// acknowledgement are independent. Neither attributes a later runtime state.
 type RuntimePublicationCommandReceipt struct {
-	RequestID              string     `json:"request_id"`
-	ActorID                string     `json:"actor_id"`
-	Reason                 string     `json:"reason"`
-	ClaimInstanceID        string     `json:"claim_instance_id"`
-	ClaimInstanceStartedAt time.Time  `json:"claim_instance_started_at"`
-	ClaimedAt              time.Time  `json:"claimed_at"`
-	FinalizedAt            *time.Time `json:"finalized_at"`
-	Status                 string     `json:"status"`
-	FailureCode            *string    `json:"failure_code"`
+	RequestID              string                                    `json:"request_id"`
+	ActorID                string                                    `json:"actor_id"`
+	Reason                 string                                    `json:"reason"`
+	ClaimInstanceID        string                                    `json:"claim_instance_id"`
+	ClaimInstanceStartedAt time.Time                                 `json:"claim_instance_started_at"`
+	ClaimedAt              time.Time                                 `json:"claimed_at"`
+	FinalizedAt            *time.Time                                `json:"finalized_at"`
+	Status                 string                                    `json:"status"`
+	FailureCode            *string                                   `json:"failure_code"`
+	Acknowledgement        *RuntimePublicationAcknowledgementReceipt `json:"acknowledgement"`
 }
 
 type runtimePublicationTicket struct {
@@ -275,7 +276,7 @@ func (s *Service) PublishRuntimeCommand(ctx context.Context, auth *Authenticatio
 		return nil, runtimePublicationError(err)
 	}
 	if !created {
-		return s.runtimePublicationReceipt(row), nil
+		return s.getRuntimePublicationCommand(ctx, auth, row.RequestID)
 	}
 	return s.dispatchRuntimePublication(ctx, auth, row, lease, nil, false)
 }
@@ -313,12 +314,7 @@ func (s *Service) dispatchRuntimePublication(ctx context.Context, auth *Authenti
 		}
 		return nil, runtimePublicationError(err)
 	}
-	var refreshErr error
-	if tryAdmission {
-		refreshErr = s.refreshRuntime(ctx, true)
-	} else {
-		refreshErr = s.RefreshRuntime(ctx)
-	}
+	refreshErr := s.refreshRuntimeWithPublication(ctx, tryAdmission, ticket)
 	finalized := time.Now().UTC().Truncate(time.Microsecond)
 	outcome := "refresh_returned_nil"
 	var code *string
@@ -374,6 +370,7 @@ func (s *Service) GetRuntimePublicationCommand(ctx context.Context, auth *Authen
 
 func (s *Service) getRuntimePublicationCommand(ctx context.Context, auth *Authentication, requestID string) (*RuntimePublicationCommandReceipt, error) {
 	var row entity.RuntimePublicationCommand
+	var receipt *RuntimePublicationCommandReceipt
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := lockGovernance(tx); err != nil {
 			return err
@@ -392,6 +389,10 @@ func (s *Service) getRuntimePublicationCommand(ctx context.Context, auth *Authen
 		if err := runtimePublicationIntent(row, actor, nil); err != nil {
 			return err
 		}
+		receipt, err = s.runtimePublicationReceiptWithAcknowledgement(tx, row)
+		if err != nil {
+			return err
+		}
 		return ctx.Err()
 	})
 	if err != nil {
@@ -400,5 +401,5 @@ func (s *Service) getRuntimePublicationCommand(ctx context.Context, auth *Authen
 	if ctx.Err() != nil {
 		return nil, runtimePublicationUnavailable
 	}
-	return s.runtimePublicationReceipt(row), nil
+	return receipt, nil
 }

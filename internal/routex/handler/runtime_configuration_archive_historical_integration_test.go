@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -62,6 +63,43 @@ func runtimeArchiveCleanupFixtureEmpty(db *gorm.DB) error {
 	var count int64
 	if err := db.Model(model).Count(&count).Error; err != nil || count != 0 {
 		return errors.New("retained cleanup intent prevents historical peel")
+	}
+	return nil
+}
+
+// V117 must be complete and empty before any predecessor fixture may mutate.
+func runtimePublicationAcknowledgementFixtureEmpty(db *gorm.DB) error {
+	model := &entity.RuntimePublicationAcknowledgement{}
+	statement := &gorm.Statement{DB: db}
+	if err := statement.Parse(model); err != nil {
+		return err
+	}
+	if !db.Migrator().HasTable(model) {
+		return errors.New("incomplete acknowledgement fixture overlay")
+	}
+	for _, name := range statement.Schema.DBNames {
+		if !db.Migrator().HasColumn(model, name) {
+			return errors.New("incomplete acknowledgement fixture column")
+		}
+	}
+	for name := range statement.Schema.ParseCheckConstraints() {
+		if !db.Migrator().HasConstraint(model, name) {
+			return errors.New("incomplete acknowledgement fixture guard")
+		}
+	}
+	for _, name := range []string{"fk_runtime_publication_ack_command", "fk_runtime_publication_ack_installation"} {
+		if !db.Migrator().HasConstraint(model, name) {
+			return errors.New("incomplete acknowledgement fixture reference")
+		}
+	}
+	for _, index := range statement.Schema.ParseIndexes() {
+		if !db.Migrator().HasIndex(model, index.Name) {
+			return errors.New("incomplete acknowledgement fixture index")
+		}
+	}
+	var count int64
+	if err := db.Model(model).Count(&count).Error; err != nil || count != 0 {
+		return errors.New("retained acknowledgement intent prevents historical peel")
 	}
 	return nil
 }
@@ -130,10 +168,10 @@ func runtimeArchiveRollbackPeelV116(db *gorm.DB, expected []personalKeyBehaviorM
 	return nil
 }
 
-// Peel only complete, empty V112/V113/V114/V115/V116 overlays in an exclusively owned fixture.
+// Peel only complete, empty V112/V113/V114/V115/V116/V117/V118 overlays in an exclusively owned fixture.
 // Prove every ledger, data and frozen-root guard before the first DDL write.
 func runtimeArchivePeelV112(db *gorm.DB, expected []personalKeyBehaviorMigrationEntry) error {
-	if len(expected) < 1 || len(expected) > 116 {
+	if len(expected) < 1 || len(expected) > 118 {
 		return errors.New("unsupported archive fixture head")
 	}
 	for i, row := range expected {
@@ -144,6 +182,16 @@ func runtimeArchivePeelV112(db *gorm.DB, expected []personalKeyBehaviorMigration
 	var actual []personalKeyBehaviorMigrationEntry
 	if err := db.Table("schema_migrations").Order("version").Find(&actual).Error; err != nil || !reflect.DeepEqual(actual, expected) {
 		return errors.New("archive fixture receipt mismatch")
+	}
+	if err := admissionOwnerFixtureV118(db, len(expected)); err != nil {
+		return err
+	}
+	if len(expected) < 117 {
+		if db.Migrator().HasTable(&entity.RuntimePublicationAcknowledgement{}) {
+			return errors.New("historical ledger retained acknowledgement overlay")
+		}
+	} else if err := runtimePublicationAcknowledgementFixtureEmpty(db); err != nil {
+		return err
 	}
 	if len(expected) < 116 {
 		if db.Migrator().HasTable(&entity.RuntimeArchiveRollback{}) {
@@ -247,6 +295,24 @@ func runtimeArchivePeelV112(db *gorm.DB, expected []personalKeyBehaviorMigration
 	}
 	// All retained source, provenance, accounting and root-authority guards have
 	// passed before the first DDL mutation, including on nontransactional MySQL.
+	if len(expected) == 118 {
+		if err := peelAdmissionOwnerFixtureV118(db, expected); err != nil {
+			return err
+		}
+		expected = expected[:117]
+	}
+	if len(expected) == 117 {
+		// Every predecessor refusal above has passed before this first DDL.
+		if err := db.Migrator().DropTable(&entity.RuntimePublicationAcknowledgement{}); err != nil {
+			return err
+		}
+		removed := db.Table("schema_migrations").Where("version = ? AND applied_at = ?", 117, expected[116].AppliedAt).Delete(&struct{}{})
+		actual = nil
+		if removed.Error != nil || removed.RowsAffected != 1 || db.Table("schema_migrations").Order("version").Find(&actual).Error != nil || !reflect.DeepEqual(actual, expected[:116]) {
+			return errors.New("acknowledgement peel changed retained prefix")
+		}
+		expected = expected[:116]
+	}
 	if len(expected) == 116 {
 		if err := runtimeArchiveRollbackPeelV116(db, expected); err != nil {
 			return err
@@ -323,9 +389,10 @@ func runtimeArchivePeelV112(db *gorm.DB, expected []personalKeyBehaviorMigration
 func runtimeArchiveHistoricalGuardControlsV112(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 116 {
-		t.Fatal("archive historical guard requires V116")
+	if len(before) != 118 {
+		t.Fatal("archive historical guard requires V118")
 	}
+	testAdmissionOwnerFixtureV118(t, db, before)
 	rollback := errors.New("rollback retained archive fixture control")
 	for _, mutate := range []func([]personalKeyBehaviorMigrationEntry){
 		func(rows []personalKeyBehaviorMigrationEntry) { rows[111].AppliedAt = "changed" },
@@ -338,6 +405,10 @@ func runtimeArchiveHistoricalGuardControlsV112(t *testing.T, db *gorm.DB) {
 		func(rows []personalKeyBehaviorMigrationEntry) { rows[114].Version = 116 },
 		func(rows []personalKeyBehaviorMigrationEntry) { rows[115].AppliedAt = "changed" },
 		func(rows []personalKeyBehaviorMigrationEntry) { rows[115].Version = 117 },
+		func(rows []personalKeyBehaviorMigrationEntry) { rows[116].AppliedAt = "changed" },
+		func(rows []personalKeyBehaviorMigrationEntry) { rows[116].Version = 118 },
+		func(rows []personalKeyBehaviorMigrationEntry) { rows[117].AppliedAt = "changed" },
+		func(rows []personalKeyBehaviorMigrationEntry) { rows[117].Version = 119 },
 	} {
 		bad := append([]personalKeyBehaviorMigrationEntry(nil), before...)
 		mutate(bad)
@@ -391,5 +462,250 @@ func runtimeArchiveHistoricalGuardControlsV112(t *testing.T, db *gorm.DB) {
 	}
 	if !reflect.DeepEqual(before, personalKeyBehaviorLedger(t, db)) {
 		t.Fatal("archive controls changed historical receipts")
+	}
+}
+
+// V118 is removable only in an exclusively owned historical test fixture.
+// Schema and data checks are read-only; callers run all older refusal guards
+// before invoking the separate owner-first DDL phase.
+func admissionOwnerFixtureV118(db *gorm.DB, head int) error {
+	models := []any{&entity.AdmissionMode{}, &entity.AdmissionSpoolOwner{}}
+	if head < 118 {
+		for _, model := range models {
+			if db.Migrator().HasTable(model) {
+				return errors.New("historical ledger retained admission owner overlay")
+			}
+		}
+		return nil
+	}
+	if head != 118 {
+		return errors.New("unsupported admission owner fixture head")
+	}
+	for _, model := range models {
+		st := &gorm.Statement{DB: db}
+		if err := st.Parse(model); err != nil {
+			return err
+		}
+		if !db.Migrator().HasTable(model) {
+			return errors.New("missing admission owner fixture table")
+		}
+		columns, err := db.Migrator().ColumnTypes(model)
+		if err != nil || len(columns) != len(st.Schema.DBNames) {
+			return errors.New("incomplete admission owner fixture columns")
+		}
+		seen := map[string]bool{}
+		for _, column := range columns {
+			field := st.Schema.FieldsByDBName[column.Name()]
+			if field == nil || seen[column.Name()] {
+				return errors.New("unexpected admission owner fixture column")
+			}
+			seen[column.Name()] = true
+			if increment, known := column.AutoIncrement(); known && increment != field.AutoIncrement {
+				return errors.New("invalid admission owner fixture auto increment")
+			}
+			pk, known := column.PrimaryKey()
+			if !known || pk != field.PrimaryKey {
+				return errors.New("invalid admission owner fixture primary key")
+			}
+			nullable, known := column.Nullable()
+			if !known || nullable != (!field.NotNull && !field.PrimaryKey) {
+				return errors.New("invalid admission owner fixture nullability")
+			}
+			def, present := column.DefaultValue()
+			if present != field.HasDefaultValue || (present && strings.Trim(strings.SplitN(def, "::", 2)[0], "'() ") != field.DefaultValue) {
+				return errors.New("invalid admission owner fixture default")
+			}
+			kind := strings.ToLower(column.DatabaseTypeName())
+			switch field.IndirectFieldType.Kind() {
+			case reflect.String:
+				width, known := column.Length()
+				if !known || width != int64(field.Size) || (kind != "varchar" && kind != "character varying") {
+					return errors.New("invalid admission owner fixture string")
+				}
+			case reflect.Int64:
+				if kind != "bigint" && kind != "int8" {
+					return errors.New("invalid admission owner fixture integer")
+				}
+			case reflect.Int:
+				if kind != "bigint" && kind != "int8" && kind != "int" && kind != "int4" && kind != "integer" {
+					return errors.New("invalid admission owner fixture singleton")
+				}
+			case reflect.Struct:
+				precision, _, known := column.DecimalSize()
+				if field.IndirectFieldType != reflect.TypeFor[time.Time]() || (kind != "timestamp" && kind != "timestamptz" && kind != "datetime") || !known || precision != 6 {
+					return errors.New("invalid admission owner fixture timestamp")
+				}
+			default:
+				return errors.New("unsupported admission owner fixture column")
+			}
+		}
+		for name := range st.Schema.ParseCheckConstraints() {
+			if !db.Migrator().HasConstraint(model, name) {
+				return errors.New("missing admission owner fixture check")
+			}
+		}
+		for _, relation := range st.Schema.Relationships.Relations {
+			if constraint := relation.ParseConstraint(); constraint != nil && !db.Migrator().HasConstraint(model, constraint.Name) {
+				return errors.New("missing admission owner fixture reference")
+			}
+		}
+		indexes, err := db.Migrator().GetIndexes(model)
+		if err != nil {
+			return err
+		}
+		for _, expected := range st.Schema.ParseIndexes() {
+			matched := false
+			for _, actual := range indexes {
+				if actual.Name() != expected.Name {
+					continue
+				}
+				unique, known := actual.Unique()
+				columns := actual.Columns()
+				if !known || unique != (expected.Class == "UNIQUE") || len(columns) != len(expected.Fields) {
+					return errors.New("invalid admission owner fixture index")
+				}
+				for i, field := range expected.Fields {
+					if columns[i] != field.DBName {
+						return errors.New("invalid admission owner fixture index order")
+					}
+				}
+				matched = true
+			}
+			if !matched {
+				return errors.New("missing admission owner fixture index")
+			}
+		}
+	}
+	var count int64
+	if err := db.Model(&entity.AdmissionSpoolOwner{}).Count(&count).Error; err != nil || count != 0 {
+		return errors.New("retained admission owner history prevents fixture peel")
+	}
+	var modes []entity.AdmissionMode
+	if err := db.Find(&modes).Error; err != nil || len(modes) > 1 {
+		return errors.New("invalid admission mode fixture")
+	}
+	if len(modes) == 0 {
+		return nil
+	}
+	var binding entity.LimitInstallation
+	if err := db.Take(&binding, 1).Error; err != nil || binding.ID != 1 || !binding.Initialized || !regexp.MustCompile(`^led_[0-7][0-9a-hjkmnp-tv-z]{25}$`).MatchString(binding.JournalID) {
+		return errors.New("uninitialized admission mode fixture")
+	}
+	mode := modes[0]
+	if mode.ID != 1 || mode.Mode != "local" || mode.Revision != 1 || mode.InstallationID != binding.JournalID {
+		return errors.New("retained or foreign admission mode prevents fixture peel")
+	}
+	return nil
+}
+
+func peelAdmissionOwnerFixtureV118(db *gorm.DB, expected []personalKeyBehaviorMigrationEntry) error {
+	if len(expected) != 118 {
+		return errors.New("exact V118 fixture receipts required")
+	}
+	for i, row := range expected {
+		if row.Version != i+1 || row.AppliedAt == "" {
+			return errors.New("invalid V118 fixture receipts")
+		}
+	}
+	var actual []personalKeyBehaviorMigrationEntry
+	if err := db.Table("schema_migrations").Order("version").Find(&actual).Error; err != nil || !reflect.DeepEqual(actual, expected) {
+		return errors.New("V118 fixture receipt mismatch")
+	}
+	if err := admissionOwnerFixtureV118(db, len(expected)); err != nil {
+		return err
+	}
+	if err := db.Migrator().DropTable(&entity.AdmissionSpoolOwner{}, &entity.AdmissionMode{}); err != nil {
+		return err
+	}
+	removed := db.Table("schema_migrations").Where("version = ? AND applied_at = ?", 118, expected[117].AppliedAt).Delete(&struct{}{})
+	actual = nil
+	if removed.Error != nil || removed.RowsAffected != 1 || db.Table("schema_migrations").Order("version").Find(&actual).Error != nil || !reflect.DeepEqual(actual, expected[:117]) {
+		return errors.New("V118 peel changed retained prefix")
+	}
+	return nil
+}
+
+// Exercise retained owner/mode refusals without adding named registry children.
+func testAdmissionOwnerFixtureV118(t *testing.T, db *gorm.DB, expected []personalKeyBehaviorMigrationEntry) {
+	t.Helper()
+	if err := admissionOwnerFixtureV118(db, len(expected)); err != nil {
+		t.Fatal("pristine V118 fixture required", err)
+	}
+	rollback := errors.New("rollback admission owner fixture refusal")
+	for _, kind := range []string{"shared", "revised", "foreign", "owner"} {
+		err := db.Transaction(func(tx *gorm.DB) error {
+			journal := "led_01arz3ndektsv4rrffq69g5fav"
+			var binding entity.LimitInstallation
+			if err := tx.Take(&binding, 1).Error; err != nil {
+				return err
+			}
+			if binding.Initialized {
+				journal = binding.JournalID
+			} else if err := tx.Model(&entity.LimitInstallation{}).Where("id = ?", 1).Updates(map[string]any{"initialized": true, "journal_id": journal}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("id = ?", 1).Delete(&entity.AdmissionMode{}).Error; err != nil {
+				return err
+			}
+			mode := entity.AdmissionMode{ID: 1, InstallationID: journal, Mode: "local", Revision: 1}
+			switch kind {
+			case "shared":
+				mode.Mode = "shared"
+			case "revised":
+				mode.Revision = 2
+			case "foreign":
+				if journal[len(journal)-1] == '0' {
+					mode.InstallationID = journal[:len(journal)-1] + "1"
+				} else {
+					mode.InstallationID = journal[:len(journal)-1] + "0"
+				}
+			}
+			if err := tx.Omit("Installation").Create(&mode).Error; err != nil {
+				return err
+			}
+			if kind == "owner" {
+				birth := time.Now().UTC().Truncate(time.Microsecond)
+				owner := entity.AdmissionSpoolOwner{InstallationID: journal, SpoolID: "retained-fixture", ModeID: 1, ModeRevision: 1, RegistrationID: "7b258039-18f7-4bf5-975d-27efa7fa6a8f", IncarnationID: "ins_01arz3ndektsv4rrffq69g5fav", InstanceStartedAt: birth, RegisteredAt: birth, RegisteredFence: 1, CurrentFence: 1}
+				if err := tx.Omit("Mode").Create(&owner).Error; err != nil {
+					return err
+				}
+			}
+			if admissionOwnerFixtureV118(tx, 118) == nil || peelAdmissionOwnerFixtureV118(tx, expected) == nil {
+				return errors.New("retained admission owner fixture admitted teardown")
+			}
+			var actual []personalKeyBehaviorMigrationEntry
+			var after entity.AdmissionMode
+			var ownerCount int64
+			wantOwners := int64(0)
+			if kind == "owner" {
+				wantOwners = 1
+			}
+			if tx.Table("schema_migrations").Order("version").Find(&actual).Error != nil || !reflect.DeepEqual(actual, expected) || tx.Take(&after, 1).Error != nil || after.ID != mode.ID || after.InstallationID != mode.InstallationID || after.Mode != mode.Mode || after.Revision != mode.Revision || tx.Model(&entity.AdmissionSpoolOwner{}).Count(&ownerCount).Error != nil || ownerCount != wantOwners || !tx.Migrator().HasTable(&entity.AdmissionSpoolOwner{}) {
+				return errors.New("admission owner refusal changed retained facts")
+			}
+			return rollback
+		})
+		if !errors.Is(err, rollback) {
+			t.Fatal("admission owner historical refusal", kind, err)
+		}
+	}
+	for _, mutate := range []func([]personalKeyBehaviorMigrationEntry) []personalKeyBehaviorMigrationEntry{
+		func(rows []personalKeyBehaviorMigrationEntry) []personalKeyBehaviorMigrationEntry {
+			rows[117].AppliedAt = "changed"
+			return rows
+		},
+		func(rows []personalKeyBehaviorMigrationEntry) []personalKeyBehaviorMigrationEntry {
+			rows[117].Version = 119
+			return rows
+		},
+		func(rows []personalKeyBehaviorMigrationEntry) []personalKeyBehaviorMigrationEntry {
+			return append(rows, personalKeyBehaviorMigrationEntry{Version: 119, AppliedAt: "unrelated"})
+		},
+	} {
+		bad := mutate(append([]personalKeyBehaviorMigrationEntry(nil), expected...))
+		var after []personalKeyBehaviorMigrationEntry
+		if peelAdmissionOwnerFixtureV118(db, bad) == nil || db.Table("schema_migrations").Order("version").Find(&after).Error != nil || !reflect.DeepEqual(after, expected) || !db.Migrator().HasTable(&entity.AdmissionSpoolOwner{}) || !db.Migrator().HasTable(&entity.AdmissionMode{}) {
+			t.Fatal("malformed V118 tail changed fixture schema or receipts")
+		}
 	}
 }

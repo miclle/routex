@@ -25,7 +25,7 @@ func TestAPIKeyDeliveryControllerRegistry226ExactAppend(t *testing.T) {
 		t.Fatal("exact227 controller discovery successor required before historical226 checks")
 	}
 	names = names[:226]
-	if !apiKeyDeliveryControllerRegistry226Current(names) || !strings.Contains(string(raw), "versions != 116") {
+	if !apiKeyDeliveryControllerRegistry226Current(names) || !strings.Contains(string(raw), "versions != 118") {
 		t.Fatal("exact V114/226 registry required")
 	}
 	if !credentialInferenceRegistry224Current(names[:224]) || credentialInferenceRegistry224Current(names) || apiKeyDeliveryControllerRegistry226Current(names[:224]) {

@@ -129,7 +129,7 @@ func (s *Service) projectRollingWarningApplied(ctx context.Context, auth *runtim
 }
 
 func (s *Service) observeProjectRollingQuotaWarnings(ctx context.Context, kind, projectID string) error {
-	if kind != "project" || !projectMonthlyID(projectID) || s.recorder == nil || s.runtime == nil {
+	if kind != "project" || !projectMonthlyID(projectID) || s.recorder == nil || s.admission == nil || s.runtime == nil {
 		return nil
 	}
 	bounded, cancel := context.WithTimeout(ctx, runtimeRefreshTimeout)
@@ -177,7 +177,7 @@ func (s *Service) observeProjectRollingQuotaWarnings(ctx context.Context, kind, 
 		if !s.projectRollingWarningApplied(bounded, auth, row, project, policy, calendar, pricing.PlatformCurrency) {
 			return nil
 		}
-		frame, err := s.recorder.queue.AccountQuotaUsageProofBatch([]string{limitAccount("project", projectID)}, time.Now())
+		frame, err := s.admission.AccountQuotaUsageProofBatch(ctx, []string{limitAccount("project", projectID)}, time.Now())
 		if err != nil {
 			return runtimeUnavailable
 		}

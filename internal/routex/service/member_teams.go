@@ -220,7 +220,7 @@ func (s *Service) ListMemberTeams(ctx context.Context, actorID, userID string, f
 			auth = s.runtime.auth.Load()
 		}
 		var batch *eventqueue.QuotaUsageBatch
-		if len(targets) > 0 && s.recorder != nil {
+		if len(targets) > 0 && s.recorder != nil && s.admission != nil {
 			accounts := make([]string, len(targets))
 			for i, target := range targets {
 				accounts[i] = limitAccount(target.kind, target.id)
@@ -228,7 +228,7 @@ func (s *Service) ListMemberTeams(ctx context.Context, actorID, userID string, f
 			if len(accounts) > 100 {
 				return apperrors.ErrInternal
 			}
-			batch, _ = s.recorder.queue.AccountQuotaUsageBatch(accounts, result.ObservedAt)
+			batch, _ = s.admission.AccountQuotaUsageBatch(ctx, accounts, result.ObservedAt)
 		}
 		present := map[string]bool{}
 		for _, policy := range policies {

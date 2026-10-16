@@ -249,6 +249,10 @@ func (s *Service) AddModelBinding(ctx context.Context, actorID, modelID, provide
 }
 
 func (s *Service) SetModelWeights(ctx context.Context, actorID, modelID string, weights []ModelWeight) (*ModelCatalog, error) {
+	return s.setModelWeights(ctx, actorID, modelID, weights, "")
+}
+
+func (s *Service) setModelWeights(ctx context.Context, actorID, modelID string, weights []ModelWeight, reviewETag string) (*ModelCatalog, error) {
 	if len(weights) == 0 || len(weights) > 1000 {
 		return nil, apperrors.ErrBadRequest
 	}
@@ -264,8 +268,14 @@ func (s *Service) SetModelWeights(ctx context.Context, actorID, modelID string, 
 		if err := lockGovernance(tx); err != nil {
 			return err
 		}
-		if _, _, err := modelWeightAuthority(tx, actorID, false, true); err != nil {
+		actor, write, err := modelWeightAuthority(tx, actorID, reviewETag != "", true)
+		if err != nil {
 			return err
+		}
+		if reviewETag != "" {
+			if err := exactCatalogPermission(tx, actorID, "providers.read"); err != nil {
+				return err
+			}
 		}
 		var model entity.Model
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&model, "id = ?", modelID).Error; err != nil {
@@ -274,9 +284,12 @@ func (s *Service) SetModelWeights(ctx context.Context, actorID, modelID string, 
 		if model.Status == entity.ResourceArchived {
 			return catalogConflict
 		}
-		observed, err := loadModelWeightState(tx, modelID, true, false)
+		observed, err := loadModelWeightState(tx, modelID, true, reviewETag != "")
 		if err != nil {
 			return err
+		}
+		if reviewETag != "" && modelWeightEditETag(actor, write, observed) != reviewETag {
+			return modelWeightConflict
 		}
 		// Connection locks serialize activation against credential verification
 		// and enable/disable changes. Sort them to keep lock ordering stable.

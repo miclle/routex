@@ -53,7 +53,7 @@ func TestStartQuotaNotificationsCancellationJoinsBeforeJournalClose(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	service := &Service{recorder: &callRecorder{queue: q}, runtime: &gatewayRuntime{}}
+	service := &Service{admission: newLocalAdmissionStore(q), recorder: &callRecorder{queue: q}, runtime: &gatewayRuntime{}}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	stop, err := service.StartQuotaNotifications(ctx)

@@ -116,10 +116,10 @@ func (s *Service) MemberOverview(ctx context.Context, actorID, userID string) (*
 			auth = s.runtime.auth.Load()
 		}
 		var batch *eventqueue.QuotaUsageBatch
-		if s.recorder != nil {
+		if s.recorder != nil && s.admission != nil {
 			// One coherent journal account read. An outage preserves known SQL facts
 			// while leaving usage and live reservations unavailable, never zero.
-			batch, _ = s.recorder.queue.AccountQuotaUsageBatch([]string{limitAccount("user", userID)}, result.ObservedAt)
+			batch, _ = s.admission.AccountQuotaUsageBatch(ctx, []string{limitAccount("user", userID)}, result.ObservedAt)
 		}
 		if err := ctx.Err(); err != nil {
 			return err

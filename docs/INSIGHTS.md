@@ -290,6 +290,18 @@ introduced. Lists are bounded to 20 accounts by default and 50 at most; Key
 rotation successors share one deduplicated root account. Cards and exports
 describe the selected page rather than implying complete platform totals.
 
+The server selects the bounded Team page with exact current membership or its
+existing platform permissions, then reads the selected Team or rotation-root Key
+policies in one exact scope/identity batch. Missing stored policies remain absent;
+invalid or mismatched rows fail the page without publishing partial policy facts.
+Calendar and any required pricing metadata are captured once, and account usage
+and incarnation proofs share one journal observation. This internal batching adds
+no Overview access, endpoint, permission, durable alert or platform-wide Key scan.
+Key policy hydration includes the one pagination lookahead root before trimming;
+an invalid stored policy there rejects the whole read. A stored cap remains
+metadata when its journal account has no registered birth or usage proof; it
+cannot supply settled usage, utilization or an exhaustion forecast.
+
 `GET /api/v1/admin/insights/quota/teams` and
 `GET /api/v1/admin/insights/quota/keys` use the selected Tokens or Money dimension.
 Key reads require an explicit member or Project scope. Their `/export.csv`

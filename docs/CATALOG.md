@@ -1413,16 +1413,14 @@ and retarget callbacks consult that live lock and exact selection, so callbacks
 captured before React renders cannot discard or replace a dispatched intent.
 
 
-A freshly confirmed unbound row also offers **Add to model**, opening the existing
-`/admin/models/new?connectionId=<exact-encoded-id>` guided review. The current
-administrator Session and independent Provider/Model read permissions gate this
-entry; the destination retains its separate Model write gate. The complete scoped
+A freshly confirmed unbound row offers **Add to model**, opening the exact-row
+binding review described below. Independent Provider and Model reads permit
+review; Model write authority independently gates insertion. The complete scoped
 binding projection must be current and explicitly empty. Unknown or renewed facts
-never establish an unbound source. Captured actions cannot navigate after Session,
-authority, Provider/row changes, expiry or unmount. Disabled configuration may open
-review without implying eligibility. Navigation performs no writes, discovery,
-verification or implicit grants; selection and atomic routing review stay in the
-existing guided workflow.
+never establish an unbound source. Opening review performs no writes, discovery,
+verification or implicit grants. The separate full creation action retains the
+Connection-specific guided workflow.
+
 
 ## Connection row model creation entry
 
@@ -1700,3 +1698,87 @@ The existing capability cells now say Configured input and show protocol-specifi
 Image input/PDF input or known empty labels. Generic Text/image-generation classes
 are not inferred. Configuration does not prove live health, runtime publication,
 native completion or traffic. Weight writes, grants and admission are unchanged.
+
+## Provider Model binding review
+
+An unbound Provider Model row opens a local review dialog with its exact source
+identity and native protocol. A bounded Connection-specific existing-Model picker
+reuses the authorized creation-target endpoint; a selected target survives page
+and name searches. A successful complete, unfiltered first page with no eligible
+target offers **Open full Model creation**. That separate workflow carries only a
+Connection hint and explicitly requires new source selection and final review;
+it does not claim to preserve this exact Provider Model. Pending or uncertain
+insertion blocks this navigation.
+
+`GET /api/v1/admin/models/{model_id}/routing-candidates/{provider_model_id}` accepts
+only `protocol` and `provider_id`. Current independent `models.read_all` and
+`providers.read` authority is required. The closed response contains `model_id`,
+`model_name`, the existing `candidate` projection and at most 200 configured
+`routes`. Exact source/target/Provider relationships, duplicate-Provider exclusion,
+optional price authority, supply proof and review-token generation reuse the
+existing routing-candidate implementation. Candidate and current routing preview
+come from one read-only repeatable-read transaction. Route labels are recorded
+configuration, not health or observed traffic. No grants or credential material
+are included and no upstream request is made.
+
+The existing reviewed binding write adds only that exact Provider Model at zero
+weight. Existing protocol weights are unchanged; traffic allocation requires the
+separate explicit complete routing save in the same dialog. A saved insertion reports
+stored configuration only. Dispatch and late responses are fenced by current
+actor, Session, independent permissions, source, target, option and review
+lifetimes. Initial target and review reads must still be current. A same-owner
+renewal releases pending state but retains the original uncertain target/body and
+review token for explicit identical retry with fresh authority and CSRF. Neither a
+new GET nor a rejected retry proves the original operation succeeded. Closing the
+dialog discards its transient local intent. Actor, Provider, source and unmount
+changes cannot publish obsolete success.
+
+This source slice adds focused wire, authorization, exact-identity, routing-preview,
+zero-weight, uncertain-result and bilingual UI regressions, and extends the
+existing registered dual-database routing scenario. Source preparation alone is
+not test, browser, database or delivery acceptance; qualification is pending.
+
+### Separate complete routing configuration
+
+After an authorized insertion response confirms the actual Binding ID, the same
+dialog freshly reads the real full Model through
+`GET /api/v1/admin/models/{model_id}/weights/review`. Its closed response contains
+`model`, `review_etag` and `runtime_applied`, with a matching quoted strong ETag.
+A read-only repeatable-read transaction binds actor birth/write authority, exact
+Model/topology/current weights, configuration revision and source eligibility.
+The row workflow is bounded to 200 bindings and never fabricates a partial Model
+or provisional Binding IDs. Independent `models.read_all` and `providers.read`
+are required; read does not require write authority or make upstream calls.
+
+The existing `RoutingWeights` composition edits only the selected native protocol.
+Other protocols remain read-only with their reviewed IDs and weights included in
+one complete atomic request. Every protocol must total 100 with integer 0–100
+weights. Row-dialog composition omits unrelated Add, Grant and price controls.
+`PUT /api/v1/admin/models/{model_id}/weights/reviewed` requires fresh independent
+read/write authority, CSRF and the original strong If-Match. Its closed body is
+`{weights:[{binding_id,weight}]}` with at most 200 entries and 32 KiB; duplicate
+fields, unknown fields and nulls are rejected. The existing complete-set
+transaction, immutable history/audit and runtime refresh are reused. It compares
+the captured review under governance/Model/Connection locks before any weight
+change, so a concurrent same-topology weight edit also conflicts. The legacy
+weight endpoint remains compatible and no schema changes are introduced.
+
+Insertion and weights are two separately confirmed operations. A failed weight
+save never removes the saved zero-weight binding. Mounted uncertain weight
+intents retain their exact full set and original token separately from insertion,
+including across same-owner Session renewal; explicit identical retry uses fresh
+CSRF. Users may explicitly discard the local retry and review current weights to
+start a new intent. This does not cancel or acknowledge the original request.
+Current reads never infer historical write success; stale original tokens conflict.
+Topology or weight-review changes block an existing draft until explicit review.
+
+Successful weight responses must match the exact complete desired set. Runtime
+application is claimed only when the server's existing exact current-process
+runtime proof matches the reviewed state; otherwise the UI reports saved
+configuration with application unconfirmed. Current-state reconciliation is
+labelled separately from original acknowledgement, native completion, actual
+traffic and fleet convergence. Actor, Session, permission, source and read
+generations fence every dispatch and late result. Hook-owned transient state
+survives the dialog being hidden during a same-owner read renewal, while closing
+or unmounting discards it. Composed tests, dual-database and browser qualification
+remain pending; source preparation alone is not delivery acceptance.

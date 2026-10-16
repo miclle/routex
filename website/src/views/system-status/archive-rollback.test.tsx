@@ -95,6 +95,7 @@ function receipt(input: RuntimeArchiveRollbackInput): RuntimeArchiveRollbackRece
       finalized_at: null,
       status: 'unknown',
       failure_code: null,
+      acknowledgement: null,
     },
     runtime_applied: true,
     superseded: false,
@@ -453,6 +454,37 @@ describe('explicit reviewed Gateway routing rollback', () => {
       expect(document.body.textContent).toContain(en.archiveRollbackReceiptBoundary)
     },
   )
+  it('shows historical local acknowledgement separately from unknown outcome and supersession in both languages', async () => {
+    await reviewed()
+    vi.mocked(applyRuntimeArchiveRollback).mockImplementationOnce(async (_id, input) => {
+      const value = receipt(input)
+      value.publication.acknowledgement = {
+        scope: 'single_process_gateway_admission',
+        installation_id: 'rin_00000000000000000000000001',
+        instance_id: value.publication.claim_instance_id,
+        instance_started_at: birth,
+        snapshot_id: 'cfg_00000000000000000000000001',
+        routes_published_at: birth,
+        acknowledged_at: birth,
+      }
+      value.runtime_applied = false
+      value.superseded = true
+      return value
+    })
+    await click(en.archiveRollbackConfirm)
+    expect(document.body.textContent).toContain('ins_exact')
+    expect(document.body.textContent).toContain('cfg_00000000000000000000000001')
+    expect(document.body.textContent).toContain(en.archiveRollbackPublication_unknown)
+    expect(document.body.textContent).toContain(en.archiveRollbackSuperseded)
+    expect(document.body.textContent).toContain(en.archiveRollbackAcknowledgementBoundary)
+    expect(document.body.textContent).not.toContain(en.archiveRollbackAcknowledgementUnknown)
+    expect(document.body.textContent).not.toContain(en.archiveRollbackCurrentApplied)
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(document.body.textContent).toContain(zh.archiveRollbackAcknowledgementBoundary)
+    expect(document.body.textContent).toContain(zh.archiveRollbackPublication_unknown)
+    expect(applyRuntimeArchiveRollback).toHaveBeenCalledTimes(1)
+    expect(previewRuntimeArchiveRollback).toHaveBeenCalledTimes(1)
+  })
   it('validates reason locally and switches language without clearing draft or repeating reads', async () => {
     await click(en.archiveRollbackPreview)
     await reason('Unsafe\u0001reason')

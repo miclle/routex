@@ -133,7 +133,7 @@ func (s *Service) teamMemberQuotaWarningApplied(ctx context.Context, auth *runti
 	return ctx.Err() == nil && s.runtime.auth.Load() == auth && s.registrationAdvisoryPublished(auth, current.Actor, applications) && s.teamMemberQuotaNotificationApplied(current, calendar)
 }
 func (s *Service) observeMonthlyTeamMemberQuotaWarning(ctx context.Context, target teamMemberQuotaTarget) error {
-	if !validTeamMemberQuotaTarget(target) || s.recorder == nil || s.runtime == nil {
+	if !validTeamMemberQuotaTarget(target) || s.recorder == nil || s.admission == nil || s.runtime == nil {
 		return nil
 	}
 	s.limitMu.RLock()
@@ -164,14 +164,14 @@ func (s *Service) observeMonthlyTeamMemberQuotaWarning(ctx context.Context, targ
 		if !s.teamMemberQuotaWarningApplied(ctx, auth, current, calendar, applications) {
 			return nil
 		}
-		status, err := s.recorder.queue.QuotaStatus()
+		status, err := s.admission.QuotaStatus(ctx)
 		if err != nil {
 			return runtimeUnavailable
 		}
 		if !status.Active {
 			return nil
 		}
-		usage, err := s.recorder.queue.AccountQuotaUsage(teamMemberLimitAccount(target.TeamID, target.UserID), time.Now())
+		usage, err := s.admission.AccountQuotaUsage(ctx, teamMemberLimitAccount(target.TeamID, target.UserID), time.Now())
 		if err != nil {
 			return runtimeUnavailable
 		}

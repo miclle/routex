@@ -112,6 +112,7 @@ func (ctrl *Ctrl) GatewayMessages(c *fox.Context) {
 
 func (ctrl *Ctrl) finishGatewayMessages(c *fox.Context, ctx context.Context, requestID string, started time.Time, result *service.GatewayResult, callErr error) {
 	usage := observeGatewayUsage(service.GatewayUsage{})
+	// LIFO defers close the native response before exact-executor finalization.
 	defer func() { ctrl.recordGatewayCall(ctx, requestID, started, result, usage, callErr) }()
 	if result != nil && result.Response != nil {
 		defer func() { _ = result.Response.Body.Close() }()

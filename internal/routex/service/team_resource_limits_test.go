@@ -153,7 +153,7 @@ func TestTeamLimitAppliedRequiresExactCurrentPublication(t *testing.T) {
 	account := limitAccount("team_member", scope)
 	parentAccount := limitAccount("team", team.ID)
 	current := &teamLimitContext{Team: team, Member: &member, Resolved: resolvedLimitTarget{kind: "team_member", id: scope}, Row: entity.ResourceLimit{ETag: "child_revision"}, Stored: policy, ParentRow: entity.ResourceLimit{ETag: "parent_revision"}, Parent: parent, Pricing: entity.PricingSetting{PlatformCurrency: "USD"}}
-	svc := &Service{runtime: &gatewayRuntime{}, recorder: &callRecorder{}}
+	svc := &Service{admission: admissionTestStore(t), runtime: &gatewayRuntime{}, recorder: &callRecorder{}}
 	auth := &runtimeAuthorization{ValidUntil: time.Now().Add(time.Minute), Teams: map[string]runtimeTeam{team.ID: {Members: map[string]string{member.UserID: member.ID}}}, Quota: &runtimeQuotaData{Revisions: map[string]string{account: current.Row.ETag, parentAccount: current.ParentRow.ETag}, Currency: "USD"}, LimitPolicies: map[string]limits.Policy{account: policy, parentAccount: parent}}
 	svc.runtime.auth.Store(auth)
 	if !svc.teamLimitApplied(current) {

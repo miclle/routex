@@ -18,7 +18,7 @@ func memberWarningRuntimeFixture(t *testing.T) (*Service, *runtimeAuthorization,
 	child, parent := limitAccount("team_member", c.Row.ScopeID), limitAccount("team", c.Team.ID)
 	a := &runtimeAuthorization{ValidUntil: time.Now().Add(time.Minute), Teams: map[string]runtimeTeam{c.Team.ID: {CreatedAt: c.Team.CreatedAt, Members: map[string]string{c.Actor.ID: c.Member.ID}}}, Quota: &runtimeQuotaData{Setting: calendar, Currency: "USD", Revisions: map[string]string{child: c.Row.ETag, parent: c.ParentRow.ETag}}, LimitPolicies: map[string]limits.Policy{child: c.Stored, parent: c.Parent}}
 	publishManagedAdvisory(a, c.Actor, apps)
-	s := &Service{runtime: &gatewayRuntime{}, recorder: &callRecorder{}}
+	s := &Service{admission: admissionTestStore(t), runtime: &gatewayRuntime{}, recorder: &callRecorder{}}
 	s.runtime.auth.Store(a)
 	return s, a, c, calendar, apps
 }

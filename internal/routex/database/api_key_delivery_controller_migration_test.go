@@ -40,7 +40,7 @@ func TestAPIKeyDeliveryControllerV114FrozenPrivateDigestAndExactScope(t *testing
 	}
 	for _, driver := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(driver)
-		if len(steps) != 116 || reflect.ValueOf(steps[113]).Pointer() != reflect.ValueOf(apiKeyDeliveryControllerMigration).Pointer() || reflect.ValueOf(steps[112]).Pointer() != reflect.ValueOf(runtimeArchiveRetentionMigration).Pointer() {
+		if len(steps) != 118 || reflect.ValueOf(steps[113]).Pointer() != reflect.ValueOf(apiKeyDeliveryControllerMigration).Pointer() || reflect.ValueOf(steps[112]).Pointer() != reflect.ValueOf(runtimeArchiveRetentionMigration).Pointer() {
 			t.Fatal("V114 must follow immutable V113")
 		}
 	}

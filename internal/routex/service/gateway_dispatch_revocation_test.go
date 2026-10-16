@@ -113,6 +113,7 @@ func TestGatewayPostAdmissionRevocationRetainsAndSettlesOneReservation(t *testin
 						t.Fatal(err)
 					}
 					svc.recorder = &callRecorder{queue: queue}
+					svc.admission = newLocalAdmissionStore(queue)
 					const requestID = "req_revocation_reservation"
 					var admittedAt int64
 					admissions := 0
@@ -286,6 +287,7 @@ func TestGatewayRevocationAfterCheckpointClearsUnsentAttempt(t *testing.T) {
 										t.Fatal(err)
 									}
 									svc.recorder = &callRecorder{queue: queue}
+									svc.admission = newLocalAdmissionStore(queue)
 									const requestID = "req_revoked_after_checkpoint"
 									var admittedAt int64
 									admissions, revocations := 0, 0

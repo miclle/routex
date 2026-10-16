@@ -261,10 +261,10 @@ func testRuntimeInstallationProcessRestart(t *testing.T, db *gorm.DB) {
 		closeErr := response.Body.Close()
 		var receipt service.RuntimePublicationCommandReceipt
 		var fields map[string]json.RawMessage
-		if readErr != nil || closeErr != nil || len(raw) > 16*1024 || response.StatusCode != http.StatusOK || response.Header.Get("Cache-Control") != "private, no-store" || response.Header.Get("X-Content-Type-Options") != "nosniff" || json.Unmarshal(raw, &fields) != nil || len(fields) != 9 || json.Unmarshal(raw, &receipt) != nil {
+		if readErr != nil || closeErr != nil || len(raw) > 16*1024 || response.StatusCode != http.StatusOK || response.Header.Get("Cache-Control") != "private, no-store" || response.Header.Get("X-Content-Type-Options") != "nosniff" || json.Unmarshal(raw, &fields) != nil || len(fields) != 10 || json.Unmarshal(raw, &receipt) != nil {
 			t.Fatal("real terminal publication receipt rejected")
 		}
-		for _, name := range []string{"request_id", "actor_id", "reason", "claim_instance_id", "claim_instance_started_at", "claimed_at", "finalized_at", "status", "failure_code"} {
+		for _, name := range []string{"request_id", "actor_id", "reason", "claim_instance_id", "claim_instance_started_at", "claimed_at", "finalized_at", "status", "failure_code", "acknowledgement"} {
 			if _, ok := fields[name]; !ok {
 				t.Fatal("publication receipt changed its exact wire contract")
 			}
@@ -297,6 +297,15 @@ func testRuntimeInstallationProcessRestart(t *testing.T, db *gorm.DB) {
 	originalReceipt := publicationRequest(http.MethodPost, firstSession.CSRFToken)
 	if originalReceipt.ClaimInstanceID != original.InstanceID || !originalReceipt.ClaimInstanceStartedAt.Equal(original.InstanceStartedAt) || originalReceipt.ClaimedAt.Before(original.InstanceStartedAt) || originalReceipt.FinalizedAt.Before(originalReceipt.ClaimedAt) {
 		t.Fatal("original command lost its exact serving-process birth")
+	}
+	if originalReceipt.Acknowledgement == nil {
+		t.Fatal("successful original process lacks command-bound installation acknowledgement")
+	}
+	originalAcknowledgement := *originalReceipt.Acknowledgement
+	var originalAckRow entity.RuntimePublicationAcknowledgement
+	var acknowledgedInstallation entity.RuntimeInstallationObservation
+	if db.Where("request_id = ?", publicationInput.RequestID).Take(&originalAckRow).Error != nil || db.Where("id = ?", originalAcknowledgement.InstallationID).Take(&acknowledgedInstallation).Error != nil || originalAckRow.RequestID != publicationInput.RequestID || originalAckRow.InstallationID != acknowledgedInstallation.ID || originalAcknowledgement.Scope != "single_process_gateway_admission" || originalAcknowledgement.InstanceID != originalReceipt.ClaimInstanceID || !originalAcknowledgement.InstanceStartedAt.Equal(originalReceipt.ClaimInstanceStartedAt) || acknowledgedInstallation.InstanceID != originalAcknowledgement.InstanceID || !acknowledgedInstallation.InstanceStartedAt.Equal(originalAcknowledgement.InstanceStartedAt) || acknowledgedInstallation.SnapshotID != originalAcknowledgement.SnapshotID || !acknowledgedInstallation.RoutesPublishedAt.Equal(originalAcknowledgement.RoutesPublishedAt) || !originalAckRow.AcknowledgedAt.Equal(originalAcknowledgement.AcknowledgedAt) || originalAckRow.AcknowledgedAt.Before(originalReceipt.ClaimedAt) {
+		t.Fatal("original HTTP acknowledgement differs from exact durable process/installation tuple")
 	}
 	originalCommand := runtimePublicationStoredV105(t, db, publicationInput.RequestID)
 	var originalActor entity.User
@@ -343,6 +352,10 @@ func testRuntimeInstallationProcessRestart(t *testing.T, db *gorm.DB) {
 	// from being inferred from runtime timestamps or snapshot IDs here.
 	if !reflect.DeepEqual(originalReceipt, publicationRequest(http.MethodGet, "")) || !reflect.DeepEqual(originalReceipt, publicationRequest(http.MethodPost, resumedSession.CSRFToken)) {
 		t.Fatal("restart replay replaced the original terminal command receipt")
+	}
+	var retainedAcknowledgement entity.RuntimePublicationAcknowledgement
+	if db.Where("request_id = ?", publicationInput.RequestID).Take(&retainedAcknowledgement).Error != nil || retainedAcknowledgement.RequestID != originalAckRow.RequestID || retainedAcknowledgement.InstallationID != originalAckRow.InstallationID || !retainedAcknowledgement.AcknowledgedAt.Equal(originalAckRow.AcknowledgedAt) {
+		t.Fatal("real restart/replay rewrote original local acknowledgement")
 	}
 	retainedCommand := runtimePublicationStoredV105(t, db, publicationInput.RequestID)
 	if !reflect.DeepEqual(originalCommand, retainedCommand) || !reflect.DeepEqual(originalAudits, publicationAudits(retainedCommand)) {

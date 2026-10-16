@@ -501,7 +501,7 @@ func TestProjectKeyMonthlyBehaviorRegistryTail(t *testing.T) {
 	for _, pair := range matches {
 		pairs = append(pairs, pair[1]+":"+pair[2])
 	}
-	if !apiKeyDeliveryControllerDiscoveryRegistry227Current(pairs) || !strings.Contains(string(raw), "versions != 116") {
+	if !apiKeyDeliveryControllerDiscoveryRegistry227Current(pairs) || !strings.Contains(string(raw), "versions != 118") {
 		t.Fatal("exact V116/227 controller discovery registry required before historical checks")
 	}
 	pairs = pairs[:224]
@@ -533,7 +533,7 @@ func TestProjectKeyMonthlyBehaviorRegistryTail(t *testing.T) {
 		t.Fatal("exact V93/181 successor changed")
 	}
 	pairs = pairs[:179]
-	if len(pairs) != 179 || !strings.Contains(string(raw), "versions != 116") {
+	if len(pairs) != 179 || !strings.Contains(string(raw), "versions != 118") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if !projectKeyMonthlyBehaviorRegistryMatches(pairs) {

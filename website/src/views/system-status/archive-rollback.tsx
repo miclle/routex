@@ -373,6 +373,17 @@ export function ArchiveRollback({
               <p role="status">{t('archiveRollbackRecorded')}</p>
               <p>{t(`archiveRollbackPublication_${saved.publication.status}`)}</p>
               <p>
+                {saved.publication.acknowledgement
+                  ? t('archiveRollbackAcknowledgementRecorded', {
+                      instance: saved.publication.acknowledgement.instance_id,
+                      snapshot: saved.publication.acknowledgement.snapshot_id,
+                    })
+                  : t('archiveRollbackAcknowledgementUnknown')}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {t('archiveRollbackAcknowledgementBoundary')}
+              </p>
+              <p>
                 {t(
                   saved.superseded
                     ? 'archiveRollbackSuperseded'

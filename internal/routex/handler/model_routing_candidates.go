@@ -42,3 +42,14 @@ func (ctrl *Ctrl) ListModelRoutingCandidates(c *fox.Context) (*service.ModelRout
 	}
 	return ctrl.service.ListModelRoutingCandidates(c.Request.Context(), currentAuthentication(c).User.ID, c.Param("model_id"), protocol, provider, f)
 }
+
+// GetModelRoutingCandidate accepts only the reviewed native protocol and Provider.
+// Source identity comes exclusively from the resource URL.
+func (ctrl *Ctrl) GetModelRoutingCandidate(c *fox.Context) (*service.ModelRoutingCandidateReview, error) {
+	modelCreationPrivate(c)
+	values, err := parseTeamQuotaQuery(c, map[string]bool{"protocol": true, "provider_id": true})
+	if err != nil {
+		return nil, err
+	}
+	return ctrl.service.GetModelRoutingCandidate(c.Request.Context(), currentAuthentication(c).User.ID, c.Param("model_id"), values["protocol"], values["provider_id"], c.Param("provider_model_id"))
+}

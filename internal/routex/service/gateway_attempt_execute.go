@@ -62,8 +62,17 @@ func (s *Service) gatewayNativeAttempts(ctx context.Context, requestID string, r
 	if err != nil {
 		return result, gatewayPublicAttemptError(err)
 	}
+	var execution *sharedGatewayExecution
+	if s.sharedGateway != nil {
+		execution, err = s.prepareSharedGatewayExecution(ctx, requestID, plan, result, payload, options...)
+		if err != nil {
+			return result, gatewayPublicAttemptError(err)
+		}
+		result.sharedExecution = execution
+	}
+
 	if len(attachmentPlan.Occurrences) != 0 {
-		if err := s.preflightPreparedGatewayAttempt(requestID, result); err != nil {
+		if err := s.preflightGatewayExecution(ctx, requestID, result); err != nil {
 			return result, err
 		}
 		owner := attachmentOwner{Kind: entity.StorageOwnerUser, ID: result.UserID}
@@ -121,7 +130,12 @@ func (s *Service) gatewayNativeAttempts(ctx context.Context, requestID string, r
 				hookErr = err
 				return err
 			}
-			admitErr := s.admitPreparedGatewayAttempt(ctx, requestID, plan, result, attempt)
+			var admitErr error
+			if execution != nil {
+				admitErr = execution.admit(ctx)
+			} else {
+				admitErr = s.admitPreparedGatewayAttempt(ctx, requestID, plan, result, attempt)
+			}
 			if admitErr != nil {
 				hookErr = admitErr
 			} else {
@@ -222,7 +236,10 @@ func (s *Service) prepareGatewayAttemptQuotaState(ctx context.Context, plan *gat
 	return filtered, nil
 }
 
-func (s *Service) preflightPreparedGatewayAttempt(requestID string, result *GatewayResult) error {
+func (s *Service) preflightPreparedGatewayAttempt(ctx context.Context, requestID string, result *GatewayResult) error {
+	if s.recorder != nil && s.admission == nil {
+		return callQueueUnavailable
+	}
 	if s.recorder == nil {
 		for _, policy := range result.admissionQuota {
 			if policy.Tokens5H != nil || policy.Tokens7D != nil || policy.TokensMonth != nil || policy.TPM != nil || policy.MoneyMonth != nil || policy.RPM != nil || policy.Concurrency != nil {
@@ -231,7 +248,7 @@ func (s *Service) preflightPreparedGatewayAttempt(requestID string, result *Gate
 		}
 		return nil
 	}
-	if err := s.recorder.queue.PreflightWithQuota(requestID, result.admissionQuota, result.quotaBound, result.quotaTimeZone, time.Now().UTC()); err != nil {
+	if err := s.admission.PreflightWithQuota(ctx, requestID, result.admissionQuota, result.quotaBound, result.quotaTimeZone, time.Now().UTC()); err != nil {
 		return quotaGatewayError(err)
 	}
 	return nil
@@ -281,7 +298,7 @@ func (s *Service) admitPreparedGatewayAttempt(ctx context.Context, requestID str
 	result.quotaTimeZone = data.Setting.TimeZone
 	result.attemptEvidence = gatewayAttemptEvidence(current, result, policies, data)
 	result.admissionAllowed = cloneGatewayAttemptAllowed(current.allowed)
-	return s.AdmitGatewayCall(requestID, result)
+	return s.admitGatewayCall(ctx, requestID, result)
 }
 
 func (s *Service) validateGatewayRetryEvidence(ctx context.Context, plan *gatewayAttemptPlan, result *GatewayResult, attempt routeattempt.Attempt) error {
@@ -491,23 +508,38 @@ func (s *Service) executeGatewayAttempt(ctx context.Context, requestID string, p
 	}
 	applyGatewayAttemptRoute(result, prepared.route)
 	result.AttemptStartedAt = s.gatewayAttemptClock()
-	if err := s.CheckpointGatewayCall(requestID, result); err != nil {
-		return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, err, routeattempt.ErrExecution
+	if result.sharedExecution == nil {
+		if err := s.checkpointGatewayCall(ctx, requestID, result); err != nil {
+			return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, err, routeattempt.ErrExecution
+		}
 	}
 	if err := s.reauthorizePreparedGatewayAttempt(ctx, plan, result, attempt); err != nil {
 		result.AttemptID = ""
 		result.AttemptStartedAt = time.Time{}
-		if checkpointErr := s.CheckpointGatewayCall(requestID, result); checkpointErr != nil {
-			return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, checkpointErr, routeattempt.ErrExecution
+		if result.sharedExecution == nil {
+			if checkpointErr := s.checkpointGatewayExecution(ctx, requestID, result); checkpointErr != nil {
+				return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, checkpointErr, routeattempt.ErrExecution
+			}
 		}
 		return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, err, routeattempt.ErrExecution
 	}
 	// This attempt has crossed the local dispatch boundary. A later disable
 	// leaves its captured identity and metering intact, including streaming.
 	release()
-	response, requestErr := prepared.client.Do(prepared.request)
+	var response *http.Response
+	var requestErr error
+	if result.sharedExecution != nil {
+		response, requestErr = result.sharedExecution.dispatch(ctx, result, attempt, prepared)
+	} else {
+		response, requestErr = prepared.client.Do(prepared.request)
+	}
 	if response != nil && response.Body != nil {
 		response.Body = prepared.holder.body(response.Body)
+		if result.sharedExecution != nil {
+			tracked := &sharedGatewayBody{ReadCloser: response.Body}
+			result.sharedExecution.bodies = append(result.sharedExecution.bodies, tracked)
+			response.Body = tracked
+		}
 	}
 	result.Response = response
 	if requestErr != nil {
@@ -581,7 +613,7 @@ func (s *Service) finishGatewayFailedAttempt(requestID string, result *GatewayRe
 	result.AttemptID = ""
 	result.AttemptStartedAt = time.Time{}
 	result.Response = nil
-	return s.CheckpointGatewayCall(requestID, result)
+	return s.checkpointGatewayExecution(context.Background(), requestID, result)
 }
 
 func gatewayContextError(err error) error {
