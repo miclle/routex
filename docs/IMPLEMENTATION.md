@@ -4,7 +4,9 @@
 
 Work is active by explicit user instruction. Global totals remain **16 Completed /
 14 Partial capabilities** and **2 Completed / 18 Partial acceptance scenarios**.
-The candidate remains unmerged and unqualified.
+The candidate remains unmerged. Technical qualification is complete on the
+stage-two source recorded below; product and global acceptance remain Partial.
+This active section supersedes the historical paused checkpoints below.
 
 - Main/remote baseline: `24d8a61c49f0d7f3764dd3c7ad269de87b217cba`.
 - Candidate/remote baseline: `3e01cfdec33d688e6e11d155dd918d68300fdb7e`,
@@ -62,7 +64,8 @@ The candidate remains unmerged and unqualified.
   scope and clean committed source match the qualified R2 manifest exactly.
   Main functional baseline stays `24d8a61c49f0d7f3764dd3c7ad269de87b217cba`;
   tracking-only documentation updates do not merge the candidate.
-  Full F17 qualification and F29 application acceptance remain pending.
+  Full F17 qualification and F29 application acceptance remained pending at
+  that stage-one checkpoint.
 - Stage two on that exact committed source: fresh `go tool task check` passed;
   affected service/handler focused race tests passed **780/780**, with zero failures,
   zero skips and complete named terminals. Source remained unchanged.
@@ -99,7 +102,8 @@ The candidate remains unmerged and unqualified.
 - The source freeze was released after complete failed-run readback. A test-only
   run first reproduced the defect: capacities one/eight failed, while 64/65
   passed. The minimal immutable-capacity accessor/runtime-batch clamp is now
-  applied with that regression, exactly three uncommitted candidate files.
+  applied with that regression in exactly three candidate files; their
+  qualified stage-two publication is recorded below.
   Successor manifest:
   `192134f28eea004bc2f7e3220a755672ab0eee063314f7f4e755770a714fca04`.
   Fresh `go tool task check` passed; service/handler/eventqueue focused races
@@ -126,10 +130,37 @@ The candidate remains unmerged and unqualified.
   port refused with ordinary fresh binds. Audit SHA-256:
   `ed8bd767f2c6838fa295c4e29a702132c3f940de579b0c6097f98c858e2c97c0`.
   This remains point-in-time closure, not a complete child-process census.
-  Complete integration matrix remains pending on this changed source. Earlier
+  The complete successor matrix subsequently passed as recorded below. Earlier
   passing scopes stay bound to `a59c87c` and its old manifest. Frozen V119/V120
-  tests neither register
-  nor activate production migrations.
+  tests neither register nor activate production migrations.
+
+- Fresh full R3 completed through exactly one maintained invocation of
+  `go tool task test-integration`, with original Task and outer observer exit **0**.
+  PostgreSQL and MySQL each completed **615/615 named passes**, zero failures,
+  zero skips and no unmatched starts. Nonmatrix completed **11,554 starts /
+  11,532 passes / 22 explicit skips / zero failures**; runtime archive passed
+  **91/91**. Maintained deadlines were unchanged; no cancellation, timeout or
+  manual resource cleanup was used to obtain a pass.
+- Private R3 evidence: `/private/tmp/routex-target-qualification-20261016-r3`.
+  `complete-readback.json` SHA-256:
+  `f76ccd242d589413dbab568bdbaa422fcc34f481b59406b1be77c6ff4917dd88`.
+  All 2,958 tracked files retained the exact successor manifest `192134f` above.
+  Independent audit verified all raw named/package terminals and hashes, nine
+  stage groups, 48 logged application identities across twelve families on each
+  driver, the original Task/runner/observer identities, exact private Compose
+  resources and database ports 63416/63414 absent/refused with fresh ordinary
+  binds. This is point-in-time closure, not a complete child-process census.
+  Independent R3 audit SHA-256:
+  `592f0c2f02912f24bb3369f3bb6c40981163a8afb3ae11340aaf2905db74e61e`.
+- Fresh mandatory pre-commit `go tool task check` joined with exit **0**; only
+  the two existing frontend Fast Refresh warnings remain. Source stayed at
+  manifest `192134f`. Stage-two commit
+  **`0979c400bfa9ec6e4c233aad55ec338e589a2463`** is pushed to the candidate
+  branch, with exact local/tracking/remote SHA parity and a clean worktree.
+  It contains only the runtime delivery-batch clamp, immutable spool capacity
+  accessor and regression: three files, 54 insertions and one deletion.
+  Post-commit tracked bytes/modes match the qualified source exactly. No
+  candidate-to-main merge or capability/acceptance completion change occurred.
 
 The earlier failed packet stays failed: PostgreSQL 615 starts / 597 passes /
 18 failures, including migration timeout and `driver: bad connection`; MySQL
@@ -140,22 +171,39 @@ historical observations are retained separately from target-host R1.
 The independent retained-R1 audit confirms its failed disposition; the separate
 retained-R2 audit confirms a passing complete matrix on the stage-one source.
 The changed successor has passed check, affected races, complete ordinary Task,
-maintained restart and all dedicated SQL gates. Its complete integration matrix
-is next, before code publication or main adoption. Shared-runtime activation,
-V119/V120 registration and legacy history transfer remain deferred. No focused
-evidence completes F11/F23/F17 or the global objective.
+maintained restart, all dedicated SQL gates and the complete integration matrix.
+These technical gates qualify the exact stage-two source for continued candidate
+work; main adoption and full product acceptance remain open. Shared-runtime
+activation, V119/V120 registration and legacy history transfer remain deferred.
+No focused or source-only evidence completes F11/F23/F17 or the global objective.
 
 F29 product/controller source is present in the candidate; main additionally
 contains the 17 maintained fixture/evidence files from `7dbf441`. Fresh target-host
 coordinator/JWKS source is prepared at
 `/private/tmp/routex-f29-target-successor-20261016-source-r1`. Registry metadata and
-the official Vault archive/executable hashes are freshly verified; application
-build and runtime qualification remain pending. The old archive is optional,
+the official Vault archive/executable hashes are freshly verified. Twenty-four
+pure Python coordinator controls and twelve supervisor mock controls passed.
+The coordinator now preserves endpoint-specific Vault two-digest ETags and
+requires the original exact SQLSTATE test JSON named/package terminals. These
+controls establish no runtime evidence; application builds and runtime
+qualification remain pending. The old archive is optional,
 and no additional historical source delivery is needed. Installed-Key native
 use, the exact SQLSTATE 25006 pair, retirement, fresh replacement inference,
 Project/fleet, browser and external workload acceptance remain open. No old
 binary, key, database, image ID or runtime receipt is reused. Preserve unrelated
 containers and the preexisting dotfiles vendor modifications.
+
+Next, compose the 17 maintained helper files and their controller documentation
+from `7dbf441` into the candidate, preserving the qualified production source;
+run fresh relevant checks, helper races and complete ordinary Task before a
+separate publication. Build all F29 binaries, issuer and images from that full
+reviewed commit. Execute controlled Personal installed-Key native use and the
+original exact SQLSTATE 25006 pair before retirement and fresh replacement
+inference. A separate Project recipe/evidence extension is source-only; current
+Personal evidence cannot prove Project ownership. Controlled Project/bilingual
+UI and other independent roadmap acceptance can continue without the still
+unidentified real external application/runtime/issuer. External adoption remains
+its own dependent gate.
 
 ## Execution continuation (2026-10-16)
 
