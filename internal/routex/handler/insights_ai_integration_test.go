@@ -53,6 +53,8 @@ func testInsightsAIIntegration(t *testing.T, db *gorm.DB) {
 	db = db.WithContext(ctx)
 	var capturedContent atomic.Value
 	capturedContent.Store("")
+	var capturedEnvelope atomic.Value
+	capturedEnvelope.Store("")
 	var dispatches atomic.Int64
 	var mode atomic.Value
 	mode.Store("completed")
@@ -70,8 +72,9 @@ func testInsightsAIIntegration(t *testing.T, db *gorm.DB) {
 			return
 		}
 		dispatches.Add(1)
+		rawBody, readErr := io.ReadAll(io.LimitReader(r.Body, (256<<10)+1))
 		var body map[string]json.RawMessage
-		if json.NewDecoder(r.Body).Decode(&body) != nil || len(body) != 4 || string(body["model"]) != "\"native-insights\"" || string(body["stream"]) != "false" || string(body["max_completion_tokens"]) != "2048" || r.Header.Get("Cookie") != "" || r.Header.Get("X-CSRF-Token") != "" || r.Header.Get("Authorization") != "Bearer insights-provider-secret" {
+		if readErr != nil || len(rawBody) > 256<<10 || json.Unmarshal(rawBody, &body) != nil || len(body) != 4 || string(body["model"]) != "\"native-insights\"" || string(body["stream"]) != "false" || string(body["max_completion_tokens"]) != "2048" || r.Header.Get("Cookie") != "" || r.Header.Get("X-CSRF-Token") != "" || r.Header.Get("Authorization") != "Bearer insights-provider-secret" {
 			t.Error("fixed native body or private credential boundary changed")
 			w.WriteHeader(400)
 			return
@@ -83,8 +86,19 @@ func testInsightsAIIntegration(t *testing.T, db *gorm.DB) {
 			return
 		}
 		capturedContent.Store(messages[1].Content)
+		capturedEnvelope.Store(string(rawBody))
+		privateFacts := messages[1].Content
+		if mode.Load().(string) == "quota_hostile_completed" {
+			var envelope map[string]json.RawMessage
+			if json.Unmarshal([]byte(privateFacts), &envelope) != nil || len(envelope) != 2 || envelope["aggregates"] == nil || envelope["question"] == nil {
+				t.Error("fixed hostile quota question envelope changed")
+				w.WriteHeader(400)
+				return
+			}
+			privateFacts = string(envelope["aggregates"])
+		}
 		for _, private := range forbidden.Load().([]string) {
-			if strings.Contains(messages[1].Content, private) {
+			if strings.Contains(privateFacts, private) {
 				t.Error("private identity entered aggregate projection", private)
 			}
 		}
@@ -100,8 +114,17 @@ func testInsightsAIIntegration(t *testing.T, db *gorm.DB) {
 			}
 		}
 		content := "\"M1 has recorded tokens; unknown coverage remains separate.\""
-		if mode.Load().(string) == "invalid_content" {
+		switch mode.Load().(string) {
+		case "invalid_content":
 			content = "null"
+		case "quota_hostile_completed":
+			raw, err := json.Marshal(insightsAIQuotaHostileAnswer)
+			if err != nil {
+				t.Error("fixed hostile quota fixture encoding failed")
+				w.WriteHeader(500)
+				return
+			}
+			content = string(raw)
 		}
 		_, _ = io.WriteString(w, chatCompletionFixture("stop", "{\"role\":\"assistant\",\"content\":"+content+"}", "{\"prompt_tokens\":10,\"completion_tokens\":4,\"prompt_tokens_details\":{\"cached_tokens\":0,\"cache_write_tokens\":0}}", false, 0))
 	}))
@@ -637,5 +660,5 @@ func testInsightsAIIntegration(t *testing.T, db *gorm.DB) {
 			t.Fatal("cancelled actual work became zero usage or retained an active hold", usage, err)
 		}
 	})
-	testInsightsQuotaIntegration(t, ctx, db, svc, router, admin.User.ID, personal.Model.ID, insightsAITeamNativeWitness{held: &held, dispatches: &dispatches, content: &capturedContent, credentialID: credentialID})
+	testInsightsQuotaIntegration(t, ctx, db, svc, router, admin.User.ID, personal.Model.ID, insightsAITeamNativeWitness{held: &held, dispatches: &dispatches, content: &capturedContent, envelope: &capturedEnvelope, mode: mode.Store, journalPath: journalPath, credentialID: credentialID})
 }

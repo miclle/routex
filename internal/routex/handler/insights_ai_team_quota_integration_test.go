@@ -21,6 +21,9 @@ type insightsAITeamNativeWitness struct {
 	held         *atomic.Pointer[insightsAIIntegrationBarrier]
 	dispatches   *atomic.Int64
 	content      *atomic.Value
+	envelope     *atomic.Value
+	mode         func(any)
+	journalPath  string
 	credentialID string
 }
 
@@ -62,6 +65,8 @@ func setInsightsAIQuotaPersonalGrant(t *testing.T, ctx context.Context, svc *ser
 func testInsightsAITeamQuotaIntegration(t *testing.T, ctx context.Context, db *gorm.DB, svc *service.Service, router http.Handler, adminID, analystID, roleID, teamID, privateTeamID, modelID string, native insightsAITeamNativeWitness) {
 	t.Helper()
 	t.Run("team_quota_current_page_advice", func(t *testing.T) {
+		native.mode("quota_hostile_completed")
+		defer native.mode("completed")
 		login := func(t *testing.T) (SessionResponse, *http.Cookie) {
 			t.Helper()
 			res := identityRequest(router, "POST", "/api/v1/auth/login", `{"email":"quota-analyst@example.invalid","password":"quota-analysis-password"}`, nil, "")
@@ -119,7 +124,7 @@ func testInsightsAITeamQuotaIntegration(t *testing.T, ctx context.Context, db *g
 		if len(page.Items) != 1 || page.Items[0].ID == first.Items[0].ID || page.NextCursor != nil || page.Items[0].ID == privateTeamID || page.Items[0].ID != teamID && page.Items[0].ID != second.ID {
 			t.Fatal("reviewed following page escaped exact readable scope", page)
 		}
-		input := map[string]any{"report": "team_quota_tokens", "model_id": modelID, "language": "en", "cursor": *first.NextCursor, "limit": 1, "question": "Explain only T1; no new policy or forecast"}
+		input := map[string]any{"report": "team_quota_tokens", "model_id": modelID, "language": "en", "cursor": *first.NextCursor, "limit": 1, "question": insightsAIQuotaHostileQuestion(t, "team_quota_tokens", "")}
 		analyze := func() *httptest.ResponseRecorder {
 			return request("POST", "/api/v1/admin/insights/analyze", input, session.CSRFToken)
 		}
@@ -149,6 +154,7 @@ func testInsightsAITeamQuotaIntegration(t *testing.T, ctx context.Context, db *g
 			if len(attempts) != 1 || attempts[0].CredentialID != native.credentialID || attempts[0].SnapshotID == "" || attempts[0].SnapshotID != call.SnapshotID || attempts[0].Status != "success" || attempts[0].NativeCompletionEvidence != "completed" || !attempts[0].FinalUsageKnown {
 				t.Fatal("late private denial erased real native evidence", attempts)
 			}
+			assertInsightsAIQuotaTransient(t, db, native.journalPath)
 		}
 		before := native.dispatches.Load()
 		denied(t, request("POST", "/api/v1/admin/insights/analyze", input, "wrong-csrf"), 403, before)
@@ -187,16 +193,23 @@ func testInsightsAITeamQuotaIntegration(t *testing.T, ctx context.Context, db *g
 		if _, err := svc.SetResourceLimit(ctx, adminID, target, zeroView.ETag, service.LimitInput{Policy: limitsBefore.Stored, Reason: "Restore personal Team advice fixture quota"}); err != nil {
 			t.Fatal(err)
 		}
+		if err := svc.FlushCallRecorder(ctx); err != nil {
+			t.Fatal(err)
+		}
+		configuration := insightsAIQuotaConfiguration(t, db)
+		positiveBefore := native.dispatches.Load()
 		response := analyze()
 		expectStatus(t, response, 200)
 		recorded(t, response)
+		aggregates := assertInsightsAIQuotaHostileAnswer(t, response, input, native, positiveBefore)
+		assertInsightsAIQuotaConfiguration(t, db, configuration)
 		var view service.InsightsAIResponse
 		if json.Unmarshal(response.Body.Bytes(), &view) != nil || view.Capture != nil || view.QuotaCapture == nil || view.QuotaCapture.Cursor != input["cursor"] || view.QuotaCapture.Limit != 1 || len(view.Labels) != 1 || view.Labels[0].TeamID == nil || *view.Labels[0].TeamID != page.Items[0].ID {
 			t.Fatal("answer did not use the reviewed current page")
 		}
 		payload := native.content.Load().(string)
 		for _, private := range []string{teamID, second.ID, privateTeamID, analystID, *first.NextCursor, page.Items[0].Name, "shared_key_count", "team_id"} {
-			if strings.Contains(payload, private) {
+			if strings.Contains(aggregates, private) {
 				t.Fatal("identity or pagination entered native aggregate data", private)
 			}
 		}
@@ -240,7 +253,7 @@ func testInsightsAITeamQuotaIntegration(t *testing.T, ctx context.Context, db *g
 			case res := <-done:
 				joined = true
 				expectStatus(t, res, status)
-				if strings.Contains(res.Body.String(), "recorded tokens") || strings.Contains(res.Body.String(), page.Items[0].ID) {
+				if strings.Contains(res.Body.String(), "recorded tokens") || strings.Contains(res.Body.String(), "F24-A-HOSTILE-01") || strings.Contains(res.Body.String(), "F24-Q-") || strings.Contains(res.Body.String(), page.Items[0].ID) {
 					t.Fatal("revoked caller received private analysis")
 				}
 				recorded(t, res)
@@ -307,9 +320,17 @@ func testInsightsAITeamQuotaIntegration(t *testing.T, ctx context.Context, db *g
 				t.Fatal(err)
 			}
 			input["report"], input["cursor"] = "team_quota_money", *moneyFirst.NextCursor
+			input["question"] = insightsAIQuotaHostileQuestion(t, "team_quota_money", "")
+			if err := svc.FlushCallRecorder(ctx); err != nil {
+				t.Fatal(err)
+			}
+			configuration := insightsAIQuotaConfiguration(t, db)
+			positiveBefore := native.dispatches.Load()
 			res := analyze()
 			expectStatus(t, res, 200)
 			recorded(t, res)
+			aggregates := assertInsightsAIQuotaHostileAnswer(t, res, input, native, positiveBefore)
+			assertInsightsAIQuotaConfiguration(t, db, configuration)
 			completed++
 			var money service.InsightsAIResponse
 			if json.Unmarshal(res.Body.Bytes(), &money) != nil || money.QuotaCapture == nil || money.QuotaCapture.Dimension != "money" || money.QuotaCapture.Currency != moneyPage.Currency || money.QuotaCapture.Cursor != *moneyFirst.NextCursor || len(money.Labels) != 1 || money.Labels[0].TeamID == nil || *money.Labels[0].TeamID != moneyPage.Items[0].ID {
@@ -330,7 +351,7 @@ func testInsightsAITeamQuotaIntegration(t *testing.T, ctx context.Context, db *g
 				t.Fatal("exact stored Money cap changed upstream")
 			}
 			for _, private := range []string{teamID, second.ID, privateTeamID, analystID, *moneyFirst.NextCursor, moneyPage.Items[0].Name, "team_id"} {
-				if strings.Contains(payload, private) {
+				if strings.Contains(aggregates, private) {
 					t.Fatal("private Team Money identity entered upstream data")
 				}
 			}

@@ -20,6 +20,8 @@ import (
 func testInsightsAIKeyQuotaIntegration(t *testing.T, ctx context.Context, db *gorm.DB, svc *service.Service, router http.Handler, adminID, analystID, roleID, projectID, privateProjectID, personalRootID, modelID string, native insightsAITeamNativeWitness) {
 	t.Helper()
 	t.Run("key_quota_current_page_advice", func(t *testing.T) {
+		native.mode("quota_hostile_completed")
+		defer native.mode("completed")
 		// This leaf owns its prerequisite instead of relying on a sibling's cleanup.
 		setInsightsAIQuotaPersonalGrant(t, ctx, svc, adminID, analystID, modelID, true)
 		permission := entity.RolePermission{RoleID: roleID, Permission: "members.read"}
@@ -63,7 +65,7 @@ func testInsightsAIKeyQuotaIntegration(t *testing.T, ctx context.Context, db *go
 			router.ServeHTTP(res, req)
 			return res
 		}
-		input := map[string]any{"report": "key_quota_tokens", "model_id": modelID, "language": "en", "scope_kind": "member", "scope_id": adminID, "cursor": "", "limit": 1, "question": "Explain only K1; do not expose another owner or secret"}
+		input := map[string]any{"report": "key_quota_tokens", "model_id": modelID, "language": "en", "scope_kind": "member", "scope_id": adminID, "cursor": "", "limit": 1, "question": insightsAIQuotaHostileQuestion(t, "key_quota_tokens", "member")}
 		analyze := func() *httptest.ResponseRecorder {
 			return request("POST", "/api/v1/admin/insights/analyze", input, session.CSRFToken)
 		}
@@ -105,18 +107,27 @@ func testInsightsAIKeyQuotaIntegration(t *testing.T, ctx context.Context, db *go
 			if len(attempts) != 1 || attempts[0].CredentialID != native.credentialID || attempts[0].SnapshotID == "" || attempts[0].SnapshotID != call.SnapshotID || attempts[0].Status != "success" || attempts[0].NativeCompletionEvidence != "completed" || !attempts[0].FinalUsageKnown {
 				t.Fatal("private answer denial erased native metering", attempts)
 			}
+			assertInsightsAIQuotaTransient(t, db, native.journalPath)
 		}
 		completed := int64(0)
 		assertAnswer := func(t *testing.T, kind, id, root string) {
 			t.Helper()
 			input["scope_kind"], input["scope_id"] = kind, id
+			input["question"] = insightsAIQuotaHostileQuestion(t, input["report"].(string), kind)
 			page := readPage(t, kind, id)
 			if len(page.Items) != 1 || page.Items[0].ID != root || kind == "member" && page.Items[0].SharedKeyCount != 2 {
 				t.Fatal("current page did not preserve root account", page)
 			}
+			if err := svc.FlushCallRecorder(ctx); err != nil {
+				t.Fatal(err)
+			}
+			configuration := insightsAIQuotaConfiguration(t, db)
+			positiveBefore := native.dispatches.Load()
 			res := analyze()
 			expectStatus(t, res, 200)
 			recorded(t, res)
+			aggregates := assertInsightsAIQuotaHostileAnswer(t, res, input, native, positiveBefore)
+			assertInsightsAIQuotaConfiguration(t, db, configuration)
 			completed++
 			var view service.InsightsAIResponse
 			if json.Unmarshal(res.Body.Bytes(), &view) != nil || view.Capture != nil || view.QuotaCapture != nil || view.KeyQuotaCapture == nil || view.KeyQuotaCapture.ScopeKind != kind || view.KeyQuotaCapture.ScopeID != id || view.KeyQuotaCapture.Cursor != "" || view.KeyQuotaCapture.Limit != 1 || len(view.Labels) != 1 || view.Labels[0].KeyID == nil || *view.Labels[0].KeyID != root || view.Labels[0].TeamID != nil {
@@ -127,7 +138,7 @@ func testInsightsAIKeyQuotaIntegration(t *testing.T, ctx context.Context, db *go
 			}
 			payload := native.content.Load().(string)
 			for _, private := range []string{adminID, analystID, projectID, privateProjectID, personalRootID, projectKey.Record.Key.ID, projectKey.Secret, page.Items[0].Name, "scope_kind", "scope_id", "key_id", "token_hash"} {
-				if strings.Contains(payload, private) {
+				if strings.Contains(aggregates, private) {
 					t.Fatal("private Key identity entered native aggregate data")
 				}
 			}
@@ -271,7 +282,7 @@ func testInsightsAIKeyQuotaIntegration(t *testing.T, ctx context.Context, db *go
 			case res := <-done:
 				joined = true
 				expectStatus(t, res, status)
-				if strings.Contains(res.Body.String(), "recorded tokens") || strings.Contains(res.Body.String(), projectKey.Record.Key.ID) {
+				if strings.Contains(res.Body.String(), "recorded tokens") || strings.Contains(res.Body.String(), "F24-A-HOSTILE-01") || strings.Contains(res.Body.String(), "F24-Q-") || strings.Contains(res.Body.String(), projectKey.Record.Key.ID) {
 					t.Fatal("revoked authority received private Key answer")
 				}
 				recorded(t, res)
