@@ -349,16 +349,75 @@ The new private Project kit is source-reviewed at
 44 coordinator controls and six Python syntax checks passed; its new helper
 qualification supervisor passed fourteen refusal controls. The reviewed dependency
 input pins the full published helper commit and all eight exact helper hashes.
-Next build completely fresh Project binaries/images and runtime inputs, qualify
-those images, then execute O/A/B current-manager/native/SQLSTATE/retirement and
-explicit English/Chinese browser acceptance. This successor retains projected
-HTTP status receipts and supplemental full-ID/state snapshots before cleanup.
-The optional explicit browser gate remains within the original 900-second
-lifetime; no browser result is automatic. Personal evidence cannot prove Project
-ownership, and source/control passes cannot prove that future runtime. Controlled Project/bilingual
-UI and other independent roadmap acceptance can continue without the still
-unidentified real external application/runtime/issuer. External adoption remains
-its own dependent gate.
+Fresh Project builds joined with exit **0**, rebuilding all six target-host
+binaries, embedded assets and both derived Docker images with `--no-cache`.
+The unchanged 2,978-file source manifest remains
+`600a0006b0a2cc3500fbb0ecb7c87b40717a997ec78e75b16a4efb8b979d0c0b` at full
+candidate commit `777048e6a685d56c78565545d1fe94099486668f`; the thirteen-file
+private kit is independently bound. Build receipt SHA-256:
+`02d18a51139bebd777ca11f29d1637f87357569547429630cfc538f49e4494bb`.
+Fresh image qualification passed **298/298 named nodes**: host fixture 48,
+host evidence 71, Linux UID0 complete helper packages 160, and JWKS 19, with
+zero failures/skips and every original package terminal. All fifty recorded
+host commands and both exact qualification containers closed. Independent
+qualification audit SHA-256:
+`9398f4a7b5058524ad72af8a72e1c06445157cc074a9bae842bee3d537dda3f4`.
+
+Controlled Project R1 **passed its bounded native application segment** on
+`routex-f29-project-5ab9b6267c58493f`. O is the intrinsic administrator and
+Project creator, never a manager; A created the Project Key and was removed;
+B is the retained ordinary current manager. The original A Session received
+404 for exact Project reads and completion while B received 200. Actual
+Controller delivery and same-slot replacement produced three distinct
+installed-Key calls with incomplete, completed and fresh completed native facts.
+The original two-row SQL pair and distinct final pair preserve exact Project
+owner/birth, replacement birth/link, Model, Credential and per-Attempt runtime
+publication attribution. The original isolated SQLSTATE 25006 test retained
+its exact named run/pass and package pass, with zero failures/skips. Project
+retirement 409 then 204 is directly present in the projected HTTP ledger.
+Old-Key 401 is retained in the segment receipt and required by the successful
+original fixture probe with no extra peer call; it is not a raw coordinator
+HTTP-ledger row.
+
+Actual English/Chinese browser reads and local drafts passed: B saw the exact
+replacement native-completed receipt, explicitly reread facts and copied the
+version-one replacement configuration without a bearer; Personal Key scope
+stayed separate and administrative facts were denied. Removed A's exact Project
+deep link exposed no private rows. O reviewed the exact Project Profile birth,
+retained Slot revision two and Controller report with its explicit advisory
+limits. Managed creation draft validation and Escape dismissal were checked.
+No UI Key creation, rotation, retirement or Controller grant mutation was
+performed. Receipt facts cleared during one copy attempt; explicit reread then
+copy succeeded. The clearing trigger was not independently established.
+Browser evidence is limited to those reads/drafts, not all mutating workflows.
+
+Provisioning, acceptance, binary inspection and lifecycle original handles
+joined with exit **0**. The required browser marker was satisfied inside the
+original 900-second runtime gate; no lifetime or test deadline was enlarged.
+Supplemental exact-pair and final-projection full IDs and zero-exit state
+snapshots were retained before removal. Independent fresh readback confirmed
+all 96 recorded zero-exit host command groups and three original supervisor
+groups absent; seven exact container IDs, the exact network, both volumes and
+both label namespaces absent; ports 63216/63217 refused connections and accepted
+ordinary fresh binds; all three ephemeral UI password inputs were removed.
+This is recorded resource closure, not a complete child-process census.
+Independent controlled-Project audit SHA-256:
+`369f8b7aef9d18955478958c0b0dc7e5c3fb14b485ecdc84bab803e77a530f0f`.
+Private evidence:
+`/private/tmp/routex-f29-project-target-successor-20261017-source-r1`.
+Acceptance and binary-inspection terminal metadata were persisted from the
+root's retained original-join checkpoint after context compaction; their tool
+output bytes were not separately saved. The binary-inspection original
+supervisor identity was not captured. These limits are explicit.
+
+F29, F11/F23/F17 product acceptance and global totals remain Partial/unchanged.
+No necessary source archive is currently missing; the historical archive is
+optional recovery material. Continue independent roadmap acceptance while the
+real external application/runtime/issuer remains unidentified. Next prepare
+fresh controlled F30 routing rollback, original-Session process restart and
+English/Chinese archive UI acceptance; archive 91/91 alone does not close those
+gates. Controlled installed-Key use and Agent delivery do not prove external
+adoption or fleet convergence.
 
 ## Cross-machine checkpoint (2026-10-16)
 
