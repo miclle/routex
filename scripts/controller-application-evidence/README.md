@@ -14,8 +14,8 @@ single-link input reads fail closed outside Linux.
 
 An eight-second context and server-enforced read-only repeatable-read transaction
 project those two Calls, each last Attempt and the replacement Key. Limit three
-makes duplicate/ambiguous results fail closed. Exact comparisons check Personal
-owner/Key/linkage, recorded birth and call timing, successful statuses, native
+makes duplicate/ambiguous results fail closed. Exact comparisons check the explicitly selected
+Personal or Project owner/Key/linkage, recorded birth and call timing, successful statuses, native
 markers, Credential/Model/Connection/ProviderModel, canonical snapshot and expected
 sole attempt ordinal. The query selects no Key hash, bearer, payload or secret.
 Only projected immutable IDs, statuses and timestamps are emitted. Errors and
@@ -52,3 +52,42 @@ A separately reviewed coordinator must pin the command source/binary, private
 config, image and exact mounts/network, join its bounded process group and remove
 its exact owned container. Passing unit tests or preparing this command does not
 prove an actual Agent-installed application call or completed Key retirement.
+
+## Personal and Project owner input
+
+An absent `owner_kind` preserves the original Personal recipe. Explicit
+`owner_kind: "personal"` is equivalent: `user_id` and both `key_` identities
+are required, and Project-specific fields must be empty/zero.
+
+Project evidence requires `owner_kind: "project"`, an empty `user_id`, canonical
+`project_id` (`prj_`), `key_id` and `predecessor_id` (`pky_`), exact
+`project_created_at`, `predecessor_created_at`, and `key_created_at` instants,
+and the recorded replacement `key_creator_id` (`usr_`). Project birth must not
+follow predecessor birth, and predecessor birth must not follow replacement birth.
+The existing Model, Credential, Connection, ProviderModel and ordered exact request
+pair remain required. No endpoint, DSN, table, SQL, mutable catalogue lookup or
+manager Personal identity can select or replace Project ownership.
+
+The fixed Project projection joins `project_api_keys`, its exact predecessor and
+the recorded Project birth. Both Calls must have empty `user_id`, exact
+`project_id`, and exact Project-owned replacement/predecessor rows. Creator
+metadata is checked separately and grants no authority. Original immutable last
+Attempt attribution and native/status/birth checks remain mandatory. A canonical
+snapshot is checked per Attempt; the two Attempts need not share a snapshot.
+The query uses portable GORM joins and predicates, without a dialect branch;
+this command and SQLSTATE test still intentionally connect only to the controlled
+PostgreSQL namespace. They do not establish MySQL runtime application acceptance.
+
+The same isolated read-only integration test selects the fixed owner-kind table
+for its deliberate zero-row write and still requires exact SQLSTATE 25006. Supply
+a fresh Project exact pair; do not relabel or reuse a Personal runtime receipt.
+The original Personal pair and final post-retirement pair remain independent
+immutable config/proof files. This extension requires its own source review,
+unit/race and real isolated PostgreSQL qualification before any Project claim.
+
+Input decoding rejects case aliases of `owner_kind` before struct decoding,
+including null aliases and mixed canonical/alias fields. Connection validation
+requires the bounded password only at input preparation. The actual run path
+consumes that field before opening the database; fixed query and projection
+validation retain every non-secret owner, birth, native and attribution check.
+The SQLSTATE integration control uses the same secret-consumption transition.

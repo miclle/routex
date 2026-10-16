@@ -150,7 +150,11 @@ func validSecret(s []byte) bool {
 	}
 	return true
 }
-func validKey(s []byte) bool { return len(s) == 46 && string(s[:3]) == "rx_" && validSecret(s) }
+func validKey(s []byte) bool {
+	personal := len(s) == 46 && string(s[:3]) == "rx_"
+	project := len(s) == 47 && string(s[:4]) == "rxp_"
+	return (personal || project) && validSecret(s)
+}
 func validServeConfig(c serveConfig) bool {
 	host, port, err := net.SplitHostPort(c.Listen)
 	n, e := strconv.Atoi(port)

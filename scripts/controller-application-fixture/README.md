@@ -28,7 +28,8 @@ Example invocation config:
 ```
 
 The secret input is a private newline-free alphanumeric/base64url value. Key
-inputs require the current `rx_` grammar. Every private file must be regular,
+inputs require either the 46-byte `rx_` Personal grammar or the 47-byte
+`rxp_` Project grammar, each with exactly 43 base64url suffix characters. Every private file must be regular,
 mode 0600, single-linked and bounded; directory ancestors must not be writable
 by group or others. Installed Keys must belong to the capsule effective UID.
 Private bind inputs may retain the coordinator UID. Linux `openat` traversal
@@ -67,3 +68,11 @@ actual architecture when building. A separate coordinator must own namespace,
 ports, inputs, process groups, executable/image pins, finite traces and cleanup.
 It must separately prove persisted calls/receipts, planned retirement, old-Key
 401 with no new upstream event, and a fresh installed-replacement call.
+
+Project support changes only bearer grammar in the maintained fixture. Installed
+Project Keys use the same exact slot reader and effective-UID protection;
+preserved predecessor inputs retain the existing private bind-owner contract.
+Neither a `pky_` record identity nor a Project URL argument is a bearer. The
+same native parsing, one-request limit, no-retry/no-redirect transport and
+status-only predecessor output apply to both owner kinds. The coordinator must
+use Project-scoped persistence APIs and the separate exact Project projection.

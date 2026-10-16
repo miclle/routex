@@ -3,10 +3,8 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -26,15 +24,17 @@ func TestPostgresEnforcesReadOnlyAndExactProjection(t *testing.T) {
 	}
 	defer clear(raw)
 	var c config
-	d := json.NewDecoder(bytes.NewReader(raw))
-	d.DisallowUnknownFields()
-	if !validJSONObject(raw) || d.Decode(&c) != nil || !validConfig(c) {
+	if !decodeConfig(raw, &c) {
 		t.Fatal("invalid private test config")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
 	defer cancel()
-	dsn := "host=postgres port=5432 user=routex password=" + c.DatabasePassword + " dbname=routex sslmode=disable connect_timeout=2"
+	dsn, ok := prepareConnection(&c)
+	if !ok {
+		t.Fatal("invalid private connection input")
+	}
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	dsn = ""
 	if err != nil {
 		t.Fatal("isolated PostgreSQL connection failed")
 	}
@@ -55,7 +55,11 @@ func TestPostgresEnforcesReadOnlyAndExactProjection(t *testing.T) {
 	// This deliberately touches zero rows in an isolated test namespace. PostgreSQL
 	// must reject the write operation itself in the read-only transaction, proving
 	// that read-only behavior is server-enforced, not a success label in source.
-	writeErr := tx.Table("api_keys").Where("id = ?", "nonexistent-isolated-readonly-probe").Update("status", "active").Error
+	writeTable := "api_keys"
+	if c.OwnerKind == "project" {
+		writeTable = "project_api_keys"
+	}
+	writeErr := tx.Table(writeTable).Where("id = ?", "nonexistent-isolated-readonly-probe").Update("status", "active").Error
 	var state interface{ SQLState() string }
 	if writeErr == nil || !errors.As(writeErr, &state) || state.SQLState() != "25006" {
 		_ = tx.Rollback()
