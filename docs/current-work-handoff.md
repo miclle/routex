@@ -187,9 +187,10 @@ The coordinator now preserves endpoint-specific Vault two-digest ETags and
 requires the original exact SQLSTATE test JSON named/package terminals. These
 controls establish no runtime evidence; the fresh build, Linux qualification
 and failed controlled-runtime attempt are recorded below. The old archive is optional,
-and no additional historical source delivery is needed. Installed-Key native
-use, the exact SQLSTATE 25006 pair, retirement, fresh replacement inference,
-Project/fleet, browser and external workload acceptance remain open. No old
+and no additional historical source delivery is needed. At that source-only checkpoint, installed-Key native use, SQLSTATE 25006,
+retirement and fresh replacement inference were still unexecuted. The controlled
+Personal R2 result below now qualifies only that bounded slice; Project/fleet,
+browser and external workload acceptance remain open. No old
 binary, key, database, image ID or runtime receipt is reused. Preserve unrelated
 containers and the preexisting dotfiles vendor modifications.
 
@@ -265,15 +266,59 @@ failed-runtime audit SHA-256:
 Private receipts remain under the original kit's `private/`; failed runtime data
 is not relabeled by successful cleanup or earlier helper qualification.
 
-A new private source-only successor is being prepared at
-`/private/tmp/routex-f29-target-successor-20261017-source-r2`: bounded protected
-export through fixed `docker exec` and strict single-member archive validation,
-sensitive-output exclusion, and bounded failure-stage diagnostics. The original
-kit/evidence remain immutable. Next review and qualify that successor, rebuild
-both images without build cache under the original budgets, and use a completely
-new owned runtime with fresh inputs. Then execute installed-Key native use,
-the original exact SQLSTATE 25006 pair, retirement and fresh replacement
-inference. A separate Project recipe/evidence extension is source-only; current
+The separate Personal R2 successor is now qualified at
+`/private/tmp/routex-f29-target-successor-20261017-source-r2`. Its bounded fixed
+`docker exec` export accepts one exact UID0/0600 regular tar member, keeps Key
+bytes only in transient memory/private input, and excludes sensitive output from
+logs. All **37 controls** passed, including three real finite host subprocess
+capture/bound/timeout witnesses; six Python source files passed syntax checks.
+Original 420/60/70/1,200-second acceptance/Controller/wrapper/build budgets stayed
+unchanged. Both new image builds used `--no-cache`; twelve build commands joined
+with exit zero and recorded groups absent, with all 2,975 source and 13 kit files
+unchanged. Build receipt SHA-256:
+`ad3a20ce6c943c878459d324b638c1c29167046aa17e8054335e40ad2837e46e`.
+The new capsule/test images are
+`sha256:4211fbf81a2ef27dd7825e23af231f20ed3b2269b81ec6c6859b4688a924089b`
+and `sha256:e4d280db166a0c28f1e0314798a270b8b38198648b06c5e660b600c3b66a71bc`.
+Their source, kit and fresh build labels match the retained build receipt.
+Independent build audit SHA-256:
+`2160ec772c8e25cf87801bc318d82489ed2199310f87758868b6541ac160c8cc`.
+
+Fresh helper qualification R3 on those images passed **115/115 named nodes**,
+with zero failures/skips, all original package terminals, fifty zero-exit host
+commands and two removed exact qualification containers. Independent audit:
+`8e03c1759718f28aa3499f16d2f12cb7ca9689e2baf4556b00d98772141a2f33`.
+
+Controlled Personal R2 **passed its bounded application segment**. Original
+provisioning, acceptance and lifecycle handles all joined with exit **0** and
+captured original PID/PGID identities. Actual Controller delivery and same-slot
+replacement succeeded. Three distinct installed-Key calls produced incomplete,
+completed and fresh completed native facts. The original two-row durable SQL
+pair and the distinct final pair retain exact Personal owner, replacement birth,
+predecessor link, Credential, Model and per-Attempt publication attribution.
+The original isolated SQLSTATE 25006 test has its exact named run/pass and
+package pass, with zero failures/skips. Retirement 409 then 204, old-Key 401
+without another peer event, and the fresh third call are required by the executed
+source and original successful exit; raw HTTP status receipts were not retained.
+That evidence limit is explicit and is not relabeled as raw HTTP readback.
+
+All 93 recorded host commands joined with exit zero; their groups and all three
+original supervisor groups were independently observed absent. All seven owned
+container IDs, both project-label namespaces and ports 61087/61088 were closed;
+both ports accepted fresh ordinary binds. Two supplemental full IDs and their
+zero-exit/destroy sequence were recovered from ten original bounded Docker daemon
+events after the run; pre-removal supplemental state snapshots were not retained.
+This remains recorded closure, not a complete child-process census. Independent
+controlled-Personal audit SHA-256:
+`1932081b0489a241a05df780cfc94e3a97c99cb4bf3474af2961299a9b90130a`.
+Failed R1 and its original kit/receipts remain immutable. This controlled fixture
+proves bounded installed-Key application use, not external application adoption.
+
+Next compose and qualify the separately reviewed eight-file Project helper
+extension: explicit disjoint Project ownership/birth proof, safe connection-secret
+consumption, canonical owner discriminator and bounded Project bearer support.
+Then build a new Project coordinator and fresh artifacts, retaining projected
+HTTP status receipts and supplemental full-ID snapshots before cleanup.
 Personal evidence cannot prove Project ownership. Controlled Project/bilingual
 UI and other independent roadmap acceptance can continue without the still
 unidentified real external application/runtime/issuer. External adoption remains
