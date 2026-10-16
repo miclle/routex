@@ -278,3 +278,25 @@ rename. Mandatory project checking also passed on this composition; neither
 check establishes actual Vault/Agent replacement acceptance. Replacement changes no
 Key retirement gate: a qualifying successful final native completed call by the
 exact replacement Key remains separate and required.
+
+## Reproducible controlled application fixtures
+
+The maintained root-module commands in `scripts/controller-application-fixture`
+and `scripts/controller-application-evidence` support a separate finite
+application-use acceptance phase. The first serves an authenticated controlled
+native peer, invokes the Gateway using the actual Agent-installed slot file,
+and separately probes a fixed private predecessor file. The second uses a
+server-enforced read-only GORM transaction to verify the exact captured Calls,
+last Attempts, replacement owner/birth, native markers and Credential/snapshot
+attribution. Neither command adds a production API or bypasses retirement gates.
+
+Their ordinary unit tests participate in the root Go package checks. Linux
+no-follow, mode 0600, single-link and ownership tests must additionally run on
+Linux; non-Linux private input reads fail closed. See the two command READMEs
+for focused tests, cross-build commands and the isolated PostgreSQL read-only
+integration control. A coordinator must provide pinned binaries/images, private
+inputs, owned namespace/processes, finite traces and independently verified
+cleanup. Native `length` remains incomplete; only the durable exact replacement
+`completed` evidence can satisfy planned retirement. Controlled fixture tests,
+actual Agent application acceptance and real external workload acceptance remain
+separate evidence scopes.
