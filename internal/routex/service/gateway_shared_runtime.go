@@ -165,7 +165,7 @@ func (s *Service) flushSharedGatewayCalls(ctx context.Context) error {
 	}
 	r.flush.Lock()
 	defer r.flush.Unlock()
-	entries, err := r.spool.ReadDelivery(ctx, 64)
+	entries, err := r.spool.ReadDelivery(ctx, min(64, r.spool.journal.Capacity()))
 	if err != nil {
 		return err
 	}

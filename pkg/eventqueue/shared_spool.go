@@ -204,6 +204,9 @@ func OpenSharedSpool(ctx context.Context, path string, identity SharedSpoolIdent
 func (s *SharedSpool) Close() error                  { return s.db.Close() }
 func (s *SharedSpool) Identity() SharedSpoolIdentity { return s.identity }
 
+// Capacity is the immutable reservation bound reviewed when this spool was opened.
+func (s *SharedSpool) Capacity() int { return s.options.Capacity }
+
 func sharedSpoolBuckets() [][]byte {
 	return [][]byte{sharedSpoolMetaBucket, sharedSpoolRecordBucket, sharedSpoolReadyBucket, sharedSpoolAckBucket}
 }

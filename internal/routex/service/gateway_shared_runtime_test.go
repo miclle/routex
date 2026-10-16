@@ -1,7 +1,12 @@
 package service
 
 import (
+	"bytes"
+	"context"
+	"errors"
+	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
@@ -43,6 +48,51 @@ func TestSharedGatewayRuntimeRejectsForeignSpoolAndProcessBeforeSQL(t *testing.T
 			}
 			if s.sharedGateway != nil || s.recorder != nil {
 				t.Fatal("constructor partially activated shared or local recording")
+			}
+		})
+	}
+}
+
+func TestSharedGatewayFlushRespectsReviewedSpoolCapacity(t *testing.T) {
+	for _, capacity := range []int{1, 8, 64, 65} {
+		t.Run(strconv.Itoa(capacity), func(t *testing.T) {
+			registration := admissionOwnerFixture()
+			path := filepath.Join(t.TempDir(), "calls.db")
+			journal, err := eventqueue.OpenSharedSpool(t.Context(), path, eventqueue.SharedSpoolIdentity{InstallationID: registration.Owner.InstallationID, SpoolID: registration.Owner.SpoolID, ModeRevision: registration.Owner.ModeRevision}, eventqueue.SharedSpoolOptions{Capacity: capacity, MaxDataBytes: eventqueue.SharedSpoolMaxDataBytes, DeliveredCapacity: capacity})
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() {
+				if err := journal.Close(); err != nil {
+					t.Error(err)
+				}
+			})
+			adapter, err := newDurableSharedCallSpool(journal)
+			if err != nil {
+				t.Fatal(err)
+			}
+			before, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			s := &Service{}
+			s.sharedGateway = &sharedGatewayRuntime{service: s, spool: adapter, timeout: time.Second}
+			// An empty valid journal needs neither SQL nor reconstructed live
+			// authority. The real flush must honor even a one-slot spool.
+			if err := s.FlushCallRecorder(t.Context()); err != nil {
+				t.Fatal("valid small-capacity delivery read failed", err)
+			}
+			if _, err := journal.ReadReady(t.Context(), capacity+1); !errors.Is(err, eventqueue.ErrInvalid) {
+				t.Fatal("direct spool reads no longer enforce their reviewed bound", err)
+			}
+			cancelled, cancel := context.WithCancel(t.Context())
+			cancel()
+			if err := s.FlushCallRecorder(cancelled); !errors.Is(err, context.Canceled) {
+				t.Fatal("delivery read ignored cancellation", err)
+			}
+			after, err := os.ReadFile(path)
+			if err != nil || !bytes.Equal(before, after) {
+				t.Fatal("delivery reads mutated the empty owned journal", err)
 			}
 		})
 	}
