@@ -110,6 +110,13 @@ func (s *durableSharedCallSpool) ConfirmAcceptance(ctx context.Context, key shar
 	return sharedSpoolError(s.journal.ConfirmAcceptance(ctx, sharedJournalKey(key), receiptID))
 }
 
+func (s *durableSharedCallSpool) RejectAdmission(ctx context.Context, key sharedAdmissionKey) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return sharedSpoolError(s.journal.RejectAdmission(ctx, sharedJournalKey(key)))
+}
+
 func (s *durableSharedCallSpool) PrepareAttempt(ctx context.Context, attempt sharedAttemptIntent) error {
 	if err := ctx.Err(); err != nil {
 		return err

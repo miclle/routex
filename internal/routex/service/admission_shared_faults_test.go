@@ -79,6 +79,17 @@ func (s *sharedFaultSpool) ConfirmAcceptance(ctx context.Context, key sharedAdmi
 	return s.fault.fail("confirm_acceptance", true)
 }
 
+func (s *sharedFaultSpool) RejectAdmission(ctx context.Context, key sharedAdmissionKey) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if s.record == nil || sharedTestKey(s.record.Intent) != key || s.record.ReceiptID != "" || len(s.record.Attempts) != 0 || s.record.Terminal != nil {
+		return errSharedAdmissionConflict
+	}
+	s.record = nil
+	return nil
+}
+
 func (s *sharedFaultSpool) PrepareAttempt(ctx context.Context, intent sharedAttemptIntent) error {
 	if _, err := s.Read(ctx, intent.Key); err != nil {
 		return err
@@ -178,6 +189,15 @@ type sharedFaultAuthority struct {
 	moneyHeld         string
 	settleHadDeadline bool
 	settleWasCanceled bool
+}
+
+type sharedRejectedAuthority struct {
+	sharedEconomicAuthority
+	err error
+}
+
+func (a sharedRejectedAuthority) Accept(context.Context, sharedAdmissionIntent) (*sharedAuthorityReceipt, error) {
+	return nil, a.err
 }
 
 func (a *sharedFaultAuthority) Accept(ctx context.Context, intent sharedAdmissionIntent) (*sharedAuthorityReceipt, error) {

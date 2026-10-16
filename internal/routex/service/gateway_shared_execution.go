@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/netip"
@@ -19,6 +20,7 @@ type sharedGatewayExecution struct {
 	coordinator        *sharedAdmissionCoordinator
 	authority          *sharedEconomicSQLStore
 	admissionAttempted bool
+	admissionRejected  bool
 	bodies             []*sharedGatewayBody
 }
 
@@ -26,6 +28,10 @@ type sharedGatewayBody struct {
 	io.ReadCloser
 	once sync.Once
 	err  error
+}
+
+func sharedGatewayRejectionMayBeRecorded(e *sharedGatewayExecution, result *GatewayResult) bool {
+	return e != nil && result != nil && !result.Admitted && (!e.admissionAttempted || e.admissionRejected)
 }
 
 func (b *sharedGatewayBody) Close() error {
@@ -43,6 +49,9 @@ func (e *sharedGatewayExecution) admit(ctx context.Context) error {
 	}
 	e.admissionAttempted = true
 	if err := e.coordinator.Admit(ctx); err != nil {
+		if errors.Is(err, errSharedAdmissionRejected) {
+			e.admissionRejected = true
+		}
 		return quotaGatewayError(err)
 	}
 	return nil
@@ -157,10 +166,7 @@ func (s *Service) FinalizeGatewayCall(ctx context.Context, result *GatewayResult
 			return callQueueUnavailable
 		}
 	}
-	if !e.admissionAttempted {
-		if result.Admitted {
-			return callQueueUnavailable
-		}
+	if sharedGatewayRejectionMayBeRecorded(e, result) {
 		finalizeCallPricing(&fact)
 		return s.RecordCall(ctx, fact)
 	}

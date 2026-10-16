@@ -145,6 +145,7 @@ type sharedCallSpool interface {
 	Reserve(context.Context, sharedAdmissionIntent) error
 	Read(context.Context, sharedAdmissionKey) (*sharedSpoolRecord, error)
 	ConfirmAcceptance(context.Context, sharedAdmissionKey, string) error
+	RejectAdmission(context.Context, sharedAdmissionKey) error
 	PrepareAttempt(context.Context, sharedAttemptIntent) error
 	ConfirmDispatch(context.Context, sharedDispatchReceipt) error
 	RecordAttempt(context.Context, sharedAttemptCheckpoint) error

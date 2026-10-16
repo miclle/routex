@@ -110,6 +110,12 @@ func (c *sharedAdmissionCoordinator) Admit(ctx context.Context) error {
 	// A reserved record from another execution cannot be adopted by this object.
 	receipt, err := c.authority.Accept(op, intent)
 	if err != nil {
+		if definitiveSharedAdmissionRejection(err) {
+			if rejectErr := c.spool.RejectAdmission(op, c.key()); rejectErr != nil {
+				return sharedUncertain(rejectErr)
+			}
+			return fmt.Errorf("%w: %w", errSharedAdmissionRejected, err)
+		}
 		return sharedUncertain(err)
 	}
 	if !c.matchesReceipt(receipt) || receipt.Terminal != nil || len(receipt.Dispatches) != 0 {
@@ -120,6 +126,26 @@ func (c *sharedAdmissionCoordinator) Admit(ctx context.Context) error {
 	}
 	c.receiptID, c.admitted = receipt.ReceiptID, true
 	return nil
+}
+
+var errSharedAdmissionRejected = errors.New("shared admission was definitively rejected")
+
+func definitiveSharedAdmissionRejection(err error) bool {
+	for _, rejected := range []error{
+		eventqueue.ErrRateLimit,
+		eventqueue.ErrConcurrency,
+		eventqueue.ErrQuotaCoverage,
+		eventqueue.ErrQuotaUnknown,
+		eventqueue.ErrQuotaBound,
+		eventqueue.ErrQuotaTokens,
+		eventqueue.ErrQuotaMoney,
+		eventqueue.ErrQuotaCurrency,
+	} {
+		if errors.Is(err, rejected) {
+			return true
+		}
+	}
+	return false
 }
 
 // Dispatch creates a conservative shared dispatch intent before invoking the

@@ -81,6 +81,25 @@ func (s *SharedSpool) ConfirmAcceptance(ctx context.Context, key SharedSpoolKey,
 	})
 }
 
+// RejectAdmission releases a reservation when the authority definitively
+// rejected it before creating a receipt. Any later stage makes the record
+// immutable for this transition so uncertainty cannot discard evidence.
+func (s *SharedSpool) RejectAdmission(ctx context.Context, key SharedSpoolKey) error {
+	if !s.validKey(key) {
+		return ErrInvalid
+	}
+	return s.update(ctx, func(tx *bolt.Tx) error {
+		record, err := s.readRecord(tx, key)
+		if err != nil {
+			return err
+		}
+		if record.ReceiptID != "" || len(record.Attempts) != 0 || len(record.Dispatches) != 0 || len(record.Checkpoints) != 0 || record.Terminal != nil || record.Ready != nil {
+			return ErrSharedSpoolConflict
+		}
+		return tx.Bucket(sharedSpoolRecordBucket).Delete([]byte(key.RequestID))
+	})
+}
+
 func (s *SharedSpool) PrepareAttempt(ctx context.Context, key SharedSpoolKey, attempt SharedSpoolAttempt) error {
 	if err := ctx.Err(); err != nil {
 		return err

@@ -78,8 +78,13 @@ when the exact logical executor closes. Historical settlement remains available
 after admission stops or current authorization changes. Its detached operation
 is finite, retains the original terminal body and never repeats inference.
 An uncertain admission cannot be converted into an unadmitted success or local
-ledger. Requests rejected before any shared admission attempt may retain their
-ordinary Call fact without inventing an economic receipt.
+ledger. Requests rejected before any shared admission attempt, or rejected by a
+typed quota/rate/capacity decision before a shared receipt exists, may retain
+their ordinary Call fact without inventing an economic receipt. Storage,
+transaction, and acknowledgement uncertainty remains fail-closed and is not
+recorded through the local ledger. A definitive pre-receipt rejection first
+conditionally releases its untouched spool reservation; a failed release is
+uncertain and remains pending for recovery.
 
 Only an exact acknowledged SQL terminal makes the spool fact ready. Explicit
 `FlushCallRecorder` delivers those facts using idempotent `RecordCall` and

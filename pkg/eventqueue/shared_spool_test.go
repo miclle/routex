@@ -60,6 +60,32 @@ func sharedJournalReady(t *testing.T, spool *SharedSpool, key SharedSpoolKey, bo
 	return receipt
 }
 
+func TestSharedSpoolRejectAdmissionReleasesOnlyUntouchedReservation(t *testing.T) {
+	spool, _, identity, _ := sharedJournalFixture(t, 1, 4)
+	ctx := context.Background()
+	body := sharedJournalBody([]byte("rejected_admission"))
+	key := sharedJournalKey(identity, "req_rejected", body)
+	if err := spool.Reserve(ctx, key, body); err != nil {
+		t.Fatal(err)
+	}
+	if err := spool.RejectAdmission(ctx, key); err != nil {
+		t.Fatal("rejecting untouched reservation", err)
+	}
+	if _, err := spool.ReadRecord(ctx, key); !errors.Is(err, ErrMissing) {
+		t.Fatalf("rejected reservation retained: %v", err)
+	}
+
+	if err := spool.Reserve(ctx, key, body); err != nil {
+		t.Fatal("released slot was not reusable", err)
+	}
+	if err := spool.ConfirmAcceptance(ctx, key, "receipt_rejected"); err != nil {
+		t.Fatal(err)
+	}
+	if err := spool.RejectAdmission(ctx, key); !errors.Is(err, ErrSharedSpoolConflict) {
+		t.Fatalf("accepted reservation was released: %v", err)
+	}
+}
+
 func sharedJournalBytes(t *testing.T, path string) []byte {
 	t.Helper()
 	raw, err := os.ReadFile(path)
