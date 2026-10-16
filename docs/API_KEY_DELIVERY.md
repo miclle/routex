@@ -211,7 +211,9 @@ Control Plane foundation adds explicit administrator enrollment, configuration
 assignment, revocation, machine-only pull and advisory reporting. It does not
 install or launch an external controller/Agent, turn on automatic rotation, or
 change the existing descriptor's `not_configured` / `unknown` claims. Executable
-controller, real workload JWT/Agent output, application use and fleet acceptance
+controller delivery is documented in [the standalone controller guide](API_KEY_CONTROLLER.md).
+Controlled Personal real workload JWT/Agent output, retry and replacement now pass
+with owned cleanup; application use, Project/fleet and external compatibility
 remain separate work.
 
 ### Independent controller enrollment and configuration
@@ -379,6 +381,9 @@ bilingual browser and external caller results each need their own recorded scope
 A reconstructed Service is not process restart. Commit `14a75fe` delivers the
 independently enrolled explicit file controller, its discovery and management UI,
 and exact reviewed machine acknowledgement protocol. The phase passes mandatory,
-ordinary, complete dual-database and authentication-restart checks. Real Agent
-delivery remains pending. Explicit controller delivery establishes neither
-automatic rotation, external cleanup, native application use nor fleet application.
+ordinary, complete dual-database and authentication-restart checks. Controlled
+Personal real-Agent delivery, identical report retry, same-slot replacement and
+prelaunch revoked-grant output preservation now pass with independent cleanup.
+See [the exact current acceptance boundary](API_KEY_CONTROLLER.md#verification-boundary).
+Explicit controller delivery establishes neither scheduled rotation, external
+cleanup, native application use, predecessor retirement nor fleet application.

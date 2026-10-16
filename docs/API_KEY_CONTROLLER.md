@@ -9,11 +9,15 @@ an application environment that opts into managed file delivery.
 Commit `14a75fe` delivers the standalone controller and enrolled controller routes.
 The focused fake-process, HTTP and CLI boundary passes ordinary and race tests;
 the containing phase also passes mandatory checks, frontend tests, authentication
-restart and the complete PostgreSQL/MySQL regression. Real Vault/JWT/Agent delivery,
-browser interaction and application use remain unverified. Server contracts are
-documented in `docs/API_KEY_DELIVERY.md`. A generated
-configuration, joined Agent or advisory report does not establish application
-use, native completion, rotation, retirement or fleet acceptance.
+restart and the complete PostgreSQL/MySQL regression. Controlled Personal
+Vault/JWT/Agent initial delivery, identical report retry, explicit same-slot
+replacement and prelaunch revoked-grant output preservation now pass real-process
+acceptance with complete owned cleanup. Browser interaction, application use,
+Project/fleet behavior and external workload interoperability remain unverified.
+See [delivery contracts](API_KEY_DELIVERY.md) and the exact receipt in
+[implementation evidence](IMPLEMENTATION.md#execution-continuation-2026-10-16).
+A generated configuration, joined Agent or advisory report does not establish
+application use, native completion or predecessor retirement.
 
 The explicit replacement extension passed standalone race tests on its original
 isolated source. This composition retains its nine code/test leaves with two
@@ -21,8 +25,9 @@ equivalent style corrections and
 the delivered Money advice and Gateway dispatch-authority checks. Fresh
 `go tool task test-controller` and mandatory project checking passed on this
 composition after two equivalent style corrections. The original failed
-Staticcheck diagnostics remain retained. Real replacement-Agent qualification
-and application use remain separate acceptance gates.
+Staticcheck diagnostics remain retained. Controlled Personal replacement-Agent
+qualification now passes; native application use remains a separate acceptance
+gate.
 
 ## Supported operations
 
@@ -49,8 +54,9 @@ The finite-mode contract is grounded in the pinned Vault v1.21.4 source:
 - `command/agent/template/template.go` stops the template runner and completes
   its worker after every template has rendered in exit-after-auth mode.
 
-These source facts establish the intended lifecycle. Real-process acceptance is
-still required; parser acceptance or fake-Agent tests cannot replace it.
+These source facts establish the intended lifecycle. The controlled Personal
+real-process acceptance records actual completion separately; parser acceptance
+and fake-Agent tests cannot establish other workload compatibility.
 
 The controller accepts only the exact generated HCL grammar: one Vault address,
 an optional namespace, one JWT method and one guarded template. It rejects
@@ -250,14 +256,19 @@ canaries and exact report-only recovery. Fresh standalone Controller race tests
 passed on this composition, including the replacement cases. Fake-Agent file
 writes establish these Controller behaviors only.
 
-The scheduled real acceptance must additionally exercise a pinned Vault 1.21.4
-with independent workload JWTs and both personal and Project slots. It must prove
-exact-version-1 output privately, preserve the JWT, check file modes and absence
-of backups/token sinks, and reject wrong subject/audience, missing fields,
-revoked/expired controller grants and changed assignments. A version-2 value
-must not replace the reviewed version-1 output. Owned fixture processes,
-listeners, containers and private resources must positively close after direct
-joins. Native inference/application completion remains separate acceptance.
+Controlled Personal real acceptance uses the pinned official Vault 1.21.4
+executable and an independent workload JWT. It privately verifies exact version-one
+initial and replacement output against distinct version-two sentinels, preserves
+the JWT and required file protections, recovers a physically lost accepted ACK
+with an identical report-only retry, and rejects a revoked grant before Agent
+preparation while preserving installed output. Both operation journals and all
+four command traces are retained. Direct joins and independent checks confirm
+owned process, container, network, volume and listener closure.
+
+Project slots, additional wrong-subject/audience, missing-field, expiry and
+assignment-change cases, native inference/application completion and real external
+workload compatibility retain their own acceptance gates. The controlled result
+does not claim those cases passed.
 
 The retained replacement cases additionally cover atomic same-slot replacement,
 pre-promotion failure and authority/cancellation loss, old-inode and staging-file
