@@ -8,15 +8,12 @@
   remote main at the pre-handoff check. This documentation update follows that
   baseline; it does not merge the unfinished candidates.
 - **Roadmap baseline:** dotfiles `54f771d388d571756389933606f1c3153f07e2ba`.
-- **Transport:** source-host archive
-  `~/routex-handoff/routex-handoff-20261016-r1.tar.gz`, with adjacent `.sha256`.
-- **Archive SHA-256:**
-  `2e11fdfc4d3c3e72a13af8cd6e258311c0a168f1f60181c41554f6f01eec9999`
-  (1,697,917 bytes; 175 manifested payload files).
-- **Receiver access:** delivered code/docs are available through Git. Candidate
-  source and acceptance preparation are local-only until the archive and checksum
-  are copied to the receiver. Cross-machine delivery is not confirmed merely by
-  creating the archive.
+- **Transport:** primary delivery is the remote branch
+  `origin/routex-handoff-f11-f23-f17-20261016` at `3e01cfd`.
+- **Receiver access:** the candidate source is transferable through Git. The
+  source-host archive remains an optional backup at
+  `~/routex-handoff/routex-handoff-20261016-r1.tar.gz` with SHA-256
+  `2e11fdfc4d3c3e72a13af8cd6e258311c0a168f1f60181c41554f6f01eec9999`.
 
 ### Objective and scope
 
@@ -83,28 +80,25 @@ source host; only status metadata and hashes are transported.
 
 ### First exact action on the receiving machine
 
-After transferring and checksum-verifying the archive, extract it into a new
-private directory. Set `ROUTEX_HANDOFF` to the extracted directory, then run:
+Use Git as the normal receiving path:
 
 ```sh
-python3 -B "$ROUTEX_HANDOFF/restore.py" verify
-python3 -B "$ROUTEX_HANDOFF/restore.py" restore \
-  --snapshot catalog-quota \
-  --repo "$HOME/github/miclle/routex" \
-  --destination "$HOME/routex-catalog-quota-resume"
-python3 -B "$ROUTEX_HANDOFF/restore.py" restore \
-  --snapshot composed \
-  --repo "$HOME/github/miclle/routex" \
-  --destination "$HOME/routex-f17-composed-resume"
+cd "$HOME/github/miclle/routex"
+git fetch origin routex-handoff-f11-f23-f17-20261016
+git switch --track origin/routex-handoff-f11-f23-f17-20261016
+git status --short --branch
+git log --oneline --decorate -3
 ```
 
-Completion requires two exact source/index/status `PASS` results, for 2,822 and
-2,958 files respectively. Existing destinations are refused. Read current-main
-`AGENTS.md`, this handoff and the dotfiles roadmap before using the candidates'
-older embedded docs. Install pinned dependencies, then qualify the catalog/quota
-clone with its `go tool task test-integration` entry point and remaining required
-gates. Use one heavy-validation lane. Reconcile against current main and verify
-the adoption derivative before any phased merge, commit or push.
+The expected branch tip is `3e01cfd`. Read current-main `AGENTS.md`, this
+handoff and the dotfiles roadmap before using the candidate's older embedded
+docs. Install pinned dependencies, then qualify the candidate with its
+`go tool task test-integration` entry point and remaining required gates. Use one
+heavy-validation lane. Reconcile against current `main` and verify the adoption
+derivative before any phased merge, commit or push.
+
+The archive is only needed if Git access is unavailable or an independent
+byte-level recovery check is required; it is not the normal continuation path.
 
 For F29, read archive `DEPENDENCIES.md`. Keep the original R4 sealed and create
 a reviewed target-host successor with fresh build hashes, source floors,

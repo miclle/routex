@@ -4,20 +4,16 @@
 
 ### Cross-machine source preservation (2026-10-16)
 
-Functional work remains paused. The source-host archive
-`~/routex-handoff/routex-handoff-20261016-r1.tar.gz` preserves the independent
-F11/F23 candidate (36 staged paths / 2,822 tracked files), the composed
-F11/F23/F17 candidate (349 staged paths, nine additional unstaged repairs /
-2,958 tracked files), and F29 R4 source preparation with dependency and failure
-inventories. Both candidates were restored in independent clean clones and
-compared byte-for-byte, including the exact index and staged/unstaged status.
-This is source-recovery proof; it does not pass the outstanding product gates.
-See RouteX `docs/current-work-handoff.md` and the archive README for receiver
-commands and qualification order. The archive must be copied separately; a Git
-pull alone does not deliver these unmerged candidates or local evidence.
-The 1,697,917-byte archive has SHA-256
+Functional work remains paused. The unqualified F11/F23/F17 candidate is now
+available through the remote branch
+`routex-handoff-f11-f23-f17-20261016` at `3e01cfd`. Its two commits are
+`c444406` (349-path composition) and `3e01cfd` (nine-file shared-admission
+rejection/spool repair). A Git fetch and branch checkout is the normal
+cross-machine continuation path; it does not pass the outstanding product
+gates. The optional 1,697,917-byte archive remains available for independent
+byte-level recovery, with SHA-256
 `2e11fdfc4d3c3e72a13af8cd6e258311c0a168f1f60181c41554f6f01eec9999`.
-The final extracted package passed both exact source/index comparisons; the
+The archive's final extraction passed both source/index comparisons, and the
 previously missing JWKS source is included with matching historical hashes.
 
 
