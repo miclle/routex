@@ -9,11 +9,12 @@ stage-two source recorded below; product and global acceptance remain Partial.
 This active section supersedes the historical paused checkpoints below.
 
 **Current objective (2026-10-17):** complete the full F01-F30 and A01-A20
-implementation and acceptance roadmap. The active gate is genuine F30 MySQL
-process/browser parity after the controlled PostgreSQL R5 weights-rollback,
-restart and identical-intent slice passed with explicit evidence limits.
-Historical R2/R3/R4 failures remain failed. Permanent archive cleanup/history
-protection, transport rollback and other global acceptance remain open.
+implementation and acceptance roadmap. Controlled F30 PostgreSQL R5 and MySQL R2
+weights-rollback, restart and identical-intent slices passed with explicit
+evidence limits. The active gate is F24 hostile-input qualification and genuine
+bilingual browser acceptance. Historical R2/R3/R4 failures remain failed.
+Permanent archive cleanup/history protection, transport rollback and other
+global acceptance remain open.
 Candidate source is `777048e6a685d56c78565545d1fe94099486668f`
 and remains unmerged. No required source handoff archive is missing. Real
 external application/runtime/issuer details remain necessary for external F29
@@ -656,14 +657,105 @@ No PostgreSQL/F29 SQLSTATE result transfers to MySQL. Source audit SHA-256:
 `f9ec8786e0fc187ab5a825ffd5722f82a5b606c144deb1bd9965af6e3f260ab2`.
 Private source: `/private/tmp/routex-f30-mysql-target-successor-20261017-source-r1`.
 
+The independently qualified MySQL R2 successor imports the R5 native UID501
+input guards and explicit private GORM mapping. Its thirteen-file compact kit
+SHA-256 is
+`95367f1c9a97b4f2ad4ce426ca8bf7fd68b5bf877443ed1a02b6212409bed52f`.
+Root passed 21 Python controls; source review found no remaining blocker.
+Fresh official MySQL 8.4 Linux arm64 metadata, isolated source clone,
+`go tool task install`, production assets and both no-cache derived images
+were rebuilt on this computer. Build original **92900** joined **0**, with
+seventeen zero/closed commands; build UUID
+`a0e51b66b87c479eb392060761eb9641`, receipt SHA-256
+`7dfdd0b871f7285223eb2030dbf1d776541acfe18e6929199f040a794cc0d97b`.
+Capsule is
+`sha256:aa59712e64700bb70b610e9bf53ad68cf9ed8ae9609b12b22ee99963ef00b550`;
+test image is
+`sha256:0bab8b20454500b43624a3d016e2f481206de7b367a089f623e16d2ceb38e508`.
+The official MySQL image is
+`sha256:24989179f58856db763f418010c1169fecc944e3ec1ea7e921572d83eb070f70`.
+Fresh protected inputs and three binary hashes were independently checked;
+no PostgreSQL binary, database, secret, port, PID or runtime receipt was reused.
+Build audit SHA-256:
+`dc8f6abf6d141c7798ab4b383f3df9c59826ab3247714e69d8b6228dc858f2fb`.
+
+Fresh artifact qualification original **31461** joined **0**: four packages,
+**157 named starts / 156 passes / one exact host ownership skip**.
+Linux passed **95/95**, including all fourteen private Go cases, with zero
+skips. All 46 commands, original supervisor and both exact Linux containers
+were observed closed/absent. Qualification result SHA-256:
+`2a6287ca363d35e90d8997cd712321cb102a4302168c95332241900377afb15f`;
+independent audit:
+`b3ab17e6b6d3b36ac4ede007a18d7c467b628622454db2e7e47ec778719073f7`.
+
+Actual MySQL project `routex-f30-mysql-target-92f514d20b874755` passed the
+controlled single-Gateway weights rollback/restart slice. Provision, PRE
+**91541**, POST **65940** and lifecycle **58732** all joined **0**; original
+launch/join outputs are retained. Three actual UID501 native installs satisfy
+0700/0600/link1 and the strict reader. Separate real read-only repeatable-read
+SQL PRE/discover/final projections retain **2/2 -> 2/2 -> 4/4** Calls/Attempts,
+all native completed, with exact A/B/A/A Credential, Connection, ProviderModel
+and four immutable snapshots. HTTP success alone is not completion proof.
+
+Actual English/Chinese browser review used archive
+`rcv_01m537evw2weded3chfx6532fs`, born
+`2026-10-16T20:46:34.882592Z`. Each fresh preview showed exactly two weight
+changes, zero Connection/declaration changes; English draft cancellation and
+an actual English integrity-result banner are retained separately. One
+successful Chinese confirmation produced the paired initial receipt AX/PNG
+file06 at `2026-10-16T20:49:28.847Z`. SQL derived hidden UUID
+`71cb0d94-f135-4a68-92f8-0f7faca8230c` from the unique bounded actor/archive/
+birth/reason match before retry; neither UUID nor ETag was a visible UI field.
+Final SQL retains one rollback, one claim, three immutable matching audits and
+zero stale-UUID rows. Stale rollback HTTP409 and identical CLI retry HTTP200
+are distinct observations; original CLI Session and old Call attribution remain.
+
+The same captured Gateway ID/image genuinely restarted from positive PID
+**17040** to **21459**, with a new start time. The original anchor ID/PID/start
+remained continuous. Historical acknowledgement remains attached to old process
+`ins_01m537dsndsr8ks23ds4vd36gr` / snapshot
+`cfg_01m537m5bb2txnfzf44h1hqy65`; current-serving process
+`ins_01m537rqnq1d41gddc4f4we16c` / snapshot
+`cfg_01m537rqnzsd5zw54zampr05rg` is independently distinct.
+Root refreshed the exact original mounted dialog/reason/transient retry intent
+without reload, new login, native replay or SQL reconstruction after POST joined0.
+Paired final AX/PNG file07 shows historical receipt and separate current
+application confirmation. Session continuity is supported by direct operation
+history and authorized refresh, not a token census. Earlier disconnected-input
+and first target-check click failures are preserved in new provenance note08;
+their exact invalidation causes and dispatch outcomes are unknown from tool
+errors alone. They are not counted as successful interactions.
+
+Independent closure verified **77 runtime commands / 94 journal pairs including
+seventeen build commands**, all four original groups, five exact containers,
+network/two volumes and both owned namespaces absent. Port57660 refused and
+accepted an ordinary fresh bind after 37.518 seconds within the original
+60-second bound. UI password input was removed. Anchor exit137/OOMfalse is
+preserved. All 2,978 candidate product files and thirteen kit files remain
+unchanged. Four peer calls, SQL projections, fourteen original browser files,
+new provenance note, original joins and owned cleanup are retained at
+`/private/tmp/routex-f30-mysql-target-successor-20261017-source-r2`.
+Controlled MySQL independent audit SHA-256:
+`0a77fbf0a9a92793d874b93c2d88b5add24f26a235955605a778f7495797e95a`.
+
+This passes only the controlled MySQL UI weights-rollback/restart slice, with
+explicit evidence limits. Binary/config/receipt-body equality and no-redispatch
+remain executed-source assertions; separate raw equality bodies and runtime
+loader counters were not retained. A deliberate MySQL DML1792/SQLSTATE25006
+refusal probe is **unimplemented and unexecuted**; successful read-only queries
+and PostgreSQL evidence do not close that gate. Original historical pending
+fields remain unchanged; the later browser marker and separate audit close
+only their recorded gates. No installed-Key external adoption, paid inference,
+fleet, permanent archive deletion, changed transport verification or global
+completion follows from these results.
+
 F30, F29, F11/F23/F17 product acceptance and global totals remain Partial and
-unchanged. Next freshly build and qualify a MySQL successor preserving the R5
-native input guards and explicit private GORM mapping, then execute genuine
-MySQL process/browser parity. The frozen MySQL R1 lacks those later source fixes
-and remains source-only. Permanent archive cleanup/history protection, transport rollback,
-distributed revocation, fleet, external adoption and performance remain separate.
-No deferred shared-runtime activation, V119/V120 registration or legacy history
-transfer is started. Recorded closure is not a complete child-process census.
+unchanged. Continue F24 hostile-input handler qualification and genuine bilingual
+browser acceptance, plus the remaining independent roadmap work. Permanent
+archive cleanup/history protection, transport rollback, distributed revocation,
+fleet, external adoption and measured performance remain separate. No deferred
+shared-runtime activation, V119/V120 registration or legacy history transfer is
+started. Recorded closure is not a complete child-process census.
 
 ## Cross-machine checkpoint (2026-10-16)
 
