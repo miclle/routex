@@ -1,5 +1,53 @@
 # Current implementation handoff
 
+## Execution continuation (2026-10-16)
+
+The global goal remains active: **16 Completed / 14 Partial capabilities** and
+**2 Completed / 18 Partial acceptance scenarios**. Prepared source and bounded
+acceptance do not change these totals.
+
+Controlled actual Vault Agent acceptance now passes on delivered F29 source
+`029ab5045c85a42ed7d985c6d2b387a909969525` (`76d7a44`). R10 directly joined
+exit zero (session 74079), retaining all nine machine events, the expected four
+Controller command codes 1/0/0/1, two reported journals and twenty command traces.
+It proves exact version-one Personal delivery, lost-ACK identical report retry,
+explicit same-slot replacement and prelaunch revoked-grant output preservation.
+It does not prove application adoption, native inference, planned predecessor
+retirement, Project/fleet behavior or external workload compatibility.
+
+The original 60-second cleanup closed successfully. Ordinary refusal-plus-bind
+observations required 26.851 seconds; no socket reuse or deadline extension was
+used. Independent root readback confirms all 90 owned groups gone, six resource
+inventories empty, both mapped ports released, all 22 exports private and
+development PID 723 present. Readback SHA-256:
+`a567509f9e2858a37972950788996c41df833aa0e311aca8f556201f536eea65`.
+R8 failed when Docker archive export could not read the capsule's tmpfs journal;
+R9 corrected export but retained unknown immediate port observations. Both
+original failures remain retained. Their later independent closure checks prove
+resource absence only. Production journals retain the original `operation.json`
+name. The exact-path bounded private reader and bounded cleanup observer passed
+their focused controls before the successful R10 execution.
+
+The original F17 full integration failed on both drivers: each executed 233 named
+nodes with six passes and 227 failures. Source diagnosis confirmed that its test
+reset retained V118 owner/mode tables while discarding their journal binding;
+the production guard correctly refused that contradiction. A one-file reset-only
+successor is prepared as tree `3e7f5c2317aafba023172483f2ecff3c17989784`,
+preserving all 227 scenario identities/order and production guards. Its complete
+qualification, restart acceptance and dedicated SQL families remain pending.
+
+The isolated F11 row dialog supports exact source review, explicit zero-weight
+insertion and a separate reviewed complete-weight save with other protocols
+preserved. Its five-file frontend focus passes **191/191** tests and TypeScript
+compilation. The isolated F23 prerequisite batches existing authorized Team/Key
+policy hydration and adds real-driver cases inside the existing Insights
+scenario; it activates no new Overview scope. The composed F11/F23 development
+race focus passes service and handler packages. Repairs address incomplete
+Model-name/unit fixtures, outdated menu expectations, asynchronous assertions
+and statement-only query callbacks; production constraints remain unchanged.
+Mandatory checking and complete ordinary/dual-driver qualification on the final
+composition remain pending, and neither source slice is adopted into main.
+
 ## Current execution summary (2026-10-15)
 
 The global goal remains active. The verified status matrix contains **16 completed
@@ -9,13 +57,138 @@ completed acceptance scenarios**. Prepared source does not change those totals.
 | Work package | Current state | Next verification or action |
 | --- | --- | --- |
 | F24 Token advice, F29 Controller and F30 archive workflows | Main phase validated | Continue current-main F17 qualification and actual Vault Agent/browser acceptance. Global capability totals remain unchanged. |
-| F17 shared admission and single-account rate/executor sampling | Repaired original-source focus and six affected SQL workers passed | Qualify the current-main composition, full migrations, ordinary tests and restart; production constraints remain unchanged. |
+| F17 shared admission and single-account rate/executor sampling | Focus/check/ordinary tests passed; original full integration failed on both drivers | Qualify the one-file owned-reset successor, then restart and dedicated-driver gates; production constraints remain unchanged. |
 | F17 original calendar and data provenance | V120 Origin and corrected Fresh checks passed on both drivers | Current-main qualification, deployment exclusion, legacy transfer and runtime wiring remain open. |
 | F24 Money quota advice | Delivered in `0ccc663`; focused, mandatory and complete ordinary retry passed | Continue browser/external model acceptance; retain initial unrelated deadline failures. |
-| Temporary build output cleanup | Completed | Thirteen obsolete executables removed across five batches (384,377,025 logical bytes); retained replacements, source, original failures and development service preserved. Seven empty directories remain held by the Docker virtual machine. |
+| Temporary build output cleanup | Updated continuously | Earlier batches removed 384,377,025 logical bytes; this continuation removed another 183,623,550 bytes of superseded binaries and reproducible scratch. Current outputs, source, original failures and development service remain preserved. |
 | F30 local dispatch revocation | Delivered in `5b7b34d`; focused, backend race and mandatory checks passed | Fresh remote main readback matches; keep current-process and cross-process guarantees separate. |
-| F29 explicit Controller replacement | Fresh Controller race and mandatory checks passed | Deliver the bounded replacement extension; actual Vault/JWT/Agent and application acceptance remain separate. |
+| F29 explicit Controller replacement | Delivered in `76d7a44`; controlled actual-Agent delivery/replacement and cleanup passed | Continue separate application-use/native-completion and planned-retirement acceptance. |
 | Browser acceptance | Pending | Chrome returned no window and application inventory timed out; continue independent backend and source work. |
+
+The finite interaction review identified a Provider Model row-binding gap. Its
+isolated source now contains an exact-source candidate review, bounded existing
+Model selection, configured-route preview and reviewed zero-weight insertion.
+The same isolated dialog now also prepares a separate reviewed complete-weight
+save after confirmed insertion. It reuses protocol-grouped routing controls,
+freezes the other protocols, and retains insertion and weight-write uncertainty
+separately. This is source preparation only: focused tests and final qualification
+remain pending; no source is adopted into main and the frozen F17 candidate is
+unchanged. A separate five-file F23 prerequisite batches authorized Team/Key
+policy hydration without activating a new Overview scope; only formatting and
+whitespace checks have run.
+Planned Key rotation is explicitly owner-triggered; no scheduled issuance period
+or scheduler action is defined. Finish explicit Controller successor delivery
+and application-use acceptance rather than count an unspecified scheduler as
+required product work. Linked emergency replacement remains a concrete gap:
+current independent revoke and planned-rotation APIs cannot safely be chained.
+Its revoke-before-replacement failure policy is awaiting the user's decision;
+no emergency path or weaker predecessor check has been implemented. The
+Overview Team/Key quota-risk projection is another finite gap, with its
+resource-authorization scope awaiting clarification. Independent work continues.
+
+Current Controller preparation passed 41 Python controls, 11 recorder race-test
+nodes, detached dependency installation, canonical build, and all three Linux
+arm64 builds on tree `029ab504`. The first actual-Agent run joined exit one:
+the fixture precreated the JWKS directory, while its generator requires a fresh
+output path. The Vault executable matched its exact expected identity; no service
+topology started. Owned cleanup passed, both mapped ports were released, and the
+development service remained intact. Preserve this failed run; the narrow fixture
+repair was qualified; subsequent actual attempts are recorded below.
+
+The first F17 check-repair focus passed 1,045 tests with 13 dedicated-database
+skips and no failures. Mandatory check then found one redundant test assignment;
+the one-line successor `7b8fbb3f` passed fresh `go tool task check` in 211.765
+seconds (session 92760), with two existing ESLint warnings and zero errors.
+All 2,939 source paths stayed unchanged. Ordinary, complete migration, and
+restart checks remain pending.
+
+The Agent retry passed directory generation and started its isolated topology,
+but its capture helper rejected Docker's abbreviated IDs. The original failed
+run and unknown cleanup report remain retained. A later independent check found
+all 24 owned process groups gone, both label namespaces empty for containers,
+networks and volumes, and both ports refused and bindable. This establishes
+later resource closure only. The corrected capture helper passed its focused
+regression. Its actual retry reached startup but failed listener readiness before
+any RouteX fixture request. Cleanup initially could not
+bind the released Vault port; later independent checks found both ports refused
+and bindable without intervention, all owned groups gone and all owned resources
+absent. The original failure and cleanup unknown remain unchanged. Its HTTP
+helper accessed a socket after a complete response closed it; the narrow fix
+passed six stdlib framing controls, including truncated/oversized rejection.
+That retry passed Vault readiness but failed application readiness: the fixture
+bound the application to container loopback, while Docker host publishing targets
+the container interface. The fixture will bind the application interface while
+keeping published host ports on loopback. Its next run passed both listeners,
+initial actual-Agent delivery and the dropped-ACK/identical-report retry, then
+failed at the managed-rotation request: the fixture omitted required empty
+`name` and `model_ids` fields. Replacement and revoked-grant preservation are
+therefore unverified. The proxy exited one on cleanup because only four of its
+nine required observations occurred. Preserve this failed run and its original
+cleanup unknowns. Later independent checks found all 63 owned groups gone,
+six Docker label inventories empty and both mapped ports refused and bindable;
+development PID 723 remains present. The first independent inventory checks
+used a malformed Docker filter and were retained as failed readbacks before
+corrected queries succeeded. The minimal fixture successor passed all three pure replacement controls; its
+45-file packet and unchanged binary/prerequisite hashes were independently
+verified. The next actual run waits for the exclusive validation lane; product
+binaries and deadlines remain unchanged.
+
+F17 ordinary testing joined exit one after 385.766 seconds: two stale registry
+assertions still required V116/V117 instead of the candidate's exact V118 head;
+30 other Go package terminals passed. Frontend, Node and production phases were
+not reached. The two-file test-only successor `0b112280` preserves the 227-scenario
+identities, order and negative controls; both targeted registry tests now pass
+without failures or skips. Its fresh mandatory check passed in 172.352 seconds
+(session 68818); all 2,939 source paths stayed unchanged. The complete ordinary
+Task then passed in 345.475 seconds (session 2275): 31 Go package terminals,
+287 frontend files with 7,748 passing tests, five frontend Node controls, 66
+script controls, production build and production asset race tests. The same
+2,939-path source remained unchanged. Canonical full PostgreSQL/MySQL integration
+remains active on this candidate (session 6483), but PostgreSQL has now emitted
+its failed terminal: 233 named nodes, six passes and 227 failures. The earliest
+failure is the V118 guard, `admission mode without initialized journal`, in
+`model_creation_batch_migration`. Root independently read back that error and
+the PostgreSQL package failure. MySQL also failed with the same six passes and 227 failures; both drivers
+executed every registered scenario. The original Task joined with exit 201 in
+3,721.129 seconds. Nonmatrix checks passed 11,448 named nodes with 22 explicit
+skips, and runtime-archive checks passed 91/91. Independent current readback
+confirms unchanged 2,939-path source, all ten recorded command groups gone,
+owned containers/networks/volumes absent, both original database ports refused
+and bindable, private executables/guard removed and development PID 723 unchanged.
+The original terminal record preserved preexisting containers; a later readback
+found the inventory changed, with cause unproven. No global cleanup was issued.
+The source-confirmed defect is the test reset list retaining V118 admission
+owner/mode tables while resetting their local-journal binding. Prepare only the
+missing owned-table reset, preserving the production guard. Authentication
+lifecycle remains held, and no integration retry has started. The exclusive
+validation lane now runs the previously qualified F29 R8 actual-Agent packet. Actual-Agent acceptance and the remaining
+F17 gates stay open. A completed,
+exactly Git-reproducible patch scratch file was removed from temporary storage
+(1,787,113 logical bytes). Three superseded V116 server/Controller executables
+were also removed after open-handle and container-mount checks (131,501,187
+logical bytes); their source and logs remain available. This continuation has
+removed 183,623,550 logical bytes, including one additional superseded local
+service binary (50,335,250 bytes), in addition to the earlier cleanup batches.
+The qualified current binaries, source checkouts and evidence remain retained.
+Chrome browser discovery returned no available browser, and native application
+selection again returned `cgWindowNotFound`; browser acceptance remains open.
+A subsequent temporary-output assessment removed one positively superseded
+Controller preparation proxy executable (10,108,958 logical bytes), after
+checking open handles, all container mounts and current qualification bindings.
+Its source, manifest and original results remain available. Current executable
+dependencies, distinct collectors and uncertain older runners were retained;
+no physical storage reclamation is inferred. The desktop inventory again timed
+out, so browser acceptance remains pending while independent work continues.
+
+The subsequent incremental cleanup removed only the closed Controller dependency
+phase's reproducible npm `_cacache`: 1,122 regular files and 58,043,817 logical
+bytes. Root verified single-link ownership, no open handles, no mounts from any
+container, and the passed dependency result before removal. Dependency logs,
+source, manifests, current actual-Agent binaries and packet remain retained.
+Cleanup receipt SHA-256:
+`d4990f81be9912c79a8b30568fa7b86401b69393a308259c4e989e00f03fc989`.
+No physical disk-space reclamation is claimed.
+
 
 F30 commit `5b7b34dd3809a0a291a18b0c460a6aa28a708662` is pushed with fresh
 remote main parity. Money advice was delivered separately in `0ccc663`; its
