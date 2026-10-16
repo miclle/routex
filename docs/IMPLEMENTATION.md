@@ -6,6 +6,67 @@ The global goal remains active: **16 Completed / 14 Partial capabilities** and
 **2 Completed / 18 Partial acceptance scenarios**. Prepared source and bounded
 acceptance do not change these totals.
 
+### Current window closeout (2026-10-16)
+
+This work window is paused after closing the currently active validation lanes.
+The global totals remain **16 Completed / 14 Partial capabilities** and
+**2 Completed / 18 Partial acceptance scenarios**.
+
+The F29 maintained application fixture and evidence commands are now on `main`
+in commit `7dbf441e538cfcc8076c4d183742296ae4ca035c`, and the remote branch
+matches that commit. Host race tests, Linux/arm64 builds, 28 packet control
+tests, and the pinned Linux file-safety test passed. The real native application
+use run, SQLSTATE read-only pair, and external workload acceptance remain open.
+
+The composed F11/F23/F17 source remains isolated. Focused role, shared-admission,
+spool-rejection, formatting, lint, type, vet and static checks passed. The full
+dual-driver run did not pass: PostgreSQL reached 615 named nodes with 597 passes
+and 18 failures after a migration timeout and `driver: bad connection`; MySQL
+reported no failures before fail-fast cancellation and produced no complete
+readback. The raw qualification packet and logs remain under
+`/private/tmp/routex-f11-f23-composed-qualification-20261016-r1`; the source has
+not been merged or counted as complete.
+
+Only the confirmed empty obsolete temporary test directory was removed. Active,
+referenced, or evidence-bearing `routex-*` paths were retained, and development
+PID 723 was preserved.
+
+When work resumes, first rerun the affected dual-database qualification from a
+fresh owned project, then run the composed F17 checks and the bounded F29 native
+application-use successor. Do not start deferred shared-runtime activation,
+history transfer, or other roadmap features before these packages are closed.
+
+### Parallel implementation ownership
+
+Use all four available active slots: three agents plus the coordinator. Work
+is isolated by Git worktree and file ownership. Implementation, independent review
+and acceptance preparation run concurrently; completed agents take the next
+independent task immediately. The coordinator owns integration, English
+documentation, phased main commits and push readback. Heavy validation remains
+serialized while the current eight-core, 16 GiB host is under memory pressure.
+
+Avoid repeating unaffected qualification. When a successor changes only test
+fixtures, retain passing original driver/archive results only after confirming
+that their complete production and test dependencies are unchanged. Rerun every
+affected or failed lane and the mandatory checks before adoption. Never reuse a
+failure as a pass, skip a required gate or expand production deadlines to obtain
+acceptance. Independently validated packages may land without waiting for the
+remaining roadmap.
+
+| Package | Isolated branch or worktree | Owned next result |
+| --- | --- | --- |
+| F11/F23 qualification | `provider-binding-quota-batch` plus test-only successor | Re-run the affected dual-database qualification from a fresh owned project; preserve the PostgreSQL timeout and incomplete MySQL readback. |
+| F17 Gateway shared execution | `codex/f17-gateway-executor-20261016-r1`, composed tree `f84be421b887048f1b76f3d14f67c70721c5b008` | Re-run the composed candidate's complete gates after F11/F23 qualification; shared execution remains dormant. |
+| F29 application acceptance | `controller-application-acceptance` | Run the bounded installed-Key native-use successor and SQLSTATE pair; helper/evidence sources are already on `main`. |
+
+
+
+The composed F11/F23/F17 source is prepared at `f84be421b887048f1b76f3d14f67c70721c5b008` on the isolated F17 worktree. It includes the exact-ID role-fixture repair, the shared-admission rejection fix and the F23 quota batching. Focused checks pass, but the source remains unmerged because the complete dual-driver gate failed.
+
+The canonical F11/F23 qualification against its pinned source has ended. PostgreSQL started 615 named nodes, with 597 passes and 18 failures after a migration timeout and bad connection; MySQL had no observed failures before fail-fast cancellation and no complete readback. Preserve these raw results and rerun from a fresh owned project before adoption.
+
+The F29 helper/evidence packages are qualified on `main`. A no-process metadata inspection of the pinned Linux image found `/var/run` is a symlink to `../run`; the maintained Linux reader accepts only the known `/run` and `../run` spellings and proves they resolve to the same output directory. Native application-use, SQLSTATE and external workload acceptance remain pending.
+
 Controlled actual Vault Agent acceptance now passes on delivered F29 source
 `029ab5045c85a42ed7d985c6d2b387a909969525` (`76d7a44`). R10 directly joined
 exit zero (session 74079), retaining all nine machine events, the expected four
