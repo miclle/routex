@@ -9,11 +9,12 @@ stage-two source recorded below; product and global acceptance remain Partial.
 This active section supersedes the historical paused checkpoints below.
 
 **Current objective (2026-10-17):** complete the full F01-F30 and A01-A20
-implementation and acceptance roadmap. The active gate is F30 controlled
-archive rollback/process/browser acceptance: two actual PostgreSQL PRE runs
-failed at the private read-only projection. Diagnose with bounded, sanitized
-stage receipts before a freshly built successor; do not claim rollback or
-restart acceptance. Candidate source is `777048e6a685d56c78565545d1fe94099486668f`
+implementation and acceptance roadmap. The active gate is genuine F30 MySQL
+process/browser parity after the controlled PostgreSQL R5 weights-rollback,
+restart and identical-intent slice passed with explicit evidence limits.
+Historical R2/R3/R4 failures remain failed. Permanent archive cleanup/history
+protection, transport rollback and other global acceptance remain open.
+Candidate source is `777048e6a685d56c78565545d1fe94099486668f`
 and remains unmerged. No required source handoff archive is missing. Real
 external application/runtime/issuer details remain necessary for external F29
 adoption; independent roadmap work continues.
@@ -506,6 +507,147 @@ helper stdout/stderr is deliberately not persisted, so the exact rejected
 assertion remains unknown. A new source-only successor adds fixed, sanitized
 failure-stage receipts; it must retain all assertions and bounds and rebuild.
 
+R4 diagnostics retained a closed seventeen-stage rejection grammar without
+query text, raw driver errors, DSNs or input disclosure. The private projection
+also fixes its explicit `review_etag` GORM mapping and tests the pinned naming
+behavior; that later discover/final defect did not explain zero-row PRE.
+Fresh R4 build original **25406** joined **0**. Artifact qualification original
+**42852** joined **0**: four complete packages, **149 starts / 148 passes /
+one exact host ownership skip**; Linux passed **91/91** with no skips.
+Independent artifact audit SHA-256:
+`2dcf7b0d63f813cc23d653cb02ecdbdafce493ff34b10f9047ba4ebdf453cbce`.
+These are artifact/helper results only.
+
+Actual R4 project `routex-f30-target-217e09caf0cc498c` **FAILED**: provision
+joined 0, PRE **3116** joined **1**, lifecycle **41007** joined **1**.
+The exact sanitized result was
+`{"result":"f30_projection_rejected","stage":"protectedInput"}`,
+before config decoding, database connection or SQL. No browser login, SQL PRE,
+browser-ready, actual UI rollback, POST or restart passed. Two peer requests,
+two native HTTP 200 statuses and stale HTTP 409 remain distinct from acceptance.
+Independent readback verified all 57 runtime commands and three original groups
+gone; five exact containers, network/two volumes and both namespaces absent;
+port 53875 refused and accepted an ordinary fresh bind; UI login input was
+removed. Anchor exit 137/OOM false remains recorded. Failed-run/closure audit:
+`ab27e81683dc339eb85cb0aa029bf35fc1cbb01482ff2ea89fe69204d0b7b7e0`.
+
+A separate fresh offline dummy-input probe joined **0**, with eleven original
+commands zero and closed. Host UID 501 protected directory/file appeared as
+Linux UID 0, reproducing the exact trusted-501 rejection. It reused the R4
+capsule only for diagnosis and used new non-secret dummy inputs. It is not a
+direct Linux stat of the removed old secret file, a repair of R4 or SQL/runtime
+acceptance. Its exact container exited 0 before removal and is currently absent.
+Independent diagnostic audit SHA-256:
+`705305a8da434a5e7600ff1d30d72e9f602f6fdaf073de6ec8a32211e666b1a4`.
+
+R5 imports only thirteen R4 source files: eight changed, five byte-identical.
+It replaces host evidence binds with a bounded native UID-owned 0700 tmpfs;
+the fixed installer actually runs as OS-derived UID 501, accepts bounded stdin,
+creates exclusive protected phase files and requires exact safe acknowledgement.
+The root reader retains exact owner/mode/link/no-follow/stable-read checks.
+Original anchor ID/image/PID/start must survive each phase and gateway-only
+restart. No owner fallback, runtime CHOWN/SETUID capability, automatic uncertain
+retry, business assertion or deadline relaxation was added. The actual SQL
+projection and lifecycle source remain byte-identical to R4.
+Sealed compact kit SHA-256:
+`60f26d8da7c69630d63aea27d85bac5edbd084cde6f89a83f1ef4641c3886711`;
+independent final source review:
+`d1147d804c8c2ea1feb503066d88b74edffbd505b320a17ef7f7b64ded17f71c`.
+Root passed **20 Python controls**, six Python AST checks and all thirteen source
+hashes; the new qualifier passed **eight pure controls** and requires all
+thirteen private Go cases. Private UID0 unit seams cannot establish actual
+Docker-exec UID501 staging.
+
+Fresh R5 build original **77770** joined **0**, with all seventeen commands
+zero/closed and original PID/PGID **5290/5290** freshly absent. Build UUID
+`3e1576ec1ee7446c88c7fc08de87e041`; capsule
+`sha256:8bd1e1b31e9897a8984b0888d1407872d8c49a25a2763e897e3875d247d43796`,
+test image
+`sha256:9b21fc1f36cdc57c3f824c8c968dd51151c93cc00a85b4548a98670c8015ea22`.
+Build receipt SHA-256:
+`494db7337f8ffdce51b585e3249fdb30856770fbafaa76b1afcd681d7ea8516f`.
+The independently verified full source/kit bindings, fresh protected inputs,
+three raw binary hashes and original offline capture exited-0/PID-0 metadata
+pass; its exact captured ID is removed and build-label inventories are empty.
+Independent build audit SHA-256:
+`d2ec0801386e5b7e280404ce6c89ab4a6ef5df9125f83e307a3129917a2052e3`.
+A pre-entrypoint launcher failure and registry metadata-reader failure remain
+retained as failures. All three original registry CLI commands exited 0; root
+and the independent audit correctly selected the retained PostgreSQL
+`linux/arm64` platform-map config without a network retry. No product/runtime
+pass is inferred from those observations. New artifact qualification and actual
+PostgreSQL SQL/UI/native/restart results remain separately required.
+
+Fresh R5 artifact qualification original **23134** joined **0**: four complete
+packages, **155 named starts / 154 passes / one exact host ownership skip**;
+Linux passed **94/94**, including all thirteen private cases, with no skips.
+All 44 commands and original **7485/7485** were independently observed gone;
+both exact Linux containers had original zero attach/wait and exited state
+before removal, with fresh exact-ID and label absence. Independent audit:
+`0e74942db1482f57d215bd4cf88ddc9a968bc1a0df0028966c072d22f1820e45`.
+
+Actual R5 PostgreSQL project `routex-f30-target-6ec697b11d8c48b2` passed its
+controlled single-Gateway weights rollback/restart slice. Provision, PRE
+**60515**, POST **77236** and lifecycle **74599** all joined **0**. Three actual
+native installs acknowledged UID501/0700/0600/link1; the strict root reader
+then passed SQL PRE/discover/final. PRE requires two exact completed Calls and
+Attempts, no rollback/claim or targeted audits and no stale-UUID rows; final
+requires four exact completed Calls/Attempts in A/B/A/A Credential, Connection,
+ProviderModel and immutable snapshot attribution. HTTP success alone is not
+completion proof. Two distinct authenticated archives, stale rollback HTTP409
+with unchanged weights/no extra peer request, and the later identical CLI retry
+HTTP200 remain separate observations.
+
+Actual root browser work reviewed the exact archive
+`rcv_01m5368j1fkbcgrvsr9936wt9y`, born
+`2026-10-16T20:25:39.631237Z`, in English and Chinese. Each preview showed only
+two weight differences, with no Connection/declaration differences. The English
+draft was canceled; the Chinese confirmation performed the real write using a
+fresh controlled reason. SQL derived exact UUID
+`7fc7f567-03f7-4bf6-bc88-1221228fbc90` from the unique actor/archive/birth/reason/
+time-bounded row before replay. The UUID and review ETag were not visible UI
+fields. Original CLI Session, rollback/claim and three exact audits survive
+restart and identical retry. No SQL business seeding occurred.
+
+The same captured Gateway container/image genuinely restarted from positive
+PID **17124** to **18496** with a new start time and the same rebuilt binary and
+configuration. Its original anchor ID/PID/start remained continuous. The
+non-null historical acknowledgement stays attached to the old process and
+snapshot; a distinct new current-serving installation and fourth native call
+prove separate current facts. Null acknowledgement remains unknown as a source
+contract; this run does not exercise a null acknowledgement. No runtime loader
+counter exists: no-redispatch is source-bound, not independently measured.
+
+The original browser dialog/archive/reason/transient retry intent remained
+without reload, new login or SQL-derived reconstruction. Root refreshed its
+exact receipt after POST/restart; file07 PNG/AX independently retains the
+historical old-process receipt and separate current application confirmation.
+Initial receipt display rests on root's direct original CUA observation plus
+the action marker/SQL correlation. File05 PNG/AX was captured after its receipt
+body cleared and is **excluded** from initial display proof; the exact clearing
+trigger and separate initial display timestamp are unknown. The marker time
+records the later observation save. Header screenshots do not independently
+retain the integrity-result banner. Browser Session continuity uses the direct
+operation history and successful authorized refresh, not a Session-token census.
+Separate raw before/after/retry receipt bodies and live binary stdout were not
+retained; their equality checks are assertions executed by the retained source,
+with POST exit 0.
+
+Independent closure verified all **77 runtime commands / 94 journal pairs
+including seventeen build commands**, four original groups, five exact
+containers, network/two volumes and both project namespaces absent. Port 55633
+refused and accepted an ordinary fresh bind within the original 60-second bound;
+UI password input was removed. Anchor exit 137/OOM false is preserved. All 2,978
+product bytes/modes and thirteen kit files remain unchanged. Four native peer
+calls, three SQL projections, fourteen browser files including the provenance
+note, original entrypoint joins and exact owned cleanup are retained at
+`/private/tmp/routex-f30-target-successor-20261017-source-r5`.
+Independent controlled-PG audit SHA-256:
+`55c488df4558b1d67f2e86a7163181e6fc24d3cfbfe9a9411c0a531d90f1c1df`.
+Result scope is controlled PostgreSQL only, with these explicit evidence limits.
+It does not prove genuine MySQL, installed-Key adoption, paid inference, fleet,
+permanent cleanup, changed transport verification or the complete objective.
+
 A separate thirteen-file MySQL source kit has an independently accepted source
 review and **13 passing Python controls**, with no private Go, build, database,
 registry, runtime or browser execution. Fixed MySQL driver source supports the
@@ -515,9 +657,10 @@ No PostgreSQL/F29 SQLSTATE result transfers to MySQL. Source audit SHA-256:
 Private source: `/private/tmp/routex-f30-mysql-target-successor-20261017-source-r1`.
 
 F30, F29, F11/F23/F17 product acceptance and global totals remain Partial and
-unchanged. Next diagnose the private PRE rejection, then freshly qualify and
-execute the complete PostgreSQL UI/native/restart slice and separate genuine
-MySQL parity. Permanent archive cleanup/history protection, transport rollback,
+unchanged. Next freshly build and qualify a MySQL successor preserving the R5
+native input guards and explicit private GORM mapping, then execute genuine
+MySQL process/browser parity. The frozen MySQL R1 lacks those later source fixes
+and remains source-only. Permanent archive cleanup/history protection, transport rollback,
 distributed revocation, fleet, external adoption and performance remain separate.
 No deferred shared-runtime activation, V119/V120 registration or legacy history
 transfer is started. Recorded closure is not a complete child-process census.
