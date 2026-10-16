@@ -185,8 +185,8 @@ the official Vault archive/executable hashes are freshly verified. Twenty-four
 pure Python coordinator controls and twelve supervisor mock controls passed.
 The coordinator now preserves endpoint-specific Vault two-digest ETags and
 requires the original exact SQLSTATE test JSON named/package terminals. These
-controls establish no runtime evidence; application builds and runtime
-qualification remain pending. The old archive is optional,
+controls establish no runtime evidence; the fresh build, Linux qualification
+and failed controlled-runtime attempt are recorded below. The old archive is optional,
 and no additional historical source delivery is needed. Installed-Key native
 use, the exact SQLSTATE 25006 pair, retirement, fresh replacement inference,
 Project/fleet, browser and external workload acceptance remain open. No old
@@ -212,14 +212,67 @@ matrix remains bound to the unchanged production source at `192134f`.
 
 Fresh target-host JWKS race tests joined with exit **0**: 19 named runs,
 18 passes and one explicit non-root `wrong_owner` skip. Linux root wrong-owner
-execution remains mandatory and pending; the host skip is not passing that gate.
-No application binary/image build, native inference or SQLSTATE acceptance has
-yet run for the new F29 kit.
+was still pending at that host-only checkpoint; the later Linux result below
+passes the gate independently rather than converting the host skip to a pass.
+The fresh `c6dcf79` F29 build joined with exit **0**, rebuilding RouteX,
+Controller, native fixture, evidence command and JWKS for Linux arm64. All twelve
+owned build commands joined with exit zero and their groups were observed gone.
+All 2,975 source files matched the published composition bytes/modes; the 13-file
+kit before/after manifests were identical. Build receipt SHA-256:
+`f567a6251914da238a30ec701c43a1c762e14bc1e4b45993076a5fb89ecbf3b8`.
+Fresh capsule image:
+`sha256:b87c569296e9fe3f4403fa530c4fb1f6f28b3c3e0d816d1d0b6b8f72ada1d3f3`;
+fresh test image:
+`sha256:7bb9a280189450b7dc38870df01c0d87986892f3c5375132e2d4d7be66bc180e`.
+The actual running capsule's six binary hashes/sizes were retained, including
+RouteX `d947c24ed5fd61a18f46f97cbd3934b0a74a520a8acadb9bca7b3eb46fa52330`
+and the exact independently verified official Vault executable. Runtime capsules
+retained only DAC override; CHOWN was confined to qualification containers.
 
-Next, build all F29 binaries, issuer and images from the full reviewed `c6dcf79`
-commit. Qualify the fresh Linux file-safety and JWKS images before runtime use.
-Execute controlled Personal installed-Key native use and the
-original exact SQLSTATE 25006 pair before retirement and fresh replacement
+Helper qualification R1 failed before Linux dispatch because Docker normalized
+capability names to CAP_CHOWN/CAP_DAC_OVERRIDE. Its failed receipt remains intact;
+independent exact-ID inspection confirmed the container was never started, then
+verified its removal and recorded group/resource absence. A separate supervisor
+successor accepts only those exact equivalent spellings without changing the
+capability set; thirteen pure controls passed. Helper R2 joined with exit **0**:
+**115/115 named passes**, comprising 38 host fixture, 28 host evidence, 30 Linux
+file-safety and 19 Linux JWKS nodes. Both actual wrong-owner cases passed. All
+fifty host commands joined with exit zero, both exact unit containers were
+removed and the original supervisor/recorded groups were observed gone.
+Independent fresh-build/helper audit SHA-256:
+`a277e5e45e9af5f67fe4ddc5433f6bdf7f7f67eb5a38fcafa1c10257e67b2639`.
+This proves helper/crypto/file-safety scope, not application adoption.
+
+Controlled Personal runtime R1 is **FAILED**. Fresh real Vault provisioning
+joined with exit **0**, but application acceptance joined with exit **1**; owned
+lifecycle cleanup joined with exit **0**. There were **zero native business
+calls**, no original/final SQL pair proof and no SQLSTATE/retirement/fresh-call
+acceptance. The retained exact six-command source/exit sequence is
+`0,0,0,0,0,1`: container inspections, binary verification, owned input staging and
+Controller delivery/report succeeded; preserving the predecessor through
+`docker cp` failed. The Key output is on tmpfs, where Docker documents copy
+limitations. Raw copy stderr was not retained, so no additional error detail or
+production defect is inferred. Agent output written/report recorded remains
+delivery evidence only.
+
+All 76 recorded host commands terminated, including the sole nonzero copy child.
+Original acceptance/lifecycle groups, all five exact owned containers, both
+project-label namespaces and mapped ports 58948/58949 were independently observed
+closed; both ports accepted ordinary fresh binds. Provision's original PID was
+not captured, and a complete child-process census remains unproven. Independent
+failed-runtime audit SHA-256:
+`8424afc5cd88f80d604db695976c37b8898de687b87a15bc6c6aafbfd75373c8`.
+Private receipts remain under the original kit's `private/`; failed runtime data
+is not relabeled by successful cleanup or earlier helper qualification.
+
+A new private source-only successor is being prepared at
+`/private/tmp/routex-f29-target-successor-20261017-source-r2`: bounded protected
+export through fixed `docker exec` and strict single-member archive validation,
+sensitive-output exclusion, and bounded failure-stage diagnostics. The original
+kit/evidence remain immutable. Next review and qualify that successor, rebuild
+both images without build cache under the original budgets, and use a completely
+new owned runtime with fresh inputs. Then execute installed-Key native use,
+the original exact SQLSTATE 25006 pair, retirement and fresh replacement
 inference. A separate Project recipe/evidence extension is source-only; current
 Personal evidence cannot prove Project ownership. Controlled Project/bilingual
 UI and other independent roadmap acceptance can continue without the still
