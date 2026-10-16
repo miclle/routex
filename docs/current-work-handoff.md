@@ -1,5 +1,162 @@
 # Current implementation handoff
 
+## Target-host resumption (2026-10-16)
+
+Work is active by explicit user instruction. Global totals remain **16 Completed /
+14 Partial capabilities** and **2 Completed / 18 Partial acceptance scenarios**.
+The candidate remains unmerged and unqualified.
+
+- Main/remote baseline: `24d8a61c49f0d7f3764dd3c7ad269de87b217cba`.
+- Candidate/remote baseline: `3e01cfdec33d688e6e11d155dd918d68300fdb7e`,
+  on `routex-handoff-f11-f23-f17-20261016` in the sibling worktree.
+- Target: macOS arm64, Go 1.27.1, Node 24.19.0, Docker Desktop 29.7.2,
+  Compose 5.4.0. `go tool task install` passed. Preliminary runner race,
+  eight entry controls and focused rejection-storage controls passed.
+- Fresh R1 `go tool task test-integration` joined with Task exit **201** and
+  supervisor exit **1**. Both PostgreSQL and MySQL have complete readback:
+  **611 starts / 595 passes / 16 failures / zero skips**, with no unmatched
+  starts. Each has 14 failed leaves and two failed ancestors. Nonmatrix has
+  **11,549 starts / 11,526 passes / 22 skips / one failure**; runtime archive
+  passed **91/91**. This complete failed run does not pass qualification.
+- Private R1 evidence: `/private/tmp/routex-target-qualification-20261016-r1`.
+  `complete-readback-r1.json` SHA-256:
+  `705278287309b9f952d99676d36621d3dde3c54bd490a5d20361922ab8c588a3`.
+  Source stayed unchanged at 2,958 tracked files, manifest
+  `2c12f499a93d94d590f4bba236f4072c9772bda7443b905f69858d035cccea2e`.
+- All ten recorded supervisor groups, the private Compose containers/networks/
+  volumes and both mapped database listeners were independently observed closed;
+  both ports allowed fresh binds. All 48 logged application processes across
+  twelve families were observed gone. Logged-family coverage is complete on
+  both drivers; this is not a proof of a complete child-process census.
+- The two drivers have the same failures: one real reviewed-weight ETag format
+  defect, seven local-recorder fixture lifecycle contradictions and six
+  historical migration fixture mismatches. Nonmatrix's failure is a current
+  Model birth evaluated at fixed 2026-10-15. No timeout, bad connection or race
+  symptom was observed in these current failed nodes.
+- Reviewed successor patches repair the weight validator and persisted-weight
+  regression, establish genuine empty bound journals before fixture history,
+  preserve contradictory-reset refusal, use future bound 119 without registering
+  it, strictly peel V118/V117 before the V116 controller helper, and fix the
+  Model fixture birth. Production startup guards and deadlines remain intact.
+  Stage-one patches changed 20 candidate files, with one production validator
+  correction and no startup-guard relaxation. Formatting,
+  focused service race (2.466 seconds), and `go tool task check` passed.
+- Fresh full R2 passed through the original `go tool task test-integration`
+  entry, joining with Task/supervisor exit **0** and no cancellation or timeout.
+  PostgreSQL and MySQL each completed **615/615 named passes**, with zero failures,
+  zero skips and no unmatched starts. Nonmatrix completed **11,527 passes /
+  22 explicit skips / zero failures**; runtime archive passed **91/91**.
+- Private R2 evidence: `/private/tmp/routex-target-qualification-20261016-r2`.
+  `complete-readback-r2.json` SHA-256:
+  `62bc9d3fe1f72426d578d8c0e2df2a8eaeff807c50ee92c6fcd1c16ab5dfed80`.
+  Both before/after manifests contain the same 2,958 tracked files at
+  `f75ec880e8771777897f9c569bda603f400b4d1e33bb2bf9a456543de6776c65`.
+  All nine recorded stage groups, 48 logged application identities, the original
+  runner group and private Compose resources were independently observed gone.
+  PostgreSQL port 60386 and MySQL port 60385 refused connections and accepted
+  ordinary fresh binds. This remains point-in-time closure, not a complete
+  child-process census. Independent retained-R2 audit SHA-256:
+  `56e60038d1c4394d24f3acbb8e5f655de6927380fda435a28bb5c3da4fabffd3`.
+- Stage-one commit **`a59c87c555534d577473ac80d1bfd8ae8a1b6bef`** is pushed to
+  `routex-handoff-f11-f23-f17-20261016`, with exact remote SHA readback. Its 20-file
+  scope and clean committed source match the qualified R2 manifest exactly.
+  Main functional baseline stays `24d8a61c49f0d7f3764dd3c7ad269de87b217cba`;
+  tracking-only documentation updates do not merge the candidate.
+  Full F17 qualification and F29 application acceptance remain pending.
+- Stage two on that exact committed source: fresh `go tool task check` passed;
+  affected service/handler focused race tests passed **780/780**, with zero failures,
+  zero skips and complete named terminals. Source remained unchanged.
+- Complete ordinary `go tool task test` joined with exit **0**: 32 Go package
+  passes with no cached package results; **288 frontend files / 7,789 tests**;
+  Node groups **5/5** and **66/66**; production build/asset serving stages present.
+  The maintained stage order, unchanged source and recorded process-group closure
+  passed readback at `/private/tmp/routex-f17-phase2-20261016-r1`.
+- Maintained `go tool task test-auth-lifecycle` joined with exit **0** on both
+  drivers. Its four exact official summaries and eight genuinely observed
+  application generations (**four PostgreSQL / four MySQL**) are complete.
+  Fresh binary SHA-256:
+  `e335e42e2e1319156a73d0c4a3515c81a4ee47a48fdcbfc60aea030789a1ba37`.
+  Source stayed unchanged; all 27 observed process identities/groups, private
+  Compose resources and four observed app/database ports were independently
+  observed closed. This is not a complete child-process census.
+  Private evidence: `/private/tmp/routex-auth-lifecycle-20261016-r1`;
+  independent audit SHA-256:
+  `11336a7381b524e2059fd7a147b1c47bbe6bec96555079681be7b414c2fcb8e6`.
+- Dedicated SQL R1 completed all 28 workers and joined with supervisor exit **1**:
+  **13/14 PostgreSQL workers and 13/14 MySQL workers passed**. Both failed the
+  same live Gateway delivery leaf in `SHARED_ECONOMIC_ACCEPT_SQL` (each parent:
+  **34 starts / 32 passes / two failures including the parent / zero skips**).
+  Across all workers: **468 starts / 464 passes / four failures / zero skips**.
+  Failure: `ready shared fact delivery invalid shared admission intent`.
+  The runtime requests a fixed batch of 64 from a valid capacity-eight spool;
+  strict `ReadReady` rejects the oversized limit before decoding any intent.
+- Private failed SQL evidence: `/private/tmp/routex-f17-dedicated-20261016-r1`.
+  Independent audit confirms complete named terminals, unchanged `a59c87c` source,
+  all 504 recorded stage groups and original supervisor gone, all 28 exact private
+  projects removed and every mapped port refused with successful ordinary fresh
+  binds. This is not a complete child-process census. No cancellation, timeout
+  or missing readback is counted as passing; R1 remains failed.
+- The source freeze was released after complete failed-run readback. A test-only
+  run first reproduced the defect: capacities one/eight failed, while 64/65
+  passed. The minimal immutable-capacity accessor/runtime-batch clamp is now
+  applied with that regression, exactly three uncommitted candidate files.
+  Successor manifest:
+  `192134f28eea004bc2f7e3220a755672ab0eee063314f7f4e755770a714fca04`.
+  Fresh `go tool task check` passed; service/handler/eventqueue focused races
+  passed **831/831**, with no skips or failures and complete named terminals.
+  Full ordinary Task joined with exit **0**: 32 Go package passes (28 same-host
+  cached unchanged results), 288 frontend files / 7,789 tests, Node groups 5/5
+  and 66/66, all production build/asset stages and unchanged source readback.
+  Fresh maintained restart R2 joined with exit **0** on both drivers, all four
+  official summaries and eight observed application generations complete.
+  Its newly built binary SHA-256 is
+  `198fee0e64ec2456df7a4fd2de4bc593fd686710044d91e3fdf49decfcd9ef82`;
+  source unchanged and recorded resources/processes/ports observed closed.
+  Independent retained/fresh read-only audit confirms all 25 observed process
+  identities, exact owned project and four ports closed; audit SHA-256:
+  `6449e2733e4dbb2ba1432b8c293817cbc350bbb48c4d7eea1f056e2ab485b56f`.
+  Dedicated SQL R2 joined with supervisor exit **0**: all **28/28 workers**
+  passed (14 PostgreSQL, then 14 MySQL), with **468/468 named passes**, zero
+  failures/skips and unchanged source. Both formerly failed Accept parents now
+  pass **34/34**, including real Gateway delivery. All 504 recorded stage joins
+  are zero; original supervisor PID/PGID 22414 was independently observed gone.
+  Evidence: `/private/tmp/routex-f17-dedicated-20261016-r2`. Independent retained
+  and fresh read-only audit verifies all named terminals, all 504 stage groups
+  and the original supervisor gone, all 28 exact projects absent and every mapped
+  port refused with ordinary fresh binds. Audit SHA-256:
+  `ed8bd767f2c6838fa295c4e29a702132c3f940de579b0c6097f98c858e2c97c0`.
+  This remains point-in-time closure, not a complete child-process census.
+  Complete integration matrix remains pending on this changed source. Earlier
+  passing scopes stay bound to `a59c87c` and its old manifest. Frozen V119/V120
+  tests neither register
+  nor activate production migrations.
+
+The earlier failed packet stays failed: PostgreSQL 615 starts / 597 passes /
+18 failures, including migration timeout and `driver: bad connection`; MySQL
+431 starts followed by cancellation without complete terminal/readback;
+nonmatrix 10,815 passes / eight skips / two failures; archive 91 passes. Those
+historical observations are retained separately from target-host R1.
+
+The independent retained-R1 audit confirms its failed disposition; the separate
+retained-R2 audit confirms a passing complete matrix on the stage-one source.
+The changed successor has passed check, affected races, complete ordinary Task,
+maintained restart and all dedicated SQL gates. Its complete integration matrix
+is next, before code publication or main adoption. Shared-runtime activation,
+V119/V120 registration and legacy history transfer remain deferred. No focused
+evidence completes F11/F23/F17 or the global objective.
+
+F29 product/controller source is present in the candidate; main additionally
+contains the 17 maintained fixture/evidence files from `7dbf441`. Fresh target-host
+coordinator/JWKS source is prepared at
+`/private/tmp/routex-f29-target-successor-20261016-source-r1`. Registry metadata and
+the official Vault archive/executable hashes are freshly verified; application
+build and runtime qualification remain pending. The old archive is optional,
+and no additional historical source delivery is needed. Installed-Key native
+use, the exact SQLSTATE 25006 pair, retirement, fresh replacement inference,
+Project/fleet, browser and external workload acceptance remain open. No old
+binary, key, database, image ID or runtime receipt is reused. Preserve unrelated
+containers and the preexisting dotfiles vendor modifications.
+
 ## Cross-machine checkpoint (2026-10-16)
 
 - **Status:** functional work is paused; all global completion totals are unchanged.
