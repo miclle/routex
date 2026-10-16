@@ -239,6 +239,7 @@ function InsightsContent({
     actor,
     authorityStamp,
     authorized: quotaKind ? quota.aiAuthorized : providerReport ? providerAuthorized : authorized,
+    onDenied: quotaKind ? quota.analysisDenied : undefined,
     range: draft,
     question: 'text' in question ? question.text : undefined,
     report:

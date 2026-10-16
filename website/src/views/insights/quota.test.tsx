@@ -34,7 +34,8 @@ let actor: string,
   sessionGate: DeferredGate | undefined
 let definitions: InsightsReportDefinition[], saveStatus: number, saveGate: DeferredGate | undefined
 const savedID = 'isr_01arz3ndektsv4rrffq69g5fav'
-let aiModels: boolean, aiGate: DeferredGate | undefined
+let aiModels: boolean, aiGate: DeferredGate | undefined, aiStatus: number
+let scopeOptionsAvailable: boolean, scopeOptionsGate: DeferredGate | undefined
 let reportStatus: number, targetStatus: number, mutation: (r: QuotaInsightsReport) => void
 const original = client.defaults.adapter
 const text = (key: string) => i18n.t('insights:' + key)
@@ -60,6 +61,9 @@ beforeEach(async () => {
   await i18n.changeLanguage('en')
   aiModels = false
   aiGate = undefined
+  aiStatus = 0
+  scopeOptionsAvailable = true
+  scopeOptionsGate = undefined
   actor = quotaActor
   permissions = ['calls.read_all', 'members.read']
   requests = []
@@ -112,6 +116,7 @@ beforeEach(async () => {
     else if (config.url === '/admin/insights/analyze') {
       const input = JSON.parse(config.data)
       if (aiGate) await aiGate.promise
+      if (aiStatus) throw failure(config, aiStatus)
       const keyAdvice = input.report === 'key_quota_tokens' || input.report === 'key_quota_money'
       const dimension = input.report.endsWith('_money') ? 'money' : 'tokens'
       const report = quotaFixture(
@@ -154,11 +159,19 @@ beforeEach(async () => {
             : { label: 'T1', team_id: report.items[0].id, name: '<img src=team>', unknown: false },
         ],
       }
-    } else if (config.url === '/admin/members')
-      data = { items: [{ id: quotaActor, name: 'Reviewed member' }], next_cursor: null }
-    else if (config.url === '/projects' || config.url === '/admin/projects')
-      data = { items: [{ id: quotaProject, name: 'Reviewed Project' }], next_cursor: null }
-    else if (
+    } else if (config.url === '/admin/members') {
+      data = {
+        items: scopeOptionsAvailable ? [{ id: quotaActor, name: 'Reviewed member' }] : [],
+        next_cursor: null,
+      }
+      if (scopeOptionsGate) await scopeOptionsGate.promise
+    } else if (config.url === '/projects' || config.url === '/admin/projects') {
+      data = {
+        items: scopeOptionsAvailable ? [{ id: quotaProject, name: 'Reviewed Project' }] : [],
+        next_cursor: null,
+      }
+      if (scopeOptionsGate) await scopeOptionsGate.promise
+    } else if (
       config.url === '/admin/members/' + quotaActor ||
       config.url === '/projects/' + quotaProject
     ) {
@@ -1046,6 +1059,91 @@ async function prepareKeyAdvice(
   await click('aiReview')
   await until(() => expect(document.body.textContent).toContain(text('aiConfirmTitle')))
 }
+it.each([
+  ['member', 'tokens', 403],
+  ['member', 'money', 404],
+  ['project', 'tokens', 404],
+  ['project', 'money', 403],
+] as const)(
+  'clears %s Key %s facts on late analysis %i before fresh scope options finish',
+  async (kind, dimension, status) => {
+    await prepareKeyAdvice(kind, dimension)
+    aiGate = deferred()
+    await click('aiConfirm')
+    await until(() => expect(analyses()).toHaveLength(1))
+    expect(host.textContent).toContain('Reviewed quota account')
+    expect(host.textContent).toContain(kind === 'member' ? 'Reviewed member' : 'Reviewed Project')
+    const optionsURL = kind === 'member' ? '/admin/members' : '/projects'
+    const optionReads = requests.filter((request) => request.url === optionsURL).length
+    scopeOptionsAvailable = false
+    scopeOptionsGate = deferred()
+    aiStatus = status
+    aiGate.release()
+    await until(() => expect(host.textContent).toContain(text('quotaDenied')))
+    expect(requests.filter((request) => request.url === optionsURL)).toHaveLength(optionReads + 1)
+    expect(host.textContent).not.toContain('Reviewed quota account')
+    expect(host.textContent).not.toContain('Reviewed member')
+    expect(host.textContent).not.toContain('Reviewed Project')
+    expect(host.textContent).not.toContain('K1 current-page advice')
+    expect(button('quotaRun').disabled).toBe(true)
+    expect(host.textContent).not.toContain(text('aiReview'))
+    scopeOptionsGate.release()
+    await until(() =>
+      expect(
+        cache
+          .getQueryCache()
+          .findAll({ queryKey: ['insights-quota-options'] })
+          .every((query) => query.state.fetchStatus === 'idle'),
+      ).toBe(true),
+    )
+    expect(host.textContent).not.toContain('Reviewed quota account')
+    expect(host.textContent).not.toContain('Reviewed Project')
+    expect(analyses()).toHaveLength(1)
+    expect(reports()).toHaveLength(1)
+    expect(downloads).toEqual([])
+  },
+)
+it.each(['tokens', 'money'] as const)(
+  'clears Team %s facts when the current analysis is denied without replay',
+  async (dimension) => {
+    await prepareTeamAdvice(dimension)
+    aiGate = deferred()
+    await click('aiConfirm')
+    await until(() => expect(analyses()).toHaveLength(1))
+    aiStatus = 403
+    aiGate.release()
+    await until(() => expect(host.textContent).toContain(text('quotaDenied')))
+    expect(host.textContent).not.toContain('Reviewed quota account')
+    expect(host.textContent).not.toContain('T1 current-page advice')
+    expect(host.textContent).not.toContain(text('aiReview'))
+    expect(analyses()).toHaveLength(1)
+    expect(reports()).toHaveLength(1)
+  },
+)
+it('keeps a freshly reviewed Member report when an obsolete Project analysis is denied', async () => {
+  await prepareKeyAdvice('project')
+  aiGate = deferred()
+  await click('aiConfirm')
+  await until(() => expect(analyses()).toHaveLength(1))
+  aiStatus = 404
+  await select('quotaScopeKind', 'member')
+  await until(() => expect(host.textContent).toContain('Reviewed member'))
+  await select('quotaSelectedScope', quotaActor)
+  await until(() => expect(button('quotaRun').disabled).toBe(false))
+  await click('quotaRun')
+  await ready()
+  aiGate.release()
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 10)))
+  expect(host.textContent).toContain('Reviewed quota account')
+  expect(host.textContent).toContain('Reviewed member')
+  expect(host.textContent).not.toContain(text('quotaDenied'))
+  expect(
+    host.querySelector<HTMLSelectElement>('[aria-label="' + text('quotaSelectedScope') + '"]')
+      ?.value,
+  ).toBe(quotaActor)
+  expect(analyses()).toHaveLength(1)
+  expect(reports()).toHaveLength(2)
+})
 it.each(['member', 'project'] as const)(
   'requires explicit %s Key page review, personal model and confirmation before advice',
   async (kind) => {

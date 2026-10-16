@@ -430,6 +430,15 @@ export function useQuotaInsights({
       cache.getQueryState(reportKey)?.status === 'success' &&
       cache.getQueryState(reportKey)?.fetchStatus === 'idle' &&
       !cache.getQueryState(reportKey)?.isInvalidated,
+    analysisDenied: () => {
+      clear()
+      setNotice('quotaDenied')
+      if (kind === 'key_quota') {
+        setScopeID('')
+        void cache.cancelQueries({ queryKey: targetKey, exact: true })
+        void cache.invalidateQueries({ queryKey: pickerKey, exact: true })
+      }
+    },
     captureDefinition,
     definitionStamp,
     loadDefinition,
