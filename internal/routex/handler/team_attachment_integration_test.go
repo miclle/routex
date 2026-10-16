@@ -271,6 +271,7 @@ func newTeamAttachmentFixture(t *testing.T, db *gorm.DB) *teamAttachmentFixture 
 		t.Fatal(err)
 	}
 	f.spool = filepath.Join(t.TempDir(), "team-media.db")
+	initializeLocalRecorderFixture(t, ctx, db, f.spool)
 	journal, err := eventqueue.Open(f.spool, 4096, 64<<10)
 	if err != nil {
 		t.Fatal(err)

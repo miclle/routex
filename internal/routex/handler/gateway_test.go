@@ -75,6 +75,10 @@ func TestGatewayStreamSafety(t *testing.T) {
 func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	ctx := context.Background()
+	// Earlier requests deliberately exercise direct recording. Establish only
+	// the empty owned journal now, before those calls create immutable history.
+	directJournalPath := filepath.Join(t.TempDir(), "direct-journal.db")
+	initializeLocalRecorderFixture(t, ctx, db, directJournalPath)
 	storageServer, storageFixture := newStorageFixture(t)
 	store, err := secretstore.New(bytes.Repeat([]byte{17}, 32))
 	if err != nil {
@@ -542,7 +546,7 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	expectStatus(t, request("POST", "/v1/chat/completions", body, created.Secret), 401)
-	testDirectGatewayRecorderCheckpoint(t, db, admin.User.ID, store)
+	testDirectGatewayRecorderCheckpoint(t, db, admin.User.ID, store, directJournalPath)
 }
 
 func TestGatewayUsageUnknownAndBearerParsing(t *testing.T) {
@@ -590,7 +594,7 @@ func assertNativeAttemptAttribution(t *testing.T, db *gorm.DB, requestID, creden
 	}
 }
 
-func testDirectGatewayRecorderCheckpoint(t *testing.T, db *gorm.DB, actorID string, store *secretstore.Store) {
+func testDirectGatewayRecorderCheckpoint(t *testing.T, db *gorm.DB, actorID string, store *secretstore.Store, path string) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
@@ -644,7 +648,6 @@ func testDirectGatewayRecorderCheckpoint(t *testing.T, db *gorm.DB, actorID stri
 	if _, err := svc.ConfirmKeyDelivery(ctx, actorID, key.Record.Key.ID); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(t.TempDir(), "direct-journal.db")
 	recorderCtx, stop := context.WithCancel(ctx)
 	if err := svc.StartCallRecorder(recorderCtx, path); err != nil {
 		stop()

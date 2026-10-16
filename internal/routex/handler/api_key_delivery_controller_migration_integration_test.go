@@ -27,13 +27,46 @@ func testAPIKeyDeliveryControllerMigration(t *testing.T, db *gorm.DB) {
 	defer cancel()
 	ledger := personalKeyBehaviorLedger(t, db)
 	if len(ledger) != 118 {
-		t.Fatal("controller migration requires exact V116 registry before successor peel")
+		t.Fatal("controller migration requires exact V118 registry before successor peel")
 	}
-	// This bounded V114 scenario must not retain a successor receipt while
-	// reconstructing its predecessor. Refuse retained cleanup history first.
+	// This bounded V114 scenario must not retain any successor receipt while
+	// reconstructing its predecessor. Complete every read-only overlay refusal
+	// before the first DDL mutation, including on nontransactional MySQL.
+	if err := admissionOwnerFixtureV118(db, len(ledger)); err != nil {
+		t.Fatal("admission owner history prevents bounded controller fixture", err)
+	}
+	if err := runtimePublicationAcknowledgementFixtureEmpty(db); err != nil {
+		t.Fatal("acknowledgement history prevents bounded controller fixture", err)
+	}
+	if err := runtimeArchiveRollbackFixtureEmpty(db); err != nil {
+		t.Fatal("rollback history prevents bounded controller fixture", err)
+	}
 	if err := runtimeArchiveCleanupFixtureEmpty(db); err != nil {
 		t.Fatal("cleanup history prevents bounded controller fixture", err)
 	}
+	t.Cleanup(func() {
+		restore, release := context.WithTimeout(context.WithoutCancel(t.Context()), 2*time.Minute)
+		defer release()
+		if err := database.Migrate(restore, db); err != nil {
+			t.Error("restore controller successors", err)
+			return
+		}
+		if current := personalKeyBehaviorLedger(t, db); len(current) != 118 || !reflect.DeepEqual(current[:113], ledger[:113]) {
+			t.Error("controller successor restore changed retained prefix")
+		}
+	})
+	if err := peelAdmissionOwnerFixtureV118(db, ledger); err != nil {
+		t.Fatal("exact admission owner successor peel", err)
+	}
+	ledger = ledger[:117]
+	if err := db.Migrator().DropTable(&entity.RuntimePublicationAcknowledgement{}); err != nil {
+		t.Fatal(err)
+	}
+	removed := db.Table("schema_migrations").Where("version = ? AND applied_at = ?", 117, ledger[116].AppliedAt).Delete(&struct{}{})
+	if removed.Error != nil || removed.RowsAffected != 1 || !reflect.DeepEqual(personalKeyBehaviorLedger(t, db), ledger[:116]) {
+		t.Fatal("exact acknowledgement successor peel changed controller prefix")
+	}
+	ledger = ledger[:116]
 	if err := runtimeArchiveRollbackPeelV116(db, ledger); err != nil {
 		t.Fatal("rollback history prevents bounded controller fixture", err)
 	}
@@ -41,22 +74,11 @@ func testAPIKeyDeliveryControllerMigration(t *testing.T, db *gorm.DB) {
 	if err := db.Migrator().DropTable(&entity.RuntimeArchiveCleanup{}); err != nil {
 		t.Fatal(err)
 	}
-	removed := db.Table("schema_migrations").Where("version = ? AND applied_at = ?", 115, ledger[114].AppliedAt).Delete(&struct{}{})
+	removed = db.Table("schema_migrations").Where("version = ? AND applied_at = ?", 115, ledger[114].AppliedAt).Delete(&struct{}{})
 	if removed.Error != nil || removed.RowsAffected != 1 || !reflect.DeepEqual(personalKeyBehaviorLedger(t, db), ledger[:114]) {
 		t.Fatal("exact successor peel changed controller prefix")
 	}
 	ledger = ledger[:114]
-	t.Cleanup(func() {
-		restore, release := context.WithTimeout(context.WithoutCancel(t.Context()), 2*time.Minute)
-		defer release()
-		if err := database.Migrate(restore, db); err != nil {
-			t.Error("restore cleanup successor", err)
-			return
-		}
-		if current := personalKeyBehaviorLedger(t, db); len(current) != 118 || !reflect.DeepEqual(current[:113], ledger[:113]) {
-			t.Error("cleanup successor restore changed retained prefix")
-		}
-	})
 	dropReceipt := func() {
 		t.Helper()
 		r := db.Table("schema_migrations").Where("version = ?", 114).Delete(&struct{}{})

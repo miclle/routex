@@ -272,7 +272,7 @@ func testLDAPMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	assertDefault()
-	for _, bound := range []int{0, -1, 95, 118} {
+	for _, bound := range []int{0, -1, 95, 119} {
 		before := personalKeyBehaviorLedger(t, db)
 		if database.MigrateThrough(ctx, db, bound) == nil || !reflect.DeepEqual(before, personalKeyBehaviorLedger(t, db)) {
 			t.Fatal("bounded ledger rejection", bound)

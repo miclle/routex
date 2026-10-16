@@ -94,7 +94,7 @@ func (s *Service) ReviewModelWeightEdit(ctx context.Context, actorID, modelID st
 }
 
 func (s *Service) SetReviewedModelWeights(ctx context.Context, actorID, modelID, reviewETag string, weights []ModelWeight) (*ModelWeightEditReview, error) {
-	if !validAdminModelTarget(modelID) || !validConnectionMetadataETag(reviewETag) || len(weights) > 200 {
+	if !validAdminModelTarget(modelID) || !validMemberRoleDigest(reviewETag) || len(weights) > 200 {
 		return nil, apperrors.ErrBadRequest
 	}
 	if _, err := s.setModelWeights(ctx, actorID, modelID, weights, reviewETag); err != nil {

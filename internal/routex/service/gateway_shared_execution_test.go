@@ -167,19 +167,33 @@ func TestSharedGatewayFinalizationStillSettlesAfterAdmissionStops(t *testing.T) 
 }
 
 func TestSharedGatewayAdmissionDistinguishesDefinitiveQuotaRejectionFromUncertainty(t *testing.T) {
-	t.Run("quota rejection", func(t *testing.T) {
-		coordinator, spool, authority, _ := sharedTestFixture(t)
-		coordinator.authority = sharedRejectedAuthority{sharedEconomicAuthority: authority, err: eventqueue.ErrQuotaTokens}
-		if err := coordinator.Admit(t.Context()); !errors.Is(err, errSharedAdmissionRejected) || !errors.Is(err, eventqueue.ErrQuotaTokens) || errors.Is(err, errSharedAdmissionUncertain) {
-			t.Fatalf("definitive rejection classification = %v", err)
-		}
-		if authority.receipt != nil || spool.record != nil {
-			t.Fatal("rejected admission created a receipt or retained its reservation")
-		}
-		if !sharedGatewayRejectionMayBeRecorded(&sharedGatewayExecution{admissionAttempted: true, admissionRejected: true}, &GatewayResult{}) {
-			t.Fatal("definitive rejection was not eligible for direct call recording")
-		}
-	})
+	for _, rejected := range []struct {
+		name string
+		err  error
+	}{
+		{"rate", eventqueue.ErrRateLimit},
+		{"concurrency", eventqueue.ErrConcurrency},
+		{"coverage", eventqueue.ErrQuotaCoverage},
+		{"unknown", eventqueue.ErrQuotaUnknown},
+		{"bound", eventqueue.ErrQuotaBound},
+		{"tokens", eventqueue.ErrQuotaTokens},
+		{"money", eventqueue.ErrQuotaMoney},
+		{"currency", eventqueue.ErrQuotaCurrency},
+	} {
+		t.Run("quota rejection "+rejected.name, func(t *testing.T) {
+			coordinator, spool, authority, _ := sharedTestFixture(t)
+			coordinator.authority = sharedRejectedAuthority{sharedEconomicAuthority: authority, err: rejected.err}
+			if err := coordinator.Admit(t.Context()); !errors.Is(err, errSharedAdmissionRejected) || !errors.Is(err, rejected.err) || errors.Is(err, errSharedAdmissionUncertain) {
+				t.Fatalf("definitive rejection classification = %v", err)
+			}
+			if authority.receipt != nil || spool.record != nil {
+				t.Fatal("rejected admission created a receipt or retained its reservation")
+			}
+			if !sharedGatewayRejectionMayBeRecorded(&sharedGatewayExecution{admissionAttempted: true, admissionRejected: true}, &GatewayResult{}) {
+				t.Fatal("definitive rejection was not eligible for direct call recording")
+			}
+		})
+	}
 
 	t.Run("lost accept reply", func(t *testing.T) {
 		coordinator, _, authority, _ := sharedTestFixture(t)

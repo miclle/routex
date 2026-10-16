@@ -308,7 +308,7 @@ func testDiscordMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	githubBefore, googleBefore := readProvider("github"), readProvider("google")
-	for _, bound := range []int{0, -1, 100, 118} {
+	for _, bound := range []int{0, -1, 100, 119} {
 		if database.MigrateThrough(ctx, db, bound) == nil || !reflect.DeepEqual(original, personalKeyBehaviorLedger(t, db)) {
 			t.Fatal("invalid/newer bound admitted", bound)
 		}

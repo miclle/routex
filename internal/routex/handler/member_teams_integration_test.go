@@ -197,6 +197,7 @@ func testMemberTeamsLifecycle(t *testing.T, db *gorm.DB) {
 	journalPath := filepath.Join(t.TempDir(), "member-teams.db")
 	// This owned fixture journal contains no calls. Its late coverage start is
 	// explicit; it is not proof of native dispatch or complete historical usage.
+	initializeLocalRecorderFixture(t, ctx, db, journalPath)
 	journal, err := eventqueue.Open(journalPath, 4096, 64<<10)
 	if err != nil {
 		t.Fatal(err)

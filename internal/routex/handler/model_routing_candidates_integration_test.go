@@ -177,7 +177,7 @@ func testModelRoutingCandidates(t *testing.T, db *gorm.DB, svc *service.Service,
 	weightPath := path + "/weights/review"
 	weightResponse := identityRequest(router, "GET", weightPath, "", editorCookie, "")
 	weightReview := decodeCatalogResponse[ModelWeightEditResponse](t, weightResponse, 200)
-	if weightReview.Model.ID != modelID || len(weightReview.Model.Bindings) != len(inserted.Bindings) || weightResponse.Header().Get("ETag") != `"`+weightReview.ReviewETag+`"` {
+	if len(weightReview.ReviewETag) != 64 || weightReview.Model.ID != modelID || len(weightReview.Model.Bindings) != len(inserted.Bindings) || weightResponse.Header().Get("ETag") != `"`+weightReview.ReviewETag+`"` {
 		t.Fatal("complete strong weight review missing")
 	}
 	expectStatus(t, identityRequest(router, "GET", weightPath, "", modelCookie, ""), 403)
@@ -206,6 +206,24 @@ func testModelRoutingCandidates(t *testing.T, db *gorm.DB, svc *service.Service,
 		return out
 	}
 	changed := decodeCatalogResponse[ModelWeightEditResponse](t, dispatch(weightReview.ReviewETag), 200)
+	// The server-issued single-digest review must cross the real HTTP/service
+	// boundary and commit every reviewed weight, not merely return a valid DTO.
+	var persistedWeights []entity.ModelProviderBinding
+	if err := db.Where("model_id = ?", modelID).Find(&persistedWeights).Error; err != nil || len(persistedWeights) != len(weights) {
+		t.Fatal("reviewed weight save did not retain the complete topology", err)
+	}
+	for _, requested := range weights {
+		matched := false
+		for _, recorded := range persistedWeights {
+			if recorded.ID == requested["binding_id"] && recorded.ModelID == modelID {
+				matched = recorded.Weight == requested["weight"]
+				break
+			}
+		}
+		if !matched {
+			t.Fatal("server-reviewed token did not commit the complete requested weights")
+		}
+	}
 	for _, binding := range changed.Model.Bindings {
 		for _, old := range weightReview.Model.Bindings {
 			if old.ID == binding.ID && old.Protocol != "openai_chat" && old.Weight != binding.Weight {

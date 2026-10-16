@@ -174,17 +174,6 @@ func testRuntimeInstallationLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal("build exact controlled fixture")
 		}
 	}
-	// Begin with pre-existing accounting before the first runtime snapshot.
-	// Otherwise the first genuine native call freezes AccountingStarted and
-	// legitimately changes the route digest independently of authority reduction.
-	accounting := db.WithContext(ctx).Model(&entity.QuotaSetting{}).Where("id = ?", 1).Update("AccountingStarted", true)
-	if accounting.Error != nil || accounting.RowsAffected != 1 {
-		t.Fatal("establish pre-existing accounting baseline")
-	}
-	var calendar entity.QuotaSetting
-	if db.WithContext(ctx).Take(&calendar, "id = ?", 1).Error != nil || !calendar.AccountingStarted {
-		t.Fatal("pre-existing accounting baseline absent")
-	}
 	defer func() {
 		svc.StopRuntime()
 		if err := svc.StopCallRecorder(); err != nil {
@@ -196,13 +185,25 @@ func testRuntimeInstallationLifecycle(t *testing.T, db *gorm.DB) {
 			t.Error(err)
 		}
 	}()
+	// Establish the local journal before the explicit accounting baseline.
+	if err := svc.StartCallRecorder(ctx, filepath.Join(t.TempDir(), "installation-calls.db")); err != nil {
+		t.Fatal(err)
+	}
+	// Begin with pre-existing accounting before the first runtime snapshot.
+	// Otherwise the first genuine native call freezes AccountingStarted and
+	// legitimately changes the route digest independently of authority reduction.
+	accounting := db.WithContext(ctx).Model(&entity.QuotaSetting{}).Where("id = ?", 1).Update("AccountingStarted", true)
+	if accounting.Error != nil || accounting.RowsAffected != 1 {
+		t.Fatal("establish pre-existing accounting baseline")
+	}
+	var calendar entity.QuotaSetting
+	if db.WithContext(ctx).Take(&calendar, "id = ?", 1).Error != nil || !calendar.AccountingStarted {
+		t.Fatal("pre-existing accounting baseline absent")
+	}
 	if err := svc.StartSystemInstance(ctx, service.SystemInstanceMetadata{Name: "Installation", Hostname: "installation.invalid", Version: "test", GoVersion: "test", OS: "test", Arch: "test", StoragePath: t.TempDir()}); err != nil {
 		t.Fatal(err)
 	}
 	if err := svc.StartRuntime(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if err := svc.StartCallRecorder(ctx, filepath.Join(t.TempDir(), "installation-calls.db")); err != nil {
 		t.Fatal(err)
 	}
 	path := "/api/v1/admin/runtime/installations"

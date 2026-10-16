@@ -134,6 +134,7 @@ func testGatewayAttachmentQuotaSettlementLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatalf("runtime startup failed after %s: %v; publication status=%q error_code=%q", elapsed, err, publication.Status, publication.ErrorCode)
 	}
 	spool := filepath.Join(t.TempDir(), "attachment-quota.db")
+	initializeLocalRecorderFixture(t, ctx, db, spool)
 	bootstrapJournal, err := eventqueue.Open(spool, 4096, 64<<10)
 	if err != nil {
 		t.Fatal(err)

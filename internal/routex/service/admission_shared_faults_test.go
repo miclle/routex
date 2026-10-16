@@ -86,8 +86,11 @@ func (s *sharedFaultSpool) RejectAdmission(ctx context.Context, key sharedAdmiss
 	if s.record == nil || sharedTestKey(s.record.Intent) != key || s.record.ReceiptID != "" || len(s.record.Attempts) != 0 || s.record.Terminal != nil {
 		return errSharedAdmissionConflict
 	}
+	if err := s.fault.fail("reject_admission", false); err != nil {
+		return err
+	}
 	s.record = nil
-	return nil
+	return s.fault.fail("reject_admission", true)
 }
 
 func (s *sharedFaultSpool) PrepareAttempt(ctx context.Context, intent sharedAttemptIntent) error {
@@ -193,10 +196,14 @@ type sharedFaultAuthority struct {
 
 type sharedRejectedAuthority struct {
 	sharedEconomicAuthority
-	err error
+	err     error
+	intents *[]sharedAdmissionIntent
 }
 
-func (a sharedRejectedAuthority) Accept(context.Context, sharedAdmissionIntent) (*sharedAuthorityReceipt, error) {
+func (a sharedRejectedAuthority) Accept(_ context.Context, intent sharedAdmissionIntent) (*sharedAuthorityReceipt, error) {
+	if a.intents != nil {
+		*a.intents = append(*a.intents, sharedTestCopy(intent))
+	}
 	return nil, a.err
 }
 
@@ -400,6 +407,51 @@ func sharedTestDispatch(t *testing.T, number int, history ...CallAttempt) shared
 	current := sharedTestAttempt(number, false)
 	attempts := append(append([]CallAttempt(nil), history...), current)
 	return sharedAttemptIntent{Number: number, AttemptID: current.ID, CredentialID: current.CredentialID, SnapshotID: current.SnapshotID, ConnectionID: current.ConnectionID, ProviderModelID: current.ProviderModelID, Fallback: sharedTestPayload(t, attempts, false)}
+}
+
+func TestSharedAdmissionInterruptedRejectionFailsClosedAndRetriesOriginalIntent(t *testing.T) {
+	for _, after := range []bool{false, true} {
+		t.Run(sharedTestFaultSuffix(after), func(t *testing.T) {
+			coordinator, spool, authority, request := sharedTestFixture(t)
+			original := sharedTestCopy(coordinator.intent)
+			var intents []sharedAdmissionIntent
+			coordinator.authority = sharedRejectedAuthority{sharedEconomicAuthority: authority, err: eventqueue.ErrQuotaTokens, intents: &intents}
+			fault := &sharedCommitFault{operation: "reject_admission", after: after}
+			spool.fault = fault
+			err := coordinator.Admit(t.Context())
+			if !fault.used || !errors.Is(err, errSharedInjected) || !errors.Is(err, errSharedAdmissionUncertain) || errors.Is(err, errSharedAdmissionRejected) {
+				t.Fatalf("interrupted rejection classification = %v, fault used = %v", err, fault.used)
+			}
+			if coordinator.admitted || authority.receipt != nil || authority.acceptCount != 0 || authority.rpm != 0 || authority.concurrency != 0 || authority.tokensHeld != 0 || authority.moneyHeld != "" {
+				t.Fatal("interrupted rejection admitted or charged the executor")
+			}
+			if after {
+				if spool.record != nil {
+					t.Fatal("post-deletion fault restored the rejected reservation")
+				}
+			} else if spool.record == nil || !reflect.DeepEqual(spool.record.Intent, original) {
+				t.Fatal("pre-deletion fault discarded or changed the original reservation")
+			}
+			if err := coordinator.Dispatch(t.Context(), sharedTestDispatch(t, 1), func(context.Context) error {
+				t.Fatal("interrupted rejection dispatched transport")
+				return nil
+			}); !errors.Is(err, errSharedDispatchForbidden) {
+				t.Fatalf("dispatch after interrupted rejection = %v", err)
+			}
+			if sharedGatewayRejectionMayBeRecorded(&sharedGatewayExecution{admissionAttempted: true}, &GatewayResult{}) {
+				t.Fatal("interrupted rejection was eligible for direct call recording")
+			}
+			request.Fallback[0] = '!'
+			*request.Bound.Tokens = 999
+			request.Policies[0].Revision = "changed"
+			if err := coordinator.Admit(t.Context()); !errors.Is(err, errSharedAdmissionRejected) || !errors.Is(err, eventqueue.ErrQuotaTokens) || errors.Is(err, errSharedAdmissionUncertain) {
+				t.Fatalf("identical rejection retry = %v", err)
+			}
+			if spool.record != nil || coordinator.admitted || authority.receipt != nil || len(intents) != 2 || !reflect.DeepEqual(intents[0], original) || !reflect.DeepEqual(intents[1], original) {
+				t.Fatal("rejection retry changed immutable intent or retained its reservation")
+			}
+		})
+	}
 }
 
 func TestSharedAdmissionInterruptedReservationRetainsOriginalIntent(t *testing.T) {

@@ -143,6 +143,12 @@ func testCredentialDeleteLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal(err)
 		}
 	}
+	// Establish the genuine empty local journal before retaining call history.
+	// Runtime stays absent for the later unpublished-deletion assertion.
+	defer func() { svc.StopRuntime(); _ = svc.StopCallRecorder() }()
+	if err := svc.StartCallRecorder(ctx, filepath.Join(t.TempDir(), "credential-delete.db")); err != nil {
+		t.Fatal(err)
+	}
 	now := time.Now().UTC().Truncate(time.Microsecond)
 	if err := svc.RecordCall(ctx, service.CallFact{RequestID: "req_credential_delete_history", UserID: admin.User.ID, KeyID: "key_credential_delete", ModelID: model.Model.ID, ModelName: model.Name, ProviderID: provider.Provider.ID, ProviderName: provider.Provider.Name, ProviderModelID: providerModel.ID, ConnectionID: connection.ID, ConnectionName: connection.Name, Protocol: entity.ProtocolOpenAIChat, UpstreamModelName: providerModel.UpstreamName, Status: "success", StartedAt: now, CompletedAt: now.Add(time.Second), Attempts: []service.CallAttempt{{ID: "att_credential_delete_history", ProviderID: provider.Provider.ID, ProviderName: provider.Provider.Name, ProviderModelID: providerModel.ID, ConnectionID: connection.ID, ConnectionName: connection.Name, UpstreamModelName: providerModel.UpstreamName, AttemptNumber: 1, Status: "success", HTTPStatus: 200, WorkEvidence: "completed", StartedAt: now, CompletedAt: now.Add(time.Second)}}}); err != nil {
 		t.Fatal(err)
@@ -170,12 +176,8 @@ func testCredentialDeleteLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	// A one-hour refresh interval keeps fault injection deterministic while
 	// the live publisher still handles explicit mutations and final cleanup.
-	// Register shutdown before either worker can start.
-	defer func() { svc.StopRuntime(); _ = svc.StopCallRecorder() }()
+	// The owned recorder and its shutdown were established before history.
 	if err := svc.StartRuntime(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if err := svc.StartCallRecorder(ctx, filepath.Join(t.TempDir(), "credential-delete.db")); err != nil {
 		t.Fatal(err)
 	}
 	basePath := "/api/v1/admin/credentials/"

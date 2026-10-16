@@ -359,7 +359,7 @@ func testOAuthMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	assertDefault()
-	for _, bound := range []int{0, -1, 118, 94} {
+	for _, bound := range []int{0, -1, 119, 94} {
 		before := personalKeyBehaviorLedger(t, db)
 		if err := database.MigrateThrough(ctx, db, bound); err == nil {
 			t.Fatal("invalid/newer-ledger bound accepted", bound)

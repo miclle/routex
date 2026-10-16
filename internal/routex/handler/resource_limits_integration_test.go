@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -23,6 +24,31 @@ import (
 	"github.com/miclle/routex/pkg/secret"
 	"github.com/miclle/routex/pkg/secretstore"
 )
+
+// initializeLocalRecorderFixture establishes the real empty local binding before
+// a fixture seeds historical calls or activates its exact journal's coverage.
+// It creates no inference, quota usage or shared-mode authority.
+func initializeLocalRecorderFixture(t *testing.T, ctx context.Context, db *gorm.DB, path string) {
+	t.Helper()
+	bootstrap, err := service.New(ctx, db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := bootstrap.StartCallRecorder(ctx, path); err != nil {
+		t.Fatal("initialize empty owned local journal", err)
+	}
+	if err := bootstrap.StopCallRecorder(); err != nil {
+		t.Fatal("close empty owned local journal", err)
+	}
+	var binding entity.LimitInstallation
+	var mode entity.AdmissionMode
+	if err := db.Take(&binding, 1).Error; err != nil || !binding.Initialized || binding.JournalID == "" {
+		t.Fatal("owned local journal binding is not established", err)
+	}
+	if err := db.Take(&mode, 1).Error; err != nil || mode.Mode != "local" || mode.InstallationID != binding.JournalID || mode.Revision != 1 {
+		t.Fatal("owned local journal mode is not coherent", err)
+	}
+}
 
 // testResourceLimitLifecycle runs only under the isolated dual-database owner.
 func testResourceLimitLifecycle(t *testing.T, db *gorm.DB) {
@@ -247,13 +273,31 @@ func testResourceLimitLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StopCallRecorder(); err != nil {
 		t.Fatal(err)
 	}
-	// Simulate a crash after filesystem binding and before SQL initialization
-	// acknowledgment: the identity is already committed and must remain stable.
+	// An established journal with economic history cannot become fresh merely
+	// by clearing its SQL acknowledgement. Refusal must preserve the exact file.
 	var binding entity.LimitInstallation
 	if err := db.First(&binding, 1).Error; err != nil || binding.JournalID == "" {
 		t.Fatal("journal identity was not durably initialized", err)
 	}
+	originalJournal, err := os.ReadFile(spool)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := db.Model(&entity.LimitInstallation{}).Where("id = ?", 1).Update("Initialized", false).Error; err != nil {
+		t.Fatal(err)
+	}
+	rejected := makeService()
+	if err := rejected.StartCallRecorder(ctx, spool); err == nil {
+		_ = rejected.StopCallRecorder()
+		t.Fatal("established accounting history was accepted as unacknowledged freshness")
+	}
+	afterRefusal, err := os.ReadFile(spool)
+	if err != nil || !bytes.Equal(originalJournal, afterRefusal) {
+		t.Fatal("rejected SQL reset mutated retained journal", err)
+	}
+	// Restore the fixture's original acknowledgement, then exercise ordinary
+	// restart against its same identity, mode, file and rolling counters.
+	if err := db.Model(&entity.LimitInstallation{}).Where("id = ?", 1).Update("Initialized", true).Error; err != nil {
 		t.Fatal(err)
 	}
 	svc = makeService()
@@ -265,7 +309,7 @@ func testResourceLimitLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	var recoveredBinding entity.LimitInstallation
 	if err := db.First(&recoveredBinding, 1).Error; err != nil || !recoveredBinding.Initialized || recoveredBinding.JournalID != binding.JournalID {
-		t.Fatal("interrupted initialization did not preserve durable identity", err)
+		t.Fatal("coherent restart did not preserve durable identity", err)
 	}
 	router = fox.New()
 	New(svc).RegisterRoutes(router)

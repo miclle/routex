@@ -19,6 +19,10 @@ import (
 func reservationManifestFixture(t *testing.T) (*Service, *gatewayAttemptPlan, *GatewayResult, *runtimeQuotaData, map[string]json.RawMessage) {
 	t.Helper()
 	svc, data := gatewayAttemptFixture(t)
+	// Every captured resource must predate the fixed authorization evaluation.
+	for index := range data.Models {
+		data.Models[index].CreatedAt = time.Date(2026, 10, 1, 0, 0, index, 0, time.UTC)
+	}
 	for index := range data.Bindings {
 		data.Bindings[index].CreatedAt = time.Date(2026, 10, 2, 0, 0, index, 0, time.UTC)
 	}

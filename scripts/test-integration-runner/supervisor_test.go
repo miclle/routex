@@ -295,6 +295,17 @@ case "$*" in
  *) [ "$ROUTEX_TEST_OIDC_BINARY" = "$ROUTEX_RUNNER_PRIVATE/oidc-routex" ] && [ "$ROUTEX_TEST_OIDC_BINARY_SHA256" = "636bcee43aa96219a5c7f910c96e3c700fb31006e546047359d26e80eb0a7d10" ] && [ -x "$ROUTEX_TEST_OIDC_BINARY" ] && [ "$ROUTEX_TEST_OIDC_GUARD_DIR" = "$ROUTEX_RUNNER_PRIVATE/oidc-owners" ] && [ -d "$ROUTEX_TEST_OIDC_GUARD_DIR" ] || exit 26;;
 esac
 case "$*" in
+ *postgres*|*mysql*)
+ if [ "$ROUTEX_RUNNER_FAIL" = serial ]; then
+  mkdir "$ROUTEX_RUNNER_PRIVATE/driver-active" || exit 28
+  trap 'rmdir "$ROUTEX_RUNNER_PRIVATE/driver-active"' EXIT
+  case "$*" in
+   *postgres*) sleep 0.1; printf 'joined' > "$ROUTEX_RUNNER_PRIVATE/postgres-complete";;
+   *mysql*) [ -f "$ROUTEX_RUNNER_PRIVATE/postgres-complete" ] || exit 29;;
+  esac
+ fi;;
+esac
+case "$*" in
  *TestRuntimeConfigurationArchiveIntegration*) if [ "$ROUTEX_RUNNER_FAIL" = runtime-archive ]; then exit 27; fi;;
  *-skip*) if [ "$ROUTEX_RUNNER_FAIL" = nonmatrix ]; then exit 6; fi;;
  *postgres*) if [ "$ROUTEX_RUNNER_FAIL" = postgres ]; then exit 7; fi;;
@@ -380,6 +391,22 @@ func TestCompleteCommandPlanAndFailureAggregation(t *testing.T) {
 				t.Fatal("matrix was not preceded by a successful joined owned build")
 			}
 		})
+	}
+}
+
+func TestDatabaseWorkersUseOneHeavyLane(t *testing.T) {
+	cmd, trace, _ := fakeLifecycle(t, "serial")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("database workers overlapped or ran out of order: %v\n%s", err, output)
+	}
+	raw, err := os.ReadFile(trace)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(raw)), "\n")
+	if len(lines) != 7 || !strings.Contains(lines[4], "^postgres$") || !strings.Contains(lines[5], "^mysql$") {
+		t.Fatalf("incomplete serial driver lifecycle: %q", lines)
 	}
 }
 
