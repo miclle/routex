@@ -11,9 +11,13 @@ This active section supersedes the historical paused checkpoints below.
 **Current objective (2026-10-17):** complete the full F01-F30 and A01-A20
 implementation and acceptance roadmap. F24 hostile quota source has passed fresh
 complete qualification and is published on the unmerged candidate as
-`c46ef75105c39bcb777c1889f271ca78b8622826`. The next active gate is fresh controlled
-PostgreSQL bilingual browser/native acceptance, followed by genuine MySQL browser
-acceptance. Controlled F29 Personal/Project native and F30 PostgreSQL/MySQL
+`c46ef75105c39bcb777c1889f271ca78b8622826`. The unmerged candidate also contains
+the separately checked F24 denial fix
+`b1ca70f91d6a1ee6a53210538c50e11b5e1aca15`. The active work repairs the fresh
+controlled F29 MySQL Personal build from fully qualified c46; Project follows
+after Personal closure. Fresh F24 PostgreSQL/MySQL browser acceptance remains
+open after failed PG R5 and the new denial fix. Controlled F29 Personal/Project
+native and F30 PostgreSQL/MySQL
 weights-rollback/restart slices retain only their detailed evidence scopes below.
 F29 MySQL native use and deliberate DML1792/SQLSTATE25006 refusal, F30 changed
 transport/permanent cleanup, external adoption and fleet/global acceptance remain
@@ -21,6 +25,65 @@ open. Historical failed and cancelled generations remain unqualified. Remote
 candidate source is available; no required source handoff archive blocks progress.
 Real external application/runtime/issuer details remain necessary for external
 F29 adoption; independent roadmap work continues.
+
+### F24 failed browser readback and denial fix (2026-10-17)
+
+Actual PostgreSQL browser R5 original **59397 joined 1** and remains
+**FAILED / partial_browser_http_status_unqualified**. Seven exact native
+Call/Attempt pairs and 98 settled Tokens are confirmed, with zero holds,
+unknown Tokens or canary dispatch. Fourteen retained SQL snapshots preserve
+earlier calls and configuration except initial accounting activation and the
+exact reviewed manager removal. Native completion does not prove browser status.
+
+At 23:38:59.966 UTC the generic-error capture hides the AI answer but retains
+the selected Project and cached private Key row. The later picker capture at
+23:39:58.129 omits those labels; it cannot prove immediate clearing. Case3 has
+original direct CUA AX attestation but no saved terminal screenshot/DOM. Late
+browser HTTP numeric status stays unknown; script Project GET404 and SQL cannot
+fill it. A separate 6.475-second controlled pause has actual Loading/private
+absence and same-original resume; lease currentness and the individual renewal
+GET remain unknown.
+
+Independent readback:
+`/private/tmp/routex-f24-pg-browser-r5-partial-review/AUDIT.md`;
+receipt SHA-256
+`2f1637a80457304e66f40473967f8f4d997036179afba1149a5dd1e014989e0f`.
+All recorded original groups, exact Compose resources and ports54571/54576/54581
+are independently closed, including ordinary fresh binds. No complete child
+census is claimed. All earlier failed generations remain retained.
+
+The four-file frontend fix **b1ca70f91d6a1ee6a53210538c50e11b5e1aca15** is committed
+and pushed on the unmerged candidate, with exact remote SHA readback. Current
+quota-analysis401/403/404 immediately clears the report/selected scope and
+invalidates its exact picker for a fresh read. Abort, epoch and current-authority
+guards precede the callback, protecting a newer report from obsolete denials.
+No inference replay, UI redesign, API or migration change is introduced.
+Seven new cases cover Team/member-Key/Project-Key, both dimensions, pending
+options and an obsolete Project denial after a new Member report.
+
+Final focused Vitest passed **190/190 across four files**. Formatter and mandatory
+`go tool task check` original61081 joined0 with unchanged source/group closed;
+only two existing Fast Refresh warnings remain. Initial full frontend remains
+failed:7,789 passes/four new failures at an incorrect disabled-button assertion,
+subsequently corrected to require absent AI controls. These focused results do
+not establish a complete ordinary Task/SQL matrix or fresh browser acceptance on
+b1ca70f. Evidence: `/private/tmp/routex-f24-analysis-denial-20261017-r1`.
+
+F29 MySQL Personal now has a fresh59-file source-only execution copy and adopted
+19-field non-secret dependency input. It deliberately builds fully qualified
+c46, excluding the later UI fix; all2,979 bytes/modes and the exact unchanged
+eight-helper host119/Linux160 bridge are bound. Official Go/Debian/Vault and
+immutable MySQL8.4.11 content are reviewed. Original64820 joined1 after four Git
+commands, before install/build/Docker. All2,979 clone bytes matched, but inherited
+umask077 produced0600/0700 instead of reviewed0644/0755. The manifest guard refused
+that mismatch; no image, binary, JWKS, database or Key was created. The failed copy
+is retained. A source successor must scope checkout permissions without weakening
+manifest checks or private input protection. Actual artifact qualification, installed-Key
+use, original/fresh typed1792/SQLSTATE25006 pairs and owned closure remain open.
+Project follows only after Personal closes. No old private runtime artifacts are
+copied, and controlled fixture delivery is not external application adoption.
+Global totals and all deferred-runtime exclusions remain unchanged.
+
 
 ### F24 hostile quota qualification and candidate publication (2026-10-17)
 
