@@ -1,86 +1,132 @@
 # Current implementation handoff
 
-## Handoff snapshot (2026-10-16T16:48:11+08:00)
+## Cross-machine checkpoint (2026-10-16)
 
-- **Status:** paused; the global RouteX objective remains partial.
-- **Repository:** `/Users/miclle/github/miclle/routex`.
-- **Branch and HEAD:** `main` at `87022c9c402c973cd5a2930850ad661d4417e87a`.
-- **Upstream:** `origin/main`, 0 commits ahead and 0 behind at the last check.
-- **Last pushed state:** `87022c9c402c973cd5a2930850ad661d4417e87a`.
-- **Current owner:** RouteX implementation agent; **next owner:** unassigned.
-- **Transfer state:** the implementation commits are transferable; this
-  documentation refresh is local-only until the two modified documentation
-  files are reviewed and committed.
+- **Status:** functional work is paused; all global completion totals are unchanged.
+- **Repository:** `miclle/routex`; **branch:** `main`.
+- **Delivered baseline:** `93545dac795800ccca11d7992dd424d3a52331a5`, with matching
+  remote main at the pre-handoff check. This documentation update follows that
+  baseline; it does not merge the unfinished candidates.
+- **Roadmap baseline:** dotfiles `54f771d388d571756389933606f1c3153f07e2ba`.
+- **Transport:** source-host archive
+  `~/routex-handoff/routex-handoff-20261016-r1.tar.gz`, with adjacent `.sha256`.
+- **Archive SHA-256:**
+  `2e11fdfc4d3c3e72a13af8cd6e258311c0a168f1f60181c41554f6f01eec9999`
+  (1,697,917 bytes; 175 manifested payload files).
+- **Receiver access:** delivered code/docs are available through Git. Candidate
+  source and acceptance preparation are local-only until the archive and checksum
+  are copied to the receiver. Cross-machine delivery is not confirmed merely by
+  creating the archive.
 
-### Objective boundary
+### Objective and scope
 
-Continue implementing the remaining Mockup-backed RouteX capabilities while
-preserving the English documentation, GORM-first portability, Compose database
-qualification, shadcn/ui/Base UI implementation and evidence boundaries. This
-handoff closes the current window after the active packages were validated as
-far as their available gates allow; it does not declare the global objective
-complete.
+Resume the remaining F01–F30 / A01–A20 RouteX objective from a verifiable source
+snapshot. Preserve English documentation and commits, GORM-first portable
+migrations, Compose dependencies, the approved UI interactions with shadcn/ui and
+Base UI, and fresh qualification before main adoption. The global status remains
+**16 Completed / 14 Partial capabilities** and **2 Completed / 18 Partial
+acceptance scenarios**. This checkpoint preserves work; it does not complete
+those packages or resume functional development.
 
-### Completed in this window
+### What is delivered and what remains
 
-- F29 helper and evidence commands are on `main` in `7dbf441`; host race tests,
-  Linux/arm64 builds, 28 packet controls and the pinned Linux file-safety test
-  passed.
-- F11/F23 role-fixture checks and F17 shared-admission/spool-rejection focused
-  checks passed on the composed source; `go tool task check` passed with the
-  repository's two existing ESLint warnings.
-- English RouteX and roadmap documentation was refreshed in the preceding
-  delivery commits `87022c9` and `25c1e4a`.
+| Scope | Current state | Next gate |
+| --- | --- | --- |
+| F29 maintained application/evidence commands | Delivered in `7dbf441`; host race, Linux builds/file-safety and source controls passed in the prior window | Actual installed-Key application use, exact-pair PostgreSQL SQLSTATE `25006`, retirement and replacement-native evidence |
+| F11/F23 catalog/quota candidate | Unmerged; independent archive snapshot has 36 staged paths, zero unstaged/untracked paths, and 2,822 tracked files | Fresh owned complete PostgreSQL/MySQL qualification and required ordinary/check gates |
+| F11/F23/F17 composition | Unmerged; archive preserves 349 staged paths plus nine unstaged fixes, zero untracked paths, and 2,958 tracked files | Complete composed ordinary, full integration, restart and affected dedicated SQL gates |
+| Shared-runtime activation, V119/V120 registration and history transfer | Deferred; deliberately dormant | Resume only after current candidate gates and explicit scope review |
 
-### Partial and unmerged
+Both candidates use base `76d7a44bc66bb260c637ad3e6675aa537552c0e6`. The composed
+candidate's original worktree is
+`/Users/miclle/.codex/worktrees/routex-f17-gateway-executor-20261016-r1`.
+The independent catalog/quota snapshot is from
+`/Users/miclle/.codex/worktrees/routex-f11-f23-role-fixture-successor-20261016-r1`.
+The original index and final worktree differ: the nine unstaged files contain
+the shared-admission rejection/spool fix. Restoring only the staged tree loses
+that fix. The archive preserves both layers and their exact status.
 
-- The composed F11/F23/F17 source is in the detached worktree
-  `/Users/miclle/.codex/worktrees/routex-f17-gateway-executor-20261016-r1` at
-  `76d7a44`. Its complete dual-driver qualification is not accepted: PostgreSQL
-  reached 615 named nodes with 597 passes and 18 failures after a migration
-  timeout and bad connection; MySQL had no observed failures before fail-fast
-  cancellation and no complete readback.
-- F29 native application use, the SQLSTATE read-only pair and external workload
-  acceptance remain pending. The maintained source worktree was clean at
-  `66a30e9` when checked.
+### Recovery validation and evidence limits
 
-### First action after resume
+The archive contains `restore.py`, separate binary patches, complete file and
+index manifests, the immutable 133-file F29 R4 source packet, dependency inventory
+and status-only failure summaries. The recovery command creates new independent
+clones, applies both layers and compares exact base, index, staged/unstaged
+status, bytes and executable modes. Both snapshots were successfully recovered
+in clean clones on the source host. Altered-patch and existing-destination
+refusal controls passed. The F29 packet passed 50 Python test cases and 22 pure
+assertions in a disposable copy. No database, runtime, native application or
+product acceptance was performed during this transport validation.
 
-Start a fresh owned dual-database qualification from the composed F11/F23/F17
-source. Completion requires both drivers to produce complete readback with no
-failures or unaccounted skips, followed by the existing F17 gates. Do not start
-shared-runtime activation, history transfer or later roadmap features before
-that condition is met.
+The final compressed archive was extracted and independently verified using its
+own recovery script. The missing JWKS fixture source was recovered byte-exactly
+against all three historical source hashes; no generated signing material or
+old executable was exported. Its source, tests, provenance and build recipe are
+included under `jwks-build-input/`. All runtime builds and acceptance on the
+receiving host remain required. The mandatory `go tool task check` also passed
+for this documentation change, with zero lint errors and two existing warnings.
 
-### Working tree and preservation rules
+The first catalog/quota restore failed because its unstaged patch was empty.
+The recovery script now skips empty patches; fresh restores of both candidates
+passed, and the initial failed log remains in the archive. No candidate source
+or product test was changed to pass transport validation.
 
-The main RouteX worktree was clean before this documentation refresh; the
-current documentation edits are intentionally uncommitted until reviewed.
-The dotfiles checkout likewise has the RouteX roadmap edit from this refresh
-uncommitted; its unrelated `zsh/.zshrc` modification is pre-existing and must
-remain untouched.
-The F17 detached worktree contains the prepared source: its broad composition
-is staged, while the shared-admission rejection/spool fix and related guide
-updates are unstaged. Preserve those changes and do not reset or cherry-pick
-them without fresh qualification. Preserve development PID 723, unrelated
-`/Users/miclle/dotfiles/zsh/.zshrc` changes, and evidence-bearing
-`/private/tmp/routex-*` paths. Only the confirmed empty obsolete test directory
-was removed.
+The original full integration packet remains failed. PostgreSQL has 615 named
+starts, 597 passes and 18 failed nodes including ancestors. MySQL has 431 starts
+without observed pass/fail terminals before cancellation. The original runner
+reports `cancelled`; the external wrapper has no `readback.json`. Migration
+timeouts and bad connections are observed symptoms, not a proven explanation
+for every failed assertion. Nonmatrix has 10,815 passes, eight skips and two
+failed nodes; archive tests have 91 passes. These facts are retained separately
+from passing ordinary/focused results. Raw payload-bearing logs remain on the
+source host; only status metadata and hashes are transported.
 
-### Verification and open gates
+### First exact action on the receiving machine
 
-The raw dual-driver packet and logs remain at
-`/private/tmp/routex-f11-f23-composed-qualification-20261016-r1`; its
-`independent-inspect.py` must not be treated as green without a generated
-`readback.json`. The F29 source-only R4 packet is at
-`/private/tmp/routex-f29-controller-native-use-preparation-20261016-r4`.
-Actual application-use and SQLSTATE evidence must be rebound to the current
-source and binary hashes; historical Agent delivery evidence does not substitute
-for those gates.
+After transferring and checksum-verifying the archive, extract it into a new
+private directory. Set `ROUTEX_HANDOFF` to the extracted directory, then run:
 
-The dated sections below are historical qualification records. Their words such
-as "active" or "pending" describe the state at the recorded date and do not
-override this snapshot.
+```sh
+python3 -B "$ROUTEX_HANDOFF/restore.py" verify
+python3 -B "$ROUTEX_HANDOFF/restore.py" restore \
+  --snapshot catalog-quota \
+  --repo "$HOME/github/miclle/routex" \
+  --destination "$HOME/routex-catalog-quota-resume"
+python3 -B "$ROUTEX_HANDOFF/restore.py" restore \
+  --snapshot composed \
+  --repo "$HOME/github/miclle/routex" \
+  --destination "$HOME/routex-f17-composed-resume"
+```
+
+Completion requires two exact source/index/status `PASS` results, for 2,822 and
+2,958 files respectively. Existing destinations are refused. Read current-main
+`AGENTS.md`, this handoff and the dotfiles roadmap before using the candidates'
+older embedded docs. Install pinned dependencies, then qualify the catalog/quota
+clone with its `go tool task test-integration` entry point and remaining required
+gates. Use one heavy-validation lane. Reconcile against current main and verify
+the adoption derivative before any phased merge, commit or push.
+
+For F29, read archive `DEPENDENCIES.md`. Keep the original R4 sealed and create
+a reviewed target-host successor with fresh build hashes, source floors,
+prerequisite receipts, images, paths, ports and mount/namespace identities.
+Historical absolute paths and accepted bindings are reference-only and must not
+be edited into target-host proof. Linux/arm64 image assumptions require explicit
+review on another architecture. Recreate runtime secrets on the target.
+
+### Preservation and transfer boundary
+
+Original source worktrees, indexes and raw qualification evidence remain on this
+machine until the receiving machine confirms restoration. No live credentials,
+local configuration, database volumes, journals, node_modules or executables
+are included. The unrelated dotfiles `zsh/.zshrc` change remains untouched.
+Development PID 723 is a source-host identity only. Do not stop target processes
+or delete files based on that historical PID or old absolute paths.
+
+The dated sections below retain historical evidence. Their earlier "active",
+"uncommitted" or "pending" wording does not override this checkpoint. The
+archive README and manifests identify the two exact frozen candidates;
+`f84be421` is the earlier pre-review staged composition, not the later final
+worktree including the nine unstaged fixes.
 
 ## Execution continuation (2026-10-16)
 

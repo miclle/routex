@@ -2,6 +2,25 @@
 
 ## Execution continuation (2026-10-16)
 
+### Cross-machine source preservation (2026-10-16)
+
+Functional work remains paused. The source-host archive
+`~/routex-handoff/routex-handoff-20261016-r1.tar.gz` preserves the independent
+F11/F23 candidate (36 staged paths / 2,822 tracked files), the composed
+F11/F23/F17 candidate (349 staged paths, nine additional unstaged repairs /
+2,958 tracked files), and F29 R4 source preparation with dependency and failure
+inventories. Both candidates were restored in independent clean clones and
+compared byte-for-byte, including the exact index and staged/unstaged status.
+This is source-recovery proof; it does not pass the outstanding product gates.
+See RouteX `docs/current-work-handoff.md` and the archive README for receiver
+commands and qualification order. The archive must be copied separately; a Git
+pull alone does not deliver these unmerged candidates or local evidence.
+The 1,697,917-byte archive has SHA-256
+`2e11fdfc4d3c3e72a13af8cd6e258311c0a168f1f60181c41554f6f01eec9999`.
+The final extracted package passed both exact source/index comparisons; the
+previously missing JWKS source is included with matching historical hashes.
+
+
 The global goal remains active: **16 Completed / 14 Partial capabilities** and
 **2 Completed / 18 Partial acceptance scenarios**. Prepared source and bounded
 acceptance do not change these totals.
