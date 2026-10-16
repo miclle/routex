@@ -45,8 +45,26 @@ scenario; it activates no new Overview scope. The composed F11/F23 development
 race focus passes service and handler packages. Repairs address incomplete
 Model-name/unit fixtures, outdated menu expectations, asynchronous assertions
 and statement-only query callbacks; production constraints remain unchanged.
-Mandatory checking and complete ordinary/dual-driver qualification on the final
-composition remain pending, and neither source slice is adopted into main.
+Final composition `c7a57d89f45ca944ca1ff4665d94a0a66df4712c` passes
+`go tool task check` (session 34013), including the repaired reactive render
+flags and preserved dispatch authority/lifetime fences. Its complete ordinary
+Task directly joined exit zero in 579.676 seconds (session 49406):
+31 Go package terminals, 288 frontend files / 7,775 tests, five frontend Node
+controls, 66 script controls, production build and production asset race tests
+pass. All 2,822 physical source leaves stayed unchanged, the owned group is gone,
+and development PID 723 and preexisting containers were preserved. Ordinary
+readback SHA-256:
+`4345facfede27b29df4744a32a7b5b250e579feb3999d4e5e0b0698f883c6ba3`.
+The canonical complete PostgreSQL/MySQL run is now active on this exact tree
+(agent session 95026; maintained runner PID 42959, outer PID 42953). Actual
+project `routex-test-1792129407-42959-9613` uses observed loopback ports 61190
+and 61192, with unchanged 7,300-second canonical / 7,420-second outer bounds.
+Root confirmed the maintained runner live; driver terminals and owned cleanup
+remain pending. Neither source slice is adopted into main. Main documentation commits `4b0a0cf` and `d8c86cb`,
+and roadmap commit `b5ecefd`, are pushed with fresh remote SHA parity. The unrelated
+Shell edit remains preserved. A subsequent bounded temporary-output assessment
+found no positively obsolete cache or exact duplicate executable; no additional
+evidence or uncertain dependency was removed.
 
 ## Current execution summary (2026-10-15)
 
