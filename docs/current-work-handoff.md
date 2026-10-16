@@ -177,8 +177,8 @@ work; main adoption and full product acceptance remain open. Shared-runtime
 activation, V119/V120 registration and legacy history transfer remain deferred.
 No focused or source-only evidence completes F11/F23/F17 or the global objective.
 
-F29 product/controller source is present in the candidate; main additionally
-contains the 17 maintained fixture/evidence files from `7dbf441`. Fresh target-host
+F29 product/controller source and all 17 maintained fixture/evidence files from
+`7dbf441` are now present together in the candidate. Fresh target-host
 coordinator/JWKS source is prepared at
 `/private/tmp/routex-f29-target-successor-20261016-source-r1`. Registry metadata and
 the official Vault archive/executable hashes are freshly verified. Twenty-four
@@ -193,11 +193,32 @@ Project/fleet, browser and external workload acceptance remain open. No old
 binary, key, database, image ID or runtime receipt is reused. Preserve unrelated
 containers and the preexisting dotfiles vendor modifications.
 
-Next, compose the 17 maintained helper files and their controller documentation
-from `7dbf441` into the candidate, preserving the qualified production source;
-run fresh relevant checks, helper races and complete ordinary Task before a
-separate publication. Build all F29 binaries, issuer and images from that full
-reviewed commit. Execute controlled Personal installed-Key native use and the
+The maintained-helper composition is pushed as
+**`c6dcf79f0e21f2917d1e39e51bd6b03d319517f8`**, with exact local/tracking/remote
+SHA parity and a clean candidate worktree. Its scope is exactly 18 files:
+17 maintained tool files and the controller documentation, 1,712 insertions.
+All 2,957 preexisting files outside that documentation retained their qualified
+bytes/modes. Host checks passed; helper race tests passed **66/66** with no
+failure/skip. The complete ordinary Task joined with exit **0**: 33 backend Go
+package passes plus one production package pass, 288 frontend files / 7,789 tests,
+Node groups 5/5 and 66/66 with zero failure/cancellation/skip, all five maintained
+stages in order and original Task PID/PGID 92823 observed gone. Before/after and
+post-commit manifests are exactly 2,975 files at
+`661717fb109a81f1bc27f42b110a433b98230f068b811e1904ff953474c608c5`.
+Ordinary readback SHA-256:
+`83ffdc5c8fd2283c6b8a4405f207e9b800e04a80940e73053c6296990d56a18e`.
+This is host qualification of the helper composition; the complete database
+matrix remains bound to the unchanged production source at `192134f`.
+
+Fresh target-host JWKS race tests joined with exit **0**: 19 named runs,
+18 passes and one explicit non-root `wrong_owner` skip. Linux root wrong-owner
+execution remains mandatory and pending; the host skip is not passing that gate.
+No application binary/image build, native inference or SQLSTATE acceptance has
+yet run for the new F29 kit.
+
+Next, build all F29 binaries, issuer and images from the full reviewed `c6dcf79`
+commit. Qualify the fresh Linux file-safety and JWKS images before runtime use.
+Execute controlled Personal installed-Key native use and the
 original exact SQLSTATE 25006 pair before retirement and fresh replacement
 inference. A separate Project recipe/evidence extension is source-only; current
 Personal evidence cannot prove Project ownership. Controlled Project/bilingual
