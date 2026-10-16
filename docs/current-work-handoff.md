@@ -8,6 +8,16 @@ The candidate remains unmerged. Technical qualification is complete on the
 stage-two source recorded below; product and global acceptance remain Partial.
 This active section supersedes the historical paused checkpoints below.
 
+**Current objective (2026-10-17):** complete the full F01-F30 and A01-A20
+implementation and acceptance roadmap. The active gate is F30 controlled
+archive rollback/process/browser acceptance: two actual PostgreSQL PRE runs
+failed at the private read-only projection. Diagnose with bounded, sanitized
+stage receipts before a freshly built successor; do not claim rollback or
+restart acceptance. Candidate source is `777048e6a685d56c78565545d1fe94099486668f`
+and remains unmerged. No required source handoff archive is missing. Real
+external application/runtime/issuer details remain necessary for external F29
+adoption; independent roadmap work continues.
+
 - Main/remote baseline: `24d8a61c49f0d7f3764dd3c7ad269de87b217cba`.
 - Candidate/remote baseline: `3e01cfdec33d688e6e11d155dd918d68300fdb7e`,
   on `routex-handoff-f11-f23-f17-20261016` in the sibling worktree.
@@ -413,11 +423,104 @@ supervisor identity was not captured. These limits are explicit.
 F29, F11/F23/F17 product acceptance and global totals remain Partial/unchanged.
 No necessary source archive is currently missing; the historical archive is
 optional recovery material. Continue independent roadmap acceptance while the
-real external application/runtime/issuer remains unidentified. Next prepare
-fresh controlled F30 routing rollback, original-Session process restart and
-English/Chinese archive UI acceptance; archive 91/91 alone does not close those
-gates. Controlled installed-Key use and Agent delivery do not prove external
-adoption or fleet convergence.
+real external application/runtime/issuer remains unidentified. Controlled
+installed-Key use and Agent delivery do not prove external adoption or fleet
+convergence. The subsequent F30 qualification and failed actual PRE runs are
+recorded below; archive 91/91 alone does not close those gates.
+
+### F30 fresh artifact qualification and failed PostgreSQL PRE (2026-10-17)
+
+The F30 kit has thirteen private source files and consistently builds the
+unmerged `777048e` candidate. All 2,978 tracked product files retain canonical
+manifest `600a0006b0a2cc3500fbb0ecb7c87b40717a997ec78e75b16a4efb8b979d0c0b`.
+The recorded compact source manifest is
+`1ae7c96f82f25c46b53d3773cdc756a381bed2e37fc30c714e3625ea95b859d0`;
+the different JSON serialization hashes are checked separately, never called
+identical. The exact kit manifest is
+`4d74cbeda7d6e5c2598e630c0a81fede49bda8577adc9a858effe59435bbbc46`.
+Source R1 remains unexecuted apart from its pure controls; source R2 fixes the
+original-child closure guards, shared wall/monotonic deadline and positive,
+distinct restart-PID witnesses. R3 copies only those same thirteen source files.
+
+Both R2 and R3 fresh builds joined with exit **0**, ran `go tool task install`
+first, rebuilt production assets and both Docker targets with `--no-cache`, and
+captured three newly compiled binary hashes in an exact offline container before
+removal. Current build-tool scope is Go 1.27.1, Node 26.8.2, npm 11.19.1,
+Docker 29.8.2 and Compose 5.6.0; earlier qualification tool versions stay bound to
+their earlier runs. Fresh official registry configuration/manifest review binds
+Linux arm64 Go, Debian and PostgreSQL image digests. This is build provenance,
+not runtime application proof.
+
+R3 build original **32442** joined **0**; original PID/PGID **81532/81532** is
+gone. Build UUID `d37014117c054cc4befcafca4fefdc5f`, capsule image
+`sha256:16ad168c7a970923aa5efafd0aedea3e99afe97cb1c112054a761503ff469887`,
+test image
+`sha256:992c503ba2e8ac55189e68daf5e942e740a381df8147dc38faa2e6932a30e682`.
+Build receipt SHA-256:
+`b562b5b94645c18983fa9d73e9d268409f59b265f1578c3132656f047f9dcd11`.
+Independent build audit SHA-256:
+`33a7b23797c51193f47a33926e6d80f565aab2849952d5838c3f25131e86230d`.
+
+Fresh R3 artifact qualification original **30730** joined **0**: four complete
+Go packages, **143 named starts / 142 passes / one explicit host-only ownership
+skip**; Linux passed **88/88** including that ownership gate, with zero skips.
+All 44 original command groups and supervisor **83791/83791** were independently
+observed gone; both exact unit containers had original zero attach/wait exits,
+pre-removal terminal state and fresh absence, with empty qualification-label
+inventories. Three binary-hash prefixes, exact image/build/kit/source bindings
+and current full source bytes/modes/file sets match. Independent audit SHA-256:
+`bc9cbf3d82773e9f181d6803b5ee39b6f8a1688a4d529177a21217bf4efffe03`.
+Private evidence: `/private/tmp/routex-f30-artifact-qualification-20261017-r2`.
+This qualifies artifact/helper units only, not F30 process/browser acceptance.
+
+Actual controlled R2 project `routex-f30-target-9977a5bbe73845a7` **FAILED**:
+provision joined 0, PRE **37506** joined **1** at its only private projection
+`docker exec`, and lifecycle **60640** joined **1**. Two real peer requests,
+two direct native HTTP 200 statuses and one stale rollback HTTP 409 are retained;
+no SQL PRE result, browser-ready marker, actual UI rollback, POST or restart
+result exists. Early browser login was a concrete sequence mismatch with the
+helper's sole-CLI-Session PRE requirement, but redacted output does not prove
+the exact rejected assertion. All 57 runtime command receipts, five exact
+containers, network/two volumes, both namespaces and port 51140 were independently
+confirmed closed; ordinary fresh bind succeeded and UI password input was
+removed. The anchor stopped at exit 137 with OOM false; that state is retained.
+Failed-run/verified-cleanup audit SHA-256:
+`485cc2d6bbd1c9ba5b7cbc1902176ab1e1a3d209fb9839bc162167ea0c6cce65`.
+
+Actual R3 project `routex-f30-target-191aefa8976e4f1c` also **FAILED** without
+any browser login: provision joined 0, PRE **84957** joined **1**, private
+projection `docker exec` **85142** exited **1**, lifecycle **95233** joined **1**.
+It again retained two peer requests and stale HTTP 409 but produced no SQL PRE,
+browser-ready, UI rollback, POST or restart result. Correcting the early-login
+sequence did not resolve the projection failure. Independent readback verified
+all 57 runtime command groups and three original entrypoints gone; five exact
+containers, exact network/two volumes and both project namespaces absent; port
+52331 refused with ordinary fresh bind and UI password input removed. The anchor
+again stopped at exit 137 with OOM false. Failed-run/verified-cleanup audit SHA-256:
+`73c9bc2615fc253682f81f3e5bdfd988f94af82f0ea1bd377d9e75d661f322fc`.
+Private immutable kits/evidence:
+`/private/tmp/routex-f30-target-successor-20261017-source-r2` and
+`/private/tmp/routex-f30-target-successor-20261017-source-r3`.
+Original entrypoint tool launch/join outputs are retained explicitly. Arbitrary
+helper stdout/stderr is deliberately not persisted, so the exact rejected
+assertion remains unknown. A new source-only successor adds fixed, sanitized
+failure-stage receipts; it must retain all assertions and bounds and rebuild.
+
+A separate thirteen-file MySQL source kit has an independently accepted source
+review and **13 passing Python controls**, with no private Go, build, database,
+registry, runtime or browser execution. Fixed MySQL driver source supports the
+read-only repeatable-read transaction; this is not live server rejection proof.
+No PostgreSQL/F29 SQLSTATE result transfers to MySQL. Source audit SHA-256:
+`f9ec8786e0fc187ab5a825ffd5722f82a5b606c144deb1bd9965af6e3f260ab2`.
+Private source: `/private/tmp/routex-f30-mysql-target-successor-20261017-source-r1`.
+
+F30, F29, F11/F23/F17 product acceptance and global totals remain Partial and
+unchanged. Next diagnose the private PRE rejection, then freshly qualify and
+execute the complete PostgreSQL UI/native/restart slice and separate genuine
+MySQL parity. Permanent archive cleanup/history protection, transport rollback,
+distributed revocation, fleet, external adoption and performance remain separate.
+No deferred shared-runtime activation, V119/V120 registration or legacy history
+transfer is started. Recorded closure is not a complete child-process census.
 
 ## Cross-machine checkpoint (2026-10-16)
 
