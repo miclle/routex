@@ -24,7 +24,7 @@ func TestPostgresEnforcesReadOnlyAndExactProjection(t *testing.T) {
 	}
 	defer clear(raw)
 	var c config
-	if !decodeConfig(raw, &c) {
+	if !decodeConfig(raw, &c) || c.DatabaseDriver == "mysql" {
 		t.Fatal("invalid private test config")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
@@ -33,7 +33,7 @@ func TestPostgresEnforcesReadOnlyAndExactProjection(t *testing.T) {
 	if !ok {
 		t.Fatal("invalid private connection input")
 	}
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent), TranslateError: true})
 	dsn = ""
 	if err != nil {
 		t.Fatal("isolated PostgreSQL connection failed")

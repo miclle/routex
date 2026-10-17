@@ -13,9 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 var errInvalid = errors.New("invalid private evidence input")
@@ -27,6 +25,7 @@ type expectation struct {
 	Native    string `json:"native"`
 }
 type config struct {
+	DatabaseDriver       string        `json:"database_driver,omitempty"`
 	OwnerKind            string        `json:"owner_kind,omitempty"`
 	ProjectID            string        `json:"project_id,omitempty"`
 	ProjectCreatedAt     time.Time     `json:"project_created_at,omitempty"`
@@ -96,7 +95,7 @@ func run(args []string, out io.Writer) int {
 	if !ok {
 		return fail()
 	}
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent), DisableAutomaticPing: true})
+	db, err := openEvidenceDatabase(c.DatabaseDriver, dsn)
 	dsn = ""
 	if err != nil {
 		return fail()
@@ -142,7 +141,7 @@ func decodeConfig(raw []byte, c *config) bool {
 		return false
 	}
 	for field := range fields {
-		if strings.EqualFold(field, "owner_kind") && field != "owner_kind" {
+		if (strings.EqualFold(field, "owner_kind") && field != "owner_kind") || (strings.EqualFold(field, "database_driver") && field != "database_driver") {
 			return false
 		}
 	}
@@ -152,21 +151,17 @@ func decodeConfig(raw []byte, c *config) bool {
 			return false
 		}
 	}
+	if value, present := fields["database_driver"]; present {
+		var driver string
+		if bytes.Equal(bytes.TrimSpace(value), []byte("null")) || json.Unmarshal(value, &driver) != nil || driver != "postgres" && driver != "mysql" {
+			return false
+		}
+	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.DisallowUnknownFields()
 	return decoder.Decode(c) == nil && validConfig(*c)
 }
 
-// Consume the validated connection secret before opening the database. Query and
-// proof checks use only non-secret expectations after this exact run transition.
-func prepareConnection(c *config) (string, bool) {
-	if c == nil || !validConfig(*c) {
-		return "", false
-	}
-	dsn := "host=postgres port=5432 user=routex password=" + c.DatabasePassword + " dbname=routex sslmode=disable connect_timeout=2"
-	c.DatabasePassword = ""
-	return dsn, true
-}
 func validOwnerConfig(c config) bool {
 	switch c.OwnerKind {
 	case "", "personal":
@@ -181,7 +176,7 @@ func validConfig(c config) bool {
 	return passwordPattern.MatchString(c.DatabasePassword) && validExpectations(c)
 }
 func validExpectations(c config) bool {
-	if !validOwnerConfig(c) || c.KeyID == c.PredecessorID || !validID(c.ModelID, "mdl") || !validID(c.CredentialID, "crd") || !validID(c.ConnectionID, "con") || !validID(c.ProviderModelID, "pmd") || c.KeyCreatedAt.IsZero() || len(c.Requests) != 2 {
+	if !validDatabaseDriver(c.DatabaseDriver) || !validOwnerConfig(c) || c.KeyID == c.PredecessorID || !validID(c.ModelID, "mdl") || !validID(c.CredentialID, "crd") || !validID(c.ConnectionID, "con") || !validID(c.ProviderModelID, "pmd") || c.KeyCreatedAt.IsZero() || len(c.Requests) != 2 {
 		return false
 	}
 	return validID(c.Requests[0].RequestID, "req") && validID(c.Requests[1].RequestID, "req") && c.Requests[0].RequestID != c.Requests[1].RequestID && c.Requests[0].Native == "incomplete" && c.Requests[1].Native == "completed"
