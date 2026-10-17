@@ -39,11 +39,13 @@ func testPersonalKeyMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
 	var publicationBarrier personalKeyWarningFixturePublicationBarrier
 	workerCtx := context.WithValue(ctx, personalKeyWarningFixtureWorkerContext{}, &publicationBarrier)
+	var controlledOperations personalKeyWarningFixtureOperations
 	const publicationCallback = "test:personal-key-warning-publication-fault"
-	if err := db.Callback().Query().Before("gorm:query").Register(publicationCallback, publicationBarrier.beforeQuery); err != nil {
+	if err := db.Callback().Query().Before("gorm:query").Register(publicationCallback, func(tx *gorm.DB) {
+		controlledOperations.beforeQuery(tx, &publicationBarrier)
+	}); err != nil {
 		t.Fatal(err)
 	}
-	var controlledOperations personalKeyWarningFixtureOperations
 	const operationsCallback = "test:personal-key-warning-controlled-operations"
 	if err := db.Callback().Create().After("gorm:create").Register(operationsCallback, func(tx *gorm.DB) {
 		controlledOperations.afterCreate(tx, &publicationBarrier)
@@ -163,6 +165,7 @@ func testPersonalKeyMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		releaseOnce.Do(func() { close(release) })
 		nativeRequests.Wait() // Each request owns its existing bounded context.
 		svc.StopRuntime()
+		controlledOperations.purgeRejectedContextsAfterJoin()
 		_ = svc.StopCallRecorder()
 	}()
 	if err := svc.StartRuntime(workerCtx); err != nil {
@@ -997,6 +1000,7 @@ func testPersonalKeyMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	// Recreate the process-equivalent Service/router while retaining the original Session.
 	openRecorder := func() error {
 		svc.StopRuntime()
+		controlledOperations.purgeRejectedContextsAfterJoin()
 		svc = makeService()
 		router = fox.New()
 		New(svc).RegisterRoutes(router)
@@ -1128,6 +1132,7 @@ func testPersonalKeyMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	svc.StopRuntime()
+	controlledOperations.purgeRejectedContextsAfterJoin()
 	svc = makeService()
 	router = fox.New()
 	New(svc).RegisterRoutes(router)
@@ -1516,7 +1521,7 @@ func TestPersonalKeyWarningFixturePositivePublicationObservation(t *testing.T) {
 }
 
 // These bounded fixture receipts observe only persisted publication/job IDs.
-// Runtime's existing mutex serializes publication -> job creation. No request,
+// Runtime's refresh mutex serializes publication -> job creation. No request,
 // quota warning, secret, or arbitrary operational failure is allowlisted here.
 const personalKeyWarningFixtureOperationsBound = 4096
 
@@ -1526,10 +1531,48 @@ type personalKeyWarningFixtureOperationProof struct {
 	SnapshotID    string
 }
 type personalKeyWarningFixtureOperations struct {
-	mu      sync.Mutex
-	pending *entity.RuntimePublication
-	proofs  []personalKeyWarningFixtureOperationProof
-	err     error
+	mu               sync.Mutex
+	pending          *entity.RuntimePublication
+	proofs           []personalKeyWarningFixtureOperationProof
+	rejectedContexts map[context.Context]struct{}
+	err              error
+}
+
+// Capture the actual newly injected query failure, rather than the barrier's
+// later armed state: a queued refresh may persist after release has returned.
+// This is separate from the rolling fixture's metadata suppression fence.
+func (v *personalKeyWarningFixtureOperations) beforeQuery(tx *gorm.DB, barrier *personalKeyWarningFixturePublicationBarrier) {
+	clean := tx.Error == nil
+	barrier.beforeQuery(tx)
+	if !clean || !errors.Is(tx.Error, errPersonalKeyWarningFixturePublication) || tx.Statement == nil || tx.Statement.Context == nil || tx.Statement.Context.Value(personalKeyWarningFixtureWorkerContext{}) != barrier {
+		return
+	}
+	ctx := tx.Statement.Context
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	if !reflect.TypeOf(ctx).Comparable() {
+		v.err = errors.New("non-comparable controlled publication context")
+		return
+	}
+	if _, exists := v.rejectedContexts[ctx]; exists {
+		return
+	}
+	if len(v.rejectedContexts) >= personalKeyWarningFixtureOperationsBound {
+		v.err = errors.New("controlled publication context bound exceeded")
+		return
+	}
+	if v.rejectedContexts == nil {
+		v.rejectedContexts = make(map[context.Context]struct{})
+	}
+	v.rejectedContexts[ctx] = struct{}{}
+}
+
+// Call only after StopRuntime has joined this fixture's original publisher.
+// Retained publication/job proofs and any sticky capture error survive purge.
+func (v *personalKeyWarningFixtureOperations) purgeRejectedContextsAfterJoin() {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	clear(v.rejectedContexts)
 }
 
 func (v *personalKeyWarningFixtureOperations) afterCreate(tx *gorm.DB, barrier *personalKeyWarningFixturePublicationBarrier) {
@@ -1544,10 +1587,15 @@ func (v *personalKeyWarningFixtureOperations) afterCreate(tx *gorm.DB, barrier *
 		if row.Status != "failed" {
 			return
 		}
-		if row.ErrorCode != "database_unavailable" || row.ID == "" || row.SnapshotID == "" || tx.Statement.Context == nil || tx.Statement.Context.Value(personalKeyWarningFixtureWorkerContext{}) != barrier || !barrier.armed.Load() {
+		if row.ErrorCode != "database_unavailable" || row.ID == "" || row.SnapshotID == "" || tx.Statement.Context == nil || tx.Statement.Context.Value(personalKeyWarningFixtureWorkerContext{}) != barrier || !reflect.TypeOf(tx.Statement.Context).Comparable() {
 			v.err = errors.New("unowned failed runtime publication")
 			return
 		}
+		if _, rejected := v.rejectedContexts[tx.Statement.Context]; !rejected {
+			v.err = errors.New("unowned failed runtime publication")
+			return
+		}
+		delete(v.rejectedContexts, tx.Statement.Context)
 		copy := *row
 		v.pending = &copy
 	case *entity.SystemJob:
@@ -1765,6 +1813,135 @@ func TestPersonalKeyWarningFixtureControlledOperations(t *testing.T) {
 	}
 }
 
+// A query rejected before release may finish persisting afterward. Only its
+// exact one-shot causal proof permits that publication; current armed state and
+// earlier rejection totals cannot stand in for the actual query callback.
+func TestPersonalKeyWarningFixtureOperationCaptureAfterRelease(t *testing.T) {
+	makeTx := func(ctx context.Context, dest any) *gorm.DB {
+		return &gorm.DB{Config: &gorm.Config{}, Statement: &gorm.Statement{Context: ctx, Dest: dest}}
+	}
+	created := time.Date(2026, 10, 1, 1, 0, 0, 0, time.UTC)
+	pub := entity.RuntimePublication{ID: "pub_delayed", SnapshotID: "snap_delayed", Status: "failed", ErrorCode: "database_unavailable", CreatedAt: created}
+	job := entity.SystemJob{ID: "job_delayed", Code: service.SystemJobRuntimePublication, Status: "running", StartedAt: created}
+	noop := func() error { return nil }
+	t.Run("exact_rejected_refresh_survives_release_once", func(t *testing.T) {
+		var barrier personalKeyWarningFixturePublicationBarrier
+		if err := barrier.arm(noop); err != nil {
+			t.Fatal(err)
+		}
+		marked := context.WithValue(context.Background(), personalKeyWarningFixtureWorkerContext{}, &barrier)
+		worker, cancel := context.WithTimeout(marked, time.Second)
+		defer cancel()
+		var capture personalKeyWarningFixtureOperations
+		query := makeTx(worker, nil)
+		capture.beforeQuery(query, &barrier)
+		if !errors.Is(query.Error, errPersonalKeyWarningFixturePublication) || barrier.rejected.Load() != 1 {
+			t.Fatal("actual controlled query was not rejected")
+		}
+		if err := barrier.release(noop, noop); err != nil {
+			t.Fatal(err)
+		}
+		if barrier.armed.Load() {
+			t.Fatal("release did not end the fault interval")
+		}
+		capture.afterCreate(makeTx(worker, &pub), &barrier)
+		capture.afterCreate(makeTx(context.Background(), &job), &barrier)
+		proofs, err := capture.snapshot()
+		if err != nil || !reflect.DeepEqual(proofs, []personalKeyWarningFixtureOperationProof{{"pub_delayed", "job_delayed", "snap_delayed"}}) {
+			t.Fatal("delayed causal publication lost its exact pairing", err, proofs)
+		}
+		// Before any purge, a consumed query cannot authorize another publication.
+		reused := pub
+		reused.ID = "pub_reused"
+		capture.afterCreate(makeTx(worker, &reused), &barrier)
+		if _, err := capture.snapshot(); err == nil {
+			t.Fatal("reused query proof accepted")
+		}
+		capture.purgeRejectedContextsAfterJoin()
+		preserved, err := capture.snapshot()
+		if err == nil || !reflect.DeepEqual(proofs, preserved) {
+			t.Fatal("post-join purge erased durable source proof or capture failure", err)
+		}
+	})
+	for _, name := range []string{"unproven", "different_refresh", "untagged", "foreign_marker", "preexisting_error", "query_after_release", "purged_after_join"} {
+		t.Run(name, func(t *testing.T) {
+			var barrier personalKeyWarningFixturePublicationBarrier
+			if err := barrier.arm(noop); err != nil {
+				t.Fatal(err)
+			}
+			worker := context.WithValue(context.Background(), personalKeyWarningFixtureWorkerContext{}, &barrier)
+			publicationCtx := context.Context(worker)
+			var capture personalKeyWarningFixtureOperations
+			query := makeTx(worker, nil)
+			switch name {
+			case "different_refresh":
+				publicationCtx = context.WithValue(worker, struct{ name string }{"different_refresh"}, true)
+				capture.beforeQuery(query, &barrier)
+			case "untagged":
+				publicationCtx = context.Background()
+				capture.beforeQuery(makeTx(publicationCtx, nil), &barrier)
+			case "foreign_marker":
+				publicationCtx = context.WithValue(context.Background(), personalKeyWarningFixtureWorkerContext{}, new(personalKeyWarningFixturePublicationBarrier))
+				capture.beforeQuery(makeTx(publicationCtx, nil), &barrier)
+			case "preexisting_error":
+				query.Error = errors.New("preexisting query failure")
+				capture.beforeQuery(query, &barrier)
+				if !errors.Is(query.Error, errPersonalKeyWarningFixturePublication) {
+					t.Fatal("control did not exercise joined sentinel error")
+				}
+			case "purged_after_join":
+				capture.beforeQuery(query, &barrier)
+			}
+			if err := barrier.release(noop, noop); err != nil {
+				t.Fatal(err)
+			}
+			if name == "query_after_release" {
+				capture.beforeQuery(query, &barrier)
+				if query.Error != nil {
+					t.Fatal("released query was incorrectly rejected")
+				}
+			}
+			if name == "purged_after_join" {
+				capture.purgeRejectedContextsAfterJoin()
+			}
+			capture.afterCreate(makeTx(publicationCtx, &pub), &barrier)
+			if _, err := capture.snapshot(); err == nil {
+				t.Fatal("unproven delayed publication accepted")
+			}
+		})
+	}
+	t.Run("bounded_query_proofs_keep_errors_after_join", func(t *testing.T) {
+		var barrier personalKeyWarningFixturePublicationBarrier
+		if err := barrier.arm(noop); err != nil {
+			t.Fatal(err)
+		}
+		worker := context.WithValue(context.Background(), personalKeyWarningFixtureWorkerContext{}, &barrier)
+		var capture personalKeyWarningFixtureOperations
+		for index := range personalKeyWarningFixtureOperationsBound + 1 {
+			// Distinct exact refresh identities, each genuinely rejected by the callback.
+			ctx := context.WithValue(worker, struct{ name string }{"refresh"}, index)
+			query := makeTx(ctx, nil)
+			capture.beforeQuery(query, &barrier)
+			if !errors.Is(query.Error, errPersonalKeyWarningFixturePublication) {
+				t.Fatal("controlled query was not rejected")
+			}
+		}
+		if len(capture.rejectedContexts) != personalKeyWarningFixtureOperationsBound {
+			t.Fatal("query proof bound changed")
+		}
+		if _, err := capture.snapshot(); err == nil {
+			t.Fatal("overflow silently discarded causal proof")
+		}
+		capture.purgeRejectedContextsAfterJoin()
+		if len(capture.rejectedContexts) != 0 {
+			t.Fatal("post-join purge retained unused contexts")
+		}
+		if _, err := capture.snapshot(); err == nil {
+			t.Fatal("post-join purge erased capture failure")
+		}
+	})
+}
+
 func TestPersonalKeyWarningFixtureOperationCapture(t *testing.T) {
 	var barrier personalKeyWarningFixturePublicationBarrier
 	barrier.armed.Store(true)
@@ -1776,6 +1953,7 @@ func TestPersonalKeyWarningFixtureOperationCapture(t *testing.T) {
 	pub := entity.RuntimePublication{ID: "pub_owned", SnapshotID: "snap_owned", Status: "failed", ErrorCode: "database_unavailable", CreatedAt: created}
 	job := entity.SystemJob{ID: "job_owned", Code: service.SystemJobRuntimePublication, Status: "running", StartedAt: created}
 	var capture personalKeyWarningFixtureOperations
+	capture.beforeQuery(makeCreate(worker, nil), &barrier)
 	capture.afterCreate(makeCreate(worker, &pub), &barrier)
 	if _, err := capture.snapshot(); err == nil {
 		t.Fatal("missing durable job accepted")
@@ -1801,6 +1979,7 @@ func TestPersonalKeyWarningFixtureOperationCapture(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var rejected personalKeyWarningFixtureOperations
+			rejected.beforeQuery(makeCreate(tc.ctx, nil), &barrier)
 			rejected.afterCreate(makeCreate(tc.ctx, &tc.row), &barrier)
 			if _, err := rejected.snapshot(); err == nil {
 				t.Fatal("uncontrolled failed publication accepted")
@@ -1809,12 +1988,14 @@ func TestPersonalKeyWarningFixtureOperationCapture(t *testing.T) {
 	}
 	var overflow personalKeyWarningFixtureOperations
 	overflow.proofs = make([]personalKeyWarningFixtureOperationProof, personalKeyWarningFixtureOperationsBound)
+	overflow.beforeQuery(makeCreate(worker, nil), &barrier)
 	overflow.afterCreate(makeCreate(worker, &pub), &barrier)
 	overflow.afterCreate(makeCreate(context.Background(), &job), &barrier)
 	if _, err := overflow.snapshot(); err == nil {
 		t.Fatal("captured source bound silently dropped a real job")
 	}
 	var beforeSource personalKeyWarningFixtureOperations
+	beforeSource.beforeQuery(makeCreate(worker, nil), &barrier)
 	beforeSource.afterCreate(makeCreate(worker, &pub), &barrier)
 	tooEarly := job
 	tooEarly.StartedAt = created.Add(-time.Millisecond)
