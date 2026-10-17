@@ -29,6 +29,37 @@ candidate source is available; no required source handoff archive blocks progres
 Real external application/runtime/issuer details remain necessary for external
 F29 adoption; independent roadmap work continues.
 
+### Candidate quota-warning repair and current gates (2026-10-17)
+
+Remote candidate `routex-handoff-f11-f23-f17-20261016` is now
+`679d8eac311f952b785bc12beb093563ea617361`. At that publication checkpoint,
+remote main was `5e44cc36e3f4e1cb8db8a02f7bb7b36e155fe8d0`. The candidate
+is not merged.
+The two-file test-fixture repair retains a failed quota refresh's captured
+ownership through delayed persistence, even after its barrier is released. It
+keeps operational-error, cardinality and rolling-metadata assertions intact.
+Focused handler race tests pass 106/106; actual focused PostgreSQL and canonical
+Task-DSN MySQL runs pass 4/4 each. Mandatory check passes before the commit.
+An earlier manual MySQL focus failed at concurrent migration locking after an
+extra five-second socket cap; that failed generation is retained separately.
+
+The preceding complete maintained integration run on `0c993ae` failed, with
+original Task exit 201 and runner exit 1: PostgreSQL 612/615 pass (one
+`personal_key_quota_warning` leaf and two ancestors failed), MySQL 615/615 pass,
+nonmatrix 11,532 pass / 22 skip / 0 fail, and runtime archive 91/91 pass.
+It ran for 5,131 seconds without timeout or cancellation. Original terminals,
+source readback and owned cleanup were independently checked. This does not
+qualify that candidate, and the new focused results do not qualify `679d8ea`.
+
+Fresh install and complete ordinary Task on `679d8ea` pass; ordinary joins exit
+0 in 253.554 seconds, with 34 Go package results (31 cached), 288 frontend files /
+7,796 tests, Node 5/5 and 66/66, and fresh production asset build. The production
+Go result remains cached. Source bytes/modes remain unchanged. Fresh same-source mandatory check also
+passes in 42.432 seconds. Complete maintained dual-driver integration and fresh
+bilingual browser acceptance remain pending. Earlier F17 stage-two and
+controlled F29 receipts retain their recorded source scopes; neither transfers
+full qualification to this new tip. Capability/scenario totals remain unchanged.
+
 ### Whole-objective work queue (2026-10-17)
 
 The objective is the complete F01-F30 / A01-A20 roadmap. This queue makes the
@@ -37,9 +68,9 @@ No capability or scenario is promoted by these tooling results.
 
 | Order | Work | Current gate / next action |
 | --- | --- | --- |
-| 1 | F11/F23/F17 technical qualification | Complete on the recorded stage-two source; retain every historical failure. Product completion and deferred shared-runtime activation remain excluded. |
+| 1 | F11/F23/F17 technical qualification | Complete only on the recorded stage-two source. Latest candidate 679d8ea requires fresh complete gates after the failed 0c993ae full run. Product completion and deferred shared-runtime activation remain excluded. |
 | 2 | F29 native and maintained MySQL evidence | R15 pure 100 passed. Fresh Personal R8 and Project R2 builds and artifact packages passed 473/473 each. Actual Personal R7 and Project R2 independently passed both private and maintained 0c993ae original/final typed 1792/25006 pairs, three native calls, retirement and closure. Fresh browser and real external workload remain open. |
-| 3 | F24 denial fix b1ca70f on current 0c993ae | Focused 190/190 and current-candidate complete ordinary Task passed: 34 Go package results (33 cached), 288 frontend files/7,796 tests and Node 5+66. Fresh asset build passed; production Go result remains cached. Current-source full SQL qualification and fresh bilingual PostgreSQL/MySQL browser acceptance remain open. |
+| 3 | F24 denial fix and latest quota fixture repair on 679d8ea | Denial focus 190/190 and ordinary Task passed on earlier 0c993ae; its full PostgreSQL run failed. New repair focus passes 106/106 plus actual PostgreSQL/MySQL 4/4 each and precommit check. Fresh 679d8ea ordinary passes; full SQL and bilingual browser gates remain open. |
 | 4 | F28 failure coordinator | Complete actual normal-receipt/claim/API/restart/topology and observed logging/metrics adapters before runtime acceptance; the private coordinator remains unready. |
 | 5 | F30 transport and permanent cleanup | Qualify the executable draft and perform actual native/SQL/UI rollback, deletion, byte release and preserved-history acceptance. Prior weights/restart evidence has narrower scope. |
 | 6 | Remaining release scenarios | Continue existing authorization, identity/offboarding, recovery and measured single-node release checks; obtain real external inputs only for dependent work. |
