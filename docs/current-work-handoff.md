@@ -13,9 +13,10 @@ implementation and acceptance roadmap. F24 hostile quota source has passed fresh
 complete qualification and is published on the unmerged candidate as
 `c46ef75105c39bcb777c1889f271ca78b8622826`. The unmerged candidate also contains
 the separately checked F24 denial fix
-`b1ca70f91d6a1ee6a53210538c50e11b5e1aca15`. Active work repairs controlled F29
-MySQL Personal provisioning after fresh artifact/helper qualification from fully
-qualified c46; Project follows only after Personal closure. Fresh F24 PostgreSQL/MySQL browser acceptance remains
+`b1ca70f91d6a1ee6a53210538c50e11b5e1aca15`. Active work qualifies the fresh controlled F29 MySQL Personal
+converter/parser successor after the failed R4 workflow; fresh Project follows
+only after Personal acceptance and closure. Product source remains frozen at
+fully qualified c46 for this F29 lane. Fresh F24 PostgreSQL/MySQL browser acceptance remains
 open after failed PG R5 and the new denial fix. Controlled F29 Personal/Project
 native and F30 PostgreSQL/MySQL
 weights-rollback/restart slices retain only their detailed evidence scopes below.
@@ -25,6 +26,92 @@ open. Historical failed and cancelled generations remain unqualified. Remote
 candidate source is available; no required source handoff archive blocks progress.
 Real external application/runtime/issuer details remain necessary for external
 F29 adoption; independent roadmap work continues.
+
+### Whole-objective work queue (2026-10-17)
+
+The objective is the complete F01-F30 / A01-A20 roadmap. This queue makes the
+current slice visible without replacing the detailed capability/scenario tables.
+No capability or scenario is promoted by these tooling results.
+
+| Order | Work | Current gate / next action |
+| --- | --- | --- |
+| 1 | F11/F23/F17 technical qualification | Complete on the recorded stage-two source; retain every historical failure. Product completion and deferred shared-runtime activation remain excluded. |
+| 2 | F29 MySQL Personal, then Project | R6 build/artifact qualification passed; actual Personal workflow R4 failed. R7 controls pass 70/70 and fresh build R5 passes, but review blocks its long-receipt parser. R8 reconstruction is in preparation; require complete fresh artifact, original/final typed 1792/25006 pairs, installed native calls, retirement and closure before fresh Project. |
+| 3 | F24 denial fix b1ca70f | Mandatory check and focused 190/190 passed. Complete ordinary/dual-SQL and fresh bilingual PostgreSQL/MySQL browser acceptance remain open. |
+| 4 | F28 failure coordinator | Complete actual normal-receipt/claim/API/restart/topology and observed logging/metrics adapters before runtime acceptance; the private coordinator remains unready. |
+| 5 | F30 transport and permanent cleanup | Qualify the executable draft and perform actual native/SQL/UI rollback, deletion, byte release and preserved-history acceptance. Prior weights/restart evidence has narrower scope. |
+| 6 | Remaining release scenarios | Continue existing authorization, identity/offboarding, recovery and measured single-node release checks; obtain real external inputs only for dependent work. |
+
+The fourteen Partial capabilities remain F03, F10-F14, F17, F20, F23-F24 and
+F27-F30. The eighteen Partial scenarios remain A02-A12 and A14-A20. Real external
+Provider/identity/proxy/S3/SMTP/Vault/PKI/application/workload and production/fleet
+inputs remain acceptance gaps. The old 133-file source archive is not a required
+input for continuing the available candidate source. Agent delivery does not
+prove application adoption; controlled fixtures do not prove external completion.
+
+### F29 MySQL R4 failure and R7 tool correction (2026-10-17)
+
+Fresh R6 Personal build R4 native26980 and artifact qualifier26906 both joined0.
+All eight host/Linux packages retain **473 starts / 473 passes / zero fail/skip**.
+Independent build/qualification audits are respectively
+`c1767d258d9ed05f02c7fd9a541e6155455286510565cf93df6b7fa21793296d` and
+`8c181da3b5d0644c90f32290db6e4c5187424ae62a67b6e535baff476e8c2f7c`.
+These qualify artifacts, not the actual MySQL workflow.
+
+Actual Personal workflow R4 native15829 joined1 after47.440951seconds. Provisioning
+and two controlled peer calls occurred; the first exact-pair process exited1.
+Its raw GoJSON was not retained and its suppressed stderr remains unknown. No
+original/final typed1792/25006, retirement or fresh third-call pass is inferred.
+Failed-run audit `0aed7f8c8b6aff39841c93c445b1d725caf7f4bc722c5668685c1a802c879510`
+confirms all123 recorded groups, five Compose containers plus one pair container,
+network/volumes/namespaces and both ports closed. Earlier failures remain retained.
+
+Separate no-network/no-mount/no-secret tool-startup diagnostics reproduce Go's
+lazy test2json cache failure as positive UID501: read-only filesystem in R1,
+permission denied in writable-rootFS R2. Both Go execs exit1; diagnostic parent
+exit0 only records the expected failure. Independent audit
+`06cc04753143d679ed869082d6bdf050dd072ead8aed9dc8eb213e580bfa75c6`
+confirms24 recorded groups/two exact containers closed. These observations do not
+recover the original suppressed stderr or prove a database refusal.
+
+Sealed R7 inventory
+`e31d8ecda8e04a2649d281f0e92b57e9d9b63406aa223751ad8d31dfbd807469`
+binds59 source files. Both image builds now prebuild pinned cmd/test2json and bind
+all eight capsule binaries/seven test-image hash prefixes. Pair execution uses
+the exact direct converter command as the inspected positive UID; Go1.27
+OutputType is accepted only for the existing closed frame/failure grammar.
+All Go sources and typed-error/rollback/owner/deadline requirements are unchanged.
+Root executed **70/70** controls and all six unchanged outer controls, with original
+joins0, groups absent and source unchanged. Fresh build R5 native41687 joined0
+in116.7433seconds; independent build audit
+`ca3ff29bfe7367a3341d82766b0835528579bb3901229b32e8b00eb619afc2e5`
+confirms18 commands/20 recorded groups closed and all eight binary hashes.
+
+R7 remains **BLOCKED before qualifier/workflow dispatch**. Independent source audit
+`158fd7f2b4811dc213bbb2b80566417dfce151fd27f2d3b86d74996fb6b03f6a`
+finds both consumers require one complete receipt event, while Go's converter
+splits long lines at1024bytes. Even impossible empty mandatory fields require
+1570bytes. The70 controls used undersized projections and missed this boundary.
+A separate actual pinned-host converter reproduction uses only synthetic data:
+a4024-byte receipt becomes four chunks1024/1024/1024/1002, and both actual R7
+consumers reject it. Its corrected R2 diagnostic joins0; initial synthetic framing
+assertion failure R1 remains retained. Neither diagnostic is a database proof.
+An immutable bounded reconstruction successor R8 is in preparation; no R7
+qualifier/workflow was dispatched, and no failed generation is retried in place.
+Fresh Personal R5 imported only source and newly reviewed non-secret metadata;
+it reused no old runtime input or artifact. A future R8 attempt needs fresh build,
+artifact qualification and complete runtime readback.
+
+F24's independently built synthetic observer process qualifier also joined0:
+ten named Go race tests and eight positive/negative transport cases completed;
+root observed171 recorded groups and16 actual ports closed. This validates
+synthetic transport tooling only. Browser consumption, product acceptance and the
+still-invalid product source pin remain separate; no pin bypass is introduced.
+Independent transport audit
+`25135015340c5b147141253f059e002d1f5820969ea6b96dcf478d341917d0d0`
+confirms176 recorded identities currently absent and all16 ports freshly bound.
+Qualification launchcdbaa2 is explicitly a verbatim transcription after a JS
+store error; join626a36 is the retained actual returned object.
 
 ### F24 failed browser readback and denial fix (2026-10-17)
 
@@ -100,7 +187,7 @@ pairs, retirement and Project remain open. No failed generation is rerun in plac
 Original build R1 remains failed at clone modes under umask 077. Artifact
 qualification R2 remains failed at the old driver charset representation
 assertion; R5 corrects the public DSN round-trip test without changing connection
-semantics. Both failures and the failed workflow R3 remain retained. No historical
+semantics. Both failures and the failed workflows R3/R4 remain retained. No historical
 private runtime input is copied. Controlled fixture delivery does not prove
 external application adoption. Global totals and all deferred-runtime exclusions
 remain unchanged.
