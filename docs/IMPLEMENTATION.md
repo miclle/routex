@@ -13,9 +13,10 @@ implementation and acceptance roadmap. F24 hostile quota source has passed fresh
 complete qualification and is published on the unmerged candidate as
 `c46ef75105c39bcb777c1889f271ca78b8622826`. The unmerged candidate also contains
 the separately checked F24 denial fix
-`b1ca70f91d6a1ee6a53210538c50e11b5e1aca15`. Active work qualifies the fresh controlled F29 MySQL Personal
-converter/parser successor after the failed R4 workflow; fresh Project follows
-only after Personal acceptance and closure. Product source remains frozen at
+`b1ca70f91d6a1ee6a53210538c50e11b5e1aca15`. Maintained fixed MySQL evidence support is now published on the candidate as
+`0c993ae6c613a08b92728b91f30d7cabfdf5549a`; the candidate remains unmerged into main.
+Active work corrects the Personal acceptance API contract after failed workflow R5;
+fresh Project follows only after complete Personal acceptance and closure. Product source remains frozen at
 fully qualified c46 for this F29 lane. Fresh F24 PostgreSQL/MySQL browser acceptance remains
 open after failed PG R5 and the new denial fix. Controlled F29 Personal/Project
 native and F30 PostgreSQL/MySQL
@@ -36,8 +37,8 @@ No capability or scenario is promoted by these tooling results.
 | Order | Work | Current gate / next action |
 | --- | --- | --- |
 | 1 | F11/F23/F17 technical qualification | Complete on the recorded stage-two source; retain every historical failure. Product completion and deferred shared-runtime activation remain excluded. |
-| 2 | F29 MySQL Personal, then Project | R6 build/artifact qualification passed; actual Personal workflow R4 failed. R7 controls pass 70/70 and fresh build R5 passes, but review blocks its long-receipt parser. R8 reconstruction is in preparation; require complete fresh artifact, original/final typed 1792/25006 pairs, installed native calls, retirement and closure before fresh Project. |
-| 3 | F24 denial fix b1ca70f | Mandatory check and focused 190/190 passed. Complete ordinary/dual-SQL and fresh bilingual PostgreSQL/MySQL browser acceptance remain open. |
+| 2 | F29 MySQL Personal, then Project | R9 pure 76 and fresh build/artifact 473 passed. Actual Personal workflow R5 failed after its first typed 1792/25006 pair passed; final pair, retirement status and fresh third call remain unqualified. Correct the unsupported Personal detail GET and retain safe numeric HTTP stage evidence before fresh acceptance. Maintained MySQL helper source is published as 0c993ae. |
+| 3 | F24 denial fix b1ca70f | Mandatory check, focused 190/190 and complete ordinary Task passed (7,796 frontend tests). Dual-SQL and fresh bilingual PostgreSQL/MySQL browser acceptance remain open. |
 | 4 | F28 failure coordinator | Complete actual normal-receipt/claim/API/restart/topology and observed logging/metrics adapters before runtime acceptance; the private coordinator remains unready. |
 | 5 | F30 transport and permanent cleanup | Qualify the executable draft and perform actual native/SQL/UI rollback, deletion, byte release and preserved-history acceptance. Prior weights/restart evidence has narrower scope. |
 | 6 | Remaining release scenarios | Continue existing authorization, identity/offboarding, recovery and measured single-node release checks; obtain real external inputs only for dependent work. |
@@ -48,6 +49,31 @@ Provider/identity/proxy/S3/SMTP/Vault/PKI/application/workload and production/fl
 inputs remain acceptance gaps. The old 133-file source archive is not a required
 input for continuing the available candidate source. Agent delivery does not
 prove application adoption; controlled fixtures do not prove external completion.
+
+### Latest F29 code and failed-workflow checkpoint (2026-10-17)
+
+Candidate `0c993ae` adds fixed PostgreSQL/MySQL evidence connections and a
+separately tagged MySQL read-only pair probe in six maintained helper files.
+Focused race passed 85 named nodes; two tagged typed-error/rollback controls,
+`go tool task check` and a fresh Linux arm64 build passed. Source review found no
+concrete blocker. These are source/tool gates; the new maintained helper still
+requires its own fresh actual MySQL pair qualification.
+
+The preceding R9 controlled workflow R5 joined exit 1. Its first actual pair
+joined 0 with typed MySQL 1792 / SQLSTATE 25006, confirmed rollback and unchanged
+exact native rows. No final pair or fresh third call exists; original retirement
+HTTP status is unknown. Independent failed-run audit
+`c2b66d20117bf0be2e4e5e7b26c3e6cb1b581ee7c4b0adcfeaea68200d14885d`
+confirms all 127 recorded groups and owned resources/ports closed. The source
+recipe incorrectly uses unregistered Personal `GET /api/v1/keys/:id`; its
+successor must read the authorized list and select unique exact IDs, and retain
+bounded status-only HTTP evidence. No production retirement gate is relaxed.
+
+F29 now owns the execution focus; F28 draft work is held. The next acceptance is
+fresh Personal, then Project, original/final read-only pairs, planned retirement,
+predecessor rejection and fresh installed-Key native use. Real external workload
+adoption remains separate. Historical failures stay retained and global totals
+remain 16 Completed / 14 Partial capabilities and 2 Completed / 18 Partial scenarios.
 
 ### F29 MySQL R4 failure and R7 tool correction (2026-10-17)
 
