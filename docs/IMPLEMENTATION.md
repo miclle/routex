@@ -13,9 +13,9 @@ implementation and acceptance roadmap. F24 hostile quota source has passed fresh
 complete qualification and is published on the unmerged candidate as
 `c46ef75105c39bcb777c1889f271ca78b8622826`. The unmerged candidate also contains
 the separately checked F24 denial fix
-`b1ca70f91d6a1ee6a53210538c50e11b5e1aca15`. The active work repairs the fresh
-controlled F29 MySQL Personal build from fully qualified c46; Project follows
-after Personal closure. Fresh F24 PostgreSQL/MySQL browser acceptance remains
+`b1ca70f91d6a1ee6a53210538c50e11b5e1aca15`. Active work repairs controlled F29
+MySQL Personal provisioning after fresh artifact/helper qualification from fully
+qualified c46; Project follows only after Personal closure. Fresh F24 PostgreSQL/MySQL browser acceptance remains
 open after failed PG R5 and the new denial fix. Controlled F29 Personal/Project
 native and F30 PostgreSQL/MySQL
 weights-rollback/restart slices retain only their detailed evidence scopes below.
@@ -69,20 +69,41 @@ subsequently corrected to require absent AI controls. These focused results do
 not establish a complete ordinary Task/SQL matrix or fresh browser acceptance on
 b1ca70f. Evidence: `/private/tmp/routex-f24-analysis-denial-20261017-r1`.
 
-F29 MySQL Personal now has a fresh59-file source-only execution copy and adopted
-19-field non-secret dependency input. It deliberately builds fully qualified
-c46, excluding the later UI fix; all2,979 bytes/modes and the exact unchanged
-eight-helper host119/Linux160 bridge are bound. Official Go/Debian/Vault and
-immutable MySQL8.4.11 content are reviewed. Original64820 joined1 after four Git
-commands, before install/build/Docker. All2,979 clone bytes matched, but inherited
-umask077 produced0600/0700 instead of reviewed0644/0755. The manifest guard refused
-that mismatch; no image, binary, JWKS, database or Key was created. The failed copy
-is retained. A source successor must scope checkout permissions without weakening
-manifest checks or private input protection. Actual artifact qualification, installed-Key
-use, original/fresh typed1792/SQLSTATE25006 pairs and owned closure remain open.
-Project follows only after Personal closes. No old private runtime artifacts are
-copied, and controlled fixture delivery is not external application adoption.
-Global totals and all deferred-runtime exclusions remain unchanged.
+F29 MySQL Personal fresh build R3 and artifact/helper qualification R3 pass on
+frozen c46, excluding the later UI fix. Sealed R5 inventory
+`76ee06f0bbb2b898e38713ae09f1323a1aa2d91d8c36d1fd41f779c7927d7cf9`
+binds 59 source files, all 2,979 clone bytes/modes, 19 reviewed dependency fields
+and fresh capsule/test images. Build native session 66492 joined exit 0; independent build
+readback `2f9a4f27d243485c028c60647a24e2a9505f82d5811cc9f0930ce9ba97687f54`
+confirms all 18 commands, seven binary hashes and closed capture/resources.
+
+Artifact qualifier native session 87377 joined exit 0. All four host and four Linux packages
+have complete raw terminals: **473 starts, 473 passes, zero failures/skips**.
+Independent readback
+`027910bea4ca37f1dfdaa7bc3f4318b3626717fe0043f14cea29965f24589e86`
+confirms all 76 commands, 78 recorded original groups and four exact Linux
+containers closed, with empty qualification namespaces. This is artifact/helper
+qualification only; it does not establish a real MySQL or native outcome.
+
+Actual Personal workflow R3 native session 9560 joined exit 1 after 29.601571
+seconds, without
+timeout/interruption. Provisioning failed before bootstrap or application
+acceptance. Both owner provisioning scripts reference `os.getuid()` without
+importing `os`; a separate no-network/no-process public-stub reproduction raises
+NameError at the first UID guard. The sanitized runtime failure does not itself
+record the exception type. Fresh source repair is active. Independent failed-run readback
+`94e74135a111d3bcdd50a36553cfb964b73b12ed4a13bc1c8ea54c9a56fb6cfe`
+confirms all recorded groups, five exact containers, network, volumes and both
+ports closed. Stopped exits 1/137 remain recorded; cleanup is not a workflow pass. Real installed-Key use, original/fresh typed 1792/SQLSTATE 25006
+pairs, retirement and Project remain open. No failed generation is rerun in place.
+
+Original build R1 remains failed at clone modes under umask 077. Artifact
+qualification R2 remains failed at the old driver charset representation
+assertion; R5 corrects the public DSN round-trip test without changing connection
+semantics. Both failures and the failed workflow R3 remain retained. No historical
+private runtime input is copied. Controlled fixture delivery does not prove
+external application adoption. Global totals and all deferred-runtime exclusions
+remain unchanged.
 
 
 ### F24 hostile quota qualification and candidate publication (2026-10-17)
