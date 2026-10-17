@@ -15,15 +15,15 @@ complete qualification and is published on the unmerged candidate as
 the separately checked F24 denial fix
 `b1ca70f91d6a1ee6a53210538c50e11b5e1aca15`. Maintained fixed MySQL evidence support is now published on the candidate as
 `0c993ae6c613a08b92728b91f30d7cabfdf5549a`; the candidate remains unmerged into main.
-Fresh R11 controlled MySQL Personal and Project native segments now pass with
-complete original/final pairs and recorded closure. Active work qualifies the
-maintained `0c993ae` helper with Linux-owned protected input. Application source
+Fresh R15 controlled MySQL Personal and Project segments now also qualify the
+maintained `0c993ae` helper with native Linux-owned protected input, complete
+original/final pairs and recorded closure. Application source
 remains frozen at fully qualified c46 for this F29 lane. Fresh F24 PostgreSQL/MySQL browser acceptance remains
 open after failed PG R5 and the new denial fix. Controlled F29 Personal/Project
 native and F30 PostgreSQL/MySQL
 weights-rollback/restart slices retain only their detailed evidence scopes below.
-Actual MySQL qualification of the new maintained helper, F30 changed
-transport/permanent cleanup, fresh bilingual browser acceptance, external adoption
+The maintained helper's bounded MySQL gate is accepted. Current-candidate full
+SQL qualification, F30 changed transport/permanent cleanup, fresh bilingual browser acceptance, external adoption
 and fleet/global acceptance remain open. Historical failed and cancelled generations remain unqualified. Remote
 candidate source is available; no required source handoff archive blocks progress.
 Real external application/runtime/issuer details remain necessary for external
@@ -38,8 +38,8 @@ No capability or scenario is promoted by these tooling results.
 | Order | Work | Current gate / next action |
 | --- | --- | --- |
 | 1 | F11/F23/F17 technical qualification | Complete on the recorded stage-two source; retain every historical failure. Product completion and deferred shared-runtime activation remain excluded. |
-| 2 | F29 native and maintained MySQL evidence | R11 pure 83 passed. Fresh Personal and Project builds and all eight artifact packages passed 473/473 each; both actual native segments now pass original/final typed 1792/25006 pairs, three installed-Key calls, retirement and recorded closure. Qualify the maintained 0c993ae helper with native non-root input; fresh browser and external workload remain open. |
-| 3 | F24 denial fix b1ca70f | Mandatory check, focused 190/190 and complete ordinary Task passed (7,796 frontend tests). Dual-SQL and fresh bilingual PostgreSQL/MySQL browser acceptance remain open. |
+| 2 | F29 native and maintained MySQL evidence | R15 pure 100 passed. Fresh Personal R8 and Project R2 builds and artifact packages passed 473/473 each. Actual Personal R7 and Project R2 independently passed both private and maintained 0c993ae original/final typed 1792/25006 pairs, three native calls, retirement and closure. Fresh browser and real external workload remain open. |
+| 3 | F24 denial fix b1ca70f on current 0c993ae | Focused 190/190 and current-candidate complete ordinary Task passed: 34 Go package results (33 cached), 288 frontend files/7,796 tests and Node 5+66. Fresh asset build passed; production Go result remains cached. Current-source full SQL qualification and fresh bilingual PostgreSQL/MySQL browser acceptance remain open. |
 | 4 | F28 failure coordinator | Complete actual normal-receipt/claim/API/restart/topology and observed logging/metrics adapters before runtime acceptance; the private coordinator remains unready. |
 | 5 | F30 transport and permanent cleanup | Qualify the executable draft and perform actual native/SQL/UI rollback, deletion, byte release and preserved-history acceptance. Prior weights/restart evidence has narrower scope. |
 | 6 | Remaining release scenarios | Continue existing authorization, identity/offboarding, recovery and measured single-node release checks; obtain real external inputs only for dependent work. |
@@ -51,7 +51,47 @@ inputs remain acceptance gaps. The old 133-file source archive is not a required
 input for continuing the available candidate source. Agent delivery does not
 prove application adoption; controlled fixtures do not prove external completion.
 
-### Controlled Personal and Project MySQL acceptance (2026-10-17)
+### Maintained helper MySQL qualification (2026-10-17)
+
+R15 passes all 100 source controls (14 root, 46 Personal, 40 Project). R13's
+exclusive terminal filename collision and R14's missing fsync/close test mocks
+remain retained failures. The native UID staging prerequisite independently
+passes using a nonsecret binary bind, UID-owned 0700 tmpfs and 0600 single-link
+stdin input. Its invalid dummy Go test exits 1 as expected; that is not DB proof.
+
+Fresh Personal R8 and Project R2 builds each pass 30 independent checks. Their
+separate eight-package host/Linux artifact qualifiers each pass 473/473 with
+zero fail/skip. Application binaries, JWKS and images are rebuilt from c46;
+maintained component `0c993ae` is separately compiled as Linux arm64 binary
+`a732935ea5dbe2a28611369791c081daa9f71555911e14fe0a4faea70fb31fe7`.
+
+Actual Personal R7 and Project R2 each pass four original Go pairs: private and
+maintained original/final. Every pair has original exit 0, named/package pass,
+typed MySQL 1792 / SQLSTATE 25006, confirmed rollback and identical exact two-row
+native proofs. The maintained proofs equal their matching private projections.
+Each owner retains exactly three native calls, retirement 409 then 204 and old
+Key refusal. Project creator/manager separation remains explicit.
+
+Independent audits are Personal 25/25
+`78bd479de72f8280d050eedb3b4e66117d7f7692986da716b14126d10388f32a`
+and Project 26/26
+`06a00ef9f0439970adea029e9fa3c614cb42d9485ba2f64f2a662935e0eec4ad`.
+Each confirms all 180 recorded process identities and nine exact containers,
+network/two volumes/namespaces absent and ordinary refused/fresh-bindable ports;
+59 recipe and 2,979 c46 source files retain bytes/modes. Complete child census
+is not claimed. The initial Project audit's disposition-label typo is retained
+with an additive correction; its Project predicates and raw evidence were valid.
+
+Current `0c993ae` complete ordinary Task separately joins exit 0 in 185.105 seconds:
+34 Go package passes (33 cached), 288 frontend files/7,796 tests, Node 5/5 and
+66/66, and fresh asset build. Production Go remains cached. Independent ordinary
+audit `7172f60b5caab754aac0bb452278e6cc5e697e5a77b770c07f058b17147ee9d1`
+confirms 2,982 current source files/modes and recorded install/Task group closure.
+Current-source full SQL and browser qualification remain open. These results do
+not establish external application/workload adoption, fleet or global completion.
+F29 and global capability/scenario totals remain unchanged.
+
+### Earlier R11 controlled MySQL acceptance (2026-10-17)
 
 The R11 recipe fixes Personal Key readback through the authorized list and adds
 bounded status-only HTTP receipts. All 83 pure controls pass. The preceding R10
@@ -84,11 +124,10 @@ ports. All 59 recipe files and 2,979 c46 source files retain reviewed bytes and
 modes. Complete child census is not claimed. The initial Project observer's Personal-shaped row schema remains
 UNKNOWN; its separately retained correction verifies explicit Project ownership.
 
-These are controlled native/application segments on c46 plus R11 tooling. The
-new maintained `0c993ae` helper has source/race/check and Linux compilation gates,
-and still needs its own actual MySQL run with protected Linux non-root-owned
-input and a source-bound receipt parser. Source-only R12 feasibility produced no
-executable successor. Native UID staging is in preparation. Fresh browser,
+These earlier runs qualify c46 plus R11 tooling only. They did not qualify the
+new maintained helper; the separate R15 runs above now establish its bounded
+actual MySQL gate. Source-only R12 feasibility produced no executable successor.
+Fresh browser,
 real external application/workload adoption, automatic rotation and fleet/global
 acceptance remain separate. F29 remains Partial; global capability/scenario totals
 are unchanged.
@@ -99,8 +138,8 @@ Candidate `0c993ae` adds fixed PostgreSQL/MySQL evidence connections and a
 separately tagged MySQL read-only pair probe in six maintained helper files.
 Focused race passed 85 named nodes; two tagged typed-error/rollback controls,
 `go tool task check` and a fresh Linux arm64 build passed. Source review found no
-concrete blocker. These are source/tool gates; the new maintained helper still
-requires its own fresh actual MySQL pair qualification.
+concrete blocker. Those source/tool gates did not qualify real MySQL; the separate
+R15 actual maintained-pair acceptance is recorded above.
 
 The preceding R9 controlled workflow R5 joined exit 1. Its first actual pair
 joined 0 with typed MySQL 1792 / SQLSTATE 25006, confirmed rollback and unchanged
@@ -113,8 +152,8 @@ successor reads the authorized list, selects unique exact IDs and retains
 bounded status-only HTTP evidence. No production retirement gate is relaxed.
 
 F29 retains the execution focus; F28 draft work is held. Subsequent controlled
-Personal and Project acceptance is recorded above. Qualification of the new
-maintained helper, fresh browser and real external workload adoption remain open. Historical failures stay retained and global totals
+Personal and Project acceptance is recorded above. The maintained helper's bounded
+MySQL gate is now accepted; fresh browser and real external workload adoption remain open. Historical failures stay retained and global totals
 remain 16 Completed / 14 Partial capabilities and 2 Completed / 18 Partial scenarios.
 
 ### F29 MySQL R4 failure and R7 tool correction (2026-10-17)
@@ -7312,7 +7351,7 @@ The binary capability count is 16 completed, 14 partially completed, and 0 not s
 | F26 | Instances, heartbeats, resources, jobs, and offline cleanup | Completed | Distinct process generations, server-owned leases, nullable resource facts, bounded real system jobs, executor-loss reconciliation, revision-checked cleanup, audit evidence, and the bilingual administrative workspace are implemented. |
 | F27 | S3, owned attachments, SMTP, and notifications | Partially completed | S3-compatible configuration and administration UI, explicit user/Project attachment APIs, cleanup recovery, Key-scoped inference reads, single/comparison attachment interfaces, SMTP administration/test delivery, and durable operational email intents exist. External storage/mail acceptance, bounce handling, and inbox tracking remain open. |
 | F28 | Internal encryption, root-key rotation, and Vault switching | Partially completed | Internal Provider, egress, SMTP, retained Storage and MFA encryption is implemented. Guarded root rotation passed source, complete dual-driver regression and controlled production/browser/restart acceptance, including final mandatory checks. Vault Token settings, retained revisions, diagnostic probes and seven-domain root inventory are delivered in c2368ddb; the bounded credential KV-v2 SDK is delivered in 78c76d2. Bounded Vault-backed Provider storage switching, stable retained references, durable write compensation and root retirement pass source, dual-driver and controlled API/native/restart acceptance in this phase. Saved independent writer/reader AppRole activation is delivered as 77ece177 after source gates, Focus16, complete Full150 and real Vault API/native/root-key/original-Session restart acceptance. Administrator-previewed, explicitly confirmed cleanup of never-committed Provider objects is delivered as 5fda0737 after source, Full154 and real Vault API/restart acceptance; automatic scheduled deletion is excluded. Published-object drain and graceful closure are delivered in V88/V89. Saved independent writer/reader certificate identities (V104) are delivered with coherent R7 gates, original full R6 dual-driver, auth lifecycle R4 and default-production build R7 acceptance. Controlled real Vault R8 passes all 12 saved-certificate cases on both databases, including encrypted persistence, same-binary restart, exact native audit attribution and scoped Provider cleanup. Four normal generations close durably; two intended mandatory-mTLS CA-only operator failures retain unknown cleanup intent and unproven durable closure despite positive OS joins, with no remote destruction. Genuine bilingual Vault/storage browser acceptance, workload identities, external Vault/PKI compatibility and wider release acceptance remain open. |
-| F29 | API Key Vault delivery and application identities | Partially completed | The application contract separates immutable manual/managed modes, exact-owner Consumer/Profile/Principal targets, independent Writer/Provisioner and JWT-template verification, explicit control approval and separate isolation attestation. Durable pre-I/O claims prevent Writer replay and plaintext fallback; acknowledgements, local runtime publication, descriptors and actual caller use remain distinct. Native-completed retirement remains mandatory. The exact-owner replacement-call readiness advisory is included in this containing delivery after coherent controlled qualification; it reports recorded evidence without changing Keys or proving completed retirement. Commit `14a75fe` delivers independently enrolled controllers, scoped discovery, management UI and the optional explicit Vault Agent file executable; reviewed machine reports remain distinct from delivery and native-completed retirement. The phase passes full dual-driver, ordinary, race and authentication/check gates. Commit `76d7a44` adds explicit same-slot Controller replacement. Controlled Personal actual-Agent initial delivery, identical report retry, exact version-one successor replacement, revoked-grant output preservation and complete owned cleanup pass R10 acceptance. On unmerged candidate777, controlled Personal R2 and Project R1 installed-Key native use, original/fresh PostgreSQL SQLSTATE25006 pairs, predecessor retirement and fresh replacement calls pass their bounded slices; read-only bilingual Project UI also passes, with the detailed receipt/provenance limits above. External application adoption, genuine MySQL installed-Key native/refusal proof, broader browser workflows and fleet acceptance remain open. Planned rotation is an explicit owner action; scheduled Key issuance has no defined requirement and is not a completion gate. |
+| F29 | API Key Vault delivery and application identities | Partially completed | The application contract separates immutable manual/managed modes, exact-owner Consumer/Profile/Principal targets, independent Writer/Provisioner and JWT-template verification, explicit control approval and separate isolation attestation. Durable pre-I/O claims prevent Writer replay and plaintext fallback; acknowledgements, local runtime publication, descriptors and actual caller use remain distinct. Native-completed retirement remains mandatory. The exact-owner replacement-call readiness advisory is included in this containing delivery after coherent controlled qualification; it reports recorded evidence without changing Keys or proving completed retirement. Commit `14a75fe` delivers independently enrolled controllers, scoped discovery, management UI and the optional explicit Vault Agent file executable; reviewed machine reports remain distinct from delivery and native-completed retirement. The phase passes full dual-driver, ordinary, race and authentication/check gates. Commit `76d7a44` adds explicit same-slot Controller replacement. Controlled Personal actual-Agent initial delivery, identical report retry, exact version-one successor replacement, revoked-grant output preservation and complete owned cleanup pass R10 acceptance. On unmerged candidate777, controlled Personal R2 and Project R1 installed-Key native use, original/fresh PostgreSQL SQLSTATE25006 pairs, predecessor retirement and fresh replacement calls pass their bounded slices; read-only bilingual Project UI also passes, with the detailed receipt/provenance limits above. Controlled c46 application source plus maintained 0c993ae also passes Personal R7 and Project R2 MySQL original/final native/refusal pairs, retirement and recorded cleanup; the detailed scopes above remain authoritative. External application adoption, broader fresh browser workflows and fleet acceptance remain open. Planned rotation is an explicit owner action; scheduled Key issuance has no defined requirement and is not a completion gate. |
 | F30 | Configuration publication, acknowledgement, rollback, revocation, and audit | Partially completed | Immutable runtime publication, durable events, current revocation, and audit foundations exist. Actor-owned idempotent manual publication receipts (V105) are delivered with coherent R7 gates, original full R6 dual-driver, auth lifecycle R4 and default-production build R7 acceptance. The strict UUIDv4/reason wire contract, current actor/Session authority, identical retry without redispatch and immutable terminal receipts are accepted. The original three-second budget is unchanged; unknown claims are never resumed after restart, and the two-process HTTP witness preserves terminal receipts and command/audit rows without claiming interrupted in-flight process acceptance. A receipt proves neither application/fleet acknowledgement nor absence of effects. Exact snapshot filtering and all-recorded-process review have focused real PostgreSQL/MySQL and API/UI acceptance; observations are not fleet acknowledgements. Bounded frozen configuration source encoding and detached cold reconstruction are delivered in `f45d999`; frozen V112 encrypted archive storage and root inventory V11 are delivered in the current phase with complete dual-driver acceptance. Coherent private capture is delivered in `808614f`. Commit `14a75fe` adds the bounded independent durable writer, 100-version/256-MiB retention ledger, exact-content deduplication, confirmed cleanup, authenticated integrity review and explicitly whitelisted routing rollback (V113–V116), with complete dual-driver archive/full regression and ordinary/check gates. Rollback preserves current identity, grants, quotas, revocations, prices and secret authority. Controlled PostgreSQL R5 and MySQL R2 actual EN/ZH weights rollback, genuine same-container restart and original Session/API identical retry pass their bounded slices with the detailed source/raw-receipt/display limits above. Changed-transport verification, permanent cleanup/history protection, uncertain browser retry, node/fleet acknowledgement and distributed emergency-revocation acceptance remain open. |
 
 ### Acceptance-case status
