@@ -18,13 +18,13 @@ the separately checked F24 denial fix
 Fresh R15 controlled MySQL Personal and Project segments now also qualify the
 maintained `0c993ae` helper with native Linux-owned protected input, complete
 original/final pairs and recorded closure. Application source
-remains frozen at fully qualified c46 for this F29 lane. Fresh F24 PostgreSQL/MySQL browser acceptance remains
-open after failed PG R5 and the new denial fix. Controlled F29 Personal/Project
-native and F30 PostgreSQL/MySQL
+remains frozen at fully qualified c46 for this F29 lane. Controlled F24 hostile-quota
+browser acceptance now passes on PostgreSQL and MySQL as recorded below.
+Controlled F29 Personal/Project native and F30 PostgreSQL/MySQL
 weights-rollback/restart slices retain only their detailed evidence scopes below.
 The maintained helper's bounded MySQL gate is accepted. Current candidate `679d8ea`
 complete ordinary, check and dual-driver integration gates now pass. F30 changed
-transport/permanent cleanup, fresh bilingual browser acceptance, external adoption
+transport/permanent cleanup, remaining browser workflows, external adoption
 and fleet/global acceptance remain open. Historical failed and cancelled generations remain unqualified. Remote
 candidate source is available; no required source handoff archive blocks progress.
 Real external application/runtime/issuer details remain necessary for external
@@ -63,10 +63,45 @@ joins exit 0 in 5,476.670 seconds: PostgreSQL 615/615, MySQL 615/615, nonmatrix
 passes with unchanged 2,982 source files, all original stages joined and recorded
 owned processes/resources/ports closed. Audit SHA-256:
 `bd4821f67d2692dcd81963e17f44bd8d367c7af8239e3deae5d5d6f325729498`.
-Earlier failures remain failed. Fresh PG browser build and its 7 evidence / 10 observer
-race controls also pass; actual bilingual PG/MySQL browser acceptance is open.
+Earlier failures remain failed. The separately recorded controlled hostile-quota
+browser gates now pass on both databases; they do not establish global acceptance.
 Earlier F17 and controlled F29 receipts retain their exact scopes.
 Capability/scenario totals remain unchanged.
+
+### Controlled hostile-quota browser acceptance (2026-10-18)
+
+Fresh PostgreSQL Exec9 and MySQL Exec8 each pass all seven actual browser gates
+on application source `679d8ea`: six bilingual Team/member-Key/Project-Key Token
+and Money analyses, followed by exact Project-manager revocation during the
+seventh native call. Each run records seven distinct completed native Calls and
+Attempts, six forwarded HTTP 200 responses and the final forwarded HTTP 404,
+exact personal settlement, no remaining holds, no canary requests and no advice
+configuration writes. The first post-denial whole-page CUA capture and a separate
+renewed-authority capture omit the private answer and Project/Key identities.
+Actual logout and operator sign-in retain no previous question or answer.
+
+The controlled original-gateway pauses finish in 4.576 seconds (PostgreSQL) and
+1.328 seconds (MySQL), within the unchanged eight-second maximum, with actual
+Loading/private-absence observations and CONT to the same original process.
+MySQL uses a separate operator-only observation page to publish the guarded
+witness in the same CUA operation; it adds no RouteX hook or inference request.
+Both fresh 13-step builds and lifecycle originals join exit zero; their three
+service originals, recorded Compose resources and all four application ports
+close. Unchanged current-host component proofs retain their original scope.
+MySQL's corrected private DSN-charset test passes 8/8 race controls; its source
+controls pass 52/52. Earlier failed generations remain unqualified, including
+MySQL's incorrect test assumption, premature context clear and late witness.
+
+PostgreSQL independent readback SHA-256:
+`3c6730f76ea7baaf3010797db1320fead79ad43d986b7e7581b3d1d865e6486a`.
+MySQL independent readback SHA-256:
+`0d04a7970003394aa6bdc0d6979ad556d84e524462efb43d8e94fd65315d7363`.
+Bounded startup polling retains actual nonzero statuses; it is not described as every child exiting zero. Listener
+continuity remains conditional on the controlled original listener assumption;
+there is no per-dial listener proof, browser consumption of numeric status,
+infinitesimal clearing proof, external-model semantic or saved-CSV acceptance.
+F24/A18 and global capability/scenario totals remain unchanged. The candidate
+and F28 helper branches remain unmerged; real F29 application adoption stays open.
 
 ### F28 cleanup evidence code delivery (2026-10-18)
 
@@ -92,7 +127,7 @@ No capability or scenario is promoted by these tooling results.
 | --- | --- | --- |
 | 1 | F11/F23/F17 technical qualification | Fresh `679d8ea` check, complete ordinary and complete dual-driver integration pass. Earlier stage-two race/restart/dedicated SQL receipts retain their exact scopes. Product completion and deferred shared-runtime activation remain excluded. |
 | 2 | F29 native and maintained MySQL evidence | R15 pure 100 passed. Fresh Personal R8 and Project R2 builds and artifact packages passed 473/473 each. Actual Personal R7 and Project R2 independently passed both private and maintained 0c993ae original/final typed 1792/25006 pairs, three native calls, retirement and closure. Fresh browser and real external workload remain open. |
-| 3 | F24 denial fix and quota fixture repair on `679d8ea` | Fresh complete ordinary/check/SQL gates pass; PG browser build and 17 Go race controls pass. Complete actual bilingual PG/MySQL browser acceptance remains open. Failed `0c993ae` evidence is preserved. |
+| 3 | F24 denial fix and quota fixture repair on `679d8ea` | Fresh complete ordinary/check/SQL gates and seven controlled hostile-quota browser cases per database pass. External-model semantics, saved-CSV and broader F24/A18 acceptance remain open. Historical failed generations are preserved. |
 | 4 | F28 failure coordinator | Read-only projection/CLI tooling published on independent `fbd3bda` branch; host 76 race nodes, SQL 9/9 per driver, Linux 3 stdin controls and check pass. Actual command SQL production, normal-receipt/API/restart/topology/logging/metrics remain open; the private coordinator stays unready. |
 | 5 | F30 transport and permanent cleanup | Qualify the executable draft and perform actual native/SQL/UI rollback, deletion, byte release and preserved-history acceptance. Prior weights/restart evidence has narrower scope. |
 | 6 | Remaining release scenarios | Continue existing authorization, identity/offboarding, recovery and measured single-node release checks; obtain real external inputs only for dependent work. |
