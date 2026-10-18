@@ -1,5 +1,42 @@
 # RouteX Implementation and Acceptance Index
 
+## Qualified acceptance successor (2026-10-19)
+
+The independent unmerged branch `routex-acceptance-successor-20261018` is
+published, with remote SHA verified as
+`529fda093e0db012d6c76ef68bd133394f3b851b`. This source composes the published
+F29 `414997b` base, all thirteen exact F28 `fcb5f30` files, and the archive-cleanup
+receipt fix `3328896`. The original candidate remains unchanged at `679d8ea`
+and is not merged into main.
+
+Fresh install, mandatory check and complete ordinary Task pass. Ordinary Task
+passes 288 frontend files / 7,798 tests, Node 5/5 and 66/66, and production asset
+serving. It ran before publication under the F29 base HEAD with the identical
+3,010 source-file bytes/modes later committed as `529fda0`; the source manifest
+is `736b4b39b18501a753453962cb0dec0b859d2a3091e2afe95187c13ea4b0f30b`.
+Fresh same-commit install and complete maintained serial PostgreSQL/MySQL
+integration then join exit zero in 5,942.858 seconds, without timeout or
+cancellation: PostgreSQL 615/615, MySQL 615/615, nonmatrix 11,552 pass / 22 skip /
+0 fail, and runtime archive 91/91. All nine original stages join and close their
+groups. Independent readback confirms unchanged source and 126 built assets,
+48 recorded inner processes (24 per driver, twelve families each), exact owned
+containers/network closure and refusal plus fresh binding of both database
+ports. This is recorded-process coverage, not a complete child-process census.
+Independent audit SHA-256:
+`f5a7f175ac016ee7b43908eadca1eda16fbc409e09f5e01dba0e3ebbbd9e41d1`.
+
+The source remains frozen for fresh artifact/browser qualification. Use the
+background in-app browser from initial login; do not switch to a native browser
+or migrate browser Sessions midway through a controlled run. Fresh fixed-source
+transport/cleanup browser acceptance on PostgreSQL and MySQL remains pending.
+The R8 approved cleanup's actual SQL delta/fourth native call and incomplete
+whole-run/UI status retain their separate scopes below. F28 actual API/Vault
+cleanup, external F29 application adoption/workload, and fleet/global acceptance
+remain open. Earlier failures/cancellations remain failed or incomplete. Do not
+activate deferred shared runtime, register V119/V120 or transfer legacy history.
+Global totals remain 16 Completed / 14 Partial capabilities and 2 Completed /
+18 Partial acceptance scenarios.
+
 ## Target-host resumption (2026-10-16)
 
 Work is active by explicit user instruction. Global totals remain **16 Completed /
