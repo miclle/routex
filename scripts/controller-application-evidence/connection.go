@@ -22,8 +22,14 @@ func prepareConnection(c *config) (string, bool) {
 	}
 	password := c.DatabasePassword
 	c.DatabasePassword = ""
-	if c.DatabaseDriver != "mysql" {
-		return "host=postgres port=5432 user=routex password=" + password + " dbname=routex sslmode=disable connect_timeout=2", true
+	return fixedEvidenceConnection(c.DatabaseDriver, password), true
+}
+
+// Both closed evidence operations share this connection-only adapter. Each
+// validates its separate config and consumes its secret before calling it.
+func fixedEvidenceConnection(driver, password string) string {
+	if driver != "mysql" {
+		return "host=postgres port=5432 user=routex password=" + password + " dbname=routex sslmode=disable connect_timeout=2"
 	}
 	connection := mysqldriver.NewConfig()
 	connection.User, connection.Passwd = "routex", password
@@ -38,7 +44,7 @@ func prepareConnection(c *config) (string, bool) {
 	connection.RejectReadOnly = false
 	dsn := connection.FormatDSN()
 	connection.Passwd, password = "", ""
-	return dsn, true
+	return dsn
 }
 
 func openEvidenceDatabase(driver, dsn string) (*gorm.DB, error) {

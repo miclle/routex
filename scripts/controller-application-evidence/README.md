@@ -147,3 +147,96 @@ probe neither performs retirement nor proves delivery, browser behavior,
 external workload adoption or full F29 completion. The coordinator still owns
 fresh artifacts, source/image/input pins, exact process/resource closure and
 actual installed-Key native application use.
+
+## Separate one-call Messages evidence
+
+`controller-application-evidence messages-once` is a separate source-authored
+operation for one controlled real application's Anthropic Messages call. It does
+not replace or weaken the no-argument Chat/two-row grammar or its existing
+PostgreSQL/MySQL read-only-pair probes. No new default Task selection, production
+route, service, database schema or external client artifact is supplied here.
+Source authoring is not runtime qualification.
+
+This operation reads only the protected native Linux file
+`/fixture-evidence-input/messages-once.json` through the existing no-follow,
+single-link, mode0600, stable descriptor reader, additionally requiring current
+EUID ownership. It accepts no other arguments or path/network/DSN override.
+The exact required common keys are:
+
+```
+operation, source_commit, run_id, database_password, owner_kind,
+key_id, key_created_at, model_id, credential_id, connection_id,
+provider_model_id, snapshot_id, run_started, as_of
+```
+
+`operation` must be `messages-once`; source/run are canonical lowercase40/32hex.
+The explicit owner is `personal` with only `user_id`, or `project` with only
+`project_id`, `project_created_at` and `key_creator_id`. Even an empty field from
+the other owner grammar refuses. Optional canonical `database_driver` is absent
+or `postgres`, or explicitly `mysql`. Explicit empty/null/case aliases, duplicate
+or foreign fields refuse. Fixed connection endpoints, user/database, password
+shape, driver timeouts/UTC/error translation and secret consumption are the
+same maintained connection adapter used by the original pair command.
+
+No `request_id`, `requests`, `protocol` or predecessor field is accepted. Protocol
+is fixed to `anthropic_messages`. The caller independently captures actual owner,
+fresh installed Key identity/birth and Model/Credential/Connection/ProviderModel
+identities. It must supply the exact expected published `cfg_` snapshot from
+actual source-bound configuration publication, not discover or substitute it
+from the current mutable catalogue or from whichever Attempt happens to return.
+Both Call and Attempt snapshots must equal that expected snapshot. Source/run
+are caller bindings, not facts SQL can authenticate; the coordinator separately
+owns exact current application/helper build/source, image, input and original
+process proofs.
+
+`run_started`/`as_of` form a bounded observation interval of at most15minutes.
+The Key birth must fall within it, every Call must start after or at that exact
+birth, and complete by `as_of`. Project identity/birth and creator metadata are
+checked separately; creator attribution grants no authority.
+
+The fixed GORM projection selects ALL retained Calls for this exact fresh Key
+and ALL joined Attempts with LEFT joins and limit2. It does not filter success,
+protocol, expected RequestID, time or owner before counting, and does not select
+only the last Attempt. Exactly one total row is required. A missing Attempt,
+second Call, extra/retried Attempt, ordinal other than1, missing/foreign owner,
+case-collated ID alias, changed birth, failed status, noncompleted native marker,
+other protocol or attribution/snapshot mismatch refuses. With exactly one sole
+successful native-completed Attempt, it is also the last Attempt. No Key hashes,
+bearers, questions, response bodies or other content columns are selected.
+
+One eight-second read-only RepeatableRead context bounds the work. The snapshot
+always rolls back; query, validation, rollback, context, pool-close or output
+failure cannot produce a successful command terminal. Pool closure precedes
+output. `database/sql.Close` has no context parameter, so the original process
+supervisor must still independently bound total wall time and prove closure.
+Errors remain only the fixed `evidence_rejected` result with exit1.
+
+Successful output is a separate object with result
+`verified_exact_durable_messages_once_evidence`, operation/source/run,
+`request_id_source: "exact_bounded_sql_row"`,
+`client_request_id_displayed: false`, and one `proof` object. That object contains
+the exact SQL-derived RequestID plus immutable Call/sole Attempt/owner/Key/birth/
+Credential/snapshot/protocol/status/time facts. The request identity comes ONLY
+from that bounded exact row. It does not assert that the real application
+printed or displayed that ID. Official client exit/output, actual installed-Key
+use, native parser completion, peer call count and owned process/resource closure
+remain distinct source-bound witnesses; Agent delivery alone proves none of
+application adoption, retirement or external workload completion.
+
+Source tests cover the disjoint canonical grammar, separate Personal and
+Project owners, exact native/identity/birth/publication facts, ambiguity and
+extra retries, post-consumption fixed connections, query bounds without hidden
+filters, and failure before safe output after unknown closure/context.
+Current-host race qualification passes 177 evidence and 55 fixture named nodes;
+fresh Linux arm64 controls pass 185 evidence and 90 fixture nodes without race
+instrumentation or skips. Mandatory checking passes separately.
+
+Fresh R4 real official Claude Personal installed-Key application use passes the
+maintained command against PostgreSQL: exactly one Call/sole Attempt, native
+completed, immutable attribution and independently captured expected publication.
+The client itself still reports native unknown and no displayed Request ID.
+Recorded originals, resources and both ports close. Independent readback SHA-256:
+`55339956a5a9bdf0ffbd0bf7cca78fc439fce7fa97190c7bb8a96e03f23e1e3b`.
+This does not qualify the new mode on MySQL, Project runtime use, replacement or
+retirement, read-only refusal pairing, external adoption or global F29 completion.
+Earlier failed generations remain failed and are preserved.

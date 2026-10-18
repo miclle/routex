@@ -76,3 +76,123 @@ Neither a `pky_` record identity nor a Project URL argument is a bearer. The
 same native parsing, one-request limit, no-retry/no-redirect transport and
 status-only predecessor output apply to both owner kinds. The coordinator must
 use Project-scoped persistence APIs and the separate exact Project projection.
+
+## Real installed Claude compatibility (additive)
+
+Two additional closed operations preserve all existing Chat arguments and input
+files:
+
+- `serve-messages` reads `/fixture-native-input/messages-serve.json` and the
+  existing private `upstream.secret`. It serves authenticated Anthropic model
+  discovery (`GET /v1/models?limit=1000`) and one streaming
+  `POST /v1/messages` (optional exact `?beta=true`). Discovery returns the
+  `controller-messages-upstream` model with explicit `has_more:false`.
+- `client-messages` reads `/fixture-native-input/client-messages.json` and only
+  the exact installed slot selected there. It launches the separately verified
+  official Linux Claude binary at the fixed `/fixture-client/claude` path,
+  against `http://127.0.0.1:19001`, with public model
+  `controller-native-messages` and the fixed existing prompt. It does not use
+  an issued-Key fallback or export an installed Linux Key to another host.
+
+Both inputs require exact lowercase `source_commit`, `run_id`, and `phase`
+fields matching the fresh compiled binding. Peer input additionally requires
+`listen`, `lifetime_seconds`, and `max_requests`, with the existing loopback,
+900-second and 64-request ceilings. Client input additionally requires only
+`slot_id`. Unknown, missing, duplicate or differently cased fields are rejected.
+These are separate files; adding these fields to the old Chat inputs remains an
+error.
+
+Every new-mode build defaults to refusal. A reviewed fresh recipe must set these
+package-main string variables with Go linker `-X` values:
+
+| Variable | Required binding |
+| --- | --- |
+| `claudeSourceCommit` | Exact nonzero lowercase 40-character product commit |
+| `claudeRunID` | Fresh nonzero lowercase 32-character run identifier |
+| `claudePhase` | Exactly `f29-claude-messages-v1` |
+| `claudeUID` | Canonical positive decimal effective receiver UID |
+| `claudeVersion` | Reviewed official numeric release version |
+| `claudeSHA256` | Official verified artifact's complete lowercase SHA-256 |
+| `claudeSize` | Exact official artifact size, bounded at 512 MiB |
+| `claudePlatform` | Exactly `linux-arm64` or `linux-arm64-musl` |
+
+The coordinator must verify the official signed release manifest, its signer,
+artifact platform/base compatibility and actual downloaded bytes before adopting
+these values. No artifact digest or version is supplied by a runtime config, and
+no placeholder is treated as qualified. The version is provenance bound to the
+reviewed digest, rather than an unverified `--version` execution. Only Linux
+arm64 is supported by this new launcher. The coordinator must mount the artifact
+read-only in the owned receiver; directory ancestors must be root- or
+receiver-owned and not writable by group/others. The held executable must be
+single-linked, regular, mode 0555 or 0755, with exactly the bound size/hash and
+stable ownership, timestamps and identity while it is streamed through the
+hash. Execution uses that same inherited descriptor, avoiding a second pathname
+lookup. The installed Key is read only after artifact verification.
+
+The fixed argument list is `--bare --print --tools "" --no-session-persistence
+--model controller-native-messages "Controlled acceptance"`. The launcher creates
+fresh mode-0700 HOME, temporary and working directories. Its environment is an
+allowlist: HOME, TMPDIR, XDG_CONFIG_HOME, XDG_CACHE_HOME, PATH, LANG,
+ANTHROPIC_API_KEY, ANTHROPIC_BASE_URL and
+CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC. It never appends the caller's
+environment. No user configuration, credential store, proxy, arbitrary command,
+extra prompt or executable argument is accepted. The Key occurs only in the
+child's environment, not argv or output. Isolation from external traffic still
+requires the coordinator's owned network topology; flags alone are not egress
+proof.
+
+The peer allows bounded text-only SDK request envelopes (256 KiB, one user
+message, no tools, one occurrence of the fixed final prompt, streaming, the
+exact upstream model, positive `max_tokens` no greater than 65,536). Opaque
+system/cache/SDK metadata is not executed, persisted or printed. Responses emit
+ordered `message_start`, text block start/delta/stop, final `message_delta` with
+`end_turn` and usage, then `message_stop`, flushing every frame. An unsuccessful
+write/flush never prints completed. This is controlled protocol behavior, not a
+new RouteX API. No `count_tokens` endpoint is added; it is optional for the real
+client. A second inference is rejected; extra or retried Calls cannot be hidden
+by discovery traffic.
+
+The launcher retains at most 64 KiB each of stdout/stderr in memory, clears both,
+and emits only fixed status and public original-process identity/provenance.
+Success requires the exact fixed answer (allowing terminal CR/LF), empty stderr,
+original exit zero, original join and observed dedicated group absence. The
+active client bound is 45 seconds, followed by at most two seconds for TERM,
+two seconds for KILL, two seconds for exec pipe closure and two seconds for group
+absence. Linux `waitid(WNOWAIT)` keeps the original child unreaped until signals
+finish, so group signalling cannot authorize a recycled leader. Unknown
+ownership or join preserves failed/unknown state and the private workspace;
+receiver resources require independent physical readback. No complete child
+census is claimed. A containing coordinator must own cancellation, finite outer
+bounds, live identity and final resources/ports readback.
+
+Client output always leaves `native:"unknown"` and
+`client_request_id_displayed:false`. CLI text and peer output do not prove
+persisted native completion. The separate maintained evidence operation
+`controller-application-evidence messages-once` must independently establish one
+exact fresh installed-Key Call/Attempt, Anthropic protocol, actual native
+completion, immutable owner/birth and published snapshot. Its SQL-derived
+Request ID must not be relabelled as displayed by Claude. Actual client
+compatibility, controlled native use, real external upstream use and sustained
+application adoption remain separate claims.
+
+Current-host qualification on 2026-10-18 passes 55 fixture and 177 evidence
+named host race nodes, mandatory checking, and 90 fixture / 185 evidence Linux
+arm64 nodes without race instrumentation or skips. The existing `x/sys` version
+is promoted to a direct module requirement for the Linux waitid adapter.
+
+Fresh R4 then uses verified official Claude 2.1.169 Linux arm64 bytes, freshly
+rebuilt RouteX/Controller/helpers/JWKS and a no-cache image. Actual Controller and
+Vault Agent installation, the original Claude invocation, exactly one durable
+successful native-completed Anthropic Call/sole Attempt, independent expected
+publication and maintained `messages-once` output pass on PostgreSQL. The
+original client joins exit zero; recorded Compose resources and both published
+ports close. Independent readback SHA-256:
+`55339956a5a9bdf0ffbd0bf7cca78fc439fce7fa97190c7bb8a96e03f23e1e3b`.
+
+The minimal Controller environment also requires a real receiver OS account and
+resolvable private home for Vault Agent. R2 omitted that fixture prerequisite;
+R3 completed the client but rejected an incorrectly sized coordinator database
+password. R1 failed Compose preparation. All three remain failed full gates.
+No production fallback or file-safety rule was weakened. This accepted first
+Personal Key slice does not qualify Project use, replacement/retirement, the new
+mode on MySQL, external upstream adoption or whole F29 completion.

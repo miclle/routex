@@ -59,6 +59,10 @@ func run(args []string, out io.Writer) int {
 		return 1
 	}
 	switch args[0] {
+	case "serve-messages":
+		return runMessagesServe(out)
+	case "client-messages":
+		return runClientMessages(out)
 	case "serve":
 		var config serveConfig
 		if readConfig(inputRoot+"/serve.json", &config) != nil || !validServeConfig(config) {
