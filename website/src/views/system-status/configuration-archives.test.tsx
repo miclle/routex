@@ -482,7 +482,7 @@ describe('archive metadata in the existing System jobs card', () => {
       expect(query.state.data).toBeUndefined()
     },
   )
-  async function prepareUncertainCleanup() {
+  async function prepareCleanupReview() {
     permissions = ['system.read', 'system.write']
     await mount()
     await click(en.archiveMetadataAction)
@@ -498,11 +498,58 @@ describe('archive metadata in the existing System jobs card', () => {
       )
       input.dispatchEvent(new Event('input', { bubbles: true }))
     })
+  }
+  async function prepareUncertainCleanup() {
+    await prepareCleanupReview()
     failApply = true
     await click(en.archiveCleanupConfirm)
     expect(dialog()?.textContent).toContain(en.archiveCleanupUncertain)
     return requests.find((request) => request.url === `${endpoint}/cleanup`)!
   }
+  it('retains the confirmed cleanup count after the archive list refresh', async () => {
+    await prepareCleanupReview()
+    page.items = []
+    hold = true
+    await click(en.archiveCleanupConfirm)
+    await until(() => expect(release).toBeDefined())
+    expect(dialog()?.textContent).not.toContain(
+      i18n.t('systemStatus:archiveCleanupCompleted', { count: 1 }),
+    )
+    await act(async () => release!())
+    await until(() => expect(dialog()?.textContent).toContain(en.archiveMetadataEmpty))
+    expect(dialog()?.textContent).not.toContain(seed.items[0].id)
+    expect(dialog()?.textContent).toContain(
+      i18n.t('systemStatus:archiveCleanupCompleted', { count: 1 }),
+    )
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(dialog()?.textContent).toContain(
+      i18n.t('systemStatus:archiveCleanupCompleted', { count: 1 }),
+    )
+    expect(requests.filter((request) => request.url === `${endpoint}/cleanup`)).toHaveLength(1)
+    await act(async () => cache.setQueryData(['permissions', session.user.id], ['system.read']))
+    expect(document.body.textContent).not.toContain(
+      i18n.t('systemStatus:archiveCleanupCompleted', { count: 1 }),
+    )
+  })
+  it('clears a confirmed cleanup count when the Session authority renews', async () => {
+    await prepareCleanupReview()
+    page.items = []
+    await click(en.archiveCleanupConfirm)
+    await until(() =>
+      expect(dialog()?.textContent).toContain(
+        i18n.t('systemStatus:archiveCleanupCompleted', { count: 1 }),
+      ),
+    )
+    await act(async () => {
+      currentSession = { ...session, csrf_token: 'renewed-after-cleanup' }
+      cache.setQueryData(sessionKey, currentSession)
+    })
+    await until(() => expect(dialog()?.textContent).toContain(en.archiveMetadataEmpty))
+    expect(dialog()?.textContent).not.toContain(
+      i18n.t('systemStatus:archiveCleanupCompleted', { count: 1 }),
+    )
+    expect(requests.filter((request) => request.url === `${endpoint}/cleanup`)).toHaveLength(1)
+  })
   it.each(['session', 'permissions', 'jobs', 'list'] as const)(
     'keeps the mounted exact intent across %s renewal and waits for a fresh list before replay',
     async (renewal) => {

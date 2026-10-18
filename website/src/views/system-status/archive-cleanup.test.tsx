@@ -28,6 +28,7 @@ function render() {
     <QueryClientProvider client={cache}>
       <ArchiveCleanup
         authority={authority}
+        receiptAuthority={authority}
         selected={selected}
         isCurrent={() => authorized}
         canWrite={() => canWrite}
