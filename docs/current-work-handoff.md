@@ -1,5 +1,37 @@
 # Current implementation handoff
 
+## Acceptance successor assembly (active 2026-10-18)
+
+Root owns the isolated `acceptance-successor` worktree and all files in this
+assembly. Its base is published F29 source
+`414997baed39ce318b4fd82968cb18af7f8dd48a`, which inherits the fully qualified
+`679d8eac311f952b785bc12beb093563ea617361` ancestor. Published F28 tooling
+`fbd3bda` / `fcb5f30` and main's archive-cleanup receipt fix `3328896` are applied
+as one staged source integration. The F28 files match their published blobs.
+This assembles the existing deliveries; it does not claim completed F28 API/Vault
+cleanup, F29 external adoption, F30 browser acceptance or global completion.
+
+Main is `c5824a7` and the original candidate remains unmerged at `679d8ea` at
+this checkpoint. The original source branches/worktrees and earlier failed or
+partial evidence are retained. The main-only receipt fix passed 42 focused tests,
+mandatory check and complete ordinary Task (287 frontend files / 7,736 tests);
+those results do not qualify this mixed-source successor.
+
+`go tool task install` has completed in this fresh worktree. Run formatting,
+mandatory check and the complete ordinary Task before its source integration
+commit, then the maintained `go tool task test-integration` entry point in the
+single heavy lane. Require complete PostgreSQL and MySQL readbacks, positive
+original joins and owned closure. Do not inherit earlier acceptance into this
+new combination. Evidence is collected separately under
+`/private/tmp/routex-acceptance-successor-qualification-20261018-r1/`.
+
+Use the background in-app browser from initial login for subsequent real UI
+acceptance, maintaining one coherent authority/archive baseline. Keep deferred
+shared-runtime activation, V119/V120 registration and legacy history transfer
+excluded. Global counts remain 16 Completed / 14 Partial capabilities and
+2 Completed / 18 Partial scenarios. Historical current-source claims below
+retain their original scope; this assembly checkpoint owns the next action.
+
 ## Current execution summary (2026-10-15)
 
 The global goal remains active. The verified status matrix contains **16 completed

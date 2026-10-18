@@ -1910,8 +1910,11 @@ selection, reason and ETag identical on an uncertain retry; missing rows or a
 refreshed list never prove deletion. Only the exact authorized cleanup receipt
 confirms storage release, never activation, rollback or fleet application. Hide
 private review and completion facts during renewed reads and discard obsolete
-callbacks. Keep the actor-owned dialog mounted across same-actor Session,
-permission, jobs and list renewal; release obsolete pending ownership while
+callbacks. Preserve an acknowledged historical cleanup count across list-only
+refreshes, showing it again only after current authorized reads succeed. Clear
+that receipt on Session, permission or jobs authority changes and dismissal;
+never treat it as current storage capacity or a new cleanup. Keep the actor-owned
+dialog mounted across same-actor Session, permission, jobs and list renewal; release obsolete pending ownership while
 retaining the exact dispatched intent. Explicit replay requires fresh independent
 authority, a successful current list read and current CSRF. Actor change,
 dismissal or parent unmount discards local intent. Validate the trimmed reason

@@ -20,6 +20,7 @@ type CleanupIntent = { input: RuntimeArchiveCleanupInput; etag: string; bytes: n
 
 export function ArchiveCleanup({
   authority,
+  receiptAuthority,
   selected,
   isCurrent,
   canWrite,
@@ -27,6 +28,7 @@ export function ArchiveCleanup({
   onComplete,
 }: {
   authority: string
+  receiptAuthority: string
   selected: string[]
   isCurrent: () => boolean
   canWrite: () => boolean
@@ -62,15 +64,17 @@ export function ArchiveCleanup({
   useLayoutEffect(() => {
     latest.current = { isCurrent, canWrite, onLock }
   })
-  const [renderBasis, setRenderBasis] = useState({ authority, selectedBasis })
-  if (renderBasis.authority !== authority) {
-    setRenderBasis({ authority, selectedBasis })
+  const [renderBasis, setRenderBasis] = useState({ authority, receiptAuthority, selectedBasis })
+  if (renderBasis.authority !== authority || renderBasis.receiptAuthority !== receiptAuthority) {
+    setRenderBasis({ authority, receiptAuthority, selectedBasis })
     setPending(false)
     setPreview(undefined)
-    setCompleted(undefined)
+    // A list refresh invalidates another write's review, not an acknowledged
+    // historical receipt. Renewed owner/Session authority still clears it.
+    if (renderBasis.receiptAuthority !== receiptAuthority) setCompleted(undefined)
     setIssue(activeIntent ? 'uncertain' : '')
   } else if (renderBasis.selectedBasis !== selectedBasis) {
-    setRenderBasis({ authority, selectedBasis })
+    setRenderBasis({ authority, receiptAuthority, selectedBasis })
     if (!activeIntent) {
       setPreview(undefined)
       setIssue('')
@@ -81,7 +85,7 @@ export function ArchiveCleanup({
     operation.current = null
     reviewedCurrent.current = null
     latest.current.onLock(intent.current !== null)
-  }, [authority])
+  }, [authority, receiptAuthority])
   useLayoutEffect(() => {
     if (!intent.current) reviewedCurrent.current = null
   }, [selectedBasis])

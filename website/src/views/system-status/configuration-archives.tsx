@@ -293,6 +293,7 @@ export function ConfigurationArchivesDialog({
       )}
       <ArchiveCleanup
         authority={JSON.stringify([authority, generation])}
+        receiptAuthority={authority}
         selected={selected}
         isCurrent={visibleCurrent}
         canWrite={canCleanup}
