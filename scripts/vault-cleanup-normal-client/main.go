@@ -44,9 +44,10 @@ const apiBase = "http://127.0.0.1:19001"
 const vaultBase = "http://127.0.0.1:8200"
 
 type httpFact struct {
-	Name, Method, Path string
-	Status, Bytes      int
-	SHA256             string
+	Name, Method, Path  string
+	Status, Bytes       int
+	SHA256              string
+	CookieHeaderPresent bool
 }
 type owner struct {
 	ctx              context.Context
@@ -116,7 +117,15 @@ func (o *owner) request(name, base, method, path, token, etag string, body any, 
 	if etag != "" {
 		req.Header.Set("If-Match", strconv.Quote(etag))
 	}
-	res, e := o.client.Do(req)
+	// Cookies are scoped by host rather than port. The shared namespace uses
+	// loopback for both services, so the Vault observer must have no Session jar.
+	client := o.client
+	if base != apiBase {
+		isolated := *client
+		isolated.Jar = nil
+		client = &isolated
+	}
+	res, e := client.Do(req)
 	if e != nil {
 		return errRejected
 	}
@@ -125,8 +134,15 @@ func (o *owner) request(name, base, method, path, token, etag string, body any, 
 	if re != nil || ce != nil || len(raw) > 4<<20 {
 		return errRejected
 	}
-	o.http = append(o.http, httpFact{name, method, path, res.StatusCode, len(raw), hash(raw)})
+	if res.Request == nil {
+		return errRejected
+	}
+	cookiePresent := len(res.Request.Cookies()) != 0
+	o.http = append(o.http, httpFact{name, method, path, res.StatusCode, len(raw), hash(raw), cookiePresent})
 	if o.save("private-response-"+name+".json", raw) != nil {
+		return errRejected
+	}
+	if base != apiBase && cookiePresent {
 		return errRejected
 	}
 	if res.StatusCode != status {

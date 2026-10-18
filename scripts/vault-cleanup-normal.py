@@ -114,7 +114,7 @@ def main():
     security_opt: ['no-new-privileges:true']
     healthcheck: {{disable: true}}
 '''
-  pgcommon=common.replace('healthcheck: {disable: true}', 'healthcheck: {test: [CMD-SHELL, \"pg_isready -U routex_f28_normal -d routex_f28_normal_'+run+' >/dev/null 2>&1\"], interval: 1s, timeout: 2s, retries: 45}')
+  pgcommon=common.replace('healthcheck: {disable: true}', 'healthcheck: {test: [CMD-SHELL, \"pg_isready -h 127.0.0.1 -U routex_f28_normal -d routex_f28_normal_'+run+' >/dev/null 2>&1\"], interval: 1s, timeout: 2s, retries: 45}')
   text=f'''services:
   postgres:
     image: {POSTGRES}

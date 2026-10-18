@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"net/http"
+	"net/http/cookiejar"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sync/atomic"
@@ -66,5 +68,29 @@ func TestPrivateInputRefusesSymlinkAndPublicMode(t *testing.T) {
 func TestUnboundRunNeverCreatesArtifacts(t *testing.T) {
 	if run(nil) != 1 || run([]string{"--endpoint"}) != 1 {
 		t.Fatal("unbound or overridden execution admitted")
+	}
+}
+
+func TestVaultObservationDoesNotCarryApplicationSession(t *testing.T) {
+	var leaked atomic.Bool
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		leaked.Store(len(r.Cookies()) != 0)
+		http.SetCookie(w, &http.Cookie{Name: "routex_session", Value: "foreign-cookie-fixture", Path: "/"})
+		w.WriteHeader(200)
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer server.Close()
+	jar, _ := cookiejar.New(nil)
+	u, _ := url.Parse(server.URL)
+	jar.SetCookies(u, []*http.Cookie{{Name: "routex_session", Value: "session-isolation-fixture-value", Path: "/"}})
+	o := owner{ctx: context.Background(), dir: t.TempDir(), client: &http.Client{Jar: jar}}
+	if o.request("isolated-vault", server.URL, "GET", "/metrics", "fresh-vault-token", "", nil, 200, nil) != nil {
+		t.Fatal("observation failed")
+	}
+	if leaked.Load() {
+		t.Fatal("application Session crossed into Vault observer transport")
+	}
+	if len(jar.Cookies(u)) != 1 || jar.Cookies(u)[0].Value != "session-isolation-fixture-value" {
+		t.Fatal("application Session was destroyed instead of scoped")
 	}
 }
