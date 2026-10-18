@@ -91,6 +91,63 @@ complete F30/A20 or global completion is inferred. Next implement the remaining
 F28 actual API/Vault normal-receipt and replay producer on the qualified source;
 keep the real external F29 application inputs as a separate dependent gate.
 
+## F28 actual normal API, SQL and Vault receipt (2026-10-19)
+
+The independent `routex-f28-runtime-acceptance-20261019` branch is published at
+remote-verified `378d8a343bd9bac5dc94bf4629a9cebae174b2bd`. Its new four-file
+phase implements the normal producer and native client, focused refusal tests
+and usage documentation. This tooling source remains separate from main and
+never merges the original candidate's production changes.
+
+Fresh normal R4 rebuilds assets, four Linux binaries and a run-specific image,
+then starts new PostgreSQL 18, Vault 2.2.0, anchor and gateway containers with
+new database, root key, AppRole, Session and intents. It publishes no host ports
+and uses no persistent volumes. Fourteen actual RouteX API requests plus three
+original Vault observer requests cover setup, reviewed integration/storage
+policy, Credential creation, retained-reference refusal, exact logical deletion,
+eligible review, original cleanup, token-free replay and receipt readback.
+
+The original cleanup returns 200 with Running=false and acknowledged receipt.
+Two positively joined original native SQL commands independently validate the
+same durable claim, one claim/observe audit each, one exact source process/use,
+permanent denial and unchanged creation history. The replay returns the same
+response without a cleanup token or any additional Vault event. The complete
+five-pair AppRole audit append matches the original version-one HMAC. The
+entire observed status family records 200: 17 to 20, 204: 8 to 9, 501: 1 to 1;
+unknown/missing increments are never replaced with zeros. Fifty-six separate
+race-tested parser nodes pass against these actual captures, with zero failures
+or skips, including both opt-in actual-data gates.
+
+Independent readback verifies all 112 recorded host groups, four exact original
+containers and the internal network absent, all 29 native artifacts intact,
+helper exits 0/0 and unchanged source. It does not claim a complete descendant
+census. Normal audit SHA-256:
+`75ea0d332f7be1f28f98b14b31fdd77f3088e191ed44ea5b3b19573b7abf3692`.
+The original build/helper label is ancestor `fe80841`; the exact 3,027-file
+byte/mode input later committed as `378d8a3` has manifest
+`d6c298883af30c8d54d662bd7bd747866b357ce3b355aa584100a7751de22a6b`.
+Final mandatory check and complete ordinary Task pass on that identical input:
+Go race, 288 frontend files / 7,798 tests, Node 5/5 and 92/92, fresh production
+build and asset serving. Source qualification audit SHA-256:
+`bea9f15e97e8dd2c64360347354f8b0779cc935557dab0d5ef0c9ea96ad680d2`.
+
+R1 nonroot image-executable permission failure, R2 deliberately cancelled build
+before topology dispatch, and R3 source-witness flag/closure readback failure
+remain failed. Their independent owned recovery is complete. The successor
+uses executable image copies, a forwarding anchor init, explicit database
+readiness, exact stopped membership and the actual separate creation-owner and
+physical-source exposure semantics. No product constraint is relaxed.
+
+Protected local roots are `/private/tmp/routex-f28-normal-runtime-qualification-20261019-r4`
+and `/private/tmp/routex-f28-normal-source-qualification-20261019-r2`. Original
+raw responses and secret material remain private. This is controlled normal
+acknowledgement/replay acceptance only. Next qualify actual safe PostgreSQL
+error logging, then implement F02 post-effect acknowledgement refusal, natural
+claim expiry, same-binary restart and original-Session token-free replay. The
+earlier private coordinator remains unready; F28/A16, external F29 adoption,
+fleet and global completion remain open. Capability/scenario totals, original
+candidate isolation and deferred-runtime exclusions are unchanged.
+
 ## F28 AppRole and observed wire parsers (2026-10-19)
 
 The independent source branch `routex-f28-runtime-acceptance-20261019` is now
