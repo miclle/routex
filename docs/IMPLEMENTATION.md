@@ -91,6 +91,56 @@ complete F30/A20 or global completion is inferred. Next implement the remaining
 F28 actual API/Vault normal-receipt and replay producer on the qualified source;
 keep the real external F29 application inputs as a separate dependent gate.
 
+## F28 observer Session isolation and logging prerequisite (2026-10-19)
+
+The independent tooling branch is published at remote-verified
+`f354acd7a4cafca1ac40c09d21b3fd478482a604`. A new regression first fails on the
+normal client's shared Cookie jar: cookies are scoped by host, so the two
+loopback service ports are not isolated by a shared jar. Vault observations
+now use a separate client view without that jar, retain the application Session,
+record only Cookie-header presence and reject an observed cross-scope Cookie.
+A hostile observer Set-Cookie also cannot replace the application Session.
+PostgreSQL readiness now checks TCP instead of accepting a temporary Unix-only
+initialization server. No product service or migration changes.
+
+Fresh normal R5 rebuilds every phase artifact and repeats the complete actual
+API/SQL/Vault acknowledgement and token-free replay. All three observer requests
+record Cookie-header absence; subsequent application requests retain their
+Session. Independent readback again validates 112 recorded groups, four original
+containers/network closed, unchanged source and 29 native artifacts. Fifty-six
+actual-capture parser nodes pass with no failures/skips. R4's original functional
+observations remain retained; they do not qualify the corrected observer transport.
+Normal R5 audit SHA-256:
+`acf2c53ee3d2792f08b4bea1e6db0b73dcfba0f631440f2040d6a50541097f70`.
+
+Mandatory check and full ordinary Task pass on the identical 3,027-file input
+later committed as `f354acd`: Go race, 288 frontend files / 7,798 tests, Node
+5/5 and 92/92, fresh production build and asset serving. Source manifest:
+`e13940b1eff457a702de351444263453f65befffa603e6142bea3a02965a1287`.
+Source qualification audit SHA-256:
+`a8551bb1126ebc0317b12d78f763bb7084413f0e401c00519e90f8cbe7400db1`.
+The fresh isolated normal dependency receipt is
+`b1625ecf0247ca80e185822444ca445f5eae1df7042d2257a6102a99f2780d7c`.
+
+A separate fresh PostgreSQL 18 dummy topology also exercises one real typed
+23514 check failure and checked rollback. The complete original log append is
+one exact bounded primary error without its private row marker or database
+password. Both native pure controls pass, and independent readback confirms all
+34 recorded child groups, two original containers and network absent. Its
+source/diagnostic scope remains separate from the product; exact typed error
+inspection disables GORM translation only in this private diagnostic. The
+observed PostgreSQL 18 disabled connection-log value is the empty string.
+Dummy logging audit SHA-256:
+`ec994d10552750f1bc710eaf8dabe2f9b73785e3d12793fb7267906136bec3dc`.
+These private recipes are not claimed as published source or product fault proof.
+
+Protected roots are `/private/tmp/routex-f28-normal-runtime-qualification-20261019-r5`,
+`/private/tmp/routex-f28-observer-session-fix-20261019-r1` and
+`/private/tmp/routex-f28-dummy-logging-BB5RI7`. A new private F02 original/replay
+client is being prepared; no actual post-effect fault or restart has run yet.
+Keep the earlier coordinator unready. F28/A16, external F29 adoption and global
+completion remain open, with unchanged totals and deferred-runtime exclusions.
+
 ## F28 actual normal API, SQL and Vault receipt (2026-10-19)
 
 The independent `routex-f28-runtime-acceptance-20261019` branch is published at
@@ -534,7 +584,7 @@ No capability or scenario is promoted by these tooling results.
 | 1 | F11/F23/F17 technical qualification | Fresh `679d8ea` check, complete ordinary and complete dual-driver integration pass. Earlier stage-two race/restart/dedicated SQL receipts retain their exact scopes. Product completion and deferred shared-runtime activation remain excluded. |
 | 2 | F29 real external application acceptance | Controlled official Claude Personal and Project replacement/retirement/fresh-use and typed25006 unchanged-projection controls pass separately on PostgreSQL/MySQL, with complete recorded closure. Real application/deployment/issuer/workload inputs and external adoption remain open. Continue independent F30 transport/permanent cleanup acceptance; global F29 remains Partial. |
 | 3 | F24 denial fix and quota fixture repair on `679d8ea` | Fresh complete ordinary/check/SQL gates and seven controlled hostile-quota browser cases per database pass. External-model semantics, saved-CSV and broader F24/A18 acceptance remain open. Historical failed generations are preserved. |
-| 4 | F28 failure coordinator | Published `378d8a3` implements and passes actual normal RouteX API/SQL/Vault acknowledgement, complete five-pair AppRole/status evidence and identical token-free replay with zero additional remote events. Fresh check, full ordinary Task and 56 actual-data parser nodes pass. Next qualify safe PostgreSQL error logging and implement F02 acknowledgement refusal/restart/replay; the earlier private coordinator stays unready. |
+| 4 | F28 failure coordinator | Published `f354acd` fixes observer Cookie isolation and TCP readiness, with fresh actual normal R5 acknowledgement/replay, independent closure, check, full ordinary Task and 56 actual-data parser nodes passing. Separate actual PostgreSQL dummy safe-error logging and typed rollback pass. Next finish and qualify the private F02 acknowledgement refusal/restart/replay producer; the earlier coordinator stays unready. |
 | 5 | F30 transport and permanent cleanup | Fresh PostgreSQL R10 and MySQL R4 pass actual bilingual IAB rollback/cleanup, four native-completed Calls, complete bounded SQL/storage-delta readback and original/resource closure on `529fda0`. Earlier R8/R9 remain incomplete. Uncertain-browser retry, broader F30/A20 and fleet/global acceptance remain open. |
 | 6 | Remaining release scenarios | Continue existing authorization, identity/offboarding, recovery and measured single-node release checks; obtain real external inputs only for dependent work. |
 
