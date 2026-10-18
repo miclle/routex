@@ -149,6 +149,20 @@ func TestArgumentsRefuseBeforePrivateFilesystemOrNetwork(t *testing.T) {
 	}
 }
 
+func TestReaderModesDoNotAcceptEndpointSecretOrAmbiguousOverrides(t *testing.T) {
+	if mode, ok := readerMode(nil); !ok || mode != "token" {
+		t.Fatal("default mode changed")
+	}
+	if mode, ok := readerMode([]string{"--app-role-reader"}); !ok || mode != "app_role" {
+		t.Fatal("exact AppRole mode refused")
+	}
+	for _, args := range [][]string{{"--endpoint=http://foreign"}, {"--app-role-reader", "--app-role-reader"}, {"--app-role-reader", "secret"}, {"app_role"}, {"--token"}} {
+		if _, ok := readerMode(args); ok {
+			t.Fatal("ambiguous native mode accepted")
+		}
+	}
+}
+
 func TestNativeManifestPreservesPartialFilesAndRejectsUnknownOrUnprotectedInputs(t *testing.T) {
 	dir := t.TempDir()
 	if save(dir, "http-census.json", []byte("[]")) != nil {

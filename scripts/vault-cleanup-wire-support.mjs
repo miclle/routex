@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 
 const fullID = /^[a-f0-9]{64}$/
 
-const nativeNames = new Set([
+const tokenNames = new Set([
   'private-initialization.json',
   'private-token-writer.json',
   'private-token-reader.json',
@@ -16,12 +16,35 @@ const nativeNames = new Set([
   'private-response-dummy-read.json',
   'private-response-dummy-metadata.json',
   'private-response-audit-version-hash.json',
+  'audit-before.jsonl',
+  'audit-after.jsonl',
 ])
 
 export function requireNativeFiles(terminal, expected) {
+  assert.ok(['token', 'app_role'].includes(expected.readerMode), 'Unknown native reader mode')
+  assert.equal(terminal?.reader_mode, expected.readerMode, 'Native reader mode changed')
+  const nativeNames = new Set(tokenNames)
+  if (expected.readerMode === 'app_role') {
+    nativeNames.delete('private-token-reader.json')
+    for (const name of [
+      'private-response-reader-role-id.json',
+      'private-response-reader-secret-id.json',
+      'private-response-reader-login.json',
+      'private-reader-material.json',
+    ])
+      nativeNames.add(name)
+  }
   assert.deepEqual(
     Object.keys(terminal ?? {}).sort(),
-    ['application_runtime_acceptance', 'files', 'last_stage', 'passed', 'run', 'source_manifest'],
+    [
+      'application_runtime_acceptance',
+      'files',
+      'last_stage',
+      'passed',
+      'reader_mode',
+      'run',
+      'source_manifest',
+    ],
     'Native terminal shape changed',
   )
   assert.equal(terminal?.run, expected.run, 'Native terminal run changed')
