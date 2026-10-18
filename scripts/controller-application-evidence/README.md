@@ -304,5 +304,61 @@ Linux nodes pass 246 / 96 without race instrumentation or skips. The two actual
 DB tests each have complete passing named/package terminals. All recorded
 originals, resources and ports close. Independent readback SHA-256:
 `ae99a310b8f2467d0ffb78a113a781794ede86525b5a849e890dfe9fc5d0b16e`.
-Earlier failed generations remain failed. New-mode MySQL/Project, external
-adoption, fleet and global F29 acceptance remain separate open gates.
+Earlier failed generations remain failed. The separate Personal MySQL result
+below does not qualify Project, external adoption, fleet or global F29 acceptance.
+
+
+## Opt-in MySQL Messages refusal controls
+
+The separate `integration && routex_messages_mysql_readonly` build selects
+`TestMySQLMessagesOnceExactProjectionReadOnlyIntegration` and
+`TestMySQLMessagesPairExactProjectionReadOnlyIntegration`. These tests do not
+change ordinary tests, the full integration entry point, the PostgreSQL controls
+or the original Chat-pair probe. Compile a fresh native Linux test binary:
+
+```sh
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go test -c -tags 'integration routex_messages_mysql_readonly' -o bin/messages-readonly.test ./scripts/controller-application-evidence
+```
+
+Run as the trusted non-root owner in a fresh isolated MySQL namespace. The once
+and pair tests read only protected 0600 single-link files at
+`/fixture-evidence-mysql-messages-once-test/config.json` and
+`/fixture-evidence-mysql-messages-pair-test/config.json`, respectively. Use explicit
+`database_driver: "mysql"` and the existing fixed connection and complete actual
+Messages proof grammar. No host, DSN, query or alternate input path is accepted.
+
+Each test starts an explicitly read-only repeatable-read transaction, validates
+the complete projection, and requires actual typed MySQL error 1792 with exact
+SQLSTATE 25006 from a parameterized zero-match Key UPDATE. It cannot modify any
+matching Key. Session/default transaction variables do not authenticate the
+current transaction. Every post-BEGIN path attempts checked rollback; a separate
+checked read-only transaction must return the same complete proof afterward.
+Pair order follows the retained first proof. Connection errors, cancellation,
+timeouts, unexpected write acceptance and unknown rollback fail closed.
+
+The two `TestMessagesMySQLControl` pure tests check the pinned typed error,
+translation and rollback handling without a database. They pass current-host
+race qualification. The actual once/pair tests emit bounded
+`mysql_messages_once_receipt` / `mysql_messages_pair_receipt` only after verified
+rollback, unchanged full projections and successful pool closure. Preserve raw
+GoJSON, reconstruct split Output events and require both named/package passing
+terminals. Missing, failed, skipped or incomplete readback never qualifies.
+
+Fresh controlled Personal MySQL R1 passes the actual official Claude replacement
+sequence: actual Agent installation and same-slot replacement, retirement 409
+before use, first native-completed call, retirement 204, old-Key 401 with no
+upstream call, and fresh final official-client use. Exactly two Calls and two
+sole ordinal-one successful native-completed Anthropic Attempts remain. Both
+actual MySQL refusal tests pass typed 1792/25006 with complete unchanged before
+and after facts. The client does not display a Request ID; expected snapshots
+come independently from the pre-call runtime API. The retirement interval is
+witnessed by the original HTTP exchange, not authenticated by SQL timestamps.
+
+Nine native artifacts and the image are rebuilt for a fresh run and database;
+Linux controls pass 96 fixture / 246 evidence nodes without race instrumentation
+or skips. Both client originals and all 51 recorded inner commands join zero;
+recorded Compose resources, seven volumes and both ports close. Independent
+readback SHA-256:
+`b374e6d15137b1d8cf6e6b1e893124b0f979ec5e89705c25f3382d207b2e4b41`.
+This result covers controlled Personal MySQL only. Project ownership, real
+external workload adoption, fleet and full F29 completion remain open.
