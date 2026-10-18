@@ -18,7 +18,9 @@ the separately checked F24 denial fix
 Fresh R15 controlled MySQL Personal and Project segments now also qualify the
 maintained `0c993ae` helper with native Linux-owned protected input, complete
 original/final pairs and recorded closure. Application source
-remains frozen at fully qualified c46 for this F29 lane. Controlled F24 hostile-quota
+remains frozen at fully qualified c46 for those historical MySQL segments. The
+separate official-client lane uses qualified `679d8ea` product source and the
+independent helper deliveries recorded below. Controlled F24 hostile-quota
 browser acceptance now passes on PostgreSQL and MySQL as recorded below.
 Controlled F29 Personal/Project native and F30 PostgreSQL/MySQL
 weights-rollback/restart slices retain only their detailed evidence scopes below.
@@ -128,35 +130,43 @@ This is actual CLI production from controlled seeded SQL, with
 API cleanup, normal/fault/restart replay, remote Vault audit/metrics, adoption
 and global F28 completion remain open. The branch remains unmerged.
 
-### F29 real installed-client first-use delivery (2026-10-18)
+### F29 real installed-client delivery (2026-10-18)
 
 Independent unmerged branch `routex-f29-real-client-20261018` is pushed; remote
-SHA is verified as `997ca768ca98af7c5a1641f155de59c827af6aaa`, based on `679d8ea`.
-Its 15-file code delivery adds a pinned Linux Claude launcher, one-call Messages
-peer and disjoint exact SQL evidence operation. Existing Chat behavior remains
-unchanged. Host race nodes pass 55 fixture / 177 evidence; Linux arm64 controls
-pass 90 / 185 without race instrumentation or skips. Mandatory check passes.
+SHA is verified as `d99492f0d5f292e98392ff423d2b5731de657779`, based on `679d8ea`.
+Initial `997ca76` delivers the pinned official Claude launcher, bounded Messages
+peer and exact one-call SQL evidence. Fresh first-use R4 independently passes
+actual Personal Agent-installed Key use and PostgreSQL readback; audit SHA-256
+is `55339956a5a9bdf0ffbd0bf7cca78fc439fce7fa97190c7bb8a96e03f23e1e3b`.
 
-Fresh R4 verifies official Claude 2.1.169 signed-manifest bytes, rebuilds all
-eight native artifacts and JWKS, and builds a fresh no-cache image. Actual Vault
-Agent installs the Personal Key; original Claude uses that exact protected slot
-and joins exit zero. PostgreSQL records exactly one successful Call and one
-ordinal-one native-completed Attempt, with immutable attribution and the exact
-expected snapshot independently captured from the pre-client runtime API.
-Maintained `messages-once` and independent SQL readback agree. The Request ID is
-SQL-derived, not displayed by Claude. All recorded originals, Compose resources
-and both published ports close. Independent readback SHA-256:
-`55339956a5a9bdf0ffbd0bf7cca78fc439fce7fa97190c7bb8a96e03f23e1e3b`.
+The separate ten-file `d99492f` delivery adds the two-call peer, exact replacement
+projection and opt-in PostgreSQL read-only controls. Fresh pair R4 performs real
+Controller same-slot replacement, pre-call retirement HTTP 409, actual official
+Claude first replacement use, accepted immutable SQL proof, retirement HTTP 204,
+old-Key HTTP 401 without an extra upstream event, and fresh final Claude use.
+Exactly two retained Calls have sole ordinal-one successful native-completed
+Anthropic Attempts. The accepted first proof remains unchanged; expected
+snapshots come independently from the actual runtime API before each call.
+The retirement HTTP interval is separately witnessed, not a SQL timestamp.
+The old-Key probe establishes Chat authentication refusal only.
 
-R1 Compose preparation, R2 missing receiver OS-account prerequisite and R3
-coordinator password-format rejection remain failed full gates. R3's successful
-client invocation alone is not accepted as the complete run. No production
-fallback or safety rule is weakened. This accepted slice uses a controlled peer
-and PostgreSQL; new-mode Project/MySQL use, replacement and retirement, original
-and final read-only refusal pairs, real external workload and adoption remain
-open. Next implement the separate two-call replacement projection and exercise
-actual Controller replacement, pre-call retirement refusal, first completed use,
-retirement, old-Key 401 and fresh post-retirement use. F29 and global totals remain
+Both actual PostgreSQL tests pass their named and package terminals: original
+once and final two-Call projections receive typed SQLSTATE 25006, roll back and
+retain equal complete before/after facts. Host races pass 61 fixture / 238
+evidence nodes plus two tagged refusal controls; Linux arm64 controls pass
+96 / 246 without race instrumentation or skips. Nine fresh native builds, fresh
+no-cache image, both original clients, 53 recorded inner command originals,
+Compose resources and both ports close with complete readback. Mandatory check
+passes before commit. Pair independent readback SHA-256:
+`ae99a310b8f2467d0ffb78a113a781794ede86525b5a849e890dfe9fc5d0b16e`.
+
+Earlier first-use and pair failures remain failed, including coordinator probe
+and timestamp comparisons and Docker read-only storage failure. Storage recovery
+reclaims rebuildable caches while retaining source, images, binaries and raw
+evidence; new build context excludes private inputs and compiler caches.
+Next run separate official-client Project/MySQL and real external-workload
+acceptance. Earlier controlled Personal/Project MySQL native/read-only pairs
+retain their narrower scope. F29, adoption, fleet and global totals remain
 Partial/unchanged; the main/candidate merge boundary is preserved.
 
 ### Whole-objective work queue (2026-10-17)
@@ -168,7 +178,7 @@ No capability or scenario is promoted by these tooling results.
 | Order | Work | Current gate / next action |
 | --- | --- | --- |
 | 1 | F11/F23/F17 technical qualification | Fresh `679d8ea` check, complete ordinary and complete dual-driver integration pass. Earlier stage-two race/restart/dedicated SQL receipts retain their exact scopes. Product completion and deferred shared-runtime activation remain excluded. |
-| 2 | F29 real-client replacement and retirement | Independent `997ca76` qualifies actual official Claude first Personal installed-Key use and exact PostgreSQL SQL evidence with complete recorded closure. Next qualify actual replacement, pre-call refusal, retirement, old-Key denial and fresh real-client use. Earlier controlled Personal/Project MySQL native/read-only pairs retain their scope; external workload/adoption remain open. |
+| 2 | F29 real-client Project/MySQL and external acceptance | Independent `d99492f` qualifies actual official Claude Personal PostgreSQL replacement, retirement409/204, old-Key401, fresh use and both typed25006 unchanged-projection controls with complete recorded closure. Next execute Project/MySQL official-client slices and real external workload. Earlier controlled owner/database pairs retain their exact scope; global F29 remains Partial. |
 | 3 | F24 denial fix and quota fixture repair on `679d8ea` | Fresh complete ordinary/check/SQL gates and seven controlled hostile-quota browser cases per database pass. External-model semantics, saved-CSV and broader F24/A18 acceptance remain open. Historical failed generations are preserved. |
 | 4 | F28 failure coordinator | Independent `fcb5f30` adds maintained native command-to-PostgreSQL acceptance: 18/18 named nodes and 15 original CLI processes pass, with full recorded closure and check. Earlier host/SQL/stdin controls retain their scopes. Actual normal-receipt/API/restart/topology/logging/metrics remain open; the private coordinator stays unready. |
 | 5 | F30 transport and permanent cleanup | Qualify the executable draft and perform actual native/SQL/UI rollback, deletion, byte release and preserved-history acceptance. Prior weights/restart evidence has narrower scope. |
