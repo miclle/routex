@@ -106,16 +106,27 @@ and F28 helper branches remain unmerged; real F29 application adoption stays ope
 ### F28 cleanup evidence code delivery (2026-10-18)
 
 Independent branch `routex-f28-cleanup-evidence-20261017` is pushed and its remote
-SHA is verified as `fbd3bdae51f7200219d4ec9d74c55431072cef97`, based on `679d8ea`.
-Its 13-file delta adds a bounded read-only claim/source-history projection, a
-fixed Linux PostgreSQL stdin command, failure controls and documentation;
-`golang.org/x/sys` becomes direct at its unchanged v0.47.0 version. The branch remains unmerged.
-Host race 76/76, actual seeded PostgreSQL 9/9 and MySQL 9/9, and native Linux
-stdin 3/3 pass. The Linux-only run has no race instrumentation. SQL original
-workers/Compose resources/ports and the offline Linux container close normally.
-Mandatory check passes after the first check's dependency-classification failure;
-the initial failure remains recorded. Actual CLI SQL production, API cleanup,
-normal/fault/restart replay, remote audit/metrics and adoption remain unqualified.
+SHA is verified as `fcb5f30b79b48a22ac5b56adc4308ad4e0baff4e`, based on `679d8ea`.
+The initial `fbd3bda` delivery adds the bounded read-only projection and fixed
+Linux stdin command. Host race 76/76, seeded PostgreSQL 9/9 and MySQL 9/9,
+native stdin 3/3 and mandatory check retain their separate scopes.
+
+The maintained native command-to-PostgreSQL integration test now passes 18/18
+named nodes on fresh Linux arm64 artifacts. Its 15 original command processes
+produce three exact successful outputs and twelve expected exit-1 rejections;
+all retained SQL remains unchanged. The real UID-501 runner uses a fresh Linux
+volume with protected ownership, read-only root/storage and no inherited PG
+environment. Original joins and recorded containers/network/volume/port close.
+Earlier R1 bind-mount ownership refusal remains failed. R2 complete GoJSON SHA-256:
+`a7a4cbc0c904ebd4331bf776d7d005aa10ae646ed049a3d7d3e11a54660af910`.
+Independent readback SHA-256:
+`057382f19447df129393bf19181c4a3134c936150ca27965f1875c87d5b6eab9`.
+The two-file test/README commit passes mandatory check before publication.
+
+This is actual CLI production from controlled seeded SQL, with
+`runtime_acceptance=false`; no Linux race instrumentation is claimed. Actual
+API cleanup, normal/fault/restart replay, remote Vault audit/metrics, adoption
+and global F28 completion remain open. The branch remains unmerged.
 
 ### Whole-objective work queue (2026-10-17)
 
@@ -128,7 +139,7 @@ No capability or scenario is promoted by these tooling results.
 | 1 | F11/F23/F17 technical qualification | Fresh `679d8ea` check, complete ordinary and complete dual-driver integration pass. Earlier stage-two race/restart/dedicated SQL receipts retain their exact scopes. Product completion and deferred shared-runtime activation remain excluded. |
 | 2 | F29 native and maintained MySQL evidence | R15 pure 100 passed. Fresh Personal R8 and Project R2 builds and artifact packages passed 473/473 each. Actual Personal R7 and Project R2 independently passed both private and maintained 0c993ae original/final typed 1792/25006 pairs, three native calls, retirement and closure. Fresh browser and real external workload remain open. |
 | 3 | F24 denial fix and quota fixture repair on `679d8ea` | Fresh complete ordinary/check/SQL gates and seven controlled hostile-quota browser cases per database pass. External-model semantics, saved-CSV and broader F24/A18 acceptance remain open. Historical failed generations are preserved. |
-| 4 | F28 failure coordinator | Read-only projection/CLI tooling published on independent `fbd3bda` branch; host 76 race nodes, SQL 9/9 per driver, Linux 3 stdin controls and check pass. Actual command SQL production, normal-receipt/API/restart/topology/logging/metrics remain open; the private coordinator stays unready. |
+| 4 | F28 failure coordinator | Independent `fcb5f30` adds maintained native command-to-PostgreSQL acceptance: 18/18 named nodes and 15 original CLI processes pass, with full recorded closure and check. Earlier host/SQL/stdin controls retain their scopes. Actual normal-receipt/API/restart/topology/logging/metrics remain open; the private coordinator stays unready. |
 | 5 | F30 transport and permanent cleanup | Qualify the executable draft and perform actual native/SQL/UI rollback, deletion, byte release and preserved-history acceptance. Prior weights/restart evidence has narrower scope. |
 | 6 | Remaining release scenarios | Continue existing authorization, identity/offboarding, recovery and measured single-node release checks; obtain real external inputs only for dependent work. |
 
