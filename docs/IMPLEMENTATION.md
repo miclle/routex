@@ -1,5 +1,62 @@
 # RouteX Implementation and Acceptance Index
 
+## F28 current Secret Store inventory UI repair (2026-10-19)
+
+The background in-app browser exposed a real frontend/backend contract mismatch:
+current Secret Store responses use inventory V11, while the frontend accepted
+only V9. The Storage tab therefore rejected the actual response and displayed
+an unconfirmed-status error. The original browser R1 remains bounded bilingual
+Vault configuration and policy review/cancel evidence; it is not storage-health
+acceptance. Its original producer joins zero, all 92 recorded groups and four
+containers/network close, and port 52491 refuses connections and permits a new
+binding. Independent R1 audit SHA-256:
+`d54093160a00b3351943bb7da58c15b318bfab3d04989502ab4bf4af899bcf5d`.
+
+Independent branch `routex-f28-storage-inventory-ui-20261019` is published at
+remote-verified `ee994ec97021eb953a2d2d86c8e46bcf696fd326`. Its seven-file repair accepts exact current V11 status, adds the thirteenth
+runtime-archive-chunk domain, and preserves the distinct twelve-domain V9/V10
+history. Unknown versions, missing/duplicate/reordered domains and malformed
+coverage still refuse parsing. Counts remain decimal strings and unscanned work
+remains unknown. Historical or current inventory never grants retirement beyond
+the server-returned actions. Paired English/Chinese guidance reflects V11.
+
+Fresh mandatory check and complete ordinary Task pass on the exact 3,037-file
+input later committed as `ee994ec`: Go race, 288 frontend files / 7,810 tests,
+Node 5/5 and 92/92, fresh production build and asset serving. Eight focused files
+pass 172 tests. The new V11 regression first failed on the old parser. Source
+manifest is `7d798621e52e277f1203338ab285477c81ec916a84df1d7e224f141588ccdaba`;
+source audit SHA-256 is
+`6b29ea15c321c02f6fa157047b1d676de8df548f0c637c84984d92057bcc0698`.
+
+Fresh browser R2 rebuilds the product, assets, native seeders and image, then
+creates new PostgreSQL/Vault/anchor/gateway containers and private inputs. Actual
+API readback returns inventory 11. From initial login, the background in-app
+browser observes the loaded Storage status and current V11 guidance in English
+and Chinese, opens and cancels both reviews, and retains disabled rotation for
+this fixture's unconfigured keyring. The status is explicitly unverified; no
+root-key rotation, process proof or storage health is inferred. Its product input
+matches all committed source bytes/modes, with one separately captured private
+seeder. The build label records parent `cc4914c`, not the later commit.
+
+R2 original producer joins zero without timeout/cancellation. Independent review
+confirms all 93 recorded host groups, four original containers and network absent,
+ten native seed artifacts intact, and port 54380 refused and freshly bindable.
+An initial post-close fresh-bind refusal is retained; the later independent
+readback requires natural port release without restarting or killing the user's
+browser. The agent-created IAB tab closes. Browser audit SHA-256:
+`640c117cadfb5246723a84c707f5f5a702300b65c997de03993cc8627cfeb815`.
+
+Evidence roots are `/private/tmp/routex-f28-storage-inventory-ui-qualification-20261019-r1`
+and `/private/tmp/routex-f28-browser-runtime-qualification-20261019-r2`.
+The original candidate and combined acceptance successor remain unmerged.
+This repairs the real browser-discovered contract defect; it does not complete
+the broader F28/A16 mutations, keyring rotation, external F29 adoption/workload,
+fleet or global gates. Counts remain 16 Completed / 14 Partial capabilities and
+2 Completed / 18 Partial scenarios. Continue the remaining genuine browser and
+runtime flows serially; deferred shared runtime, V119/V120 registration and
+legacy history transfer remain excluded.
+
+
 ## Qualified acceptance successor (2026-10-19)
 
 The independent unmerged branch `routex-acceptance-successor-20261018` is
