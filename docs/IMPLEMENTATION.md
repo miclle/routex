@@ -91,6 +91,45 @@ complete F30/A20 or global completion is inferred. Next implement the remaining
 F28 actual API/Vault normal-receipt and replay producer on the qualified source;
 keep the real external F29 application inputs as a separate dependent gate.
 
+## F28 AppRole and observed wire parsers (2026-10-19)
+
+The independent source branch `routex-f28-runtime-acceptance-20261019` is now
+published at remote-verified `fe80841fd707104332c167169f9a9a85273538c5`.
+Its thirteen-file source phase adds AppRole reader preflight, the bounded real
+Vault 2.2.0 status-family and appended-audit parsers, original before/after
+captures and refusal controls. Main retains the independently delivered v1
+wire producer; candidate production code remains unmerged.
+
+Fresh Token and AppRole native runs both execute the parsers inside their
+original Linux clients. Token observes eighteen HTTP requests and an exact
+four-pair metrics/read/destroy/metrics bracket. AppRole observes twenty-two
+requests and five pairs including the original login. Both retain a literal
+single dummy destroy 204, version-one HMAC proof and complete family coverage;
+missing series, resets, unknown increments, replaced prefixes, extra audit
+callers and unsupported transitions refuse. Independent readback confirms all
+44 Token / 47 AppRole recorded groups and each original container/network
+absent, with no published ports or persistent volumes. These are controlled
+preflight results, not actual product cleanup receipts.
+
+Mandatory check and full ordinary Task pass on the final unchanged source
+manifest `c0cf4dd548cbf9d3d2e133dbd75df1a4ed2fc5c743fd9b0b87dfda83eda1c005`:
+Go race, 288 frontend files / 7,798 tests, Node 5/5 and 92/92, fresh production
+build and asset serving. Fifty-six separate race-tested named parser nodes pass
+with zero skips/failures, including both actual retained-data gates. Ordinary
+Task alone skips those opt-in data gates and is not substituted for them.
+Live-run code bytes/modes exactly match final source; only the usage document
+was clarified afterward. Source/readback audit SHA-256:
+`1479f6cbddc7006b0cf5a954071b69fa13aebace4f252e5626a15f5a1e2ca602`.
+
+Host-local roots are `/private/tmp/routex-f28-parser-source-qualification-20261019-r1`,
+`/private/tmp/routex-f28-approle-wire-qualification-20261019-r2` and
+`/private/tmp/routex-f28-token-wire-qualification-20261019-r1`. Raw captures and
+fresh secret material remain private. Next implement the real normal RouteX
+API/SQL/Vault producer, then F02 uncertain acknowledgement and restart/replay.
+Do not unlock the earlier coordinator or promote F28/A16/global completion.
+External F29 application adoption remains dependent on real deployment inputs.
+Global totals and deferred-runtime exclusions remain unchanged.
+
 ## F28 isolated Vault wire discovery (2026-10-19)
 
 Independent source branch `routex-f28-runtime-acceptance-20261019` is published;
@@ -438,7 +477,7 @@ No capability or scenario is promoted by these tooling results.
 | 1 | F11/F23/F17 technical qualification | Fresh `679d8ea` check, complete ordinary and complete dual-driver integration pass. Earlier stage-two race/restart/dedicated SQL receipts retain their exact scopes. Product completion and deferred shared-runtime activation remain excluded. |
 | 2 | F29 real external application acceptance | Controlled official Claude Personal and Project replacement/retirement/fresh-use and typed25006 unchanged-projection controls pass separately on PostgreSQL/MySQL, with complete recorded closure. Real application/deployment/issuer/workload inputs and external adoption remain open. Continue independent F30 transport/permanent cleanup acceptance; global F29 remains Partial. |
 | 3 | F24 denial fix and quota fixture repair on `679d8ea` | Fresh complete ordinary/check/SQL gates and seven controlled hostile-quota browser cases per database pass. External-model semantics, saved-CSV and broader F24/A18 acceptance remain open. Historical failed generations are preserved. |
-| 4 | F28 failure coordinator | Published `66a05f6` adds real isolated native Vault wire discovery: eighteen HTTP requests, original version/HMAC proof, raw metrics/audit and complete recorded closure; check and full ordinary Task pass. Maintained `fcb5f30` SQL/CLI evidence retains its scope. Strict parser, actual normal API/SQL/Vault acknowledgement and fault/restart replay remain open; the private coordinator stays unready. |
+| 4 | F28 failure coordinator | Published `fe80841` adds qualified AppRole/Token preflight and strict observed status/audit parsers; fresh native runs, 56 actual-data parser nodes, check and full ordinary Task pass. Maintained `fcb5f30` SQL/CLI evidence retains its scope. Actual normal API/SQL/Vault acknowledgement and F02 fault/restart replay remain open; the private coordinator stays unready. |
 | 5 | F30 transport and permanent cleanup | Fresh PostgreSQL R10 and MySQL R4 pass actual bilingual IAB rollback/cleanup, four native-completed Calls, complete bounded SQL/storage-delta readback and original/resource closure on `529fda0`. Earlier R8/R9 remain incomplete. Uncertain-browser retry, broader F30/A20 and fleet/global acceptance remain open. |
 | 6 | Remaining release scenarios | Continue existing authorization, identity/offboarding, recovery and measured single-node release checks; obtain real external inputs only for dependent work. |
 
