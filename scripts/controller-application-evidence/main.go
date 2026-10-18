@@ -77,6 +77,9 @@ type result struct {
 func main() { os.Exit(run(os.Args[1:], os.Stdout)) }
 func run(args []string, out io.Writer) int {
 	fail := func() int { _ = json.NewEncoder(out).Encode(result{Result: "evidence_rejected"}); return 1 }
+	if len(args) == 1 && args[0] == "messages-pair" {
+		return runMessagesPair(out)
+	}
 	if len(args) == 1 && args[0] == "messages-once" {
 		return runMessagesOnce(out)
 	}

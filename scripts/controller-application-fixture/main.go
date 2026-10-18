@@ -59,6 +59,8 @@ func run(args []string, out io.Writer) int {
 		return 1
 	}
 	switch args[0] {
+	case "serve-messages-pair":
+		return runMessagesPairServe(out)
 	case "serve-messages":
 		return runMessagesServe(out)
 	case "client-messages":

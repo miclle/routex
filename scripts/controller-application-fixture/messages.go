@@ -118,6 +118,8 @@ type messagesPeer struct {
 	mu                       sync.Mutex
 	secret                   []byte
 	requests, calls, maximum int
+	pair                     bool
+	completed                int
 	out                      io.Writer
 	exhausted                chan struct{}
 	once                     sync.Once
@@ -162,7 +164,11 @@ func (p *messagesPeer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		reject(404)
 		return
 	}
-	if p.calls != 0 {
+	callLimit := 1
+	if p.pair {
+		callLimit = 2
+	}
+	if p.calls >= callLimit {
 		p.once.Do(func() { close(p.exhausted) })
 		reject(429)
 		return
@@ -185,6 +191,7 @@ func (p *messagesPeer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	p.completed++
 	emit(p.out, result{Result: "call", Status: 200, Native: "completed", Kind: "messages", Ordinal: p.calls})
 }
 func validMessagesRequest(raw []byte) bool {

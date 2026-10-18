@@ -240,3 +240,69 @@ Recorded originals, resources and both ports close. Independent readback SHA-256
 This does not qualify the new mode on MySQL, Project runtime use, replacement or
 retirement, read-only refusal pairing, external adoption or global F29 completion.
 Earlier failed generations remain failed and are preserved.
+
+## Exact real-client replacement pair
+
+The separate `messages-pair` operation reads only private
+`/fixture-evidence-input/messages-pair.json`, at most 16 KiB. It uses the
+`messages-once` owner/connection/provenance grammar with operation changed to
+`messages-pair`, plus `predecessor_id`, `predecessor_created_at`, `first_accepted`
+and `retirement_boundary`. `first_accepted` is the complete previously accepted
+once result, including every projection field and explicit zero-valued facts.
+Unknown/missing/aliased/duplicate/null nested fields refuse. The final expected
+`snapshot_id` must independently come from the actual pre-final-call runtime
+publication; the first snapshot comes from the separately accepted first proof.
+
+All retained Calls and all LEFT-joined Attempts for the exact replacement Key
+remain visible, with limit three as an ambiguity sentinel. Exactly two distinct
+Calls with sole ordinal-one successful native-completed Anthropic Attempts are
+required. The retained first Request ID identifies the first proof; every field
+must remain unchanged. No lexical Request ID ordering or success/time/protocol
+filter hides retries or other Calls. The other Call must use the independently
+expected final publication. The SQL projection also requires exact current
+active replacement, its immutable predecessor link, exact predecessor owner and
+birth, and current revoked predecessor status. An exported anonymous projection
+alias preserves all GORM scan destinations; a schema-mapping test covers them.
+
+Neither Key table records a dedicated retirement timestamp. The separate supplied
+boundary requires source `coordinator_original_http_interval`, exact `POST` to
+the owner-specific predecessor `/complete-rotation` path, HTTP 204, and original
+`request_started_at` / `response_received_at`. It must lie between first
+completion and final Call start. The command validates shape and timing, not the
+HTTP exchange's authenticity. Output labels it `caller_supplied_retirement_boundary`
+and leaves `retirement_boundary_authenticated_by_sql:false`; an actual original
+API journal is still mandatory. Generic Key `UpdatedAt` is not retirement proof.
+
+Successful output is `verified_exact_durable_messages_pair_evidence`, with the
+unchanged first accepted result and the two complete SQL proofs in semantic
+first/final order. Request identities remain SQL-derived; client display stays
+false. Read-only RR, rollback, context, pool closure, bounded output and failure
+handling preserve the separate once contract. Existing commands are unchanged.
+
+The opt-in `integration && routex_messages_readonly` tests are separate from the
+ordinary and maintained full matrix. In a fresh owned Linux/PostgreSQL namespace,
+run these exact originals separately after the appropriate actual Calls:
+
+- `TestPostgresMessagesOnceExactProjectionReadOnlyIntegration` reads the reviewed
+  once config from `/fixture-evidence-postgres-messages-once-test/config.json`.
+- `TestPostgresMessagesPairExactProjectionReadOnlyIntegration` reads the reviewed
+  pair config from `/fixture-evidence-postgres-messages-pair-test/config.json`.
+
+Each verifies server read-only/RR settings, complete valid before projection,
+typed PostgreSQL 25006 from a parameterized zero-match UPDATE, explicit rollback,
+then an equal complete projection in a fresh checked transaction. It cannot
+mutate a matching Key, and unknown rollback/connection errors never qualify.
+Pair scan order is aligned only by the retained first proof. Protected config
+ownership and fixed connection grammar remain mandatory; missing inputs fail.
+Two tagged `TestMessagesPostgresControl` tests cover typed refusal and rollback
+failure handling without opening a database.
+
+Fresh Pair R4 qualifies actual Personal installed-replacement use, retirement,
+old-Key denial, final official-client use and both PostgreSQL refusal controls.
+Host race nodes pass 238 evidence / 61 fixture, plus 2 tagged controls; native
+Linux nodes pass 246 / 96 without race instrumentation or skips. The two actual
+DB tests each have complete passing named/package terminals. All recorded
+originals, resources and ports close. Independent readback SHA-256:
+`ae99a310b8f2467d0ffb78a113a781794ede86525b5a849e890dfe9fc5d0b16e`.
+Earlier failed generations remain failed. New-mode MySQL/Project, external
+adoption, fleet and global F29 acceptance remain separate open gates.

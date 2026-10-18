@@ -196,3 +196,46 @@ password. R1 failed Compose preparation. All three remain failed full gates.
 No production fallback or file-safety rule was weakened. This accepted first
 Personal Key slice does not qualify Project use, replacement/retirement, the new
 mode on MySQL, external upstream adoption or whole F29 completion.
+
+## Real installed replacement and retirement
+
+`serve-messages-pair` is a separate closed operation. It reads private
+`/fixture-native-input/messages-pair-serve.json`: the same six peer fields plus
+exact `operation: "serve-messages-pair"`. It retains the existing compiled
+source/run/phase/UID/artifact bindings and a fixed two-call SSE budget; no call
+count is configurable. Discovery consumes the finite total request budget but
+no native slot. A failed stream consumes its slot without completion. A third
+call refuses. Normal owned shutdown succeeds only after both terminal streams
+have been written and flushed; timeout, incomplete output and request exhaustion
+remain failures. Existing `serve-messages` still allows exactly one native call.
+
+A coordinator must preserve the predecessor only inside its protected receiver,
+then issue a linked replacement, explicitly assign the reviewed successor and
+run the actual Controller `replace` with a fresh state directory. Invoke the
+unchanged `client-messages` twice against that same actual installed slot, with
+separate original receipts and fresh private client workspaces. Retain the
+first accepted `messages-once` proof before attempting retirement. Exact API
+409 before any replacement Call, actual 204 after the first completed proof,
+old-Key 401 with no extra upstream call, and the fresh second invocation remain
+separate observations. The existing predecessor probe uses Chat authentication;
+it does not establish Messages-specific revoked-request compatibility.
+
+Pair R4 on 2026-10-18 passes this actual official Claude 2.1.169 Personal sequence
+on PostgreSQL, including both maintained read-only refusal controls: typed 25006,
+confirmed rollback and unchanged complete projections after the first Call and
+final two-Call pair. All nine fresh native builds, the fresh no-cache image,
+original clients, 53 recorded inner command originals, six-service Compose
+runtime, six volumes and both ports close with complete readback. Host package
+race nodes pass 61 fixture / 238 evidence; additional tagged refusal controls
+pass 2/2 host race nodes. Linux arm64 controls pass 96 / 246 without race
+instrumentation or skips. Each actual database test passes its own named and
+package terminal, without race instrumentation. Independent readback SHA-256:
+`ae99a310b8f2467d0ffb78a113a781794ede86525b5a849e890dfe9fc5d0b16e`.
+
+Pair R1's coordinator probe-result mismatch, R2's timestamp-format comparison
+and R3's Docker read-only storage failure remain failed generations. The
+coordinator now compares exact instants, retains safe command output before
+summary validation and excludes caches/private inputs from build context.
+Recorded images, binaries, source and raw evidence are retained. New-mode Project
+and MySQL sequences, real external workload, sustained adoption and whole F29
+completion remain open. The mandatory pre-publication check remains required.
