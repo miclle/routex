@@ -231,6 +231,63 @@ Real application/deployment/issuer/workload inputs remain open; independent F30
 transport rollback and permanent cleanup acceptance continues. No source branch
 is merged into main, and formal totals remain unchanged.
 
+### F30 approved cleanup and receipt repair (2026-10-18)
+
+Code commit `332889648d7621bd1220784c71cef34e302cfe7e` is pushed to main;
+the remote SHA was independently read back after that source push. The unmerged
+candidate remains `679d8eac311f952b785bc12beb093563ea617361`.
+
+Fresh controlled PostgreSQL R8 uses that candidate's 2,982-file product manifest
+and a separately sealed sixteen-file acceptance kit. Host controls pass 51/51;
+fresh offline Linux race qualification passes 104/104 named nodes (81 maintained
+native-fixture and 23 private witness nodes). These are source/artifact controls,
+not whole-runtime acceptance.
+
+The actual English cancelled preview and Chinese transport rollback are observed
+in the browser, including the disabled B-to-A Connection, unchanged declarations
+and weights, original historical installation and independent current-process
+confirmation. POST-transport verifies fresh real Verify/declaration review/Enable,
+the third completed native call, protected archive refusal and the revoked old
+Key's actual 401. After the user's browser preference changed, the final approved
+cleanup runs in the background in-app browser against the same exact archive
+`rcv_01m57kvp0a4n0t35e1jzrtqmtf` and the same 15,938-byte selection.
+
+A separate original query-only before/after pair verifies exactly one cleanup:
+retention falls from 24 to 23 and stored encrypted bytes from 332,751 to 316,813.
+Only the selected archive's header/chunks/capture/content and its exact retention
+and cleanup/audit records change; all other projected facts remain unchanged.
+An exact saved-intent API retry changes nothing. The fourth actual native call
+completes; immutable Call/Attempt attribution and peer counts A=3/B=1 are verified.
+This API retry is not an uncertain-browser retry.
+
+**The original combined R8 run is incomplete.** Signing in to the in-app browser
+adds an authorization capture after its original 23-archive baseline, and the
+successful cleanup notice disappears during the parent list refresh. No UI pass
+marker or whole-run pass is manufactured. Original workflow 63931 exits 1, is
+positively joined and its group is absent. Five exact containers, one network,
+two volumes, recorded groups and port 53834 are independently closed. Protected
+projections, browser captures and the final database dump remain under
+`/private/tmp/routex-f30-cleanup-transport-target-source-20261018-r8/`;
+the final dump SHA-256 is
+`49c34e087f2c5569edee50a10205646ead91d46129c97003810e7148a03ac1c0`.
+Earlier R5/R6 expired windows and R7's mismatched SQL-input window remain failed.
+
+The published UI repair separates historical receipt authority from list freshness.
+The existing parent-component test reproduces the missing count before the fix.
+Afterward 42/42 focused tests pass, including English/Chinese completion, pending
+list hiding, permission loss and Session renewal. Mandatory Task check and the
+complete ordinary Task both exit 0 with original joins/group closure; ordinary
+Task includes 287 Vitest files / 7,736 tests, Node suites 5/5 and 66/66, fresh web
+assets and production asset tests. This code delivery has no schema/API change.
+It is not fresh browser acceptance of the repaired build or requalification of a
+new combined candidate.
+
+Next: use the background in-app browser from the start of the next qualified
+fixed-build run, retain one coherent baseline and observe the actual successful
+receipt through list refresh. Complete the remaining changed-transport/cleanup
+whole-run and MySQL gates. F28 actual API/Vault cleanup and F29 external
+application/workload adoption remain open; global totals are unchanged.
+
 ### Whole-objective work queue (2026-10-17)
 
 The objective is the complete F01-F30 / A01-A20 roadmap. This queue makes the
@@ -243,7 +300,7 @@ No capability or scenario is promoted by these tooling results.
 | 2 | F29 real external application acceptance | Controlled official Claude Personal and Project replacement/retirement/fresh-use and typed25006 unchanged-projection controls pass separately on PostgreSQL/MySQL, with complete recorded closure. Real application/deployment/issuer/workload inputs and external adoption remain open. Continue independent F30 transport/permanent cleanup acceptance; global F29 remains Partial. |
 | 3 | F24 denial fix and quota fixture repair on `679d8ea` | Fresh complete ordinary/check/SQL gates and seven controlled hostile-quota browser cases per database pass. External-model semantics, saved-CSV and broader F24/A18 acceptance remain open. Historical failed generations are preserved. |
 | 4 | F28 failure coordinator | Independent `fcb5f30` adds maintained native command-to-PostgreSQL acceptance: 18/18 named nodes and 15 original CLI processes pass, with full recorded closure and check. Earlier host/SQL/stdin controls retain their scopes. Actual normal-receipt/API/restart/topology/logging/metrics remain open; the private coordinator stays unready. |
-| 5 | F30 transport and permanent cleanup | Qualify the executable draft and perform actual native/SQL/UI rollback, deletion, byte release and preserved-history acceptance. Prior weights/restart evidence has narrower scope. |
+| 5 | F30 transport and permanent cleanup | R8 records an actual approved in-app-browser deletion, exact 15,938-byte SQL delta, unchanged saved API retry and fourth completed native call, but its original combined run remains incomplete after browser handoff and a missing success notice. UI receipt repair `3328896` is pushed to main with 42 focused tests, check and complete ordinary Task passing. Fresh fixed-build whole-run/browser and MySQL qualification remain open. |
 | 6 | Remaining release scenarios | Continue existing authorization, identity/offboarding, recovery and measured single-node release checks; obtain real external inputs only for dependent work. |
 
 The fourteen Partial capabilities remain F03, F10-F14, F17, F20, F23-F24 and
