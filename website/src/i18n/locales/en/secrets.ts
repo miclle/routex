@@ -128,7 +128,7 @@ export default {
     loadError: 'Storage policy unavailable. Refresh its authorized read.',
   },
   currentInventory:
-    'Current inventory V9 covers twelve secret domains, including API-Key delivery machine authentication.',
+    'Current inventory V11 covers thirteen secret domains, including API-Key delivery machine authentication and Gateway configuration archive chunks.',
   historicalInventory:
     'This historical rotation covers {{count}} domains and does not prove current inventory coverage.',
   originalIntent: 'Original uncertain intent',

@@ -5,6 +5,7 @@ import {
   v4SecretDomains,
   v5SecretDomains,
   v6SecretDomains,
+  v9SecretDomains,
   secretDomains,
   type SecretStore,
   type SecretIntent,
@@ -13,7 +14,7 @@ import {
 export const rotationId = 'srt_01k00000000000000000000000'
 export function store(): SecretStore {
   return {
-    inventory_version: 9,
+    inventory_version: 11,
     mode: 'internal',
     observed_at: '2026-10-04T00:00:00Z',
     review_etag: 'a'.repeat(64),
@@ -36,7 +37,7 @@ export function store(): SecretStore {
   }
 }
 export function job(
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 = 1,
+  version: NonNullable<SecretStore['rotation']>['inventory_version'] = 1,
 ): NonNullable<SecretStore['rotation']> {
   const domains =
     version === 1
@@ -49,9 +50,11 @@ export function job(
             ? v4SecretDomains
             : version === 5
               ? v5SecretDomains
-              : version === 9
+              : version === 11
                 ? secretDomains
-                : v6SecretDomains
+                : version === 9 || version === 10
+                  ? v9SecretDomains
+                  : v6SecretDomains
   return {
     inventory_version: version,
     id: rotationId,
