@@ -91,6 +91,54 @@ complete F30/A20 or global completion is inferred. Next implement the remaining
 F28 actual API/Vault normal-receipt and replay producer on the qualified source;
 keep the real external F29 application inputs as a separate dependent gate.
 
+## F28 isolated Vault wire discovery (2026-10-19)
+
+Independent source branch `routex-f28-runtime-acceptance-20261019` is published;
+its verified remote SHA is `66a05f6d29265c92f7ae6c92ea77701eefe0114a`.
+It adds six maintained source/usage files, independently delivered on main
+without merging candidate production code. The two shared Node helper imports
+are byte-identical on main and the qualified successor. No product schema,
+permission, migration registration or deferred runtime activation changes.
+
+The opt-in producer builds a fresh static Linux arm64 client bound to the
+run/source manifest and nonroot UID. One digest-pinned real Vault server uses
+an internal network, no published ports, explicit tmpfs over its declared
+volumes, a read-only root and no background health requests. Fresh bootstrap,
+writer, reader and cleanup identities serve one unique disposable dummy object.
+Only the completed native manifest's fixed file names, exact byte lengths and
+SHA-256 values may be read before cleanup; unknown native completion preserves
+the namespace.
+
+R6 independently verifies 18 actual HTTP requests, one literal dummy destroy
+204, original private create/read/version-one destroyed metadata, thirteen
+complete audit pairs and two distinct Vault audit-activation records. The fresh
+audit-hash endpoint's original version-one response matches the destroy audit's
+opaque HMAC; no numeric version is inferred from an opaque string. Raw status
+samples record 200: 8 to 9, 204: 5 to 6 and 501: 1 to 1. All 42 recorded groups,
+the original container and internal network are absent; no port or persistent
+volume was created. This is recorded ownership coverage, not a complete process
+census. Independent audit SHA-256:
+`a60043e6c6e2d1c9d749685aa8ba40a6714ea71bc62ff396e1bb581171ae166b`.
+
+The source-branch check and complete ordinary Task pass on the identical
+3,016-file byte/mode input later committed as `66a05f6`: Go race, 288 frontend
+files / 7,798 tests, Node 5/5 and 91/91, and fresh production asset serving.
+Focused controls pass 25 Node tests and eight Go test roots with race detection.
+The initial staticcheck naming failure remains failed; the repaired input passes.
+R1 implicit-volume, R2 host-to-internal-network and R3 tmpfs archive-copy failures
+remain failed, with their original evidence and independent closure retained.
+R4/R5 observations keep their narrower original source/receipt scopes.
+
+Use `scripts/VAULT_CLEANUP_WIRE_DISCOVERY.md` for the maintained entry point.
+Private receipts remain host-local under
+`/private/tmp/routex-f28-wire-discovery-qualification-20261019-r6`; bootstrap and
+raw evidence are not published. This qualifies controlled dummy wire discovery,
+not the strict metrics/audit parser, normal RouteX cleanup acknowledgement,
+F02 fault/restart/replay, real deployment adoption or F28/A16 completion. Next
+implement the observed bounded parser and actual normal API/SQL/Vault producer.
+Capability/scenario totals and the original candidate's unmerged status remain
+unchanged.
+
 ## Target-host resumption (2026-10-16)
 
 Work is active by explicit user instruction. Global totals remain **16 Completed /
@@ -390,7 +438,7 @@ No capability or scenario is promoted by these tooling results.
 | 1 | F11/F23/F17 technical qualification | Fresh `679d8ea` check, complete ordinary and complete dual-driver integration pass. Earlier stage-two race/restart/dedicated SQL receipts retain their exact scopes. Product completion and deferred shared-runtime activation remain excluded. |
 | 2 | F29 real external application acceptance | Controlled official Claude Personal and Project replacement/retirement/fresh-use and typed25006 unchanged-projection controls pass separately on PostgreSQL/MySQL, with complete recorded closure. Real application/deployment/issuer/workload inputs and external adoption remain open. Continue independent F30 transport/permanent cleanup acceptance; global F29 remains Partial. |
 | 3 | F24 denial fix and quota fixture repair on `679d8ea` | Fresh complete ordinary/check/SQL gates and seven controlled hostile-quota browser cases per database pass. External-model semantics, saved-CSV and broader F24/A18 acceptance remain open. Historical failed generations are preserved. |
-| 4 | F28 failure coordinator | Independent `fcb5f30` adds maintained native command-to-PostgreSQL acceptance: 18/18 named nodes and 15 original CLI processes pass, with full recorded closure and check. Earlier host/SQL/stdin controls retain their scopes. Actual normal-receipt/API/restart/topology/logging/metrics remain open; the private coordinator stays unready. |
+| 4 | F28 failure coordinator | Published `66a05f6` adds real isolated native Vault wire discovery: eighteen HTTP requests, original version/HMAC proof, raw metrics/audit and complete recorded closure; check and full ordinary Task pass. Maintained `fcb5f30` SQL/CLI evidence retains its scope. Strict parser, actual normal API/SQL/Vault acknowledgement and fault/restart replay remain open; the private coordinator stays unready. |
 | 5 | F30 transport and permanent cleanup | Fresh PostgreSQL R10 and MySQL R4 pass actual bilingual IAB rollback/cleanup, four native-completed Calls, complete bounded SQL/storage-delta readback and original/resource closure on `529fda0`. Earlier R8/R9 remain incomplete. Uncertain-browser retry, broader F30/A20 and fleet/global acceptance remain open. |
 | 6 | Remaining release scenarios | Continue existing authorization, identity/offboarding, recovery and measured single-node release checks; obtain real external inputs only for dependent work. |
 
