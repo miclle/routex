@@ -91,6 +91,72 @@ complete F30/A20 or global completion is inferred. Next implement the remaining
 F28 actual API/Vault normal-receipt and replay producer on the qualified source;
 keep the real external F29 application inputs as a separate dependent gate.
 
+## F28 controlled post-effect acknowledgement and restart replay (2026-10-19)
+
+Independent tooling branch `routex-f28-runtime-acceptance-20261019` is published
+at remote-verified `cc4914c7bfbee13d2372cee483a698706d5291c2`. Its ten-file
+source phase provides the fixed native original/replay client, private frozen
+GORM fault installer, bounded PostgreSQL diagnostic, native refusal/lifecycle
+controls, opt-in host runner and usage contract. It requires independently
+qualified normal and safe-logging metadata with separate reviewed digests.
+Those digests bind selected bytes and do not authenticate a receipt producer.
+
+Fresh maintained-source runtime rebuilds assets, nine Linux artifacts and a
+run-specific image. Four new Compose containers use an internal bridge, no host
+ports, PostgreSQL/Vault tmpfs data and a new private persistent journal bind.
+No prior database, Session, key, process, image or runtime resource is reused.
+The extra named test check preserves released constraints and the migration
+ledger, remains installed through restart and is never a production migration.
+
+The original literal product response is 503 after the actual remote effect.
+The whole five-pair AppRole audit and complete numeric status-family delta bind
+one ownership read and one destroy to the original version-one HMAC. The complete
+original PostgreSQL error append is one typed 23514 acknowledgement refusal with
+no private payload. Read-only native SQL projection preserves pending, no
+FinishedAt, one claim audit, zero observe audits and known_no_effect=false.
+
+After a positive original gateway join, the identical image/binary and original
+journal/root key restart. The natural original thirty-second deadline expires.
+The same original Session refreshes authority/CSRF and sends the exact original
+UUID/reason/review without a cleanup Token. Actual response is 200, unknown and
+Running=false. The durable original pending tuple remains byte-equivalent,
+source process/use counts move from one to two with positive old closure and a
+fresh exact current lease, and the entire Vault audit remains unchanged. No
+fresh login, command UUID, deadline reset, remote retry or synthetic clock is
+used. This expected-fault pass is not a normal cleanup acknowledgement.
+
+Independent readback verifies all 142 recorded host groups, four original
+containers and network absent, both native manifests (28 original / 11 replay
+artifacts), unchanged source, twenty Linux native control roots without skips,
+and fifty-six actual-capture parser nodes without failures/skips. It does not
+claim a complete descendant census. Runtime audit SHA-256:
+`482a6b8d99d8db58637f8ecfa316beecac0bb9ae1e3e7e0279505384f89cf47d`.
+Mandatory check and complete ordinary Task pass on the exact 3,037-file input
+later committed as `cc4914c`: Go race, 288 frontend files / 7,798 tests, Node
+5/5 and 92/92, fresh production build and asset serving. Source manifest:
+`678d0294fc083b9ae0d71499e0f846e657503c572398d64e2f1efe2177509c91`.
+Source audit SHA-256:
+`8e361dadcbbed11c9120ddd0566906525e0ce75ec3be1c6f89d7da12fd426ef7`.
+
+Earlier private R1 restart failure remains failed: its original fault phase
+passes, but restarted gateway exits one and replay never runs; original gateway
+logging was unavailable, so its precise cause is not claimed. R2's original and
+replay components pass but the containing workflow remains failed because its
+closure guard assumed a running restarted container cleared FinishedAt. Both
+generations have independent exact owned recovery. R3 preserves the positive
+original stop and captured current birth/PID while accounting for Docker's
+retained prior FinishedAt; its original whole workflow joins zero and closes.
+The maintained successor repeats that complete qualification independently.
+
+Protected roots are `/private/tmp/routex-f28-f02-maintained-runtime-qualification-20261019-r1`
+and `/private/tmp/routex-f28-f02-maintained-source-qualification-20261019-r1`.
+Raw receipts, sessions and credentials remain private. The earlier incomplete
+coordinator is unchanged. Next continue genuine bilingual Vault/storage browser
+acceptance through the background in-app browser, and independent release work.
+External F29 application adoption/workload and wider F28/A16/fleet/global gates
+remain open. Counts, candidate isolation and deferred-runtime exclusions are
+unchanged.
+
 ## F28 observer Session isolation and logging prerequisite (2026-10-19)
 
 The independent tooling branch is published at remote-verified
