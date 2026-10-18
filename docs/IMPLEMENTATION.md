@@ -25,17 +25,71 @@ ports. This is recorded-process coverage, not a complete child-process census.
 Independent audit SHA-256:
 `f5a7f175ac016ee7b43908eadca1eda16fbc409e09f5e01dba0e3ebbbd9e41d1`.
 
-The source remains frozen for fresh artifact/browser qualification. Use the
-background in-app browser from initial login; do not switch to a native browser
-or migrate browser Sessions midway through a controlled run. Fresh fixed-source
-transport/cleanup browser acceptance on PostgreSQL and MySQL remains pending.
-The R8 approved cleanup's actual SQL delta/fourth native call and incomplete
-whole-run/UI status retain their separate scopes below. F28 actual API/Vault
-cleanup, external F29 application adoption/workload, and fleet/global acceptance
-remain open. Earlier failures/cancellations remain failed or incomplete. Do not
-activate deferred shared runtime, register V119/V120 or transfer legacy history.
-Global totals remain 16 Completed / 14 Partial capabilities and 2 Completed /
-18 Partial acceptance scenarios.
+The frozen source now also passes the controlled F30 transport/cleanup browser
+acceptance below on both databases. Use the background in-app browser from
+initial login; do not activate Safari/Chrome or migrate browser Sessions during
+a controlled run. F28 actual API/Vault cleanup, external F29 application
+adoption/workload, and fleet/global acceptance remain open. Earlier failed or
+incomplete generations retain their original status. Do not activate deferred
+shared runtime, register V119/V120 or transfer legacy history. Global totals
+remain 16 Completed / 14 Partial capabilities and 2 Completed / 18 Partial
+acceptance scenarios.
+
+## Controlled F30 transport and cleanup acceptance (2026-10-19)
+
+Fresh PostgreSQL R10 and MySQL R4 independently pass the complete controlled
+workflow on frozen product source `529fda0`, from initial login through final
+receipt observation in the background in-app browser. No native browser is
+activated. Each generation rebuilds the product, native peer, read-only SQL
+witness, images, database and protected runtime inputs. PostgreSQL Linux race
+qualification passes 119 named nodes (96 maintained / 23 private); MySQL passes
+126 (96 maintained / 30 private). Host source controls pass 53/53 for the MySQL
+successor. These controls remain distinct from the actual runtime acceptance.
+
+Both runs observe English previews and real cancellation, then fresh Chinese
+previews and confirmation. The actual rollback restores a disabled Connection
+from port 19005 to 19003 without changing declarations or weights. Historical
+installation and current-process acknowledgement are independently observed.
+Real Verify, declaration review and explicit Enable precede the third native
+call. Retained archive A refuses cleanup with 409; revoked K0 returns 401.
+Only the reviewed obsolete archive B is permanently cleaned up. The actual
+one-archive success notice survives the parent list refresh and remains visible
+at final observation after the fourth native call and SQL readback.
+
+| Driver | Retained archives | Encrypted bytes | Exact release | Independent audit SHA-256 |
+| --- | --- | --- | --- | --- |
+| PostgreSQL | 23 to 22 | 314,892 to 298,949 | 15,943 | `4fea0f7f5fe07b7ad9619eca89bf8d12e13d72213d14389901a01860da0e1c3d` |
+| MySQL | 23 to 22 | 313,085 to 297,238 | 15,847 | `48728381c72a27380f33e5f55209124b4c16221aa937f359f17d2c5a2b9a75fa` |
+
+Each independent audit re-reads all fifteen bounded SQL projections. Exactly
+one cleanup/audit pair and the selected archive storage change; an identical
+saved API-intent retry changes nothing. Four distinct real Calls each retain
+one successful native-completed Attempt, with peer counts A=3/B=1. Original
+workflow parents 4928 (PostgreSQL) and 28416 (MySQL) exit zero and are positively
+joined without cancellation or timeout. Each audit confirms all 163 recorded
+groups, five containers, one network and two volumes absent, and the respective
+port 57858/59704 refused and freshly bindable. This is recorded ownership
+coverage, not a complete child-process census. Agent-created IAB tabs close.
+
+The MySQL R1 DSN assertion failure, R2 post-transport boolean-map readback
+failure and R3 Docker read-only-filesystem build failure remain failed. R2's
+actual transport receipt is preserved; no permanent cleanup was executed in
+that failed generation. The successor fixes only the private witness's closed
+boolean-column conversion: binary integer flags become semantic booleans;
+malformed flags refuse the whole row, and unrelated numbers remain unchanged.
+No product schema or business behavior is relaxed. Host disk exhaustion was
+recovered by removing thirteen owned ignored dependency trees and restarting
+Docker with no live containers; tracked sources, locks, assets and evidence
+remain intact. Earlier R8/R9 partial results remain incomplete.
+
+Host-local evidence roots are
+`/private/tmp/routex-f30-cleanup-transport-target-source-20261019-r10` and
+`/private/tmp/routex-f30-cleanup-transport-mysql-target-source-20261019-r4`.
+The private recipes and receipts are not claimed as a remote source delivery.
+No uncertain-browser retry, external application adoption, fleet application,
+complete F30/A20 or global completion is inferred. Next implement the remaining
+F28 actual API/Vault normal-receipt and replay producer on the qualified source;
+keep the real external F29 application inputs as a separate dependent gate.
 
 ## Target-host resumption (2026-10-16)
 
@@ -337,7 +391,7 @@ No capability or scenario is promoted by these tooling results.
 | 2 | F29 real external application acceptance | Controlled official Claude Personal and Project replacement/retirement/fresh-use and typed25006 unchanged-projection controls pass separately on PostgreSQL/MySQL, with complete recorded closure. Real application/deployment/issuer/workload inputs and external adoption remain open. Continue independent F30 transport/permanent cleanup acceptance; global F29 remains Partial. |
 | 3 | F24 denial fix and quota fixture repair on `679d8ea` | Fresh complete ordinary/check/SQL gates and seven controlled hostile-quota browser cases per database pass. External-model semantics, saved-CSV and broader F24/A18 acceptance remain open. Historical failed generations are preserved. |
 | 4 | F28 failure coordinator | Independent `fcb5f30` adds maintained native command-to-PostgreSQL acceptance: 18/18 named nodes and 15 original CLI processes pass, with full recorded closure and check. Earlier host/SQL/stdin controls retain their scopes. Actual normal-receipt/API/restart/topology/logging/metrics remain open; the private coordinator stays unready. |
-| 5 | F30 transport and permanent cleanup | R8 records an actual approved in-app-browser deletion, exact 15,938-byte SQL delta, unchanged saved API retry and fourth completed native call, but its original combined run remains incomplete after browser handoff and a missing success notice. UI receipt repair `3328896` is pushed to main with 42 focused tests, check and complete ordinary Task passing. Fresh fixed-build whole-run/browser and MySQL qualification remain open. |
+| 5 | F30 transport and permanent cleanup | Fresh PostgreSQL R10 and MySQL R4 pass actual bilingual IAB rollback/cleanup, four native-completed Calls, complete bounded SQL/storage-delta readback and original/resource closure on `529fda0`. Earlier R8/R9 remain incomplete. Uncertain-browser retry, broader F30/A20 and fleet/global acceptance remain open. |
 | 6 | Remaining release scenarios | Continue existing authorization, identity/offboarding, recovery and measured single-node release checks; obtain real external inputs only for dependent work. |
 
 The fourteen Partial capabilities remain F03, F10-F14, F17, F20, F23-F24 and
