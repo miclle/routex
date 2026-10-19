@@ -1,5 +1,38 @@
 # RouteX Implementation and Acceptance Index
 
+## Delivery confirmation ownership (2026-10-19)
+
+Main code is remote-verified at `861677dff267aa83bb5ec4af1a237bdb5ab47075`.
+Administrative delivery confirmation now captures the exact rendered intent and
+authority turn. Cancel, renewed authority and replacement review revoke queued
+callbacks. An obsolete callback cannot send a new review or silently authorize
+an uncertain retry. A fresh explicit retry preserves the original transient
+body/review with current CSRF; StrictMode and repeated uncertainty remain usable.
+
+Five actual repository predecessor controls fail before repair. Seven new
+controls and all 217 related cases pass after repair. Mandatory check (PID 27843)
+and full ordinary Task (PID 28474) join zero on unchanged manifest
+`9c24e0f20d725797c02f99a201f765dd0621893d4024fcb469fd5e5260e83276`.
+Ordinary includes Go race, 288 frontend files / 7,777 cases, Node 5/5 and 93/93,
+and fresh production assets/serving. Earlier harness/check failures and two
+intermediate legitimate-retry regressions remain recorded separately.
+
+Fresh PostgreSQL IAB run `844d5888e5d5bd00c2cc3448f3d5ab32` passes actual
+review/cancel/new-review/save and English/Chinese confirmation. Independent raw
+SQL readback proves cancellation made no write and the new reason produced
+exactly one audit, with unchanged policy configuration and no delivery auth,
+command or binding. All 30 command identities match joined zero exits; both
+containers stop zero, and the exact namespace, image and two binaries are absent.
+The parent joins zero without timeout or source drift. Two earlier environment
+failures remain failed; their resources were independently closed.
+Private evidence: `~/.local/share/routex/acceptance/20261019-delivery-confirmation/`.
+
+This is confirmation ownership and bounded governance acceptance, not live
+queued-callback injection, application adoption, native completion or complete
+F29. Next carry the isolated F24 denial privacy repair onto main and qualify its
+actual source and browser behavior. The candidate remains unmerged; real external
+application/issuer/workload inputs and the existing global Partial states remain.
+
 ## CI evidence continuity (2026-10-19)
 
 Main code is remote-verified at `55f1dac8fa87015bbb6d0a518a68bffce1252d51`.
