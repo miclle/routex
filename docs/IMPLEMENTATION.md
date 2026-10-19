@@ -1,5 +1,55 @@
 # RouteX Implementation and Acceptance Index
 
+## Maintained saved-certificate qualification (2026-10-19)
+
+Code is remote-verified on main at
+`3f5e8de7220144288a7021d4955478de4afacb33`. The new opt-in entry is
+`go tool task test-vault-certificate -- --exclusive-validation-lane --driver postgres`
+(or `mysql`), documented in `scripts/vault-certificate-fixture/README.md`.
+It uses one serial Compose lane and publishes no host ports.
+
+Fresh PostgreSQL R5 and MySQL R1 both join zero and pass independent full readback
+on unchanged input manifest
+`624d394033169322b46affd769a2ad8131ffb54ee0dee6183d330e2a582119d6`.
+The application build stamp remains `aff3edd`; its product source is unchanged.
+The delivered tooling blobs match the frozen qualification input. Each run generates
+new independent server/client issuers, saved Writer/Reader certificates, root keys,
+database, binaries and capsule image. Actual API/Vault operations verify Write,
+Read, wrong-role rejection, wrong-CA zero dispatch, natural 300-second root
+observation, retirement, removal of old gateway key material, and a genuine restart
+of the same container. The original Session and saved revision survive. An exact
+historical Read replays without Vault traffic; a new Read performs fresh native
+certificate authentication. Eleven paired audit calls establish two distinct
+remote principals, five successful logins, one rejected login, one Write, two
+Reads and two denied destroys. Cleanup remains pending after the expected 403;
+no acknowledgement, external application adoption or native AI completion is inferred.
+
+Each independent readback verifies 13 preflight files, 215 native manifest entries,
+295 recorded process groups absent, preserved durable journal identity, original
+containers/network absent, and removal of the fresh capsule image and four binaries.
+Private evidence is under `~/.local/share/routex/acceptance/saved-certificate/`:
+PostgreSQL run `c632d731a8c1cd4243d2ff1050cd52af` has raw audit SHA-256
+`1ee3877b2351b22ce71c59f9e9360023d84207b7a03021a27b249e5845b324ca`;
+MySQL run `9dccc92c5d765983c48dd532872c11bd` has raw audit SHA-256
+`ed0c50d75c00c8d40c66adc616f1f6843aaccbddcf453587b35ebda5598ee470`.
+Earlier R1-R4 remain failed: readiness/ledger and logging defects are retained;
+R4 identifies the fixture's lost tmpfs journal through its bounded startup log.
+The successor preserves one newly created private journal across restart, without
+relaxing storage identity protection. Failed original outcomes are never promoted.
+
+The exact source passes mandatory check (original PID 93534, exit 0) and complete
+ordinary Task (PID 94021, exit 0): Go race, 287 frontend files / 7,755 tests,
+Node 5/5 and 92/92, fresh production assets and serving tests. Both original groups
+are absent, with unchanged before/after source. The focused PKI, actual mutual-TLS,
+cookie isolation and hostile audit-reader controls pass separately.
+
+Next: actual saved-certificate drawer/browser acceptance and remaining genuine
+Vault/storage/orphan workflows. F29 real external application/deployment/issuer/
+workload inputs remain separately pending. The original candidate and mixed
+successor remain unmerged; deferred shared runtime, V119/V120 registration and
+legacy transfer remain excluded. F28 and broader scenarios stay Partial; totals
+remain 16 Completed / 14 Partial capabilities and 2 Completed / 18 Partial scenarios.
+
 ## Storage policy authority and accessible heading delivery (2026-10-19)
 
 Main code is remote-verified at `44a84723460a39f21577c3f1b1ddc65a40093353`
