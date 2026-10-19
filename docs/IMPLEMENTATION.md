@@ -1,5 +1,35 @@
 # RouteX Implementation and Acceptance Index
 
+## Provider cleanup review cancellation (2026-10-19)
+
+Main code is remote-verified at `0756645462973bf76c21126ab02e55508b914ab0`.
+A cleanup review is bound to its exact row and synchronous authority epoch.
+Closing first/new danger confirmation or renewing unchanged Session, permission,
+list or detail data revokes queued dispatch. Closing the whole Drawer invalidates
+queued original-command reconciliation immediately. Already dispatched original
+intent and failed receipts remain available for their existing reconciliation
+workflow. A fresh review with a new transient Token still permits the authorized
+operation. No backend, schema, protocol or visible-layout contract changes.
+
+Seven new predecessor regressions fail on actual unexpected adapter POSTs.
+The repaired six-file suite passes 185/185. Mandatory check (PID 56624) and full
+ordinary Task (PID 57515) join zero on unchanged source, with both groups absent:
+Go race, 287 frontend files / 7,770 cases, Node 5/5 and 92/92, fresh production
+assets and serving. Frozen source projection is
+`74d7b4f371143d0d3366cfe520147009a1dd33939b970686375aa0b99590f1cb`;
+private records are under
+`~/.local/share/routex/acceptance/20261019-provider-orphan-confirmation/`.
+This is component callback-ownership evidence, not an actual browser destroy,
+remote acknowledgement, complete F28 or external application adoption.
+
+Next integrate and qualify the independently restored normal API/SQL/Vault
+cleanup tools on main, without merging the original candidate/mixed branches.
+Keep their existing PostgreSQL-only scope explicit while preparing portable
+qualification. Real F29 external application/deployment/issuer/workload inputs
+remain pending. Deferred shared runtime, V119/V120 and legacy transfer remain
+excluded. Totals remain 16 Completed / 14 Partial capabilities and
+2 Completed / 18 Partial scenarios.
+
 ## Vault probe confirmation ownership (2026-10-19)
 
 Main code is remote-verified at `38347e3165dd2e052fd3973e27312b5b86273425`.
