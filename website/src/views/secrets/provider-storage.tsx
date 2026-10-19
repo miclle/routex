@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
@@ -51,7 +51,7 @@ export default function ProviderStoragePolicyEditor({
     staleTime: 0,
     gcTime: 0,
   })
-  const observed = useConnectionQueryRevision([sessionKey, permissionKey, key])
+  useConnectionQueryRevision([sessionKey, permissionKey, key])
   function ready(write = false) {
     const state = cache.getQueryState<ProviderStoragePolicy>(key)
     return (
@@ -73,12 +73,43 @@ export default function ProviderStoragePolicyEditor({
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
   const intent = useRef<{ etag: string; body: ProviderStorageInput } | undefined>(undefined)
+  const confirmation = useRef<{ intent: NonNullable<typeof intent.current>; epoch: number }>(
+    undefined,
+  )
+  const authorityEpoch = useRef(0)
   const locked = useRef(false)
   const alive = useRef(true)
+  const authorityKeys = JSON.stringify([sessionKey, permissionKey, key])
+  useLayoutEffect(() => {
+    const keys = new Set(
+      (JSON.parse(authorityKeys) as unknown[][]).map((key) => JSON.stringify(key)),
+    )
+    const revoke = () => {
+      authorityEpoch.current++
+      // A removed/recreated Query can have the same counters and ETag. Observe
+      // the transition synchronously, retaining only already dispatched intent.
+      if (confirmation.current) {
+        confirmation.current = undefined
+        intent.current = undefined
+        setConfirm(false)
+      }
+    }
+    revoke()
+    return cache.getQueryCache().subscribe((event) => {
+      if (
+        keys.has(JSON.stringify(event.query.queryKey)) &&
+        (event.type === 'removed' ||
+          (event.type === 'updated' &&
+            ['fetch', 'invalidate', 'error', 'success'].includes(event.action.type)))
+      )
+        revoke()
+    })
+  }, [cache, authorityKeys])
   useEffect(() => {
     alive.current = true
     return () => {
       alive.current = false
+      confirmation.current = undefined
       intent.current = undefined
     }
   }, [])
@@ -101,6 +132,7 @@ export default function ProviderStoragePolicyEditor({
   }
   function dismiss() {
     if (busy) return
+    confirmation.current = undefined
     intent.current = undefined
     setUncertain(false)
     setConfirm(false)
@@ -143,6 +175,10 @@ export default function ProviderStoragePolicyEditor({
         reason,
       },
     }
+    confirmation.current = {
+      intent: intent.current,
+      epoch: authorityEpoch.current,
+    }
     setConfirm(true)
     setNotice('')
   }
@@ -156,6 +192,12 @@ export default function ProviderStoragePolicyEditor({
       return
     if (
       !retry &&
+      (confirmation.current?.intent !== intent.current ||
+        confirmation.current.epoch !== authorityEpoch.current)
+    )
+      return
+    if (
+      !retry &&
       intent.current.body.mode === 'vault' &&
       !query.data?.choices.some(
         (item) =>
@@ -165,10 +207,11 @@ export default function ProviderStoragePolicyEditor({
     )
       return
     locked.current = true
+    confirmation.current = undefined
     setBusy(true)
     setNotice('')
     const captured = intent.current,
-      stamp = observed.snapshot()
+      stamp = authorityEpoch.current
     try {
       const session = cache.getQueryData<Session>(sessionKey)!
       const result = await saveProviderStoragePolicy(
@@ -179,7 +222,7 @@ export default function ProviderStoragePolicyEditor({
       if (!alive.current) return
       if (
         !ready(true) ||
-        observed.snapshot() !== stamp ||
+        authorityEpoch.current !== stamp ||
         result.mode !== captured.body.mode ||
         result.integration_id !== captured.body.integration_id ||
         result.revision_id !== captured.body.revision_id
@@ -196,7 +239,7 @@ export default function ProviderStoragePolicyEditor({
       if (!alive.current) return
       const status = axios.isAxiosError(error) ? error.response?.status : undefined
       setConfirm(false)
-      if (retry || !status || status >= 500 || !ready(true) || observed.snapshot() !== stamp) {
+      if (retry || !status || status >= 500 || !ready(true) || authorityEpoch.current !== stamp) {
         setUncertain(true)
         setNotice('providerStorage.uncertain')
       } else {

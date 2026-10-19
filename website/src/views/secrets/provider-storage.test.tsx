@@ -176,6 +176,88 @@ it('retains draft and requires explicit review after fresh policy changes', asyn
   await until(() => expect(writes()).toHaveLength(1))
   expect(writes()[0].headers.get('If-Match')).toBe(`"${'d'.repeat(64)}"`)
 })
+it('rejects a queued confirmation after Session authority changes and preserves the draft', async () => {
+  await mount()
+  await draft()
+  await click('Continue')
+  const originalConfirmation = button('Confirm policy change')
+  await act(async () => {
+    cache.setQueryData(sessionKey, {
+      user: { id: 'usr_admin', role: 'admin' },
+      csrf_token: 'e'.repeat(64),
+    })
+    // Dispatch before React can replace the old confirmation button.
+    originalConfirmation.click()
+  })
+  expect(writes()).toHaveLength(0)
+  expect(button('Confirm policy change')).toBeUndefined()
+  expect(document.querySelector<HTMLInputElement>('[role="dialog"] input')!.value).toBe(
+    'Future Vault writes',
+  )
+  await click('Continue')
+  await click('Confirm policy change')
+  await until(() => expect(writes()).toHaveLength(1))
+  expect(writes()[0].headers.get('X-CSRF-Token')).toBe('e'.repeat(64))
+})
+it('revokes confirmation after a completed policy refresh even when the ETag is unchanged', async () => {
+  await mount()
+  await draft()
+  await click('Continue')
+  await act(async () => {
+    await cache.refetchQueries({ queryKey: ['admin', 'provider-storage-policy'] })
+  })
+  expect(button('Confirm policy change')).toBeUndefined()
+  expect(writes()).toHaveLength(0)
+  await click('Continue')
+  await click('Confirm policy change')
+  await until(() => expect(writes()).toHaveLength(1))
+  expect(writes()[0].headers.get('If-Match')).toBe(`"${'b'.repeat(64)}"`)
+})
+it('rejects a queued confirmation after an equivalent permission read completes', async () => {
+  await mount()
+  await draft()
+  await click('Continue')
+  const originalConfirmation = button('Confirm policy change')
+  await act(async () => {
+    cache.setQueryData(permissionsKey, ['secrets.read', 'secrets.write'])
+    originalConfirmation.click()
+  })
+  expect(writes()).toHaveLength(0)
+  expect(button('Confirm policy change')).toBeUndefined()
+})
+it('rejects a queued confirmation when the policy cache is recreated with identical facts', async () => {
+  await mount()
+  await draft()
+  await click('Continue')
+  const originalConfirmation = button('Confirm policy change')
+  const key = ['admin', 'provider-storage-policy', 'usr_admin', 0]
+  await act(async () => {
+    cache.removeQueries({ queryKey: key, exact: true })
+    cache.setQueryData(key, structuredClone(policy))
+    originalConfirmation.click()
+  })
+  expect(writes()).toHaveLength(0)
+  expect(button('Confirm policy change')).toBeUndefined()
+})
+it('keeps a pending result uncertain when the Session cache is recreated with identical facts', async () => {
+  await mount()
+  await draft()
+  await click('Continue')
+  let release!: () => void
+  held = new Promise((resolve) => {
+    release = resolve
+  })
+  await click('Confirm policy change')
+  await act(async () => {
+    const session = cache.getQueryData(sessionKey)
+    cache.removeQueries({ queryKey: sessionKey, exact: true })
+    cache.setQueryData(sessionKey, session)
+    release()
+  })
+  await until(() => expect(document.body.textContent).toContain('result is uncertain'))
+  expect(document.body.textContent).not.toContain('Future-write policy saved')
+  expect(button('Retry original policy request')).toBeTruthy()
+})
 it('503 and rejected retry preserve the original body and reviewed ETag while using new CSRF', async () => {
   await mount()
   await draft()
