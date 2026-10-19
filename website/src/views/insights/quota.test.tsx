@@ -36,7 +36,10 @@ let definitions: InsightsReportDefinition[], saveStatus: number, saveGate: Defer
 const savedID = 'isr_01arz3ndektsv4rrffq69g5fav'
 let aiModels: boolean, aiGate: DeferredGate | undefined, aiStatus: number
 let scopeOptionsAvailable: boolean, scopeOptionsGate: DeferredGate | undefined
-let reportStatus: number, targetStatus: number, mutation: (r: QuotaInsightsReport) => void
+let reportStatus: number,
+  targetStatus: number,
+  csvStatus: number,
+  mutation: (r: QuotaInsightsReport) => void
 const original = client.defaults.adapter
 const text = (key: string) => i18n.t('insights:' + key)
 function deferred(): DeferredGate {
@@ -73,7 +76,7 @@ beforeEach(async () => {
   definitions = []
   saveStatus = 0
   saveGate = undefined
-  reportStatus = targetStatus = 0
+  reportStatus = targetStatus = csvStatus = 0
   mutation = () => {}
   host = document.createElement('div')
   document.body.append(host)
@@ -183,6 +186,7 @@ beforeEach(async () => {
       }
     } else if (config.url?.endsWith('/export.csv')) {
       if (csvGate) await csvGate.promise
+      if (csvStatus) throw failure(config, csvStatus)
       data = new Blob(['id,local_cap\nreviewed,100'])
       mime = 'text/csv; charset=utf-8'
     } else if (config.url?.startsWith('/admin/insights/quota/')) {
@@ -1036,6 +1040,116 @@ it('keeps an exact Team question transient and does not clear the reviewed page 
   })
   await until(() => expect(host.textContent).toContain('T1 current-page advice'))
   expect(JSON.stringify(cache.getMutationCache().getAll())).not.toContain(question)
+})
+
+it.each([
+  ['member', 'tokens', 401],
+  ['member', 'money', 404],
+  ['project', 'tokens', 403],
+  ['project', 'money', 404],
+] as const)(
+  'clears %s Key %s facts and advice when current CSV export is denied %i',
+  async (kind, dimension, status) => {
+    await prepareKeyAdvice(kind, dimension)
+    await click('aiConfirm')
+    await until(() => expect(host.textContent).toContain('K1 current-page advice'))
+    csvStatus = status
+    scopeOptionsAvailable = false
+    scopeOptionsGate = deferred()
+    await click('exportCSV')
+    await until(() => expect(host.textContent).toContain(text('quotaDenied')))
+    expect(host.textContent).not.toContain('Reviewed quota account')
+    expect(host.textContent).not.toContain('Reviewed member')
+    expect(host.textContent).not.toContain('Reviewed Project')
+    expect(host.textContent).not.toContain('K1 current-page advice')
+    expect(host.textContent).not.toContain('private-secret')
+    expect(button('quotaRun').disabled).toBe(true)
+    expect(button('exportCSV').disabled).toBe(true)
+    expect(reports()).toHaveLength(1)
+    expect(analyses()).toHaveLength(1)
+    expect(requests.filter((r) => r.url?.endsWith('/export.csv'))).toHaveLength(1)
+    expect(downloads).toEqual([])
+  },
+)
+it.each(['tokens', 'money'] as const)(
+  'clears Team %s facts and advice when current CSV export is denied',
+  async (dimension) => {
+    await prepareTeamAdvice(dimension)
+    await click('aiConfirm')
+    await until(() => expect(host.textContent).toContain('T1 current-page advice'))
+    csvStatus = 403
+    await click('exportCSV')
+    await until(() => expect(host.textContent).toContain(text('quotaDenied')))
+    expect(host.textContent).not.toContain('Reviewed quota account')
+    expect(host.textContent).not.toContain('T1 current-page advice')
+    expect(button('exportCSV').disabled).toBe(true)
+    expect(reports()).toHaveLength(1)
+    expect(analyses()).toHaveLength(1)
+    expect(downloads).toEqual([])
+  },
+)
+it.each(['member', 'project'] as const)(
+  'clears %s Key facts when export target reauthorization denies before CSV dispatch',
+  async (kind) => {
+    await prepareKeyAdvice(kind)
+    await click('aiConfirm')
+    await until(() => expect(host.textContent).toContain('K1 current-page advice'))
+    targetStatus = kind === 'member' ? 403 : 404
+    scopeOptionsAvailable = false
+    scopeOptionsGate = deferred()
+    await click('exportCSV')
+    await until(() => expect(host.textContent).toContain(text('quotaDenied')))
+    expect(host.textContent).not.toContain('Reviewed quota account')
+    expect(host.textContent).not.toContain('Reviewed member')
+    expect(host.textContent).not.toContain('Reviewed Project')
+    expect(host.textContent).not.toContain('K1 current-page advice')
+    expect(button('quotaRun').disabled).toBe(true)
+    expect(button('exportCSV').disabled).toBe(true)
+    expect(requests.filter((r) => r.url?.endsWith('/export.csv'))).toHaveLength(0)
+    expect(reports()).toHaveLength(1)
+    expect(analyses()).toHaveLength(1)
+    expect(downloads).toEqual([])
+  },
+)
+it.each([422, 503])('retains reviewed Key facts after non-denial export %i', async (status) => {
+  await mount()
+  await member()
+  await click('quotaRun')
+  await ready()
+  csvStatus = status
+  await click('exportCSV')
+  await until(() =>
+    expect(host.textContent).toContain(
+      text(status === 422 ? 'quotaOverflow' : 'quotaExportFailed'),
+    ),
+  )
+  expect(host.textContent).toContain('Reviewed quota account')
+  expect(host.textContent).toContain('Reviewed member')
+  expect(button('exportCSV').disabled).toBe(false)
+  expect(downloads).toEqual([])
+})
+it('does not let an older CSV denial erase a renewed report generation', async () => {
+  await mount()
+  await member()
+  await click('quotaRun')
+  await ready()
+  csvGate = deferred()
+  csvStatus = 403
+  await click('exportCSV')
+  await until(() => expect(requests.filter((r) => r.url?.endsWith('/export.csv'))).toHaveLength(1))
+  mutation = (report) => {
+    report.items[0].name = 'Fresh quota generation'
+  }
+  await act(async () => {
+    await cache.refetchQueries({ queryKey: ['insights-quota-report'], type: 'active' })
+  })
+  await until(() => expect(host.textContent).toContain('Fresh quota generation'))
+  csvGate.release()
+  await until(() => expect(button('exportCSV').disabled).toBe(false))
+  expect(host.textContent).toContain('Fresh quota generation')
+  expect(host.textContent).not.toContain(text('quotaDenied'))
+  expect(reports()).toHaveLength(2)
+  expect(downloads).toEqual([])
 })
 
 async function prepareKeyAdvice(

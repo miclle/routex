@@ -1921,7 +1921,7 @@ or actual request blocking. Preserve actor/Session/permission/target freshness a
 abort stale reads/exports. Optional AI advice uses only explicitly reviewed current-page
 Token or Money facts with anonymous T/K labels; quota identities and uncaptured data remain excluded.
 
-Current quota-analysis 401/403/404 responses clear captured quota facts and advice immediately. Key reports also clear the selected member/Project and cancel its exact target read before refreshing the authorized picker. Denial must hide private names and totals while replacement options are pending, without replaying reports, exports or inference. Obsolete analysis responses cannot clear a newly reviewed scope or report.
+Current quota-analysis and export reauthorization/CSV 401/403/404 responses clear captured quota facts and advice immediately. Key reports also clear the selected member/Project and cancel its exact target read before refreshing the authorized picker. Denial must hide private names and totals while replacement options are pending, without replaying reports, exports or inference. Obsolete analysis or export responses cannot clear a newly reviewed scope or report; export denial also requires the original successful report generation. Non-denial export failures preserve the reviewed report.
 
 Quota result cells wrap exact long amounts within their existing columns without truncation or numeric conversion. Keep the stored cap, settled usage and unknown evidence readable independently.
 

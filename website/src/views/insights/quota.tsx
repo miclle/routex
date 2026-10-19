@@ -293,12 +293,34 @@ export function useQuotaInsights({
   )
   const reportStamp = useSyncExternalStore(reportSubscribe, reportSnapshot, reportSnapshot)
   const current: QuotaInsightsReport | undefined = ready ? report.data : undefined
+  function scopeDenied() {
+    clear()
+    setNotice('quotaDenied')
+    if (kind === 'key_quota') {
+      setScopeID('')
+      void cache.cancelQueries({ queryKey: targetKey, exact: true })
+      void cache.invalidateQueries({ queryKey: pickerKey, exact: true })
+    }
+  }
   async function exportCSV() {
     if (!live() || !request || !current || exportLock.current) return
     const captured = request,
       state = cache.getQueryState(reportKey)
     const generation = state?.dataUpdateCount
     const controller = new AbortController()
+    const exportCurrent = () => {
+      const latest = cache.getQueryState(reportKey)
+      return (
+        live() &&
+        !controller.signal.aborted &&
+        sequence.current === captured.id &&
+        scopeCurrent(captured) &&
+        latest?.status === 'success' &&
+        latest.fetchStatus === 'idle' &&
+        !latest.isInvalidated &&
+        latest.dataUpdateCount === generation
+      )
+    }
     exportController.current = controller
     exportLock.current = true
     setExporting(true)
@@ -312,47 +334,19 @@ export function useQuotaInsights({
           canWriteProjects,
           controller.signal,
         )
-      if (
-        !live() ||
-        controller.signal.aborted ||
-        sequence.current !== captured.id ||
-        !scopeCurrent(captured)
-      )
-        return
+      if (!exportCurrent()) return
       const blob = await exportQuotaInsights(captured.input, controller.signal)
-      const latest = cache.getQueryState(reportKey)
-      if (
-        !live() ||
-        controller.signal.aborted ||
-        sequence.current !== captured.id ||
-        !scopeCurrent(captured) ||
-        latest?.status !== 'success' ||
-        latest.fetchStatus !== 'idle' ||
-        latest.isInvalidated ||
-        latest.dataUpdateCount !== generation
-      )
-        return
+      if (!exportCurrent()) return
       downloadReportCSV(
         blob,
         captured.input.kind === 'team_quota' ? 'routex-team-quota.csv' : 'routex-key-quota.csv',
       )
       setNotice('quotaExportReady')
     } catch (error) {
-      if (
-        !live() ||
-        controller.signal.aborted ||
-        sequence.current !== captured.id ||
-        !scopeCurrent(captured)
-      )
-        return
+      if (!exportCurrent()) return
       const status = isAxiosError(error) ? error.response?.status : undefined
-      setNotice(
-        [401, 403, 404].includes(status ?? 0)
-          ? 'quotaDenied'
-          : status === 422
-            ? 'quotaOverflow'
-            : 'quotaExportFailed',
-      )
+      if ([401, 403, 404].includes(status ?? 0)) scopeDenied()
+      else setNotice(status === 422 ? 'quotaOverflow' : 'quotaExportFailed')
     } finally {
       exportLock.current = false
       if (exportController.current === controller) exportController.current = null
@@ -430,15 +424,7 @@ export function useQuotaInsights({
       cache.getQueryState(reportKey)?.status === 'success' &&
       cache.getQueryState(reportKey)?.fetchStatus === 'idle' &&
       !cache.getQueryState(reportKey)?.isInvalidated,
-    analysisDenied: () => {
-      clear()
-      setNotice('quotaDenied')
-      if (kind === 'key_quota') {
-        setScopeID('')
-        void cache.cancelQueries({ queryKey: targetKey, exact: true })
-        void cache.invalidateQueries({ queryKey: pickerKey, exact: true })
-      }
-    },
+    analysisDenied: scopeDenied,
     captureDefinition,
     definitionStamp,
     loadDefinition,
