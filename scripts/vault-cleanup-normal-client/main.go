@@ -26,15 +26,19 @@ import (
 	"strings"
 	"time"
 
+	mysqlconfig "github.com/go-sql-driver/mysql"
 	"github.com/miclle/routex/internal/routex/entity"
 	cleanupevidence "github.com/miclle/routex/scripts/provider-credential-cleanup-evidence"
 	vaultwire "github.com/miclle/routex/scripts/vault-cleanup-wire"
+	gormmysql "gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
 var BuildRunID, BuildSource, BuildManifest, BuildHostUID, BuildStarted string
+var BuildDriver = "postgres"
+
 var errRejected = errors.New("normal cleanup rejected")
 var hex32 = regexp.MustCompile(`^[a-f0-9]{32}$`)
 var hex40 = regexp.MustCompile(`^[a-f0-9]{40}$`)
@@ -179,7 +183,18 @@ func openDB(password string) (*gorm.DB, error) {
 		return nil, errRejected
 	}
 	dsn := fmt.Sprintf("host=postgres port=5432 user=routex_f28_normal password=%s dbname=routex_f28_normal_%s sslmode=disable connect_timeout=2 application_name=routex-f28-normal", password, BuildRunID)
-	db, e := gorm.Open(postgres.Open(dsn), &gorm.Config{TranslateError: true, Logger: logger.Discard, DisableAutomaticPing: true})
+	dialector := postgres.Open(dsn)
+	if BuildDriver == "mysql" {
+		config := mysqlconfig.NewConfig()
+		config.User, config.Passwd, config.Net, config.Addr, config.DBName = "routex_f28_normal", password, "tcp", "mysql:3306", "routex_f28_normal_"+BuildRunID
+		config.ParseTime, config.Loc = true, time.UTC
+		config.Timeout, config.ReadTimeout, config.WriteTimeout = 2*time.Second, 2*time.Second, 2*time.Second
+		config.Params = map[string]string{"charset": "utf8mb4"}
+		dialector = gormmysql.New(gormmysql.Config{DSN: config.FormatDSN(), SkipInitializeWithVersion: true})
+	} else if BuildDriver != "postgres" {
+		return nil, errRejected
+	}
+	db, e := gorm.Open(dialector, &gorm.Config{TranslateError: true, Logger: logger.Discard, DisableAutomaticPing: true})
 	if e != nil {
 		return nil, errRejected
 	}
@@ -584,7 +599,7 @@ func normalManifest(dir string) ([]artifact, error) {
 
 func run(args []string) int {
 	uid, e := strconv.Atoi(BuildHostUID)
-	if len(args) != 0 || e != nil || uid <= 0 || strconv.Itoa(uid) != BuildHostUID || runtime.GOOS != "linux" || os.Getuid() != uid || os.Geteuid() != uid || !hex32.MatchString(BuildRunID) || !hex40.MatchString(BuildSource) || !hex64.MatchString(BuildManifest) {
+	if (BuildDriver != "postgres" && BuildDriver != "mysql") || len(args) != 0 || e != nil || uid <= 0 || strconv.Itoa(uid) != BuildHostUID || runtime.GOOS != "linux" || os.Getuid() != uid || os.Geteuid() != uid || !hex32.MatchString(BuildRunID) || !hex40.MatchString(BuildSource) || !hex64.MatchString(BuildManifest) {
 		return 1
 	}
 	dir := filepath.Join("/vault/logs", "normal-"+BuildRunID)

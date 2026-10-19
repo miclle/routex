@@ -45,5 +45,15 @@ class ArtifactRetirement(unittest.TestCase):
                 self.assertTrue(binary.exists())
 
 
+class DatabaseProfile(unittest.TestCase):
+    def test_only_exact_reserved_profiles_are_accepted(self):
+        self.assertEqual(normal.parse_driver(['--exclusive-validation-lane']), 'postgres')
+        for driver in ['postgres', 'mysql']:
+            self.assertEqual(normal.parse_driver(['--exclusive-validation-lane', '--driver', driver]), driver)
+        for args in [[], ['--driver', 'mysql'], ['--exclusive-validation-lane', '--driver', 'MySQL'], ['--exclusive-validation-lane', '--driver', 'sqlite'], ['--exclusive-validation-lane', '--driver', 'mysql', '--host', 'foreign']]:
+            with self.subTest(args=args), self.assertRaises(RuntimeError):
+                normal.parse_driver(args)
+
+
 if __name__ == '__main__':
     unittest.main()

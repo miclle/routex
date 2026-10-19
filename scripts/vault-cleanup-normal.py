@@ -16,12 +16,47 @@ import time
 
 REPO=Path(__file__).resolve().parent.parent
 VAULT='hashicorp/vault:2.2.0@sha256:e0acd3c681bdf57f002d7214e5d050b876e1704678005c6b0406dd96a65be919'
+MYSQL='mysql:8.4@sha256:24989179f58856db763f418010c1169fecc944e3ec1ea7e921572d83eb070f70'
 POSTGRES='postgres:18-bookworm@sha256:67ba68a22dc7d5af3627b7e0f33d10bbefad07562ff9703b3a6c2de247649129'
 BASE='debian:bookworm-slim@sha256:a1b86db52ce3daef089e45aabe36dfec4091f82464c25c1fdcf03de197cbe82a'
 
 def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 def require(value):
  if not value:raise RuntimeError('controlled acceptance refused')
+
+def parse_driver(args):
+ if args==['--exclusive-validation-lane']:return 'postgres'
+ require(len(args)==3 and args[:2]==['--exclusive-validation-lane','--driver'] and args[2] in ['postgres','mysql'])
+ return args[2]
+
+def database_yaml(driver,root,run,common):
+ if driver=='postgres':
+  health=common.replace('healthcheck: {disable: true}', 'healthcheck: {test: [CMD-SHELL, "pg_isready -h 127.0.0.1 -U routex_f28_normal -d routex_f28_normal_'+run+' >/dev/null 2>&1"], interval: 1s, timeout: 2s, retries: 45}')
+  return f"""  postgres:
+    image: {POSTGRES}
+{health}    environment:
+      POSTGRES_USER: routex_f28_normal
+      POSTGRES_DB: routex_f28_normal_{run}
+      POSTGRES_PASSWORD_FILE: /input/database-password
+    volumes: ['{root}/input/database-password:/input/database-password:ro']
+    tmpfs: ['/var/lib/postgresql:size=512m', '/var/run/postgresql:size=8m']
+    command: [postgres, '-c', log_error_verbosity=terse, '-c', log_min_error_statement=panic, '-c', log_parameter_max_length_on_error=0]
+"""
+ require(driver=='mysql')
+ health=common.replace('healthcheck: {disable: true}', 'healthcheck: {test: [CMD-SHELL, "mysqladmin ping -h 127.0.0.1 --silent >/dev/null 2>&1"], interval: 1s, timeout: 2s, retries: 90}')
+ return f"""  mysql:
+    image: {MYSQL}
+{health}    environment:
+      MYSQL_DATABASE: routex_f28_normal_{run}
+      MYSQL_USER: routex_f28_normal
+      MYSQL_PASSWORD_FILE: /input/database-password
+      MYSQL_ROOT_PASSWORD_FILE: /input/root-password
+    volumes:
+      - '{root}/input/database-password:/input/database-password:ro'
+      - '{root}/input/mysql-root-password:/input/root-password:ro'
+    tmpfs: ['/var/lib/mysql:uid=999,gid=999,mode=0700,size=1g', '/var/run/mysqld:uid=999,gid=999,mode=0755,size=8m', '/tmp:mode=1777,size=32m']
+    command: [mysqld, '--innodb-buffer-pool-size=128M', '--skip-log-bin', '--default-time-zone=+00:00']
+"""
 
 def private_output():
  parent=Path.home()/'.local/share/routex/acceptance/normal-vault'
@@ -42,7 +77,7 @@ def retire_artifacts(root,expected):
  return dict(after_verified_closure=True,binaries=expected,removed=True)
 
 def main():
- require(sys.argv[1:]==['--exclusive-validation-lane'])
+ driver=parse_driver(sys.argv[1:])
  os.umask(0o077)
  uid=os.getuid();require(uid>0)
  root=private_output();(root/'commands').mkdir(mode=0o700);(root/'input').mkdir(mode=0o700);(root/'artifacts').mkdir(mode=0o700)
@@ -88,7 +123,7 @@ def main():
   lab=v['Config']['Labels'];require(lab['com.docker.compose.project']==project and lab['com.docker.compose.service']==role and lab['routex.acceptance.run']==run)
   require(not v['HostConfig']['Privileged'] and not v['State']['OOMKilled'] and v['HostConfig']['RestartPolicy']['Name']=='no')
   require(not v['HostConfig'].get('PortBindings') and all(not x for x in (v['NetworkSettings'].get('Ports') or {}).values()))
-  if role!='postgres':require(v['Config']['User']==f'{uid}:{uid}' and v['HostConfig']['ReadonlyRootfs'] and v['HostConfig']['CapDrop']==['ALL'] and not v['HostConfig'].get('CapAdd'))
+  if role not in ('postgres','mysql'):require(v['Config']['User']==f'{uid}:{uid}' and v['HostConfig']['ReadonlyRootfs'] and v['HostConfig']['CapDrop']==['ALL'] and not v['HostConfig'].get('CapAdd'))
   require(not any(m['Type']=='volume' for m in v.get('Mounts',[])))
   if stopped:require(not v['State']['Running'] and v['State']['Pid']==0 and v['State']['FinishedAt']!='0001-01-01T00:00:00Z')
   else:require(v['State']['Running'] and v['State']['Pid']>0 and v['State']['FinishedAt']=='0001-01-01T00:00:00Z')
@@ -104,25 +139,28 @@ def main():
   nets=docker('network-census',['network','ls','-q','--no-trunc','--filter','label=com.docker.compose.project='+project]).decode().split();require(len(nets)==1);network=nets[0];check_network()
  def check_network(stopped=False):
   v=json.loads(docker('inspect-network',['network','inspect',network]))[0];require(v['Id']==network and v['Name']==project+'_default' and v['Internal'] and v['Labels']['com.docker.compose.project']==project)
-  expected=set() if stopped else {owned[r] for r in owned if r in ('postgres','anchor')};require(set(v['Containers'])==expected);save('network-'+str(len(rows))+'.json',v)
+  expected=set() if stopped else {owned[r] for r in owned if r in (driver,'anchor')};require(set(v['Containers'])==expected);save('network-'+str(len(rows))+'.json',v)
  try:
   env=dict(os.environ,GOOS='linux',GOARCH='arm64',CGO_ENABLED='0')
   command('fresh-assets',['npm','--prefix','website','run','build'],120)
   for name,pkg,flags in [
    ('routex','./cmd/routex','-X main.CommitID='+head),
    ('wire-client','./scripts/vault-cleanup-wire-client',f'-X main.BuildRunID={run} -X main.BuildSourceManifest={before["sha256"]} -X main.BuildHostUID={uid}'),
-   ('normal-client','./scripts/vault-cleanup-normal-client',f'-X main.BuildRunID={run} -X main.BuildSource={head} -X main.BuildManifest={before["sha256"]} -X main.BuildHostUID={uid} -X main.BuildStarted={started}'),
-   ('cleanup-evidence','./scripts/provider-credential-cleanup-evidence/cmd/cleanup-evidence',f'-X main.BuildRunID={run} -X main.BuildSource={head} -X main.BuildPhase=normal -X main.BuildTrustedHostUID={uid}')]:
+   ('normal-client','./scripts/vault-cleanup-normal-client',f'-X main.BuildRunID={run} -X main.BuildSource={head} -X main.BuildManifest={before["sha256"]} -X main.BuildHostUID={uid} -X main.BuildStarted={started} -X main.BuildDriver={driver}'),
+   ('cleanup-evidence','./scripts/provider-credential-cleanup-evidence/cmd/cleanup-evidence',f'-X main.BuildRunID={run} -X main.BuildSource={head} -X main.BuildPhase=normal -X main.BuildTrustedHostUID={uid} -X main.BuildDriver={driver}')]:
    command('build-'+name,['go','build','-trimpath','-ldflags',flags,'-o',str(root/'artifacts'/name),pkg],180,env)
    binaries[name]=sha(root/'artifacts'/name)
    save('build-'+name+'.json',dict(sha256=binaries[name],source_manifest=before['sha256'],head=head))
-  for name,ref in [('vault',VAULT),('postgres',POSTGRES),('base',BASE)]:
+  for name,ref in [('vault',VAULT),(driver,POSTGRES if driver=='postgres' else MYSQL),('base',BASE)]:
    docker('pull-'+name,['pull','--platform','linux/arm64',ref],180);images[name]=docker('image-'+name,['image','inspect','--format','{{.Id}}',ref]).decode().strip()
   (root/'.dockerignore').write_text('*\n!artifacts/\n!artifacts/**\n!Dockerfile\n')
   (root/'Dockerfile').write_text('FROM '+BASE+'\nCOPY --chmod=0555 artifacts/ /opt/routex/\nUSER '+str(uid)+':'+str(uid)+'\nCMD ["sleep","900"]\n');os.chmod(root/'Dockerfile',0o644)
   docker('build-capsule',['build','--network=none','--no-cache','--platform','linux/arm64','-t',capsule,'-f',str(root/'Dockerfile'),str(root)],120)
   capsule_id=docker('capsule-id',['image','inspect','--format','{{.Id}}',capsule]).decode().strip();images['anchor']=capsule_id;images['gateway']=capsule_id
-  password=secrets.token_urlsafe(36);save('input/database-password',password.encode());save('input/config.yaml',('addr: "0.0.0.0:19001"\ndriver: postgres\ndsn: "host=postgres port=5432 user=routex_f28_normal password='+password+' dbname=routex_f28_normal_'+run+' sslmode=disable connect_timeout=2"\nencryption_key: "'+secrets.token_urlsafe(32)+'"\nevent_queue_path: "/tmp/calls.db"\nallow_private_upstreams: true\n').encode())
+  password=secrets.token_urlsafe(36);save('input/database-password',password.encode())
+  if driver=='mysql':save('input/mysql-root-password',secrets.token_urlsafe(36).encode())
+  dsn='host=postgres port=5432 user=routex_f28_normal password='+password+' dbname=routex_f28_normal_'+run+' sslmode=disable connect_timeout=2' if driver=='postgres' else 'routex_f28_normal:'+password+'@tcp(mysql:3306)/routex_f28_normal_'+run+'?charset=utf8mb4&parseTime=true&loc=UTC&timeout=2s&readTimeout=10s&writeTimeout=10s'
+  save('input/config.yaml',('addr: "0.0.0.0:19001"\ndriver: '+driver+'\ndsn: "'+dsn+'"\nencryption_key: "'+secrets.token_urlsafe(32)+'"\nevent_queue_path: "/tmp/calls.db"\nallow_private_upstreams: true\n').encode())
   # Standard base64 root key is required, not URL-safe base64.
   import base64
   cfg=root/'input/config.yaml';cfg.write_text(cfg.read_text().replace(cfg.read_text().split('encryption_key: "')[1].split('"')[0],base64.b64encode(secrets.token_bytes(32)).decode()))
@@ -134,18 +172,8 @@ def main():
     security_opt: ['no-new-privileges:true']
     healthcheck: {{disable: true}}
 '''
-  pgcommon=common.replace('healthcheck: {disable: true}', 'healthcheck: {test: [CMD-SHELL, \"pg_isready -h 127.0.0.1 -U routex_f28_normal -d routex_f28_normal_'+run+' >/dev/null 2>&1\"], interval: 1s, timeout: 2s, retries: 45}')
   text=f'''services:
-  postgres:
-    image: {POSTGRES}
-{pgcommon}    environment:
-      POSTGRES_USER: routex_f28_normal
-      POSTGRES_DB: routex_f28_normal_{run}
-      POSTGRES_PASSWORD_FILE: /input/database-password
-    volumes: ['{root}/input/database-password:/input/database-password:ro']
-    tmpfs: ['/var/lib/postgresql:size=512m', '/var/run/postgresql:size=8m']
-    command: [postgres, '-c', log_error_verbosity=terse, '-c', log_min_error_statement=panic, '-c', log_parameter_max_length_on_error=0]
-  anchor:
+{database_yaml(driver,root,run,common)}  anchor:
     image: {capsule}
 {common}    init: true
     command: [sleep, '900']
@@ -170,7 +198,7 @@ def main():
 {common}    user: '{uid}:{uid}'
     network_mode: service:anchor
     depends_on:
-      postgres: {{condition: service_healthy}}
+      {driver}: {{condition: service_healthy}}
       anchor: {{condition: service_started}}
     command: [/opt/routex/routex, '-c', /input/config.yaml]
     volumes: ['{root}/input/config.yaml:/input/config.yaml:ro']
@@ -181,8 +209,8 @@ networks:
   default:
     internal: true
 '''
-  save('compose.yaml',text.encode());save('build-input.json',dict(run=run,project=project,host_uid=uid,source=head,source_manifest=before['sha256'],started_at=started,images=images))
-  docker('compose-up',compose+['up','-d','--no-build'],90);discover();require(set(owned)=={'postgres','anchor','vault','gateway'})
+  save('compose.yaml',text.encode());save('build-input.json',dict(run=run,project=project,host_uid=uid,source=head,source_manifest=before['sha256'],started_at=started,driver=driver,images=images))
+  docker('compose-up',compose+['up','-d','--no-build'],90);discover();require(set(owned)=={driver,'anchor','vault','gateway'})
   preflight_started=True
   docker('native-preflight',['exec','--user',f'{uid}:{uid}',owned['vault'],'/opt/routex/wire-client','--app-role-reader'],75)
   native_started=True
@@ -222,11 +250,11 @@ networks:
      if native_terminal['passed']:require(set(names)==fixed)
      for f in native_terminal['files']:
       raw=docker('capture-normal-file',['exec','--user',f'{uid}:{uid}',owned['vault'],'cat',prefix+'/'+f['name']]);require(len(raw)==f['bytes'] and hashlib.sha256(raw).hexdigest()==f['sha256']);save('captured-'+f['name'],raw)
-    require(set(owned)=={'postgres','anchor','vault','gateway'})
-    for role in ['gateway','vault','postgres','anchor']:
+    require(set(owned)=={driver,'anchor','vault','gateway'})
+    for role in ['gateway','vault',driver,'anchor']:
      save('before-stop-'+role+'.json',inspect(role));docker('stop-'+role,['stop','--time','10',owned[role]],20);v=inspect(role,True);save('stopped-'+role+'.json',v);require(v['State']['ExitCode'] in ([0,143] if role=='anchor' else [0]))
     check_network(stopped=True)
-    for role in ['gateway','vault','postgres','anchor']:inspect(role,True);docker('remove-'+role,['rm',owned[role]])
+    for role in ['gateway','vault',driver,'anchor']:inspect(role,True);docker('remove-'+role,['rm',owned[role]])
     v=json.loads(docker('network-before-remove',['network','inspect',network]))[0];require(not v['Containers'] and v['Id']==network and v['Internal']);save('network-before-remove.json',v);docker('remove-network',['network','rm',network])
     require(not docker('final-containers',['ps','-aq','--filter','label=com.docker.compose.project='+project]).strip());require(not docker('final-network',['network','ls','-q','--filter','label=com.docker.compose.project='+project]).strip());require(not docker('final-volumes',['volume','ls','-q','--filter','label=com.docker.compose.project='+project]).strip())
     for cid in owned.values():

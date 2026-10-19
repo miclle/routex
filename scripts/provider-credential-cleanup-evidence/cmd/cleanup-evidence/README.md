@@ -1,6 +1,8 @@
-# Controlled PostgreSQL cleanup evidence command
+# Controlled cleanup evidence command
 
-This is a private PostgreSQL capability around the portable parent library.
+This is a private PostgreSQL/MySQL capability around the portable parent library.
+The compile-time `main.BuildDriver` is exactly `postgres` (the default) or `mysql`;
+stdin cannot select or override it. Each driver retains separate runtime evidence.
 It is not a production RouteX command, cleanup authorizer, schema installer,
 remote client or completed F28 acceptance. It takes no arguments and reads one
 bounded JSON object from native Linux stdin. There is no input file path,
@@ -62,9 +64,11 @@ string allocations are not a secure heap-erasure guarantee.
 
 ## Fixed database and safe output
 
-Connection is only `postgres:5432`, with user `routex_f28_normal` and database
+Connection is only the compiled `postgres:5432` or `mysql:3306`, with user `routex_f28_normal` and database
 `routex_f28_normal_<compiled run>` or user `routex_f28_f02` and database
-`routex_f28_f02_<compiled run>`. The application_name is fixed by phase/run.
+`routex_f28_f02_<compiled run>`. The PostgreSQL application_name is fixed by phase/run. MySQL uses UTC timestamp
+decoding, two-second connection/read/write deadlines and no multi-statements or
+arbitrary file access.
 SSL is disabled only for this disposable private Compose namespace; connect
 timeout is2seconds. Inherited `PG*` variables are rejected, including service,
 pass-file and options defaults. No environment connection override is admitted.
@@ -78,14 +82,16 @@ no caller-context argument; pinned pgx stdlib `Conn.Close` has its own 5-second
 context. This is not an overall three-second wall-time guarantee. Context is
 checked after pool closure and output; the original process supervisor must
 independently bound total execution/closure. Namespace identity uses the sole
-fixed PostgreSQL `current_database()`/`current_user` query: GORM has no equivalent
+fixed PostgreSQL `current_database()`/`current_user` or MySQL
+`DATABASE()`/login-user query: GORM has no equivalent
 portable expression API. No migration, AutoMigrate, write probe, schema mutation,
 service operation or Vault/HTTP request runs here.
 
 Errors emit only `{"result":"cleanup_evidence_rejected","runtime_acceptance":false}`
 and exit1. Successful output occurs only after valid library projection, both
 rollbacks, context and actual pool close, and has exactly result,
-database_capability=`postgres_private_controlled`, runtime_acceptance=false and
+database_capability=`postgres_private_controlled` or `mysql_private_controlled`,
+runtime_acceptance=false and
 the parent's safe `evidence`. The nested exact eleven-field `evidence.claim` can
 feed the existing R3 `freeze_pending_claim` after independent original503/join
 and closure proof. Expectation, private rows, reason, operation proof, review
@@ -120,9 +126,10 @@ owned normal/f02 namespaces. A future coordinator must separately prove safe
 server logging, actual API503, fault23514, Vault204/audit/metrics, original
 Session restart/identical replay and no additional remote destroy. This command
 does not mark normal_receipt, stage_dependencies_ready or run_f02 ready and
-does not infer native completion, global acceptance or fleet adoption. MySQL
-support is qualified for the parent library's seeded read-only projection;
-this first command intentionally has no MySQL adapter.
+does not infer native completion, global acceptance or fleet adoption. The earlier MySQL
+qualification covers the parent library's seeded read-only projection. The current
+compiled MySQL command requires its own normal-path runtime evidence; it does not
+inherit the older PostgreSQL CLI or F02 qualification.
 
 
 ## Opt-in native command-to-PostgreSQL test

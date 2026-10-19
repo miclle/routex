@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	mysqlconfig "github.com/go-sql-driver/mysql"
 	"strings"
 	"testing"
 	"time"
@@ -244,5 +245,35 @@ func TestArgumentsNeverEchoAndConnectionEnvironmentCannotOverride(t *testing.T) 
 				t.Fatal("libpq environment override accepted")
 			}
 		})
+	}
+}
+
+func TestMySQLConnectionIsCompiledBoundedAndConsumesPassword(t *testing.T) {
+	previous := BuildDriver
+	BuildDriver = "mysql"
+	t.Cleanup(func() { BuildDriver = previous })
+	b, value := fixture(t, "normal")
+	secret := value.Password
+	dsn, err := consumeConnection(&value, b)
+	if err != nil || value.Password != "" {
+		t.Fatal("MySQL connection refused or secret retained")
+	}
+	config, err := mysqlconfig.ParseDSN(dsn)
+	if err != nil || config.User != b.user() || config.Passwd != secret || config.Net != "tcp" || config.Addr != "mysql:3306" || config.DBName != b.database() || !config.ParseTime || config.Loc != time.UTC || config.Timeout != 2*time.Second || config.ReadTimeout != 2*time.Second || config.WriteTimeout != 2*time.Second || config.MultiStatements || config.AllowAllFiles {
+		t.Fatal("MySQL namespace or bounded connection changed")
+	}
+	if _, err = consumeConnection(&value, b); err == nil {
+		t.Fatal("consumed MySQL password reused")
+	}
+}
+func TestUnknownCompiledDriverCannotCreateEvidence(t *testing.T) {
+	previous := BuildDriver
+	t.Cleanup(func() { BuildDriver = previous })
+	_, _ = fixture(t, "normal")
+	for _, driver := range []string{"", "MySQL", "sqlite", "mysql --host=foreign"} {
+		BuildDriver = driver
+		if _, err := compiledBindings(501, 501); err == nil {
+			t.Fatal("unknown compiled database profile accepted")
+		}
 	}
 }

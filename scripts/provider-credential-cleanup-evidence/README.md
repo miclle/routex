@@ -94,7 +94,7 @@ observation_state, observe_audit_count, claim_audit_count, remote_request_id,
 known_no_effect
 ```
 
-The nested `cmd/cleanup-evidence` command supplies a controlled PostgreSQL
+The nested `cmd/cleanup-evidence` command supplies a compiled, controlled PostgreSQL/MySQL
 stdin/connection caller for the fixed normal/f02 namespaces. Its Linux stdin
 controls pass; actual command-to-database qualification remains pending. It adds no
 protected file reader or coordinator readiness. The private coordinator must

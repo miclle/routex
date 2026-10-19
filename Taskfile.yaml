@@ -179,7 +179,7 @@ tasks:
       - ./scripts/test-auth-lifecycle.sh
 
   test-vault-cleanup-normal:
-    desc: Qualify one normal Vault cleanup in an explicitly reserved PostgreSQL lane
+    desc: Qualify one normal Vault cleanup in an explicitly reserved database lane
     cmds:
       - python3 -B scripts/vault_cleanup_normal_test.py
       - python3 -B scripts/vault-cleanup-normal.py {{.CLI_ARGS}}

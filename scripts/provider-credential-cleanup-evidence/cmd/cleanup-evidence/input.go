@@ -10,6 +10,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	mysqlconfig "github.com/go-sql-driver/mysql"
+
 	cleanupevidence "github.com/miclle/routex/scripts/provider-credential-cleanup-evidence"
 )
 
@@ -18,17 +20,17 @@ var runPattern = regexp.MustCompile(`^[a-f0-9]{32}$`)
 var uidPattern = regexp.MustCompile(`^[1-9][0-9]{0,9}$`)
 var passwordPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{32,128}$`)
 
-type bindings struct{ source, run, phase, state string }
+type bindings struct{ source, run, phase, state, driver string }
 
 func compiledBindings(real, effective int) (bindings, error) {
-	if !sourcePattern.MatchString(BuildSource) || !runPattern.MatchString(BuildRunID) || !uidPattern.MatchString(BuildTrustedHostUID) {
+	if (BuildDriver != "postgres" && BuildDriver != "mysql") || !sourcePattern.MatchString(BuildSource) || !runPattern.MatchString(BuildRunID) || !uidPattern.MatchString(BuildTrustedHostUID) {
 		return bindings{}, errRejected
 	}
 	uid, err := strconv.ParseUint(BuildTrustedHostUID, 10, 32)
 	if err != nil || uid == 0 || strconv.FormatUint(uid, 10) != BuildTrustedHostUID || real <= 0 || real != effective || uint64(real) != uid {
 		return bindings{}, errRejected
 	}
-	b := bindings{source: BuildSource, run: BuildRunID, phase: BuildPhase}
+	b := bindings{source: BuildSource, run: BuildRunID, phase: BuildPhase, driver: BuildDriver}
 	switch b.phase {
 	case "normal":
 		b.state = "acknowledged"
@@ -142,6 +144,17 @@ func consumeConnection(i *input, b bindings) (string, error) {
 	}
 	password := i.Password
 	i.Password = ""
+	if b.driver == "mysql" {
+		config := mysqlconfig.NewConfig()
+		config.User, config.Passwd, config.Net, config.Addr, config.DBName = b.user(), password, "tcp", "mysql:3306", b.database()
+		config.ParseTime, config.Loc = true, time.UTC
+		config.Timeout, config.ReadTimeout, config.WriteTimeout = 2*time.Second, 2*time.Second, 2*time.Second
+		config.Params = map[string]string{"charset": "utf8mb4"}
+		return config.FormatDSN(), nil
+	}
+	if b.driver != "postgres" {
+		return "", errRejected
+	}
 	dsn := fmt.Sprintf("host=postgres port=5432 user=%s password=%s dbname=%s sslmode=disable connect_timeout=2 application_name=routex-f28-evidence-%s-%s", b.user(), password, b.database(), b.phase, b.run[:16])
 	password = ""
 	return dsn, nil

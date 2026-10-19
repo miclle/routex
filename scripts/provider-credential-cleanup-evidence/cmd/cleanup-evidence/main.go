@@ -12,6 +12,7 @@ import (
 	"time"
 
 	cleanupevidence "github.com/miclle/routex/scripts/provider-credential-cleanup-evidence"
+	gormmysql "gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -21,6 +22,7 @@ var BuildSource string
 var BuildRunID string
 var BuildPhase string
 var BuildTrustedHostUID string
+var BuildDriver = "postgres"
 
 var errRejected = cleanupevidence.ErrRejected
 
@@ -66,7 +68,11 @@ func run(args []string, out io.Writer) (code int) {
 	// has no context argument; closure and context are checked before success.
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{TranslateError: true, Logger: logger.Discard, DisableAutomaticPing: true})
+	dialector := postgres.Open(dsn)
+	if b.driver == "mysql" {
+		dialector = gormmysql.New(gormmysql.Config{DSN: dsn, SkipInitializeWithVersion: true})
+	}
+	db, err := gorm.Open(dialector, &gorm.Config{TranslateError: true, Logger: logger.Discard, DisableAutomaticPing: true})
 	dsn = ""
 	if err != nil {
 		// An initializer may return a partially created local pool. Close only
@@ -132,9 +138,13 @@ func verifyNamespace(ctx context.Context, db *gorm.DB, b bindings) (err error) {
 		DatabaseName string
 		DatabaseUser string
 	}
-	// PostgreSQL-only capability: GORM has no current_database/current_user
-	// expression API. This fixed read has no caller-provided SQL or identifiers.
-	result := tx.Raw("SELECT current_database() AS database_name, current_user AS database_user").Scan(&identity)
+	// GORM has no current database/user expression API. These fixed reads have
+	// no caller-provided SQL or identifiers; MySQL includes the login host in CURRENT_USER.
+	query := "SELECT current_database() AS database_name, current_user AS database_user"
+	if b.driver == "mysql" {
+		query = "SELECT DATABASE() AS database_name, SUBSTRING_INDEX(CURRENT_USER(), '@', 1) AS database_user"
+	}
+	result := tx.Raw(query).Scan(&identity)
 	if result.Error != nil || result.RowsAffected != 1 || identity.DatabaseName != b.database() || identity.DatabaseUser != b.user() {
 		return errRejected
 	}
@@ -157,7 +167,7 @@ func complete(ctx context.Context, out io.Writer, value cleanupevidence.Evidence
 		Capability        string                   `json:"database_capability"`
 		RuntimeAcceptance bool                     `json:"runtime_acceptance"`
 		Evidence          cleanupevidence.Evidence `json:"evidence"`
-	}{"verified_published_cleanup_evidence", "postgres_private_controlled", false, value})
+	}{"verified_published_cleanup_evidence", BuildDriver + "_private_controlled", false, value})
 	if err != nil || len(encoded) > 16384 {
 		return reject(out)
 	}

@@ -1,23 +1,30 @@
 # Controlled normal Vault cleanup
 
 This opt-in source producer exercises one fresh published Credential cleanup
-through real RouteX APIs, PostgreSQL and Vault. Run only in the exclusive heavy
+through real RouteX APIs, PostgreSQL or MySQL, and Vault. Run only in the exclusive heavy
 validation lane:
 
 ```sh
-go tool task test-vault-cleanup-normal -- --exclusive-validation-lane
+go tool task test-vault-cleanup-normal -- --exclusive-validation-lane --driver postgres
+# Run only after the preceding lane has fully closed:
+go tool task test-vault-cleanup-normal -- --exclusive-validation-lane --driver mysql
 ```
 
 It rebuilds production assets and four Linux binaries, then builds a new
-run-specific image. A private Compose network contains only PostgreSQL, an
-anchor, Vault and the gateway. No host port is published. PostgreSQL and Vault
+run-specific image. A private Compose network contains only the selected database, an
+anchor, Vault and the gateway. No host port is published. The database and Vault
 use fresh tmpfs data; all passwords, root keys, tokens, AppRole material,
 Sessions, UUIDs, runtime source and audit receipts are generated for this run.
 No existing service is stopped or reused. Private output is retained under
 `~/.local/share/routex/acceptance/normal-vault/`, outside temporary storage. After
 verified resource closure, the exact fresh image and four checked binaries are
 removed; source bindings, raw observations and failed outcomes remain retained.
-This entry supports PostgreSQL only; MySQL qualification remains separate.
+The omitted driver preserves the PostgreSQL default. Unknown or extra profile
+arguments refuse before creating output. The selected driver is compiled into
+both native commands and fixes their service, account and database names; input
+JSON never selects a driver, endpoint or namespace. MySQL uses UTC timestamp
+decoding and finite connection/read/write deadlines. Each driver requires its own
+complete original run and independent readback.
 
 The native client runs as the compiled nonroot host UID. A separate actual
 AppRole wire preflight precedes original product setup, reviewed integration
