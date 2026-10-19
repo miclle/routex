@@ -72,14 +72,17 @@ export function ArchiveRollback({
   if (view.basis !== basis)
     setView({ basis, pending: false, preview: null, receipt: null, issue: null })
   const operation = useRef<AbortController | null>(null)
+  const mounted = useRef(false)
   const original = useRef<Intent | null>(null)
-  const latest = useRef({ basis, target, canRead, canWrite })
+  const latest = useRef({ basis, target, canRead, canWrite, view, intent, reason })
   useLayoutEffect(() => {
-    latest.current = { basis, target, canRead, canWrite }
+    latest.current = { basis, target, canRead, canWrite, view, intent, reason }
   })
   useLayoutEffect(() => {
+    mounted.current = true
     original.current = null
     return () => {
+      mounted.current = false
       operation.current?.abort()
       operation.current = null
       original.current = null
@@ -93,7 +96,16 @@ export function ArchiveRollback({
   function begin(write: boolean) {
     const session = cache.getQueryData<Session>(sessionKey)
     if (
+      !mounted.current ||
       operation.current ||
+      latest.current.basis !== basis ||
+      latest.current.target !== target ||
+      latest.current.view !== view ||
+      latest.current.intent !== intent ||
+      original.current !== intent ||
+      latest.current.reason !== reason ||
+      view.basis !== basis ||
+      view.pending ||
       !canRead() ||
       (write && !canWrite()) ||
       session?.user.id !== actorID ||
@@ -106,6 +118,7 @@ export function ArchiveRollback({
     const read = canRead
     const writable = canWrite
     const current = () =>
+      mounted.current &&
       operation.current === controller &&
       !controller.signal.aborted &&
       latest.current.basis === basis &&
@@ -218,6 +231,7 @@ export function ArchiveRollback({
     }
   }
   function close() {
+    mounted.current = false
     operation.current?.abort()
     operation.current = null
     original.current = null

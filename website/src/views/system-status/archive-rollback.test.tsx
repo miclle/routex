@@ -1,4 +1,4 @@
-import { act } from 'react'
+import { act, StrictMode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -18,6 +18,17 @@ import type {
   RuntimeArchiveRollbackReceipt,
 } from '@/types/runtime-archive-rollback'
 import { ArchiveRollback } from './archive-rollback'
+const queuedButtons = vi.hoisted(() => new Map<string, () => void>())
+vi.mock('@/components/ui/button', async (original) => {
+  const { Button } = await original<typeof import('@/components/ui/button')>()
+  return {
+    Button: (props: React.ComponentProps<typeof Button>) => {
+      if (typeof props.children === 'string' && props.onClick)
+        queuedButtons.set(props.children, props.onClick as () => void)
+      return <Button {...props} />
+    },
+  }
+})
 vi.mock('@/api/runtime-archive-rollback', async (original) => ({
   ...(await original<object>()),
   applyRuntimeArchiveRollback: vi.fn(),
@@ -112,22 +123,24 @@ let releases: ((value: RuntimeArchiveRollbackReceipt) => void)[]
 function render() {
   const captured = authority
   root.render(
-    <QueryClientProvider client={cache}>
-      {!closed && (
-        <ArchiveRollback
-          actorID={actorID}
-          authority={authority}
-          archiveID={archiveID}
-          archiveBirth={archiveBirth}
-          canRead={() => readable && captured === authority}
-          canWrite={() => writable && captured === authority}
-          onClose={() => {
-            closed = true
-            render()
-          }}
-        />
-      )}
-    </QueryClientProvider>,
+    <StrictMode>
+      <QueryClientProvider client={cache}>
+        {!closed && (
+          <ArchiveRollback
+            actorID={actorID}
+            authority={authority}
+            archiveID={archiveID}
+            archiveBirth={archiveBirth}
+            canRead={() => readable && captured === authority}
+            canWrite={() => writable && captured === authority}
+            onClose={() => {
+              closed = true
+              render()
+            }}
+          />
+        )}
+      </QueryClientProvider>
+    </StrictMode>,
   )
 }
 function button(text: string) {
@@ -161,6 +174,7 @@ async function uncertain() {
 beforeEach(async () => {
   await i18n.changeLanguage('en')
   vi.clearAllMocks()
+  queuedButtons.clear()
   authority = 'initial'
   actorID = session.user.id
   archiveBirth = birth
@@ -190,6 +204,63 @@ afterEach(async () => {
   host.remove()
 })
 describe('explicit reviewed Gateway routing rollback', () => {
+  it('revokes the initial confirmation after an uncertain rollback', async () => {
+    await reviewed()
+    const oldConfirm = queuedButtons.get(en.archiveRollbackConfirm)!
+    vi.mocked(applyRuntimeArchiveRollback).mockRejectedValueOnce(new Error('Response lost'))
+    await act(async () => oldConfirm())
+    expect(applyRuntimeArchiveRollback).toHaveBeenCalledTimes(1)
+    await act(async () => oldConfirm())
+    expect(applyRuntimeArchiveRollback).toHaveBeenCalledTimes(1)
+    await click(en.archiveRollbackRetry)
+    expect(applyRuntimeArchiveRollback).toHaveBeenCalledTimes(2)
+    expect(vi.mocked(applyRuntimeArchiveRollback).mock.calls[1][1]).toBe(
+      vi.mocked(applyRuntimeArchiveRollback).mock.calls[0][1],
+    )
+  })
+  it('requires a fresh retry callback after each uncertain response', async () => {
+    const original = await uncertain()
+    const oldRetry = queuedButtons.get(en.archiveRollbackRetry)!
+    vi.mocked(applyRuntimeArchiveRollback).mockRejectedValueOnce(new Error('Response lost again'))
+    await act(async () => oldRetry())
+    expect(applyRuntimeArchiveRollback).toHaveBeenCalledTimes(2)
+    await act(async () => oldRetry())
+    expect(applyRuntimeArchiveRollback).toHaveBeenCalledTimes(2)
+    await click(en.archiveRollbackRetry)
+    expect(applyRuntimeArchiveRollback).toHaveBeenCalledTimes(3)
+    expect(vi.mocked(applyRuntimeArchiveRollback).mock.calls[2][1]).toBe(original[1])
+  })
+  it('rejects a queued confirmation after the reviewed reason changes', async () => {
+    await reviewed()
+    const oldConfirm = queuedButtons.get(en.archiveRollbackConfirm)!
+    await reason('Replacement reviewed reason')
+    await act(async () => oldConfirm())
+    expect(applyRuntimeArchiveRollback).not.toHaveBeenCalled()
+    await click(en.archiveRollbackConfirm)
+    expect(vi.mocked(applyRuntimeArchiveRollback).mock.calls[0][1].reason).toBe(
+      'Replacement reviewed reason',
+    )
+  })
+  it('rejects a queued confirmation after a new preview replaces its ETag', async () => {
+    await reviewed()
+    const oldConfirm = queuedButtons.get(en.archiveRollbackConfirm)!
+    vi.mocked(previewRuntimeArchiveRollback).mockResolvedValueOnce({
+      ...seed,
+      etag: 'b'.repeat(64),
+    })
+    await click(en.archiveRollbackPreview)
+    await act(async () => oldConfirm())
+    expect(applyRuntimeArchiveRollback).not.toHaveBeenCalled()
+    await click(en.archiveRollbackConfirm)
+    expect(vi.mocked(applyRuntimeArchiveRollback).mock.calls[0][2]).toBe('b'.repeat(64))
+  })
+  it('revokes queued writes immediately when the rollback dialog closes', async () => {
+    await reviewed()
+    const oldConfirm = queuedButtons.get(en.archiveRollbackConfirm)!
+    await click(en.routingClose)
+    await act(async () => oldConfirm())
+    expect(applyRuntimeArchiveRollback).not.toHaveBeenCalled()
+  })
   it('labels a stored legacy empty default mode in both languages without rewriting the preview', async () => {
     const legacy = structuredClone(seed)
     legacy.connections[0].before.egress_mode = ''

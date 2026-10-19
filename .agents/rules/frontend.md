@@ -1963,6 +1963,9 @@ intent. Original publication status, fresh current-process proof and supersessio
 are separate facts; no fleet or inference-success claim follows. Selection, cleanup
 and pagination stay locked until explicit dismissal. Render basis-owned state;
 operation refs serve event-time fences and synchronous duplicate guards only.
+Rollback callbacks also bind the exact rendered view, reason and original intent;
+replaced previews, completed attempts and closed dialogs revoke queued callbacks.
+Only a fresh visible retry can submit the retained original UUID/reason/ETag.
 Keep responses and intents outside query/mutation caches and browser storage,
 with paired English/Chinese copy.
 
