@@ -22,21 +22,33 @@ export function Page({
   title,
   description,
   action,
+  showHeading = false,
   children,
 }: {
   title: string
   description: string
   action?: ReactNode
+  showHeading?: boolean
   children?: ReactNode
 }) {
   useTranslation()
 
   return (
     <section className="space-y-6">
-      <header className={action ? 'flex justify-end' : 'sr-only'}>
-        <div className="sr-only">
-          <h1>{title}</h1>
-          <p>{description}</p>
+      <header
+        className={
+          showHeading
+            ? 'flex items-start justify-between gap-4'
+            : action
+              ? 'flex justify-end'
+              : 'sr-only'
+        }
+      >
+        <div className={showHeading ? undefined : 'sr-only'}>
+          <h1 className={showHeading ? 'text-xl font-semibold' : undefined}>{title}</h1>
+          <p className={showHeading ? 'mt-1 text-sm text-muted-foreground' : undefined}>
+            {description}
+          </p>
         </div>
         {action}
       </header>

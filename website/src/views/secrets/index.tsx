@@ -374,11 +374,7 @@ function SecretWorkspace({
   const reviewedCurrent = !!view && reviewed?.review_etag === view.review_etag
   const canStart = !rotationId && (!view?.rotation || terminal.has(view.rotation.status))
   return (
-    <Page title={t('title')} description={t('description')}>
-      <div>
-        <h1 className="text-xl font-semibold">{t('title')}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t('description')}</p>
-      </div>
+    <Page title={t('title')} description={t('description')} showHeading>
       {!fresh || permissions.isFetching || query.isFetching ? (
         <p role="status">{t('loading')}</p>
       ) : !admin || (permissions.isSuccess && !canRead) ? (

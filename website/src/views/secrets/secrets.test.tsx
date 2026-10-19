@@ -182,6 +182,22 @@ async function renew() {
   expect(next.dataUpdateCount).toBe(old.dataUpdateCount + 1)
 }
 
+it('exposes one localized storage heading and description without duplicate announcements', async () => {
+  await mount()
+  for (const language of ['en', 'zh']) {
+    await act(async () => {
+      await i18n.changeLanguage(language)
+    })
+    const headings = [...host.querySelectorAll('h1')]
+    expect(headings).toHaveLength(1)
+    expect(headings[0].textContent).toBe(i18n.t('secrets:title'))
+    expect(
+      [...host.querySelectorAll('p')].filter(
+        (item) => item.textContent === i18n.t('secrets:description'),
+      ),
+    ).toHaveLength(1)
+  }
+})
 it('renders the existing internal card and provisioned targets without root material or unsupported choices', async () => {
   await mount()
   expect(reads.filter((path) => path === '/auth/session')).toHaveLength(1)
