@@ -1,5 +1,48 @@
 # Current implementation handoff
 
+## Exact quota money CSV and readable values (2026-10-19)
+
+Main code is remote-verified at `33943a78fbd9948f67c2917acad93a6e6c633908`.
+Quota result definition-list cells now wrap long exact values inside the existing
+two-column layout, keeping adjacent settled-usage facts separate. No amount is
+converted, rounded or truncated. The source change is one local class update and
+paired engineering rules; API, schema, permissions and translations are unchanged.
+
+Fresh PostgreSQL run `4ce63c332a25d2ccf00353411e76bb44` first proves the real
+nonempty Money CSV data flow but exposes a visual overlap in its actual screenshot.
+Its original receipt remains `visual_layout_accepted=false`. The exact own stored
+cap is `9007199254740993.000000000000000001 USD`; journal facts remain unavailable,
+coverage remains incomplete and no forecast or quota enforcement is inferred.
+
+After repair, all 360 related cases pass. Mandatory check PID 91303 and complete
+ordinary Task PID 91855 join zero without timeout, source drift or worker groups,
+on manifest `4afa430f4fbcfcbf0de7a3f678e97a53083df380921bdf9d1813c47ceafff083`.
+Ordinary includes Go race, 288 frontend files / 7,787 cases, Node 5/5 and 93/93,
+and production assets/serving. Fresh IAB run `c926bfb2c8b3512289402733d0404721`
+uses rebuilt assets, binary, image, database, keys and Sessions. Read-only live
+DOM geometry in both English and Chinese measures 261px cell/content width,
+537px grid/content width and a 16px gap to the next column. Complete exact text
+and screenshots confirm wrapping without overlap or clipping.
+
+The actual browser-saved CSV has 909 bytes, 38 columns and two data rows, SHA-256
+`61d4db624685eeb4b473694bb5ed5920203a84327d425501fff8a956538ed50e`.
+Independent parsing matches the full cap and exact Project/root-Key scope; unknown
+usage remains blank, both coverage flags remain false and forecast remains
+unavailable. One creator-private Money definition is saved; loading performs no
+automatic query/export/inference. There are two explicit quota reads, one save201
+and one export200. Independent SQL keeps Keys, limits and audit count unchanged,
+with zero Calls/Attempts/analysis. All 31 command identities match joined zero
+exits; both containers stop zero, and the exact namespace, image and two binaries
+are absent. The disabled Credential and zero-weight binding never become callable.
+Private evidence: `~/.local/share/routex/acceptance/20261019-quota-value-wrap/`.
+
+This qualifies one Project Key Money workflow at the observed desktop viewport,
+not every report/viewport, actual enforcement, external model semantics or complete
+F24/A18. Earlier failures remain retained. The full F01-F30/A01-A20 objective,
+candidate isolation, external F29 input gap and global Partial counts are unchanged.
+Continue remaining report/authorization and enterprise release acceptance without
+deferred shared-runtime activation, V119/V120 registration or legacy transfer.
+
 ## Actual saved-report CSV artifact (2026-10-19)
 
 On remote-verified main `d8669b44c803dcda8ae9d314e1be417693eb6da4`, fresh
@@ -1423,7 +1466,7 @@ No capability or scenario is promoted by these tooling results.
 | --- | --- | --- |
 | 1 | F11/F23/F17 technical qualification | Candidate `679d8ea` retains its complete 615-node-per-driver technical evidence. Main `aed66a1` serial entrypoint separately passes 613/613 per driver, full ordinary/check, nonmatrix and archive readback. Candidate merge, product completion and deferred shared runtime remain excluded. |
 | 2 | F29 real external application acceptance | Controlled official Claude Personal and Project replacement/retirement/fresh-use and typed25006 unchanged-projection controls pass separately on PostgreSQL/MySQL, with complete recorded closure. Real application/deployment/issuer/workload inputs and external adoption remain open. Continue independent F30 transport/permanent cleanup acceptance; global F29 remains Partial. |
-| 3 | F24 denial privacy and remaining acceptance | Main `6430585` independently carries the denial repair: six predecessor failures, 360 related and full ordinary/check pass. Fresh PG IAB sends one real Project analysis404, clears private facts and closes all owned resources; saved bilingual screenshots are post-renewal cleared state. Candidate hostile-quota controls retain their separate dual-database scope. External-model semantics, saved CSV and full F24/A18 remain open. |
+| 3 | F24 denial, saved artifacts and readable exact money | Main `6430585` denial repair retains its bounded native404 scope. Actual IAB empty Tokens CSV and one Project Key Money save/load/CSV pass separate complete raw-file/SQL/closure readbacks. Main `33943a7` repairs the observed long-cap overlap with fresh EN/ZH geometry and exact decimal data. Candidate hostile-quota controls keep their separate dual-database scope. Other report/viewport combinations, external-model semantics and full F24/A18 remain open. |
 | 4 | F28 saved identities and remaining workflows | Main probe/cleanup confirmation fixes `38347e3` / `0756645` retain dual-database IAB scopes. Saved-certificate tools `3f5e8de`, normal tools `148814e` / `020a18b`, and PostgreSQL F02 restart/replay `926b170` have separate complete recorded readbacks. Continue remaining actual business/browser and external compatibility gates; no MySQL F02, F28/A16 or fleet/global promotion. |
 | 5 | F30 transport, cleanup and callback ownership | Main `6df2e60` fixes three reproduced queued confirmation/retry dispatch defects; 129 related and full ordinary/check pass. Fresh PG IAB A-to-B/Chinese previews produce no deletion and exact unchanged archive/ledger readback. Earlier PostgreSQL R10/MySQL R4 transport/cleanup scopes remain on unmerged `529fda0`. Actual uncertain-browser retry, broader F30/A20 and fleet/global acceptance remain open. |
 | 6 | Remaining release scenarios | Continue existing authorization, identity/offboarding, recovery and measured single-node release checks; obtain real external inputs only for dependent work. |
