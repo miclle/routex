@@ -20,6 +20,21 @@ const intent: SecretIntent = {
   },
 }
 afterEach(() => vi.restoreAllMocks())
+it('accepts the current V11 status and archive inventory without promoting retirement', () => {
+  const value = store()
+  Object.assign(value, { inventory_version: 11 })
+  value.rotation = job(9)
+  Object.assign(value.rotation, { inventory_version: 11 })
+  value.rotation.domains.push({
+    ...value.rotation.domains[0],
+    code: 'runtime_config_chunks',
+  })
+  expect(parseSecretStore(value)).toEqual(value)
+  const result = receipt(intent)
+  result.rotation = value.rotation
+  expect(parseSecretResult(result, intent)).toEqual(result)
+  expect(parseSecretStore(value).rotation?.allowed_actions).not.toContain('retire')
+})
 describe('strict private Secret Store boundary', () => {
   it('preserves exact epoch/domain counts, nullable proof and unknown blocker codes', () => {
     const value = store()
@@ -228,7 +243,7 @@ it('rejects unknown/missing inventory versions and five/seven aliasing', () => {
   const value = store()
   Object.assign(value, { inventory_version: 1 })
   expect(() => parseSecretStore(value)).toThrow()
-  value.inventory_version = 9
+  value.inventory_version = 11
   value.rotation = job()
   value.rotation.inventory_version = 2
   expect(() => parseSecretStore(value)).toThrow()
@@ -255,7 +270,7 @@ it.each([1, 2, 3, 4, 5, 6, 7, 8] as const)(
       ...(version >= 6 ? ['named_identity_providers'] : []),
     ]
     const parsed = parseSecretStore(value)
-    expect(parsed.inventory_version).toBe(9)
+    expect(parsed.inventory_version).toBe(11)
     expect(parsed.rotation?.inventory_version).toBe(version)
     expect(parsed.rotation?.domains.map((domain) => domain.code)).toEqual(expected)
     expect(parsed.rotation?.domains[0].scanned).toBe('9007199254740993')
@@ -264,7 +279,7 @@ it.each([1, 2, 3, 4, 5, 6, 7, 8] as const)(
     expect(parseSecretResult(result, intent).rotation).toEqual(value.rotation)
   },
 )
-it.each([1, 2, 3, 4, 5, 6, 7, 8, 10, null, undefined])(
+it.each([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, null, undefined])(
   'rejects inventory %s as current process/status coverage',
   (version) => {
     const value = store()
@@ -289,7 +304,7 @@ it.each([
       value.rotation.domains[6],
     ]
   if (kind === 'duplicate-tail') value.rotation.domains[7] = value.rotation.domains[6]
-  if (kind === 'unknown-version') Object.assign(value.rotation, { inventory_version: 10 })
+  if (kind === 'unknown-version') Object.assign(value.rotation, { inventory_version: 12 })
   expect(() => parseSecretStore(value)).toThrow(SecretError)
   const result = receipt(intent)
   result.rotation = value.rotation
@@ -356,7 +371,7 @@ it('retains V3 blockers and actions without claiming OAuth coverage or retiremen
     allowed_actions: ['resume', 'rollback'],
   }
   const parsed = parseSecretStore(value)
-  expect(parsed.inventory_version).toBe(9)
+  expect(parsed.inventory_version).toBe(11)
   expect(parsed.rotation).toEqual(value.rotation)
   expect(parsed.rotation?.domains.map((row) => row.code)).not.toContain('oauth_providers')
   expect(parsed.rotation?.domains).toHaveLength(8)
@@ -459,7 +474,7 @@ it('preserves V5 ten-domain blocked history separately from current V6 unknown c
     allowed_actions: ['resume', 'rollback'],
   }
   const historical = parseSecretStore(value)
-  expect(historical.inventory_version).toBe(9)
+  expect(historical.inventory_version).toBe(11)
   expect(historical.rotation?.inventory_version).toBe(5)
   expect(historical.rotation?.domains).toHaveLength(10)
   expect(historical.rotation?.domains.map((row) => row.code)).not.toContain(
@@ -506,7 +521,7 @@ it.each(['blocked', 'completed', 'rolled_back'] as const)(
       allowed_actions: status === 'blocked' ? ['resume', 'rollback'] : [],
     }
     const parsed = parseSecretStore(value)
-    expect(parsed.inventory_version).toBe(9)
+    expect(parsed.inventory_version).toBe(11)
     expect(parsed.rotation).toEqual(value.rotation)
     expect(parsed.rotation?.inventory_version).toBe(6)
     expect(parsed.rotation?.domains).toHaveLength(11)
@@ -551,7 +566,7 @@ it.each(['blocked', 'completed', 'rolled_back'] as const)(
       allowed_actions: status === 'blocked' ? ['resume', 'rollback'] : [],
     }
     const parsed = parseSecretStore(value)
-    expect(parsed.inventory_version).toBe(9)
+    expect(parsed.inventory_version).toBe(11)
     expect(parsed.rotation).toEqual(value.rotation)
     expect(parsed.rotation?.inventory_version).toBe(7)
     expect(parsed.rotation?.domains).toHaveLength(11)
@@ -565,7 +580,7 @@ it('accepts new V8 coverage in the same eleven domains without inventing a twelf
   const value = store()
   value.rotation = job(8)
   const parsed = parseSecretStore(value)
-  expect(parsed.inventory_version).toBe(9)
+  expect(parsed.inventory_version).toBe(11)
   expect(parsed.rotation?.inventory_version).toBe(8)
   expect(parsed.rotation?.domains.map((domain) => domain.code)).toEqual(
     job(7).domains.map((domain) => domain.code),
@@ -622,7 +637,7 @@ it.each([1, 2, 3, 4, 5, 6, 7, 8] as const)(
 )
 
 it.each(['blocked', 'completed', 'rolled_back'] as const)(
-  'keeps V8 %s history at eleven domains beneath current V9',
+  'keeps V8 %s history at eleven domains beneath current V11',
   (status) => {
     const value = store()
     value.rotation = {
@@ -634,7 +649,7 @@ it.each(['blocked', 'completed', 'rolled_back'] as const)(
     }
     const original = structuredClone(value.rotation)
     const parsed = parseSecretStore(value)
-    expect(parsed.inventory_version).toBe(9)
+    expect(parsed.inventory_version).toBe(11)
     expect(parsed.rotation).toEqual(original)
     expect(parsed.rotation?.domains).toHaveLength(11)
     expect(parsed.rotation?.allowed_actions).not.toContain('retire')
@@ -658,7 +673,7 @@ it.each(['missing', 'duplicate', 'reordered', 'wrong-code', 'null-count', 'futur
       ]
     if (kind === 'wrong-code') Object.assign(value.rotation.domains[11], { code: 'api_key_auth' })
     if (kind === 'null-count') value.rotation.domains[11].scanned = null
-    if (kind === 'future') Object.assign(value.rotation, { inventory_version: 10 })
+    if (kind === 'future') Object.assign(value.rotation, { inventory_version: 12 })
     expect(() => parseSecretStore(value)).toThrow(SecretError)
     const result = receipt(intent)
     result.rotation = value.rotation
@@ -688,4 +703,67 @@ it('preserves unknown V9 delivery work and exact decimal counts without promotin
   value.rotation = job(9)
   value.rotation.domains[11].scanned = '18446744073709551615'
   expect(parseSecretStore(value).rotation?.domains[11].scanned).toBe('18446744073709551615')
+})
+
+it('preserves V10 history without adding archive coverage or retirement authority', () => {
+  const value = store()
+  value.rotation = {
+    ...job(10),
+    status: 'blocked',
+    blocker_codes: ['inventory_scope_changed'],
+  }
+  expect(parseSecretStore(value).rotation?.domains).toEqual(job(9).domains)
+  const result = receipt(intent)
+  result.rotation = value.rotation
+  expect(parseSecretResult(result, intent).rotation).toEqual(value.rotation)
+  value.rotation.domains.push(job(11).domains[12])
+  expect(() => parseSecretStore(value)).toThrow(SecretError)
+  expect(() => parseSecretResult(result, intent)).toThrow(SecretError)
+})
+
+it.each(['missing', 'duplicate', 'reordered', 'wrong-code', 'null-count', 'future'] as const)(
+  'rejects malformed V11 archive coverage in status and receipts: %s',
+  (kind) => {
+    const value = store()
+    value.rotation = job(11)
+    if (kind === 'missing') value.rotation.domains.pop()
+    if (kind === 'duplicate') value.rotation.domains[12] = value.rotation.domains[11]
+    if (kind === 'reordered')
+      [value.rotation.domains[11], value.rotation.domains[12]] = [
+        value.rotation.domains[12],
+        value.rotation.domains[11],
+      ]
+    if (kind === 'wrong-code') Object.assign(value.rotation.domains[12], { code: 'runtime' })
+    if (kind === 'null-count') value.rotation.domains[12].scanned = null
+    if (kind === 'future') Object.assign(value.rotation, { inventory_version: 12 })
+    expect(() => parseSecretStore(value)).toThrow(SecretError)
+    const result = receipt(intent)
+    result.rotation = value.rotation
+    expect(() => parseSecretResult(result, intent)).toThrow(SecretError)
+  },
+)
+
+it('keeps V11 unscanned archive work unknown and exact observed counts lossless', () => {
+  const value = store()
+  value.rotation = job(11)
+  const archive = value.rotation.domains[12]
+  Object.assign(archive, {
+    coverage: 'not_scanned',
+    scanned: null,
+    rewrapped: null,
+    already_target: null,
+    deleted: null,
+    changed: null,
+    blocked: null,
+  })
+  expect(parseSecretStore(value).rotation?.domains[12]).toEqual(archive)
+  const result = receipt(intent)
+  result.rotation = value.rotation
+  expect(parseSecretResult(result, intent).rotation).toEqual(value.rotation)
+  archive.scanned = '0'
+  expect(() => parseSecretStore(value)).toThrow(SecretError)
+  expect(() => parseSecretResult(result, intent)).toThrow(SecretError)
+  value.rotation = job(11)
+  value.rotation.domains[12].scanned = '18446744073709551615'
+  expect(parseSecretStore(value).rotation?.domains[12].scanned).toBe('18446744073709551615')
 })

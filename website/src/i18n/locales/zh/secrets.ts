@@ -114,7 +114,8 @@ export default {
     loading: '正在等待最新的存储权限与策略。',
     loadError: '存储策略不可用，请刷新已授权的读取。',
   },
-  currentInventory: '当前 V9 清单覆盖十二个密钥领域，包括 API Key 下发机器身份认证。',
+  currentInventory:
+    '当前 V11 清单覆盖十三个密钥领域，包括 API Key 下发机器身份认证和 Gateway 配置归档分块。',
   historicalInventory: '此历史轮换覆盖 {{count}} 个领域，不证明当前清单的覆盖情况。',
   originalIntent: '原始结果未知的意图',
   originalETag: '原始复核 ETag',

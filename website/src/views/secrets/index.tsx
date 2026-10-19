@@ -704,7 +704,12 @@ function SecretWorkspace({
                 <div className="flex flex-wrap justify-end gap-2">
                   {canStart ? (
                     <Button
-                      disabled={!canWrite || busy || !reviewedCurrent || !target}
+                      disabled={
+                        !canWrite ||
+                        busy ||
+                        !reviewedCurrent ||
+                        !targets.some((key) => key.id === target)
+                      }
                       onClick={() => prepare('start')}
                     >
                       {t('start')}
