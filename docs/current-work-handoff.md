@@ -1,5 +1,55 @@
 # Current implementation handoff
 
+## F28 guarded MySQL workflow and complete ordinary acceptance (2026-10-19)
+
+Published source `2a44328f282a25db3a037ddef6db39462316d570` now passes fresh
+controlled MySQL browser/runtime acceptance and the complete ordinary Task.
+From initial login, the background in-app browser cancels the English preview,
+starts the Chinese-reviewed V11 rotation and observes thirteen domains through
+the natural 300-second gate. A separate authorized API Session retires the old
+root and repeats its identical intent. Five complete read-only MySQL projections
+confirm epoch 3, original cutover epoch 2, old Retired/new Write and two receipts.
+Business projections remain identical on replay; process-proof freshness advances.
+Both languages show Completed, and Start remains disabled after a fresh review
+when the retained target is no longer eligible. The guard has actual UI proof.
+
+After retirement, the browser's saved-Token Write and API's saved-AppRole Read
+succeed. Conditional cleanup correctly retains the expected writer 403; both
+languages show failed cleanup separately. The entire six-row Vault append pairs
+login, exact owned-version read and denied destroy. Successful cleanup or native
+AI application completion is not inferred. The failed initial SQL observer, with
+its principal assumption and missing terminal, remains unaccepted. A separate
+revision uses the existing database-scoped account and closed named flag
+normalization; all five corrected native projections have complete readbacks.
+
+The original producer joins zero without timeout/cancellation. Independent
+readback confirms all 92 recorded parent groups, five SQL groups, two audit capture
+groups, four original containers/network absent, ten native seed files intact,
+IAB tab closed, and port 59369 refused and freshly bindable. This is recorded
+coverage, not a complete descendant census. Private recipe source manifest:
+`18ec9f06fe4aed0f73c2e6ed6f1073a5419986bbe5aab86ee9cc18311e611148`.
+MySQL audit: `8b79786f83d4edf8befbdf2a0872127cfbc4ef5c0220c490d8619278b660cceb`.
+
+Mandatory check, eight focused files / 173 tests, and complete ordinary Task all
+pass on unchanged maintained source manifest
+`9ec3c74cc3bd008569e2fbec0193a1f0d83611eb2f6d52e1bd6a50ac935e57fc`:
+Go race, 288 frontend files / 7,811 tests, Node 5/5 and 92/92, fresh production
+build and asset serving. Original Task process 12708 joins zero. Combined source
+audit: `98f581d0a9464ff78f0132e7078fa2945ab6dc9ac57d001323db4a5c9b723569`.
+PostgreSQL R4 remains on parent `ee994ec`; maintained backend bytes match, but its
+frontend and receipt are not relabeled as same-head guarded-source acceptance.
+
+Protected roots are `/private/tmp/routex-f28-browser-mysql-runtime-qualification-20261019-r1`
+and `/private/tmp/routex-f28-root-target-guard-qualification-20261019-r1`.
+Seven pure-UI flows, wider F28/A16, external F29 application/deployment/workload,
+fleet and global gates remain open. Existing controlled clients or Agent delivery
+cannot supply external application adoption. The actual external F29 inputs remain
+pending; the old source archive is not a prerequisite. Original candidate and mixed
+successor stay unmerged. Deferred shared runtime, V119/V120 registration and legacy
+history transfer stay excluded. Totals remain 16 Completed / 14 Partial capabilities
+and 2 Completed / 18 Partial scenarios.
+
+
 ## F28 controlled V11 root rotation and saved-identity continuity (2026-10-19)
 
 Fresh PostgreSQL browser R4 rebuilds every artifact on product source
