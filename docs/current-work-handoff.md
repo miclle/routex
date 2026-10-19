@@ -1,5 +1,29 @@
 # Current implementation handoff
 
+## Temporary artifact retention and cleanup (2026-10-19)
+
+The 510 inactive top-level `/private/tmp/routex*` items were retired after checking
+open-file handles and running containers. Rebuildable dependencies, Go caches and
+old executables were removed. Raw evidence, failed-run records, source snapshots
+and unique helper scripts are retained in the private local archive:
+`~/.local/share/routex/cleanup/20261019/retained-evidence.tar.gz`.
+All 190,596 retained entries passed archive readback and original hash/target
+comparison. Archive SHA-256:
+`3733f1a6412c3566c723dca5c0c641a58ed1a7d3a7f775b9eb48b9c460554a50`.
+
+Historical `/private/tmp/routex-...` references below now identify archive members,
+not live temporary paths. The adjacent `README.md`, `archive-manifest.json` and
+`cleanup-result.json` provide recovery instructions, exact retained/excluded paths
+and deletion scope; `CONTINUATION.json` preserves the continuation registry.
+Restore only required members to a permanent recovery directory. This archive is
+local-only; native outputs in other temporary locations were not removed. Original
+statuses, source identities, acceptance boundaries and open goals are unchanged.
+
+After every validation run, verify closure of owned processes and Compose
+resources, retain required evidence outside temporary storage, and promptly remove
+that run's obsolete dependencies, caches, binaries and disposable artifacts.
+Do not delete active runs, unreviewed evidence or unrelated temporary paths.
+
 ## Independent Secrets UI fixes delivered on main (2026-10-19)
 
 Main is remote-verified at `bfedd54991a423fb41aebf192ad654c91543e675` for this

@@ -150,6 +150,13 @@ scripts/                      # Shell helpers invoked by Taskfile (build, check,
 
 ## Mandatory Rules
 
+After each validation run, verify closure of its owned processes and Compose
+resources, retain required raw evidence and unique helper sources outside
+temporary directories, and promptly remove its obsolete `routex*` temporary
+dependencies, caches, binaries and other disposable artifacts. Record evidence
+relocations in the current handoff. Never delete active runs, unreviewed evidence
+or unrelated temporary paths.
+
 Model creation keeps inline NEW/EXISTING access configuration before the existing
 Model table and summary. Create access with the reviewed credential-storage token
 and stable UUIDv4, then offer real Verify and any needed explicit Enable as
