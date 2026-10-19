@@ -1,5 +1,36 @@
 # RouteX Implementation and Acceptance Index
 
+## Actual saved-report CSV artifact (2026-10-19)
+
+On remote-verified main `d8669b44c803dcda8ae9d314e1be417693eb6da4`, fresh
+PostgreSQL IAB run `14fdb3bd7a0cec27ad6949c027f0f5ad` saves one creator-private
+Tokens-by-Model definition for 2026-10-18 to 2026-10-19 UTC. Loading restores
+parameters, clears results and keeps export disabled without a report query,
+export or inference. A later explicit run produces the second report query.
+One actual browser download saves a 5,586-byte CSV; the downloaded file and
+retained copy have identical SHA-256
+`07e682d3c3d48890f0bcf971b17b12efb447f362ab3b19897e8d738f710a5ca1`.
+Independent parsing verifies 60 unique columns, 26 rectangular data rows,
+platform scope, persisted-call source, exact reviewed dates/UTC and zero requests.
+The CSV capture time follows the load checkpoint. English/Chinese saved-definition
+reads and screenshots are retained. No statistics or answer is saved in the definition.
+
+Independent raw HTTP/SQL readback confirms exactly one save201, two explicit
+report reads, one export200, one active definition, zero Calls/Attempts/analysis
+and unchanged audit count. All 31 recorded commands match joined zero exits;
+both containers stop zero, and the exact namespace, image and two binaries are
+absent. Original parent joins zero without timeout or source drift on manifest
+`ed456b09cd36925499bf53596e0e3d80191ea834ecf0b0e2027ec3c71825329c`.
+An earlier download-observer timeout remains failed: renewed authority had cleared
+the loaded controls, and no second query/export was dispatched. A fresh explicit
+load/run within the same original deadline produces the accepted actual file.
+Private evidence: `~/.local/share/routex/acceptance/20261019-insights-saved-csv/`.
+
+This closes a bounded empty-report save/load/saved-file control only. It does not
+prove nonempty or quota CSV, large exact money, external AI semantics or complete
+F24/A18. Next qualify a nonempty quota account and exact-money CSV without enabling
+deferred shared runtime. External F29 inputs and global Partial counts remain.
+
 ## Archive cleanup confirmation ownership (2026-10-19)
 
 Main code is remote-verified at `6df2e6091275a97f0776c7cfa84f10179a6ae52a`.
