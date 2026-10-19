@@ -1,5 +1,41 @@
 # RouteX Implementation and Acceptance Index
 
+## Archive cleanup confirmation ownership (2026-10-19)
+
+Main code is remote-verified at `6df2e6091275a97f0776c7cfa84f10179a6ae52a`.
+Queued cleanup callbacks now bind the mounted owner, rendered authority turn,
+exact selection/preview/reason and original uncertain intent. A replaced review
+or earlier attempt cannot authorize another deletion or retry. Fresh explicitly
+authorized identical-intent retries preserve the original bytes/ETag and current
+CSRF. No request, schema or page-layout contract changes.
+
+Three actual repository predecessor cases reproduce extra HTTP dispatches.
+All 129 related cases pass after repair; the ten cleanup controls run under
+StrictMode. Mandatory check PID 70706 and ordinary PID 71331 join zero without
+timeout, source drift or remaining worker groups, on manifest
+`0bd10c0f47e46d26c6c0ec1a1bbf383f42915998baf5bc49a42df7bf3df39a2a`.
+Ordinary includes Go race, 288 frontend files / 7,787 cases, Node 5/5 and 93/93,
+and fresh production assets/serving. Initial configuration-resolution failures
+ran no tests and remain excluded from defect reproduction.
+
+Fresh PostgreSQL IAB run `46ab8dbccf3b7f72e72932d99c373a73` reads genuine
+retained archives, reviews A, replaces it with B and reopens B's Chinese review.
+The exact reviewed section contains only the selected archive. Three preview
+POSTs return 200; no cleanup request is sent. Independent raw SQL readback keeps
+all four retained headers/chunk hashes and the retention ledger identical, with
+zero cleanup receipts/audits or rollback commands. All 32 command identities
+match joined zero exits; both containers stop zero, and the exact namespace,
+image and two binaries are absent. The first incomplete generation retains its
+original exit: browser login itself creates an authorization archive, so the
+successful generation takes its original baseline after that genuine login.
+Private evidence: `~/.local/share/routex/acceptance/20261019-archive-confirmation/`.
+
+This is source dispatch ownership and safe bilingual preview acceptance, not
+live queued-click injection, destructive cleanup, cold integrity validation or
+complete F30/A20. The candidate remains unmerged. Next continue F24's actual
+saved-report/CSV artifact acceptance and independent release gates; external
+application adoption and global Partial counts remain unchanged.
+
 ## Quota-analysis denial privacy (2026-10-19)
 
 Main code is remote-verified at `6430585484a2f3d6430bbda5c676dd859063aa7e`.
@@ -1358,7 +1394,7 @@ No capability or scenario is promoted by these tooling results.
 | 2 | F29 real external application acceptance | Controlled official Claude Personal and Project replacement/retirement/fresh-use and typed25006 unchanged-projection controls pass separately on PostgreSQL/MySQL, with complete recorded closure. Real application/deployment/issuer/workload inputs and external adoption remain open. Continue independent F30 transport/permanent cleanup acceptance; global F29 remains Partial. |
 | 3 | F24 denial privacy and remaining acceptance | Main `6430585` independently carries the denial repair: six predecessor failures, 360 related and full ordinary/check pass. Fresh PG IAB sends one real Project analysis404, clears private facts and closes all owned resources; saved bilingual screenshots are post-renewal cleared state. Candidate hostile-quota controls retain their separate dual-database scope. External-model semantics, saved CSV and full F24/A18 remain open. |
 | 4 | F28 failure coordinator | Published `cc4914c` passes actual controlled post-effect 23514 acknowledgement refusal, preserved pending claim, natural deadline, same-Session same-binary restart/replay and zero extra remote events, with full recorded closure. Native controls, actual-data parsers, check and ordinary Task pass. Next continue genuine bilingual Vault/storage IAB acceptance and wider release gates; the earlier coordinator remains unchanged. |
-| 5 | F30 transport and permanent cleanup | Fresh PostgreSQL R10 and MySQL R4 pass actual bilingual IAB rollback/cleanup, four native-completed Calls, complete bounded SQL/storage-delta readback and original/resource closure on `529fda0`. Earlier R8/R9 remain incomplete. Uncertain-browser retry, broader F30/A20 and fleet/global acceptance remain open. |
+| 5 | F30 transport, cleanup and callback ownership | Main `6df2e60` fixes three reproduced queued confirmation/retry dispatch defects; 129 related and full ordinary/check pass. Fresh PG IAB A-to-B/Chinese previews produce no deletion and exact unchanged archive/ledger readback. Earlier PostgreSQL R10/MySQL R4 transport/cleanup scopes remain on unmerged `529fda0`. Actual uncertain-browser retry, broader F30/A20 and fleet/global acceptance remain open. |
 | 6 | Remaining release scenarios | Continue existing authorization, identity/offboarding, recovery and measured single-node release checks; obtain real external inputs only for dependent work. |
 
 The fourteen Partial capabilities remain F03, F10-F14, F17, F20, F23-F24 and
