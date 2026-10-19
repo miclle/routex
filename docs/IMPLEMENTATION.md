@@ -1,5 +1,48 @@
 # RouteX Implementation and Acceptance Index
 
+## Dual-database normal cleanup delivery (2026-10-19)
+
+Main code is remote-verified at `020a18b6fe8860ce1918ab4112748e3facf0a189`.
+The maintained normal cleanup Task accepts exact `--driver postgres` / `mysql`
+after `--exclusive-validation-lane`; omitted driver preserves PostgreSQL.
+Both native commands compile the selected profile into fixed service/account/
+database identities. MySQL uses UTC timestamp decoding, finite deadlines and
+no initializer version query before the bounded read context. Input JSON adds
+no driver, DSN, endpoint or namespace override. Each run creates its own database,
+credentials, binaries and image; no host port is published.
+
+Focused Go race and selector/retirement controls pass. Mandatory check (PID 81179)
+and full ordinary Task (PID 82391) join zero on unchanged repository manifest
+`da666c2e4fed3dba9b1e094f53aa17b2195be07275b4b898732f75225e5aab14`:
+Go race, 287 frontend files / 7,770 cases, Node 5/5 and 93/93, production assets
+and serving. Both groups are absent. Fresh PostgreSQL and MySQL normal Tasks run
+serially, each original process joins zero and each full independent readback
+passes. Original API200, durable acknowledged cleanup, five complete audit pairs,
+whole status-family deltas, exact token-free replay with zero added Vault events,
+unchanged bounded creation projection and both joined read-only evidence commands
+agree. Each retains 29 normal and 18 preflight files and verifies 114 recorded
+groups, exact containers/network/image/four binaries absent.
+
+Private roots under `~/.local/share/routex/acceptance/normal-vault/`:
+PostgreSQL `routex-vault-normal-gpuyipcs`, run `5cb393d24cc428e895b5069abb960681`,
+audit SHA-256 `667ae140ab150b441a3e26576081538bb07c642ae4f2a4c6d19eac4af6313c22`;
+MySQL `routex-vault-normal-9kvbdnz8`, run `ee67d383f4b0c3c444f3661ced752aec`,
+audit SHA-256 `9103460f2d23279201471d5f0ff07a119458cbab55f064cc30e81d723e7312eb`.
+Native manifest `fa28762597f0d52b76aee12eaea6275f7fe4f4afb45aec5755bd2ecceb158827`
+normalizes exactly to the checked repository source. Application stamp remains
+`8984e80`. Independent reader source SHA-256 is
+`ee880450395bef00c6b0a638e7266e3b8512ea6e3af2ebbc5f24c3f7192ba2a7`.
+Earlier failed attempts and narrower receipts retain their original outcomes.
+
+Next maintain the separate F02 process-restart/replay producer and its driver
+qualification boundary, then continue remaining genuine business/browser gates.
+Normal acknowledgement does not prove F02, browser destruction, external F29
+application use or native AI completion. Real external application/deployment/
+issuer/workload inputs remain pending on the existing request. Original candidate
+and mixed successor stay unmerged; deferred shared runtime, V119/V120 and legacy
+transfer remain excluded. Totals stay 16 Completed / 14 Partial capabilities and
+2 Completed / 18 Partial scenarios.
+
 ## Maintained normal API/SQL/Vault cleanup tools (2026-10-19)
 
 Main code is remote-verified at `148814e55956e64d2cfa80713b891ac66c7cdb8d`.
