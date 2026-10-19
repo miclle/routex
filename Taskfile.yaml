@@ -178,6 +178,11 @@ tasks:
     cmds:
       - ./scripts/test-auth-lifecycle.sh
 
+  test-vault-certificate:
+    desc: Qualify saved Vault certificates in one explicitly reserved database lane
+    cmds:
+      - node scripts/vault-certificate-acceptance.mjs {{.CLI_ARGS}}
+
   test-backup-restore:
     desc: Verify cold backup and restore against isolated PostgreSQL and MySQL databases
     cmds:
