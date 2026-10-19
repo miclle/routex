@@ -1921,6 +1921,8 @@ or actual request blocking. Preserve actor/Session/permission/target freshness a
 abort stale reads/exports. Optional AI advice uses only explicitly reviewed current-page
 Token or Money facts with anonymous T/K labels; quota identities and uncaptured data remain excluded.
 
+Current quota-analysis 401/403/404 responses clear captured quota facts and advice immediately. Key reports also clear the selected member/Project and cancel its exact target read before refreshing the authorized picker. Denial must hide private names and totals while replacement options are pending, without replaying reports, exports or inference. Obsolete analysis responses cannot clear a newly reviewed scope or report.
+
 The existing quota reading-guidance card may derive deterministic observations
 only from the captured page's recorded levels, stored cap behavior and server
 forecast facts. Keep reached Stop and Alert only policies separate, distinguish

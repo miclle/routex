@@ -42,6 +42,7 @@ export function useInsightsAI({
   report,
   supported,
   teamQuotaPage,
+  onDenied,
 }: {
   actor: string
   authorityStamp: string
@@ -53,6 +54,7 @@ export function useInsightsAI({
     | InsightsTeamQuotaInput['report']
     | InsightsKeyQuotaInput['report']
   supported: boolean
+  onDenied?: () => void
   teamQuotaPage?: {
     cursor: string
     limit: number
@@ -292,6 +294,7 @@ export function useInsightsAI({
     } catch (caught) {
       if (abort.signal.aborted || epoch.current !== capturedEpoch || !current()) return
       const status = isAxiosError(caught) ? caught.response?.status : undefined
+      if ([401, 403, 404].includes(status ?? 0)) onDenied?.()
       setError({
         context: captured.context,
         key: [401, 403, 404].includes(status ?? 0)
