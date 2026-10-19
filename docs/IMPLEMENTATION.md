@@ -1,5 +1,54 @@
 # RouteX Implementation and Acceptance Index
 
+## Storage policy authority and accessible heading delivery (2026-10-19)
+
+Main code is remote-verified at `44a84723460a39f21577c3f1b1ddc65a40093353`
+and `71e2473e890d457e221184f6062b5e0e2eb80808`. The first fix revokes unsent
+Provider storage-policy confirmations synchronously on Session, permission and
+policy-query transitions, including removal/recreation with identical facts.
+Obsolete successful replies remain uncertain; explicit retries retain the original
+body and reviewed ETag with fresh authority/CSRF. Five new regression cases cover
+these boundaries. The second fix makes the existing Page composition own the
+visible Secrets heading and description, removing duplicate accessible announcements
+while preserving the specified visible composition and live bilingual copy.
+
+Each code phase passes mandatory check and the complete ordinary Task on unchanged
+source: Go race, 287 frontend files / 7,754 then 7,755 cases, Node 5/5 and 91/91,
+fresh production builds and asset serving. Final heading focus passes 47 cases.
+The predecessor confirmation and cache-recreation witnesses fail before their
+repairs; the heading predecessor fails its exact duplicate-announcement regression.
+
+Fresh serial MySQL (`44a8472`) and PostgreSQL successor (`71e2473`) runs rebuild
+assets, three native executables and separate images, databases, identities and
+keys. The background in-app browser actually cancels an English policy review,
+saves future inline storage, selects the exact saved Vault revision in Chinese
+and saves it. Independent authorized API readbacks preserve the exact original
+Credential ID and Vault source across both saves. PostgreSQL additionally confirms
+one content heading/description in both languages. MySQL is not relabeled as a
+whole-`71e2473` runtime run. Precise authority races remain unit-regression evidence;
+the exact cause of the earlier browser confirmation withdrawal remains unknown.
+
+Both accepted producers join zero. Independent readback verifies 90 recorded
+groups per run, 18 preflight and 10 native seed files each, original containers
+and networks absent, closed IAB tabs, and refused/freshly bindable ports. Run-owned
+images and three binaries per run are removed after verification; raw evidence
+and scripts remain in private persistent storage. MySQL audit:
+`e38270a9d1f08a1f51f7f1f0b6453dbade3e9f945aeffefabc7bf079123eb820`.
+PostgreSQL successor audit:
+`4d005cf0670df67968ed6c059bdf5b62998dfd90ab1f9d2082eabfea59f59687`.
+The earlier PostgreSQL cancellation marker is rejected because no cancellation
+was performed; its real save/read observations and native closure retain their
+narrow scopes. Failed setup/observer/auditor and initial bind observations remain
+separate. No synthetic marker establishes UI acceptance.
+
+Protected local-only roots are `~/.local/share/routex/acceptance/20261019-provider-storage-confirmation`
+and `~/.local/share/routex/acceptance/20261019-secrets-heading`. Continue actual
+saved-certificate Vault authentication/persistence and remaining F28 workflows.
+External F29 application/deployment/workload inputs remain separately pending.
+The original candidate and mixed successor remain unmerged; deferred shared runtime,
+V119/V120 registration and legacy transfer remain excluded. Counts remain
+16 Completed / 14 Partial capabilities and 2 Completed / 18 Partial scenarios.
+
 ## Temporary artifact retention and cleanup (2026-10-19)
 
 The 510 inactive top-level `/private/tmp/routex*` items were retired after checking
