@@ -155,7 +155,7 @@ export default function QuotaInsightsResult({ report }: { report: QuotaInsightsR
                 style={{ width: width(row.utilization_percent) }}
               />
             </div>
-            <dl className="grid gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
+            <dl className="grid gap-x-4 gap-y-1 text-sm sm:grid-cols-2 [&>div]:min-w-0 [&_dd]:wrap-anywhere">
               <div>
                 <dt className="text-muted-foreground">{t('quotaOwnCap')}</dt>
                 <dd>{row.local_cap === null ? t('quotaNoLocalCap') : amount(row.local_cap)}</dd>
