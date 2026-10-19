@@ -256,7 +256,11 @@ func configurationProjectV1(d *runtimeConfigurationProjectDataV1) bool {
 		return false
 	}
 	for _, r := range d.Managers {
-		if !configurationIDV1(r.ID, "pmg") || !configurationIDV1(r.UserID, "usr") || !configurationIDV1(r.ProjectID, "prj") {
+		// Earlier offboarding writes used pjm. Preserve that exact historical
+		// identity in detached source; new relationships use pmg. Neither codec
+		// acceptance nor routing rollback grants management authority.
+		managerID := configurationIDV1(r.ID, "pmg") || configurationIDV1(r.ID, "pjm")
+		if !managerID || !configurationIDV1(r.UserID, "usr") || !configurationIDV1(r.ProjectID, "prj") {
 			return false
 		}
 	}

@@ -201,6 +201,22 @@ export async function prepareOffboardingNoticeRestart({
     assert.equal(currentTeam.members[0].role, 'owner', 'Actual Team successor is not an owner')
     assert.equal(currentTeam.members[0].status, 'active', 'Actual Team successor is not active')
     assert.equal(currentProject.managers.length, 1, 'Completion left unrelated Project management')
+    assert.match(
+      currentProject.managers[0].id,
+      /^pmg_[0-7][0-9a-hjkmnp-tv-z]{25}$/,
+      'Completion created a noncanonical Project manager relationship',
+    )
+    const successorProject = await read(`/projects/${project.id}`, successor)
+    assert.equal(
+      successorProject.id,
+      project.id,
+      'The real successor cannot read the handed-over Project',
+    )
+    assert.equal(
+      successorProject.managers[0].id,
+      currentProject.managers[0].id,
+      'Scoped successor read lost the exact relationship',
+    )
     assert.equal(
       currentProject.managers[0].user_id,
       successor.id,

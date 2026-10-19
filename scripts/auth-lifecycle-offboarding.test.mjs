@@ -95,7 +95,11 @@ function controlledAPI() {
   const inboxes = new Map([[administrator.cookie, []]])
   const calls = []
   const people = new Map()
-  const settings = { enabled: false }
+  const settings = {
+    enabled: false,
+    managerID: 'pmg_00000000000000000000000001',
+    successorProjectDenied: false,
+  }
   let record
   let completed = false
   let memberCount = 0
@@ -179,9 +183,16 @@ function controlledAPI() {
         }
       else if (path === '/admin/projects/prj_handover')
         data = {
-          managers: [{ id: 'pmg_successor', user_id: 'usr_successor' }],
+          managers: [{ id: settings.managerID, user_id: 'usr_successor' }],
         }
-      else if (path.startsWith('/notifications?')) data = page(...inboxes.get(cookie))
+      else if (path === '/projects/prj_handover') {
+        if (cookie !== 'cookie-successor' || settings.successorProjectDenied) status = 403
+        else
+          data = {
+            id: 'prj_handover',
+            managers: [{ id: settings.managerID, user_id: 'usr_successor' }],
+          }
+      } else if (path.startsWith('/notifications?')) data = page(...inboxes.get(cookie))
       else if (path === '/notifications/ntf_successor/read') {
         if (cookie === 'cookie-stranger') status = 404
         else {
@@ -279,4 +290,27 @@ test('restart controller rejects enabled SMTP after restart', async () => {
   const retained = await prepareOffboardingNoticeRestart(fixture)
   fixture.settings.enabled = true
   await assert.rejects(retained, /disabled SMTP/)
+})
+
+test('handover qualification rejects a newly generated historical manager prefix', async () => {
+  const fixture = controlledAPI()
+  fixture.settings.managerID = 'pjm_00000000000000000000000001'
+  await assert.rejects(
+    () => prepareOffboardingNoticeRestart(fixture),
+    /noncanonical Project manager/,
+  )
+})
+
+test('handover qualification requires the successor own authorized Project read', async () => {
+  const fixture = controlledAPI()
+  fixture.settings.successorProjectDenied = true
+  await assert.rejects(
+    () => prepareOffboardingNoticeRestart(fixture),
+    /Unexpected controlled API status/,
+  )
+  assert.ok(
+    fixture.calls.some(
+      (call) => call.path === '/projects/prj_handover' && call.cookie === 'cookie-successor',
+    ),
+  )
 })

@@ -152,7 +152,7 @@ func applyOffboarding(tx *gorm.DB, actorID string, inventory *OffboardingInvento
 			if count > 0 {
 				continue
 			}
-			relationID, err := id.NewPrefixed("pjm")
+			relationID, err := id.NewPrefixed("pmg")
 			if err != nil {
 				return nil, err
 			}

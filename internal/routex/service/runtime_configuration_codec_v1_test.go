@@ -625,3 +625,25 @@ func TestRuntimeConfigurationV1StaleBirthAndUnavailableSourceFacts(t *testing.T)
 		t.Fatal("stale/dangling source was backfilled or became eligible")
 	}
 }
+
+func TestRuntimeConfigurationV1HistoricalOffboardingManagerIdentity(t *testing.T) {
+	for _, prefix := range []string{"pmg", "pjm"} {
+		t.Run(prefix, func(t *testing.T) {
+			document := configurationFixtureV1(t)
+			identity := configurationTestIDV1(prefix, 901)
+			document.Source.ProjectData.Managers[0].ID = identity
+			raw, digest := configurationEncodeV1(t, document)
+			facts, err := reconstructRuntimeConfigurationV1(t.Context(), raw, digest)
+			if err != nil || facts.Document.Source.ProjectData.Managers[0].ID != identity {
+				t.Fatal("historical manager identity was rejected or rewritten", err)
+			}
+		})
+	}
+	for _, invalid := range []string{configurationTestIDV1("other", 901), strings.ToUpper(configurationTestIDV1("pjm", 901)), configurationTestIDV1("pjm", 901) + " "} {
+		document := configurationFixtureV1(t)
+		document.Source.ProjectData.Managers[0].ID = invalid
+		if raw, _, err := encodeRuntimeConfigurationV1(t.Context(), document); err == nil || len(raw) != 0 {
+			t.Fatal("foreign or aliased manager identity admitted")
+		}
+	}
+}
