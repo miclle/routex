@@ -1,5 +1,48 @@
 # RouteX Implementation and Acceptance Index
 
+## Maintained normal API/SQL/Vault cleanup tools (2026-10-19)
+
+Main code is remote-verified at `148814e55956e64d2cfa80713b891ac66c7cdb8d`.
+The independently restored read-only cleanup evidence capability, observed
+wire parsers and native normal-path producer are now maintained on main without
+merging the original candidate or mixed successor. Run the opt-in PostgreSQL
+lane with `go tool task test-vault-cleanup-normal -- --exclusive-validation-lane`.
+Private output stays under `~/.local/share/routex/acceptance/normal-vault/`.
+Exact fresh image and checked binaries are retired after verified closure;
+unknown files or changed binaries are preserved. No dependency version changes;
+existing x/sys becomes direct for the Linux stdin guard.
+
+Five focused Go race packages, 26 manifest controls and two artifact-retirement
+tests pass. Mandatory check (PID 66413) and full ordinary Task (PID 67013) join
+zero on unchanged repository manifest
+`b42d38d91a0876d3037b04e24eac874d93b405e73490a121466ad2a012c7cd17`:
+Go race, 287 frontend files / 7,770 cases, Node 5/5 and 93/93, production assets
+and serving. Earlier check failure remains recorded (dependency declaration).
+Fresh default Token wire compatibility passes 15 files, four paired audit calls,
+43 recorded groups absent, exact topology closure and binary retirement.
+The certificate runner explicitly requests that same Token preflight profile;
+this does not rerun or replace its separately recorded certificate/root evidence.
+
+Fresh PostgreSQL normal R2 joins zero and passes full independent readback:
+original API200, durable acknowledged state, five complete audit pairs, whole
+status-family delta, identical token-free replay with zero new Vault events,
+unchanged creation history, both native evidence processes joined, 29 normal
+and 18 preflight files. All 114 recorded groups and original containers/network/
+image/four binaries are absent. Run `bc400138f3c369fd75611b216fbb7b2a` is retained
+in `routex-vault-normal-d3sbo5kh`; raw audit SHA-256 is
+`02a51e0cc740f2d828e76c37be0c28a2aeceb8a6056b87f4157e95847ea64b59`.
+Native manifest `f929e0ddc8016318f0d4a4af88a868d293b0b2abcf05224456976688c2fef306`
+normalizes exactly to the checked repository input. Application build stamp stays
+`2abb824`. R1 remains failed after Docker Hub TLS timeout before Compose; separate
+readback confirms no namespace/resources and checked binary retirement.
+
+Next implement and qualify the MySQL normal profile, keeping driver binding,
+read-only SQL, exact namespace and original receipt/replay protections intact.
+F02, actual browser destruction, external F29 adoption/workload and fleet/global
+acceptance remain separate. Deferred shared runtime, V119/V120 and legacy
+transfer remain excluded; totals stay 16 Completed / 14 Partial capabilities
+and 2 Completed / 18 Partial scenarios.
+
 ## Provider cleanup review cancellation (2026-10-19)
 
 Main code is remote-verified at `0756645462973bf76c21126ab02e55508b914ab0`.
