@@ -1,5 +1,54 @@
 # RouteX Implementation and Acceptance Index
 
+## Quota export denial privacy (2026-10-19)
+
+Main code is remote-verified at `51ba5eba518d231fa833d44e1a659a1f32da5dec`.
+Current export target-review or CSV 401/403/404 now clears captured quota facts
+and advice. Key reports also clear the selected owner and refresh its exact
+picker. Success and failure both require the original successful report generation;
+an obsolete denial cannot clear or mark a newer report denied. Non-denial export
+failures preserve reviewed facts. API, schema and report layout are unchanged.
+
+Nine new regressions fail against the predecessor during a full frontend run
+(7,789 other passes); the original joined exit1 remains retained. After repair,
+all 371 related cases pass. Mandatory check PID15349 and complete ordinary Task
+PID15934 join zero without timeout, source drift or remaining worker groups on
+manifest `f0c9f3102a6571097469c1381e09692799bf1f74d6a0c1ce28a48424070185e3`.
+Ordinary includes Go race, 288 frontend files / 7,798 cases, Node lifecycle
+controls, development lifecycle and production assets/serving. Check retains three
+nonfatal lint warnings and zero errors.
+
+Fresh PostgreSQL/IAB run `9b148891239b8c63624a39960ee9fec5` reads one Project Key
+Money report, removes the test reader's exact manager relationship, then clicks
+Export CSV. The real export target reauthorization returns404 before CSV dispatch.
+Immediate saved English/Chinese screenshots and DOM show the denied notice and
+absence of the former Project, Key and exact cap. Independent raw HTTP and SQL
+readback confirms one report200, one target404, zero CSV/analysis/inference,
+unchanged Keys/limits/report definitions, zero Calls/Attempts and only the intended
+manager-removal audit. All 30 command identities join zero; both containers stop
+zero; the namespace, run image and two checked binaries are absent and port closes.
+The Credential remains disabled and the binding stays zero-weight.
+
+A separate fresh MySQL/IAB run `bfc9b4a819adf7f326df67fd5d969909` passes the same
+immediate bilingual target404 workflow with one report200 and zero CSV/inference.
+Independent parsing of the native read-only XML preserves all selected Key,
+limit, manager and report columns as exact text. The intended manager removal is
+the only change; 30 commands join zero, both containers stop zero, and namespace,
+image, two binaries and listener close. Manifest
+`57a65bc964ea16142af2f8e6d8e02534429ada4e67cb3f548989d6569214b640`
+differs from the source-gate manifest only in the two acceptance documents; product
+code and rules are identical. The two databases ran serially with fresh identities.
+
+The first browser run `f1430e80410d2105622c6bb90223150c` joins exit1 because normal
+permission renewal resets the view before the immediate saved screenshots. Its
+incomplete result and independently verified owned closure remain separate.
+Private evidence: `~/.local/share/routex/acceptance/20261019-quota-export-denial/`.
+Actual CSV endpoint refusals and delayed-report races are source-test evidence;
+these real PostgreSQL/MySQL browser results cover target reauthorization404 only.
+No external adoption, complete F24/A18 or global promotion is inferred. Candidate
+isolation, the pending external F29 input request and all deferred-runtime exclusions
+remain unchanged. Continue remaining browser/release work from the queue below.
+
 ## Exact quota money CSV and readable values (2026-10-19)
 
 Main code is remote-verified at `33943a78fbd9948f67c2917acad93a6e6c633908`.
@@ -1466,7 +1515,7 @@ No capability or scenario is promoted by these tooling results.
 | --- | --- | --- |
 | 1 | F11/F23/F17 technical qualification | Candidate `679d8ea` retains its complete 615-node-per-driver technical evidence. Main `aed66a1` serial entrypoint separately passes 613/613 per driver, full ordinary/check, nonmatrix and archive readback. Candidate merge, product completion and deferred shared runtime remain excluded. |
 | 2 | F29 real external application acceptance | Controlled official Claude Personal and Project replacement/retirement/fresh-use and typed25006 unchanged-projection controls pass separately on PostgreSQL/MySQL, with complete recorded closure. Real application/deployment/issuer/workload inputs and external adoption remain open. Continue independent F30 transport/permanent cleanup acceptance; global F29 remains Partial. |
-| 3 | F24 denial, saved artifacts and readable exact money | Main `6430585` denial repair retains its bounded native404 scope. Actual IAB empty Tokens CSV and one Project Key Money save/load/CSV pass separate complete raw-file/SQL/closure readbacks. Main `33943a7` repairs the observed long-cap overlap with fresh EN/ZH geometry and exact decimal data. Candidate hostile-quota controls keep their separate dual-database scope. Other report/viewport combinations, external-model semantics and full F24/A18 remain open. |
+| 3 | F24 denial, saved artifacts and readable exact money | Main `6430585` denial repair retains its bounded native404 scope. Actual IAB empty Tokens CSV and one Project Key Money save/load/CSV pass separate complete raw-file/SQL/closure readbacks. Main `33943a7` repairs the observed long-cap overlap with fresh EN/ZH geometry and exact decimal data. Candidate hostile-quota controls keep their separate dual-database scope. Main `51ba5eb` also qualifies current export-denial clearing with 371 related cases, full ordinary/check and immediate bilingual PG/MySQL IAB target404 readback. Direct CSV refusal/races retain source-test scope. Other report/viewport combinations, external-model semantics and full F24/A18 remain open. |
 | 4 | F28 failure coordinator | Published `cc4914c` passes actual controlled post-effect 23514 acknowledgement refusal, preserved pending claim, natural deadline, same-Session same-binary restart/replay and zero extra remote events, with full recorded closure. Native controls, actual-data parsers, check and ordinary Task pass. Next continue genuine bilingual Vault/storage IAB acceptance and wider release gates; the earlier coordinator remains unchanged. |
 | 5 | F30 transport, cleanup and callback ownership | Main `6df2e60` fixes three reproduced queued confirmation/retry dispatch defects; 129 related and full ordinary/check pass. Fresh PG IAB A-to-B/Chinese previews produce no deletion and exact unchanged archive/ledger readback. Earlier PostgreSQL R10/MySQL R4 transport/cleanup scopes remain on unmerged `529fda0`. Actual uncertain-browser retry, broader F30/A20 and fleet/global acceptance remain open. |
 | 6 | Remaining release scenarios | Continue existing authorization, identity/offboarding, recovery and measured single-node release checks; obtain real external inputs only for dependent work. |
