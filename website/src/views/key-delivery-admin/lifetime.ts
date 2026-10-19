@@ -84,6 +84,7 @@ export function useDeliveryLifetime(
     controller: undefined as AbortController | undefined,
     dispatched: false,
   })
+  const [dispatchTurn, setDispatchTurn] = useState(0)
   const intentRef = useRef<DeliveryIntent | undefined>(undefined)
   const [intent, setIntent] = useState<DeliveryIntent>()
   const [pending, setPending] = useState(false)
@@ -119,6 +120,7 @@ export function useDeliveryLifetime(
         if (authorityEvent && previous.current === next) return
         previous.current = next
         owner.current.turn++
+        setDispatchTurn(owner.current.turn)
         owner.current.controller?.abort()
         owner.current.controller = undefined
         setPending(false)
@@ -159,6 +161,7 @@ export function useDeliveryLifetime(
     if (parentRef.current === parentIdentity) return
     parentRef.current = parentIdentity
     owner.current.turn++
+    setDispatchTurn(owner.current.turn)
     owner.current.controller?.abort()
     owner.current.controller = undefined
     setPending(false)
@@ -175,6 +178,7 @@ export function useDeliveryLifetime(
   useEffect(() => {
     const lifetime = owner.current
     lifetime.mounted = true
+    setDispatchTurn(lifetime.turn)
     return () => {
       lifetime.mounted = false
       lifetime.turn++
@@ -206,6 +210,7 @@ export function useDeliveryLifetime(
   )
   const discard = useCallback(() => {
     owner.current.turn++
+    setDispatchTurn(owner.current.turn)
     owner.current.controller?.abort()
     owner.current.controller = undefined
     owner.current.dispatched = false
@@ -242,6 +247,16 @@ export function useDeliveryLifetime(
       (uncertain || options.generation === original.optionGeneration)
     )
   }
+  const parentIsCurrent = () =>
+    JSON.stringify([
+      latest.current.authority.actor,
+      latest.current.authority.admin,
+      latest.current.authority.fresh,
+      latest.current.authority.generation,
+      JSON.stringify(latest.current.authority.permissionKey),
+      latest.current.options.current,
+      latest.current.options.generation,
+    ]) === parentIdentity
   const prepare = (draft: DeliveryDraft) => {
     if (
       owner.current.controller ||
@@ -281,9 +296,15 @@ export function useDeliveryLifetime(
     setNotice(undefined)
   }
   const dispatch = async () => {
-    const original = intentRef.current
+    const original = intent
     if (
+      !owner.current.mounted ||
       !original ||
+      intentRef.current !== original ||
+      owner.current.turn !== dispatchTurn ||
+      parentRef.current !== parentIdentity ||
+      !parentIsCurrent() ||
+      pending ||
       Date.now() >= original.expires ||
       owner.current.controller ||
       !current('secrets.write', original.kind === 'verify' || original.kind === 'reconcile')
@@ -292,8 +313,8 @@ export function useDeliveryLifetime(
     if (!selectionCurrent(original)) return
     const controller = new AbortController(),
       turn = ++owner.current.turn,
-      admission = parentIdentity,
       fingerprint = snapshot()
+    setDispatchTurn(turn)
     owner.current.controller = controller
     owner.current.dispatched = true
     setPending(true)
@@ -303,15 +324,7 @@ export function useDeliveryLifetime(
       owner.current.turn === turn &&
       !controller.signal.aborted &&
       snapshot() === fingerprint &&
-      JSON.stringify([
-        latest.current.authority.actor,
-        latest.current.authority.admin,
-        latest.current.authority.fresh,
-        latest.current.authority.generation,
-        JSON.stringify(latest.current.authority.permissionKey),
-        latest.current.options.current,
-        latest.current.options.generation,
-      ]) === admission &&
+      parentIsCurrent() &&
       current('secrets.write', original.kind === 'verify' || original.kind === 'reconcile')
     try {
       let result: { id?: string }
