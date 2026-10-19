@@ -1,5 +1,47 @@
 # Current implementation handoff
 
+## Vault probe confirmation ownership (2026-10-19)
+
+Main code is remote-verified at `38347e3165dd2e052fd3973e27312b5b86273425`.
+Unsent Write, Read and Cleanup confirmations now retain their exact intent,
+selection and authority epoch in synchronous refs. Review renewal, Cancel and
+Close revoke queued callbacks immediately. An uncertain retry retains only its
+still-owned original dispatched intent; obsolete completions cannot restore a
+closed dialog. Five new regressions fail on the predecessor. Fixed focused
+40/40 and related 178/178 pass. Mandatory check (PID 34426) and complete ordinary
+Task (PID 35097) join zero with unchanged source and absent process groups:
+Go race, 287 frontend files / 7,763 cases, Node 5/5 and 92/92, production assets
+and serving. Repository source projection is
+`42e32cce37e187d62f33253ec29ed477fe12c660d1114a751263cdd3b8ee65f8`.
+
+Fresh serial PostgreSQL R2 and MySQL R1 use the background in-app browser.
+Actual creation Cancel creates nothing; actual probe-review Cancel leaves no
+probe, and a new explicit review permits Write. Separate Read immediately shows
+the recorded success and expected denied cleanup. Independent API Sessions,
+English/Chinese observations and 13 paired Vault audit calls agree. Each original
+producer joins zero and full independent readback confirms 107 recorded groups,
+containers/network/image/four binaries absent, closed browser tab, and refused
+plus freshly bindable port after natural release. Exact queued-callback race
+proof remains focused-test evidence; normal browser steps do not reproduce that
+race. Application build stamp remains the original base `8ed39e2`.
+
+Private evidence under `~/.local/share/routex/acceptance/certificate-drawer/`:
+PostgreSQL `8bb8707f37d5f4887dffb916d1f47d5b`, audit SHA-256
+`9987d1a7e31781766e099de2a1314ba60313a4da5073fa70ed383658181c08b3`;
+MySQL `13974fe4caa3ad19c1d66d2336afce12`, audit SHA-256
+`465aa34955a39c1a6e34a0db8b85faa23fb88317b5c4b7e2ed4468bf45e30587`.
+Full frozen browser recipe is
+`7c4de2b4982118ead3e302dcfea952162cc2cef3ba7209377dd9554eb0376efc`.
+PostgreSQL R1 remains failed (missing browser type in the proof marker), with
+original exit 1 and independently verified closure; it is never promoted.
+
+Next inspect and reproduce Provider orphan-cleanup confirmation cancellation,
+then repair only demonstrated defects and continue remaining business workflows.
+F29 real external application/deployment/issuer/workload inputs remain pending.
+Original candidates stay unmerged; deferred shared runtime, V119/V120 and legacy
+transfer remain excluded. F28/global completion is not inferred; totals remain
+16 Completed / 14 Partial capabilities and 2 Completed / 18 Partial scenarios.
+
 ## Vault probe outcome and saved-certificate UI delivery (2026-10-19)
 
 Main code is remote-verified at `7318bef7c8da6f33517f63f1661812b8a675db7e`.
