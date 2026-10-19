@@ -189,7 +189,7 @@ async function capturePreflight() {
   const base = `/vault/logs/discovery-${run}`
   const raw = await docker('preflight-terminal', ['exec', '--user', `${uid}:${uid}`, owned.get('vault'), 'cat', `${base}/native-terminal.json`])
   const terminal = JSON.parse(raw)
-  const files = requireNativeFiles(terminal, { run, source: sourceBefore.sha256 })
+  const files = requireNativeFiles(terminal, { run, source: sourceBefore.sha256, readerMode: 'token' })
   await save('preflight/native-terminal.json', raw)
   for (const file of files) {
     const bytes = await docker('preflight-file', ['exec', '--user', `${uid}:${uid}`, owned.get('vault'), 'cat', `${base}/${file.name}`])

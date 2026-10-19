@@ -12,6 +12,7 @@ const nativeFiles = () => ({
   source_manifest: 'b'.repeat(64),
   passed: true,
   last_stage: 'dummy-metadata',
+  reader_mode: 'token',
   application_runtime_acceptance: false,
   files: [
     'private-initialization.json',
@@ -27,14 +28,22 @@ const nativeFiles = () => ({
     'private-response-dummy-read.json',
     'private-response-dummy-metadata.json',
     'private-response-audit-version-hash.json',
+    'audit-before.jsonl',
+    'audit-after.jsonl',
   ].map((name) => ({ name, bytes: 1, sha256: 'c'.repeat(64) })),
 })
 test('completed native manifest binds every fixed file while failed partial files stay failed', () => {
   const v = nativeFiles()
-  assert.equal(requireNativeFiles(v, { run: v.run, source: v.source_manifest }).length, 13)
+  assert.equal(
+    requireNativeFiles(v, { run: v.run, source: v.source_manifest, readerMode: 'token' }).length,
+    15,
+  )
   v.passed = false
   v.files = v.files.filter((row) => row.name === 'http-census.json')
-  assert.equal(requireNativeFiles(v, { run: v.run, source: v.source_manifest }).length, 1)
+  assert.equal(
+    requireNativeFiles(v, { run: v.run, source: v.source_manifest, readerMode: 'token' }).length,
+    1,
+  )
 })
 test('foreign or malformed native artifacts never become arbitrary container reads', () => {
   for (const mutate of [
@@ -62,11 +71,17 @@ test('foreign or malformed native artifacts never become arbitrary container rea
   ]) {
     const v = nativeFiles()
     mutate(v)
-    assert.throws(() => requireNativeFiles(v, { run: v.run, source: v.source_manifest }))
+    assert.throws(() =>
+      requireNativeFiles(v, { run: v.run, source: v.source_manifest, readerMode: 'token' }),
+    )
   }
   const v = nativeFiles()
-  assert.throws(() => requireNativeFiles(v, { run: 'd'.repeat(32), source: v.source_manifest }))
-  assert.throws(() => requireNativeFiles(v, { run: v.run, source: 'd'.repeat(64) }))
+  assert.throws(() =>
+    requireNativeFiles(v, { run: 'd'.repeat(32), source: v.source_manifest, readerMode: 'token' }),
+  )
+  assert.throws(() =>
+    requireNativeFiles(v, { run: v.run, source: 'd'.repeat(64), readerMode: 'token' }),
+  )
 })
 
 const expected = {
@@ -312,4 +327,28 @@ test('body overflow, sequence gaps, unknown fields and repeated destroy refuse',
     assert.throws(() => requireRequestCensus(v))
   }
   assert.throws(() => requireRequestCensus([]))
+})
+
+test('AppRole terminal requires its own complete artifacts and never borrows Token mode', () => {
+  const v = nativeFiles()
+  v.reader_mode = 'app_role'
+  v.files = v.files.filter((row) => row.name !== 'private-token-reader.json')
+  for (const name of [
+    'private-response-reader-role-id.json',
+    'private-response-reader-secret-id.json',
+    'private-response-reader-login.json',
+    'private-reader-material.json',
+  ])
+    v.files.push({ name, bytes: 1, sha256: 'c'.repeat(64) })
+  assert.equal(
+    requireNativeFiles(v, { run: v.run, source: v.source_manifest, readerMode: 'app_role' }).length,
+    18,
+  )
+  assert.throws(() =>
+    requireNativeFiles(v, { run: v.run, source: v.source_manifest, readerMode: 'token' }),
+  )
+  v.files.pop()
+  assert.throws(() =>
+    requireNativeFiles(v, { run: v.run, source: v.source_manifest, readerMode: 'app_role' }),
+  )
 })

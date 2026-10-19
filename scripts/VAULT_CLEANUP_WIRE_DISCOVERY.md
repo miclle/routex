@@ -6,6 +6,12 @@ fresh Vault server with a digest-pinned official image, no published ports,
 internal network, nonroot UID, read-only root and volatile tmpfs data. There is
 no database or RouteX process in this discovery scope.
 
+Add `--app-role-reader` after `--exclusive-validation-lane` for an independent
+fresh AppRole reader profile. Its original metrics/login/version-read/destroy/
+metrics bracket has five complete pairs; Token mode has four. The native client
+retains exact before/after audit snapshots and checks the complete status family
+and appended audit bracket through `scripts/vault-cleanup-wire`.
+
 A freshly compiled Linux arm64 client runs inside the captured server namespace
 and reaches only its fixed loopback endpoint. The official image's declared
 volumes are explicitly overridden with tmpfs. The server is freshly initialized
@@ -30,8 +36,8 @@ or network ownership prevents automatic cleanup. Exact original commands,
 generation-bound stopped container metadata and resource closure require
 independent readback after the producer exits.
 
-This discovers an actual wire contract for the future bounded metrics/audit
-parser. It does **not** qualify that parser, attribute a numeric counter delta,
-invoke the product cleanup API, prove SQL durability, exercise restart/replay,
+This qualifies the bounded observed metrics/audit profile in controlled native
+Token and AppRole preflight runs. It does **not** invoke the product cleanup API,
+prove SQL durability, establish real deployment isolation, exercise restart/replay,
 or complete F28/A16. Keep normal product acknowledgement and fault/restart
 acceptance as subsequent independent gates.

@@ -15,10 +15,15 @@ import {
   requireRequestCensus,
 } from './vault-cleanup-wire-support.mjs'
 
+const requestedArgs = process.argv.slice(2)
+const readerMode =
+  requestedArgs.length === 2 && requestedArgs[1] === '--app-role-reader' ? 'app_role' : 'token'
 assert.deepEqual(
-  process.argv.slice(2),
-  ['--exclusive-validation-lane'],
-  'Explicit serial lane required',
+  requestedArgs,
+  readerMode === 'app_role'
+    ? ['--exclusive-validation-lane', '--app-role-reader']
+    : ['--exclusive-validation-lane'],
+  'Explicit serial lane and exact reader mode required',
 )
 process.umask(0o077)
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -247,13 +252,21 @@ try {
     (
       await docker(
         'native-discovery',
-        ['exec', '--user', `${uid}:${uid}`, container, '/opt/routex/vault-wire-client'],
+        [
+          'exec',
+          '--user',
+          `${uid}:${uid}`,
+          container,
+          '/opt/routex/vault-wire-client',
+          ...(readerMode === 'app_role' ? ['--app-role-reader'] : []),
+        ],
         75_000,
       )
     ).toString(),
   )
   assert.deepEqual(native, {
     result: 'actual_dummy_wire_observed',
+    reader_mode: readerMode,
     source_manifest: before.sha256,
     run,
     application_runtime_acceptance: false,
@@ -297,7 +310,7 @@ try {
           `${nativePath}/native-terminal.json`,
         ])
         const terminal = JSON.parse(rawTerminal.toString())
-        const files = requireNativeFiles(terminal, { run, source: before.sha256 })
+        const files = requireNativeFiles(terminal, { run, source: before.sha256, readerMode })
         await writeFile(join(nativeDir, 'native-terminal.json'), rawTerminal, {
           flag: 'wx',
           mode: 0o600,
@@ -329,6 +342,10 @@ try {
       }
       if (!failedStage) {
         const materials = JSON.parse(await readFile(join(nativeDir, 'private-material.json')))
+        if (readerMode === 'app_role')
+          materials.push(
+            ...JSON.parse(await readFile(join(nativeDir, 'private-reader-material.json'))),
+          )
         for (const name of ['metrics-before.prom', 'metrics-after.prom'])
           requireNoSecrets(await readFile(join(nativeDir, name)), materials)
         requireNoSecrets(await readFile(join(captured, 'audit.jsonl')), materials)
