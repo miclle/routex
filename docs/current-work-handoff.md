@@ -1,5 +1,32 @@
 # Current implementation handoff
 
+## Independent Secrets UI fixes delivered on main (2026-10-19)
+
+Main is remote-verified at `bfedd54991a423fb41aebf192ad654c91543e675` for this
+code delivery. Only eight frontend files adopt the independently qualified V11
+status/history decoding, paired guidance and current eligible-target button gate.
+Main already returned V11; its original eight frontend files and relevant root
+backend matched the reviewed predecessor. No backend, migration, tooling or
+F11/F23/F17 candidate feature is merged. The original candidate remains unmerged.
+
+Fresh main mandatory check and complete ordinary Task pass on the exact 2,833-file
+input later committed as `bfedd54`: Go race, 287 frontend files / 7,749 tests,
+Node 5/5 and 91/91, fresh production build and asset serving. Original check 23009
+and Task 23985 join zero without timeout, with unchanged source manifest
+`ca638d00ca1b4972ca8efeb6cb55a60f4c8a31fba1ba3fe43cee1933776ffce1`.
+The initial independent reviewer expected an older Node suite count and refused;
+its corrected review verifies the actual 91 results and all eight committed blobs.
+Main source audit: `eda17af025027767ec8088fb062eb5a9927302afd3364145d5a8eeaf1ee09336`.
+
+The controlled PostgreSQL and MySQL runtime receipts below keep their original
+`ee994ec` and `2a44328` identities. They do not become whole-current-main runtime
+acceptance. Protected main qualification root:
+`/private/tmp/routex-main-root-ui-adoption-qualification-20261019-r1`.
+Global counts, remaining external F29 inputs and broader F28/fleet gates are
+unchanged. Deferred shared runtime, V119/V120 registration and legacy history
+transfer remain excluded.
+
+
 ## F28 guarded MySQL workflow and complete ordinary acceptance (2026-10-19)
 
 Published source `2a44328f282a25db3a037ddef6db39462316d570` now passes fresh
