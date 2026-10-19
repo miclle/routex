@@ -1,5 +1,58 @@
 # RouteX Implementation and Acceptance Index
 
+## Vault probe outcome and saved-certificate UI delivery (2026-10-19)
+
+Main code is remote-verified at `7318bef7c8da6f33517f63f1661812b8a675db7e`.
+A successful Read or Cleanup now refreshes its exact open probe query together
+with the list, so a prior cached GET cannot hide the newly recorded stage facts.
+Existing authority, uncertainty and duplicate-dispatch gates remain intact.
+The existing Page composition owns one localized Vault content heading and
+one description, preserving the visible layout. English/Chinese regressions
+cover that composition. All three new regressions fail on the predecessor;
+35 focused and 173 related cases pass after repair.
+
+Fresh serial PostgreSQL and MySQL runs use the background in-app browser from
+login. Actual UI actions fill separate certificate identities, cancel the review,
+review again, save, then execute Write and Read separately. Independent Sessions
+confirm no creation after cancellation, exact saved IDs/revision, certificate
+configuration without PEM readback, awaiting-Read facts after Write, and successful
+Read with separately failed 403 cleanup. The saved form clears transient PEM.
+Immediately after Read, both repaired builds display the new observations without
+manual review/reload. Both languages expose one content heading and description.
+This is controlled certificate-form and probe acceptance, not successful cleanup,
+seven complete pure-UI workflows, external application adoption or complete F28.
+
+Both original producers join zero. Each independent readback verifies 13 paired
+certificate audit calls, two distinct remote principals, 13 preflight files,
+32 native files, 107 recorded groups absent, closed browser tab, original
+containers/network absent, fresh image/four binaries removed, and refused plus
+freshly bindable port. Initial fresh-bind refusals remain recorded; natural release
+passes without terminating other software. Private roots are under
+`~/.local/share/routex/acceptance/certificate-drawer/`:
+PostgreSQL `80b0b8a283c9f40d08f7d7c549b013ab`, raw audit SHA-256
+`5038cc498624143bf15995d2af66168e7c0a1bdcb1cf3909322bfc36923b8077`;
+MySQL `658a9ef6499265efcf391155e87ea3dd`, raw audit SHA-256
+`4f80e69c0b0754a96db0673b013819ca2a7fd40ac5e37ea95485062bd6f8f3fd`.
+The earlier UI R1 remains unaccepted despite successful native operations and a
+later background update; its exact ambient refresh trigger remains unknown.
+
+The delivered repository blobs match source projection
+`c098cccadeb36691fdfebd971eb2a07dac9faa161ab00d601319688613c07dad`;
+the full browser recipe, including frozen private fixture sources, is
+`c8d7b2e7c64826756f69ab3a77e4ae8859718a3842e44f499e71e5435586db6f`.
+Application build stamp is the original base `23d0380`, not relabeled as the
+later commit. Mandatory check (PID 15490) and complete ordinary Task (PID 15981)
+join zero on unchanged source: Go race, 287 frontend files / 7,758 cases,
+Node 5/5 and 92/92, fresh production assets and serving tests. Both original
+groups are absent. Earlier native root-retirement/restart evidence retains its
+separate `3f5e8de` tooling scope and original application build identity.
+
+Continue remaining genuine Vault/storage/orphan workflows and independent
+release gaps. External F29 application/deployment/issuer/workload inputs remain
+pending. Original candidate and mixed successor remain unmerged. Deferred shared
+runtime, V119/V120 registration and legacy transfer remain excluded. Overall
+counts stay 16 Completed / 14 Partial capabilities and 2 Completed / 18 Partial scenarios.
+
 ## Maintained saved-certificate qualification (2026-10-19)
 
 Code is remote-verified on main at
