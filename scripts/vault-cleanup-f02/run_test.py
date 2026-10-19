@@ -33,6 +33,26 @@ class Prerequisite(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             f02.normal_prerequisite({}, 501)
 
+    def test_driver_profiles_and_receipts_cannot_cross(self):
+        args = ['--exclusive-validation-lane', '--normal-receipt', '/private/normal',
+                '--normal-receipt-sha256', 'a'*64, '--logging-receipt', '/private/logging',
+                '--logging-receipt-sha256', 'b'*64]
+        self.assertEqual(f02.selected_driver(args), 'postgres')
+        self.assertEqual(f02.selected_driver(args+['--driver','mysql']), 'mysql')
+        for extra in [[], ['--driver','MySQL'], ['--driver','mysql','--host','foreign']]:
+            bad = [] if not extra else args+extra
+            with self.assertRaises(RuntimeError): f02.selected_driver(bad)
+        safe = dict(status='PASS_ACTUAL_PRIVATE_MYSQL84_TYPED_REFUSAL_AND_CHECKED_ROLLBACK',
+                    driver='mysql', whole_original_append_count=0, original_append_bytes=0,
+                    raw_append_sha256=f02.hashlib.sha256(b'').hexdigest(),
+                    private_marker_and_password_absent=True, product_cleanup=False,
+                    F02=False, global_completion=False)
+        self.assertIs(f02.logging_prerequisite(safe,'mysql'),safe)
+        for key,value in [('driver','postgres'),('original_append_bytes',1),('whole_original_append_count',1),('raw_append_sha256','a'*64),('F02',True),('private_marker_and_password_absent',False)]:
+            bad = dict(safe);bad[key]=value
+            with self.subTest(key=key),self.assertRaises(RuntimeError): f02.logging_prerequisite(bad,'mysql')
+        with self.assertRaises(RuntimeError): f02.logging_prerequisite(safe,'postgres')
+
     def test_unknown_artifact_prevents_retirement(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

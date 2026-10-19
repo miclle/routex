@@ -19,8 +19,10 @@ import (
 	"strings"
 	"time"
 
+	mysqlconfig "github.com/go-sql-driver/mysql"
 	"github.com/miclle/routex/internal/routex/entity"
 	"golang.org/x/sys/unix"
+	gormmysql "gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -29,6 +31,7 @@ import (
 const constraintName = "routex_fixture_f28_postack_refusal"
 const inputPath = "/fixture-f28-input/config.json"
 
+var BuildDriver = "postgres"
 var BuildSource string
 var BuildRunID string
 var BuildNormalSchemaReceiptSHA256 string
@@ -329,6 +332,13 @@ func install(c config, s installationStore) error {
 
 type gormStore struct{ tx *gorm.DB }
 
+func newGORMStore(conn *gorm.DB) gormStore {
+	// Connection passes an initialized GORM handle. Clone query state for each
+	// operation while preserving the exact owned connection; otherwise prior
+	// Count/Model clauses can contaminate the next frozen projection.
+	return gormStore{conn.Session(&gorm.Session{NewDB: true})}
+}
+
 func (s gormStore) before(c config) (baseline, error) { return s.snapshot(c) }
 func (s gormStore) after(c config) (baseline, error)  { return s.snapshot(c) }
 func (s gormStore) create(kind string) error {
@@ -377,8 +387,18 @@ func (s gormStore) snapshot(c config) (baseline, error) {
 	}
 	// Fixed SELECT of the already selected connection identity; no catalog scan,
 	// dynamic SQL, business data seeding or database selector is accepted.
-	if s.tx.Raw("SELECT current_database() AS database_name, current_user AS database_user").Scan(&identity).Error != nil {
+	identitySQL := "SELECT current_database() AS database_name, current_user AS database_user"
+	if BuildDriver == "mysql" {
+		identitySQL = "SELECT DATABASE() AS database_name,CURRENT_USER() AS database_user"
+	}
+	if s.tx.Raw(identitySQL).Scan(&identity).Error != nil {
 		return b, refusal("freshScope")
+	}
+	if BuildDriver == "mysql" {
+		if identity.DatabaseUser != "routex_f28_f02@%" {
+			return b, refusal("freshScope")
+		}
+		identity.DatabaseUser = "routex_f28_f02"
 	}
 	b.DatabaseName, b.DatabaseUser = identity.DatabaseName, identity.DatabaseUser
 	var actor entity.User
@@ -396,7 +416,7 @@ func (s gormStore) snapshot(c config) (baseline, error) {
 	return b, nil
 }
 func runIdentity(args []string, actualUID int) (string, uint32, error) {
-	if len(args) != 2 || !regexp.MustCompile(`^[1-9][0-9]{0,9}$`).MatchString(BuildTrustedHostUID) {
+	if (BuildDriver != "postgres" && BuildDriver != "mysql") || len(args) != 2 || !regexp.MustCompile(`^[1-9][0-9]{0,9}$`).MatchString(BuildTrustedHostUID) {
 		return "", 0, refusal("argument")
 	}
 	bound, err := strconv.ParseUint(BuildTrustedHostUID, 10, 32)
@@ -442,7 +462,18 @@ func run() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	dsn := fmt.Sprintf("host=postgres port=5432 user=routex_f28_f02 password=%s dbname=routex_f28_f02_%s sslmode=disable connect_timeout=2 application_name=routex-f28-helper-%s", c.DatabasePassword, c.RunID, c.RunID[:16])
-	db, e := gorm.Open(postgres.Open(dsn), privateGORMConfig())
+	dialector := postgres.Open(dsn)
+	if BuildDriver == "mysql" {
+		connection := mysqlconfig.NewConfig()
+		connection.User, connection.Passwd, connection.Net, connection.Addr, connection.DBName = "routex_f28_f02", c.DatabasePassword, "tcp", "mysql:3306", "routex_f28_f02_"+c.RunID
+		connection.ParseTime, connection.Loc = true, time.UTC
+		connection.Timeout, connection.ReadTimeout, connection.WriteTimeout = 2*time.Second, 2*time.Second, 2*time.Second
+		connection.Params = map[string]string{"charset": "utf8mb4"}
+		dialector = gormmysql.New(gormmysql.Config{DSN: connection.FormatDSN(), SkipInitializeWithVersion: true})
+	} else if BuildDriver != "postgres" {
+		return refusal("argument")
+	}
+	db, e := gorm.Open(dialector, privateGORMConfig())
 	if e != nil {
 		return refusal("connect")
 	}
@@ -458,7 +489,13 @@ func run() error {
 	}()
 	pool.SetMaxOpenConns(1)
 	pool.SetMaxIdleConns(0)
-	e = db.WithContext(ctx).Transaction(func(tx *gorm.DB) error { return install(c, gormStore{tx}) })
+	if BuildDriver == "mysql" {
+		// MySQL check DDL commits implicitly. Use one owned connection and complete
+		// pre/post identity, frozen constraint and ledger checks; never claim rollback.
+		e = db.WithContext(ctx).Connection(func(conn *gorm.DB) error { return install(c, newGORMStore(conn)) })
+	} else {
+		e = db.WithContext(ctx).Transaction(func(tx *gorm.DB) error { return install(c, newGORMStore(tx)) })
+	}
 	if e != nil {
 		return e
 	}

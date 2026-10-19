@@ -12,6 +12,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	mysqlconfig "github.com/go-sql-driver/mysql"
 )
 
 func TestMutationIsNotReplayedOnRedirect(t *testing.T) {
@@ -137,5 +139,42 @@ func TestRestartLifecycleNeedsPositiveClosureAndFreshExactLease(t *testing.T) {
 				t.Fatal("uncertain or foreign lifecycle admitted")
 			}
 		})
+	}
+}
+
+func TestCompiledDatabaseProfileBindsRunAndCannotSelectForeignEndpoint(t *testing.T) {
+	oldDriver, oldRun := BuildDriver, BuildRunID
+	defer func() { BuildDriver, BuildRunID = oldDriver, oldRun }()
+	BuildRunID = strings.Repeat("a", 32)
+	password := strings.Repeat("p", 43)
+	BuildDriver = "mysql"
+	dsn, err := databaseDSN(password)
+	if err != nil {
+		t.Fatal("owned MySQL profile refused")
+	}
+	c, err := mysqlconfig.ParseDSN(dsn)
+	if err != nil || c.User != "routex_f28_f02" || c.Passwd != password || c.Net != "tcp" || c.Addr != "mysql:3306" || c.DBName != "routex_f28_f02_"+BuildRunID || !c.ParseTime || c.Loc != time.UTC || c.Timeout != 2*time.Second || c.ReadTimeout != 2*time.Second || c.WriteTimeout != 2*time.Second || settingsArtifact() != "mysql-settings.json" {
+		t.Fatal("MySQL profile lost fixed identity or bounds")
+	}
+	BuildDriver = "postgres"
+	dsn, err = databaseDSN(password)
+	if err != nil || !strings.Contains(dsn, "host=postgres port=5432 user=routex_f28_f02") || !strings.Contains(dsn, "dbname=routex_f28_f02_"+BuildRunID) || settingsArtifact() != "postgres-settings.json" {
+		t.Fatal("default PostgreSQL profile changed")
+	}
+	for _, driver := range []string{"", "MySQL", "mysql:3306", "postgres;"} {
+		BuildDriver = driver
+		if _, err := databaseDSN(password); err == nil {
+			t.Fatal("arbitrary driver admitted")
+		}
+	}
+	BuildDriver = "mysql"
+	for _, value := range []string{"", "short", strings.Repeat("p", 43) + "@tcp(foreign:3306)", strings.Repeat("p", 43) + "\n"} {
+		if _, err := databaseDSN(value); err == nil {
+			t.Fatal("DSN injection admitted")
+		}
+	}
+	BuildRunID = strings.Repeat("a", 32) + "/foreign"
+	if _, err := databaseDSN(password); err == nil {
+		t.Fatal("foreign database selector admitted")
 	}
 }

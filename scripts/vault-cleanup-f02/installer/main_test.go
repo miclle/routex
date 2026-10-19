@@ -18,6 +18,8 @@ import (
 
 	"github.com/miclle/routex/internal/routex/entity"
 	"golang.org/x/sys/unix"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 )
@@ -221,6 +223,21 @@ func TestCompileBoundRunUIDRejectsAliasesZeroForeignAndMissingBeforeAccess(t *te
 			t.Fatal("actual run accessed protected input before owner binding")
 		}
 	}
+	oldDriver := BuildDriver
+	defer func() { BuildDriver = oldDriver }()
+	for _, driver := range []string{"postgres", "mysql"} {
+		BuildDriver, BuildTrustedHostUID = driver, "501"
+		if _, _, err := runIdentity(args, 501); err != nil {
+			t.Fatal("fixed driver refused")
+		}
+	}
+	for _, driver := range []string{"", "MySQL", "mysql:3306"} {
+		BuildDriver = driver
+		if _, _, err := runIdentity(args, 501); err == nil {
+			t.Fatal("unknown driver reached protected input")
+		}
+	}
+	BuildDriver = oldDriver
 	BuildTrustedHostUID = "501"
 	for _, bad := range [][]string{nil, {"private-fixture"}, {"private-fixture", "install-published", "501"}, {"private-fixture", "install-Published"}} {
 		if _, _, err := runIdentity(bad, 501); err == nil {
@@ -233,6 +250,21 @@ func TestPrivateGORMFactoryRequiresTranslationAndDiscardLogging(t *testing.T) {
 	value := privateGORMConfig()
 	if value == nil || !value.TranslateError || !value.DisableAutomaticPing || value.Logger != logger.Discard {
 		t.Fatal("private database factory lost explicit guards")
+	}
+	// Model the initialized handle that GORM Connection supplies without
+	// opening a database. Independent chains must retain the owned pool but not
+	// a previous table, count projection, filters or limits.
+	db, err := gorm.Open(mysql.New(mysql.Config{DSN: "fixture:fixture@tcp(mysql:3306)/fixture", SkipInitializeWithVersion: true}), &gorm.Config{DisableAutomaticPing: true, DryRun: true, Logger: logger.Discard})
+	if err != nil {
+		t.Fatal("dry-run factory")
+	}
+	defer func() { pool, _ := db.DB(); _ = pool.Close() }()
+	initialized := db.Session(&gorm.Session{Initialized: true})
+	store := newGORMStore(initialized)
+	first := store.tx.Model(&entity.ProviderCredentialCleanup{}).Where("state = ?", "pending").Limit(1).Find(&[]entity.ProviderCredentialCleanup{})
+	second := store.tx.Select("request_id").Order("request_id").Limit(2).Find(&[]entity.CredentialStorageOperation{})
+	if first.Error != nil || second.Error != nil || first.Statement.Table != "provider_credential_cleanups" || second.Statement.Table != "credential_storage_operations" || strings.Contains(second.Statement.SQL.String(), "state") || store.tx.Statement.Model != nil || second.Statement.ConnPool != initialized.Statement.ConnPool {
+		t.Fatal("owned connection query state leaked between frozen projections")
 	}
 }
 

@@ -26,15 +26,18 @@ import (
 	"strings"
 	"time"
 
+	mysqlconfig "github.com/go-sql-driver/mysql"
 	"github.com/miclle/routex/internal/routex/entity"
 	cleanupevidence "github.com/miclle/routex/scripts/provider-credential-cleanup-evidence"
 	vaultwire "github.com/miclle/routex/scripts/vault-cleanup-wire"
+	gormmysql "gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
 var BuildRunID, BuildSource, BuildManifest, BuildHostUID, BuildStarted, BuildNormalReceipt string
+var BuildDriver = "postgres"
 var errRejected = errors.New("normal cleanup rejected")
 var hex32 = regexp.MustCompile(`^[a-f0-9]{32}$`)
 var hex40 = regexp.MustCompile(`^[a-f0-9]{40}$`)
@@ -172,12 +175,39 @@ func (o *owner) audit(name string) ([]byte, error) {
 	}
 	return b, nil
 }
-func openDB(password string) (*gorm.DB, error) {
-	if !regexp.MustCompile(`^[A-Za-z0-9_-]{32,128}$`).MatchString(password) {
-		return nil, errRejected
+func databaseDSN(password string) (string, error) {
+	if !regexp.MustCompile(`^[A-Za-z0-9_-]{32,128}$`).MatchString(password) || !hex32.MatchString(BuildRunID) {
+		return "", errRejected
 	}
-	dsn := fmt.Sprintf("host=postgres port=5432 user=routex_f28_f02 password=%s dbname=routex_f28_f02_%s sslmode=disable connect_timeout=2 application_name=routex-f28-normal", password, BuildRunID)
-	db, e := gorm.Open(postgres.Open(dsn), &gorm.Config{TranslateError: true, Logger: logger.Discard, DisableAutomaticPing: true})
+	if BuildDriver == "mysql" {
+		c := mysqlconfig.NewConfig()
+		c.User, c.Passwd, c.Net, c.Addr, c.DBName = "routex_f28_f02", password, "tcp", "mysql:3306", "routex_f28_f02_"+BuildRunID
+		c.ParseTime, c.Loc = true, time.UTC
+		c.Timeout, c.ReadTimeout, c.WriteTimeout = 2*time.Second, 2*time.Second, 2*time.Second
+		c.Params = map[string]string{"charset": "utf8mb4"}
+		return c.FormatDSN(), nil
+	}
+	if BuildDriver != "postgres" {
+		return "", errRejected
+	}
+	return fmt.Sprintf("host=postgres port=5432 user=routex_f28_f02 password=%s dbname=routex_f28_f02_%s sslmode=disable connect_timeout=2 application_name=routex-f28-normal", password, BuildRunID), nil
+}
+func settingsArtifact() string {
+	if BuildDriver == "mysql" {
+		return "mysql-settings.json"
+	}
+	return "postgres-settings.json"
+}
+func openDB(password string) (*gorm.DB, error) {
+	dsn, e := databaseDSN(password)
+	if e != nil {
+		return nil, e
+	}
+	dialector := postgres.Open(dsn)
+	if BuildDriver == "mysql" {
+		dialector = gormmysql.New(gormmysql.Config{DSN: dsn, SkipInitializeWithVersion: true})
+	}
+	db, e := gorm.Open(dialector, &gorm.Config{TranslateError: true, Logger: logger.Discard, DisableAutomaticPing: true})
 	if e != nil {
 		return nil, errRejected
 	}
@@ -402,20 +432,24 @@ func (o *owner) observe(password string) error {
 	settingsInput, _ := json.Marshal(map[string]string{"run_id": BuildRunID, "source_commit": BuildSource, "database_container_id": string(containerID), "database_password": password})
 	settingsCtx, settingsCancel := context.WithTimeout(o.ctx, 10*time.Second)
 	defer settingsCancel()
-	settingsCmd := exec.CommandContext(settingsCtx, "/opt/routex/pg-qualifier", "settings-f02")
+	qualifier, result := "pg", "f28_pg_settings_observed"
+	if BuildDriver == "mysql" {
+		qualifier, result = "mysql", "f28_mysql_settings_observed"
+	}
+	settingsCmd := exec.CommandContext(settingsCtx, "/opt/routex/"+qualifier+"-qualifier", "settings-f02")
 	settingsCmd.Stdin = bytes.NewReader(settingsInput)
 	var settingsOut, settingsErr bytes.Buffer
 	settingsCmd.Stdout = &settingsOut
 	settingsCmd.Stderr = &settingsErr
 	settingsRunErr := settingsCmd.Run()
-	if o.save("postgres-settings.json", settingsOut.Bytes()) != nil {
+	if o.save(settingsArtifact(), settingsOut.Bytes()) != nil {
 		return errRejected
 	}
 	if settingsRunErr != nil || settingsErr.Len() != 0 || settingsCtx.Err() != nil {
 		return errRejected
 	}
 	var settingsReceipt struct{ Result, Scope string }
-	if json.Unmarshal(settingsOut.Bytes(), &settingsReceipt) != nil || settingsReceipt.Result != "f28_pg_settings_observed" || settingsReceipt.Scope != "f02" {
+	if json.Unmarshal(settingsOut.Bytes(), &settingsReceipt) != nil || settingsReceipt.Result != result || settingsReceipt.Scope != "f02" {
 		return errRejected
 	}
 	faultInput := map[string]any{"run_id": BuildRunID, "source_commit": BuildSource, "namespace": "routex-f28-f02-" + BuildRunID[:16], "database_container_id": string(containerID), "normal_schema_receipt_sha256": BuildNormalReceipt, "database_created_for_run": true, "fault_only": true, "database_password": password, "kind": "published", "creation_id": creation, "cleanup_id": command, "actor_id": identity.User.ID, "actor_birth": op.ActorBirth, "integration_id": config.ID, "integration_birth": *op.IntegrationBirth, "credential_id": op.CredentialID, "credential_birth": op.CredentialBirth, "creation_birth": op.CreatedAt, "run_started": start}
@@ -844,7 +878,7 @@ func readLifecycle(ctx context.Context, db *gorm.DB, creator string, birth, rest
 	return facts, nil
 }
 
-var artifactNames = []string{"private-restart-lifecycle.json", "postgres-settings.json", "http-census.json", "f02-observations.json", "private-original-session.json", "fault-helper-result.json", "fault-helper-terminal.json", "private-original-expectation.json", "private-helper-input.json", "helper-result.json", "helper-terminal.json", "helper-replay-result.json", "helper-replay-terminal.json", "audit-before.jsonl", "audit-after.jsonl", "replay-audit-before.jsonl", "replay-audit-after.jsonl"}
+var artifactNames = []string{"private-restart-lifecycle.json", settingsArtifact(), "http-census.json", "f02-observations.json", "private-original-session.json", "fault-helper-result.json", "fault-helper-terminal.json", "private-original-expectation.json", "private-helper-input.json", "helper-result.json", "helper-terminal.json", "helper-replay-result.json", "helper-replay-terminal.json", "audit-before.jsonl", "audit-after.jsonl", "replay-audit-before.jsonl", "replay-audit-after.jsonl"}
 var responseNames = []string{"setup", "integration-catalog", "integration-create", "policy-read", "policy-write", "storage-context", "provider-create", "retained-preview", "credential-metadata", "credential-delete", "cleanup-preview", "version-hash", "metrics-before", "original-cleanup", "metrics-after", "token-free-replay", "pending-command-read", "same-session-refresh", "expired-token-free-replay", "expired-command-read"}
 
 type artifact struct {
@@ -881,7 +915,7 @@ func normalManifest(dir string) ([]artifact, error) {
 
 func run(args []string) int {
 	uid, e := strconv.Atoi(BuildHostUID)
-	if (len(args) != 1 || (args[0] != "original" && args[0] != "replay")) || e != nil || uid <= 0 || strconv.Itoa(uid) != BuildHostUID || runtime.GOOS != "linux" || os.Getuid() != uid || os.Geteuid() != uid || !hex32.MatchString(BuildRunID) || !hex40.MatchString(BuildSource) || !hex64.MatchString(BuildManifest) || !hex64.MatchString(BuildNormalReceipt) {
+	if (len(args) != 1 || (args[0] != "original" && args[0] != "replay")) || e != nil || uid <= 0 || strconv.Itoa(uid) != BuildHostUID || (BuildDriver != "postgres" && BuildDriver != "mysql") || runtime.GOOS != "linux" || os.Getuid() != uid || os.Geteuid() != uid || !hex32.MatchString(BuildRunID) || !hex40.MatchString(BuildSource) || !hex64.MatchString(BuildManifest) || !hex64.MatchString(BuildNormalReceipt) {
 		return 1
 	}
 	dir := filepath.Join("/vault/logs", "f02-"+args[0]+"-"+BuildRunID)

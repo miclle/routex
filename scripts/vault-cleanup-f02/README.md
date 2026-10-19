@@ -1,6 +1,6 @@
 # Controlled published cleanup acknowledgement fault
 
-This opt-in source tooling creates a separate fresh PostgreSQL/Vault/gateway
+This opt-in source tooling creates a separate fresh PostgreSQL-or-MySQL/Vault/gateway
 namespace. It deliberately rejects the durable acknowledgement after one real
 remote destroy. It is a controlled expected-failure/restart test, never a normal
 cleanup acknowledgement, fleet-isolation proof or F28/A16 completion.
@@ -11,7 +11,21 @@ Build the independent safe-error prerequisite in its own serial lane:
 go tool task test-vault-cleanup-f02-logging -- --exclusive-validation-lane
 ```
 
-This controller rebuilds a native PostgreSQL diagnostic and its Linux tests,
+The explicit MySQL prerequisite uses the same exclusive lane:
+
+```sh
+go tool task test-vault-cleanup-f02-logging -- --exclusive-validation-lane --driver mysql
+```
+
+This separate fresh MySQL 8.4 dummy database must return the actual typed
+3819/HY000 check refusal, preserve its pending row after checked rollback, and
+append no server-log bytes. General/slow statement logs stay disabled, error
+settings and exact database/account are read back, and passwords/private marker
+must be absent from both complete original log channels. It is a prerequisite
+only; it does not qualify product cleanup or restart/replay. PostgreSQL retains
+its separate exact 23514 server-append contract. Driver receipts are not interchangeable.
+
+The default profile rebuilds a native PostgreSQL diagnostic and its Linux tests,
 starts only a fresh dummy database/client pair without published ports, checks
 one complete original 23514 server-log append, reads back the rolled-back row,
 and closes the exact namespace. Private observations and a successful logging
@@ -19,13 +33,13 @@ receipt stay under `~/.local/share/routex/acceptance/f02-logging/`. The receipt 
 emitted only after checked resource and artifact closure. Independent readback
 is still required. This is neither business cleanup nor F02 acceptance.
 
-First qualify a fresh normal acknowledgement/replay using
-`scripts/vault-cleanup-normal.py`, and a separate real PostgreSQL 18 safe-error
-append with a typed 23514 refusal and checked rollback. Independent readback must
+First qualify a fresh driver-matched normal acknowledgement/replay using
+`scripts/vault-cleanup-normal.py` and the separate safe-error prerequisite above.
+Independent readback must
 produce the exact metadata contracts consumed by this runner. The normal receipt
-is the independently accepted PostgreSQL normal readback plus its three
+is the independently accepted driver-matched normal readback plus its three
 raw-census-derived false observer Cookie facts, current host UID and explicit
-false F02/global scope. MySQL, partial, failed or missing readbacks refuse.
+false F02/global scope. Each profile requires its own driver-matched normal and safe-error receipts; partial, failed, foreign-driver or missing readbacks refuse.
 This replaces the older manually named status-only normal prerequisite. Copy those two
 metadata receipts into a new private directory (0700, current UID; files 0600,
 single links) and supply their separately reviewed SHA-256 values:
@@ -37,6 +51,9 @@ go tool task test-vault-cleanup-f02 -- --exclusive-validation-lane \
   --logging-receipt /absolute/private/logging-receipt.json \
   --logging-receipt-sha256 REVIEWED_SHA256
 ```
+
+Append `--driver mysql` to run the MySQL profile; omission keeps PostgreSQL.
+No database host, account or name override is accepted.
 
 A supplied digest binds bytes, not the authenticity or completeness of their
 producer. This runner does not create the independent prerequisite receipts or
@@ -52,7 +69,7 @@ approval policy remain enforced.
 
 Every run rebuilds frontend assets, nine Linux artifacts and a unique image.
 Compose uses four exact owned containers on an internal bridge, no host ports,
-fresh PostgreSQL/Vault tmpfs data and a fresh private journal bind directory.
+fresh PostgreSQL-or-MySQL/Vault tmpfs data and a fresh private journal bind directory.
 The same journal, root key, database and binary survive the intentional restart
 within this run. No resource from an earlier run is reused. Bootstrap, Session,
 AppRole, creation/command UUIDs and all other runtime inputs are newly generated.
@@ -60,12 +77,11 @@ AppRole, creation/command UUIDs and all other runtime inputs are newly generated
 The private frozen GORM installer adds only its named fixture check after
 verifying the exact creation, absence of cleanup commands, retained released
 checks and unchanged migration ledger. No released step or business table is
-created or altered through AutoMigrate. Its extra check remains installed
+created through AutoMigrate. MySQL check DDL commits implicitly: the installer uses one owned connection and verifies the full pre/post identity, constraints and migration ledger; it never claims DDL rollback. Its extra check remains installed
 through restart; it is not removed to make a replay succeed.
 
 The original product cleanup must return 503 after a complete five-pair
-AppRole/ownership/destroy metrics-and-audit bracket and the real typed 23514
-acknowledgement refusal. The native read-only evidence command must preserve
+AppRole/ownership/destroy metrics-and-audit bracket and the acknowledgement refusal. PostgreSQL requires the exact 23514 log append; MySQL requires no original server-log append after its separately typed 3819/HY000 prerequisite. The native read-only evidence command must preserve
 pending, no FinishedAt, one claim audit, no observe audit and known_no_effect
 false. After a positive original process join and same-binary restart, the
 original natural deadline expires. The same Session refreshes CSRF/authority

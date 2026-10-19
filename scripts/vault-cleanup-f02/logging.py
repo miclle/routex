@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fresh PostgreSQL-only safe-error prerequisite, independent of product cleanup."""
+"""Fresh driver-bound safe-error prerequisite, independent of product cleanup."""
 import datetime
 import hashlib
 import json
@@ -15,9 +15,37 @@ import time
 import run as f02
 
 REPO=Path(__file__).resolve().parents[2]
+MYSQL='mysql:8.4@sha256:24989179f58856db763f418010c1169fecc944e3ec1ea7e921572d83eb070f70'
+
+def selected_driver(args):
+ if args==['--exclusive-validation-lane']:return 'postgres'
+ if len(args)==3 and args[:2]==['--exclusive-validation-lane','--driver'] and args[2] in ['postgres','mysql']:return args[2]
+ raise RuntimeError('controlled acceptance refused')
+
+def mysql_service(root,run):
+ return f'''  mysql:
+    image: {MYSQL}
+    platform: linux/arm64
+    restart: 'no'
+    labels: {{routex.acceptance.run: {run}}}
+    logging: {{driver: json-file, options: {{max-size: '1m', max-file: '1'}}}}
+    environment:
+      MYSQL_USER: routex_f28_dummy
+      MYSQL_DATABASE: routex_f28_dummy_{run}
+      MYSQL_PASSWORD_FILE: /input/password
+      MYSQL_ROOT_PASSWORD_FILE: /input/root-password
+    volumes: ['{root}/input/password:/input/password:ro', '{root}/input/root-password:/input/root-password:ro', '{root}/input/client.cnf:/input/client.cnf:ro']
+    tmpfs: ['/var/lib/mysql:uid=999,gid=999,mode=0700,size=1g', '/var/run/mysqld:uid=999,gid=999,mode=0755,size=8m', '/tmp:mode=1777,size=32m']
+    command: [mysqld, '--innodb-buffer-pool-size=128M', '--skip-log-bin', '--default-time-zone=+00:00', '--general-log=OFF', '--slow-query-log=OFF', '--log-output=NONE', '--log-error-verbosity=2', '--log-timestamps=UTC', '--skip-name-resolve', '--local-infile=OFF']
+    healthcheck:
+      test: [CMD, mysql, '--defaults-extra-file=/input/client.cnf', '--execute', 'SELECT 1']
+      interval: 1s
+      timeout: 2s
+      retries: 90
+'''
 
 def main():
- f02.require(sys.argv[1:]==['--exclusive-validation-lane']);os.umask(0o077)
+ driver=selected_driver(sys.argv[1:]);qualifier='pg' if driver=='postgres' else 'mysql';os.umask(0o077)
  uid=os.getuid();f02.require(uid>0)
  parent=Path.home()/'.local/share/routex/acceptance/f02-logging';parent.mkdir(mode=0o700,parents=True,exist_ok=True)
  f02.require(parent.stat().st_uid==uid and stat.S_IMODE(parent.stat().st_mode)==0o700)
@@ -68,15 +96,15 @@ def main():
   return value
  try:
   env=dict(os.environ,GOOS='linux',GOARCH='arm64',CGO_ENABLED='0')
-  for name,args in [('pg-qualifier',['build','-ldflags',f'-X main.BuildSource={head} -X main.BuildRunID={run} -X main.BuildTrustedHostUID={uid}']),('pg-controls',['test','-c'])]:
+  for name,args in [(qualifier+'-qualifier',['build','-ldflags',f'-X main.BuildSource={head} -X main.BuildRunID={run} -X main.BuildTrustedHostUID={uid}']),(qualifier+'-controls',['test','-c'])]:
    previous={k:os.environ.get(k) for k in ['GOOS','GOARCH','CGO_ENABLED']};os.environ.update({k:env[k] for k in previous})
-   try:command('build-'+name,['go']+args+['-trimpath','-o',str(root/'artifacts'/name),'./scripts/vault-cleanup-f02/postgres'],180)
+   try:command('build-'+name,['go']+args+['-trimpath','-o',str(root/'artifacts'/name),'./scripts/vault-cleanup-f02/'+driver],180)
    finally:
     for key,value in previous.items():
      if value is None:os.environ.pop(key,None)
      else:os.environ[key]=value
    binaries[name]=f02.sha(root/'artifacts'/name);save('build-'+name+'.json',dict(sha256=binaries[name],source=head,source_manifest=before['sha256']))
-  for name,ref in [('postgres',f02.POSTGRES),('base',f02.BASE)]:
+  for name,ref in [(driver,f02.POSTGRES if driver=='postgres' else MYSQL),('base',f02.BASE)]:
    docker('pull-'+name,['pull','--platform','linux/arm64',ref],180);images[name]=docker('image-'+name,['image','inspect','--format','{{.Id}}',ref])[0].decode().strip()
   (root/'.dockerignore').write_text('*\n!artifacts/\n!artifacts/**\n!Dockerfile\n');(root/'Dockerfile').write_text('FROM '+f02.BASE+'\nCOPY --chmod=0555 artifacts/ /opt/routex/\nUSER '+str(uid)+':'+str(uid)+'\nCMD ["sleep","900"]\n')
   docker('build-capsule',['build','--no-cache','--network=none','--platform','linux/arm64','-t',capsule,str(root)],120);capsule_id=docker('capsule-id',['image','inspect','--format','{{.Id}}',capsule])[0].decode().strip();images['client']=capsule_id
@@ -121,33 +149,38 @@ networks:
   default:
     internal: true
 '''.encode())
+  if driver=='mysql':
+   save('input/root-password',secrets.token_urlsafe(36).encode())
+   save('input/client.cnf',('[client]\nhost=127.0.0.1\nuser=routex_f28_dummy\npassword='+password+'\ndatabase=routex_f28_dummy_'+run+'\n').encode())
+   text=(root/'compose.yaml').read_text();start=text.index('  postgres:');stop=text.index('  client:',start)
+   text=text[:start]+mysql_service(root,run)+text[stop:];text=text.replace('postgres: {condition: service_healthy}','mysql: {condition: service_healthy}');(root/'compose.yaml').write_text(text)
   docker('compose-up',compose+['up','-d','--no-build'],90)
   ids=docker('namespace-census',['ps','-aq','--filter','label=com.docker.compose.project='+project])[0].decode().split();f02.require(len(ids)==2)
   for cid in ids:
-   value=json.loads(docker('capture-container',['inspect',cid])[0])[0];role=value['Config']['Labels']['com.docker.compose.service'];f02.require(role in ['postgres','client'] and role not in owned);owned[role]=value['Id']
+   value=json.loads(docker('capture-container',['inspect',cid])[0])[0];role=value['Config']['Labels']['com.docker.compose.service'];f02.require(role in [driver,'client'] and role not in owned);owned[role]=value['Id']
   for role in owned:save('owned-'+role+'.json',inspect(role))
   networks=docker('networks',['network','ls','--no-trunc','-q','--filter','label=com.docker.compose.project='+project])[0].decode().split();f02.require(len(networks)==1);network=networks[0]
   n=json.loads(docker('network-proof',['network','inspect',network])[0])[0];f02.require(n['Internal'] and set(n['Containers'])==set(owned.values()));save('network.json',n)
-  controls=docker('native-controls',['exec','--user',f'{uid}:{uid}',owned['client'],'/opt/routex/pg-controls','-test.v','-test.count=1'])[0];f02.require(controls.endswith(b'PASS\n') and controls.count(b'--- PASS:')==2 and b'--- SKIP:' not in controls)
-  input=json.dumps(dict(run_id=run,source_commit=head,database_container_id=owned['postgres'],database_password=password)).encode()
-  settings_out=docker('native-settings',['exec','-i','--user',f'{uid}:{uid}',owned['client'],'/opt/routex/pg-qualifier','settings-dummy'],data=input)[0];save('settings.json',settings_out)
-  old=docker('logs-before',['logs',owned['postgres']]);save('logs-before.stdout',old[0]);save('logs-before.stderr',old[1])
-  result=docker('native-dummy',['exec','-i','--user',f'{uid}:{uid}',owned['client'],'/opt/routex/pg-qualifier','dummy'],data=input)[0];save('dummy-result.json',result);native=json.loads(result);f02.require(native['result']=='dummy_typed_refusal_and_checked_rollback' and native['sqlstate']=='23514')
-  after=docker('logs-after',['logs',owned['postgres']]);save('logs-after.stdout',after[0]);save('logs-after.stderr',after[1]);appends=[]
+  controls=docker('native-controls',['exec','--user',f'{uid}:{uid}',owned['client'],'/opt/routex/'+qualifier+'-controls','-test.v','-test.count=1'])[0];f02.require(controls.endswith(b'PASS\n') and controls.count(b'--- PASS:')==2 and b'--- SKIP:' not in controls)
+  input=json.dumps(dict(run_id=run,source_commit=head,database_container_id=owned[driver],database_password=password)).encode()
+  settings_out=docker('native-settings',['exec','-i','--user',f'{uid}:{uid}',owned['client'],'/opt/routex/'+qualifier+'-qualifier','settings-dummy'],data=input)[0];save('settings.json',settings_out)
+  old=docker('logs-before',['logs',owned[driver]]);save('logs-before.stdout',old[0]);save('logs-before.stderr',old[1])
+  result=docker('native-dummy',['exec','-i','--user',f'{uid}:{uid}',owned['client'],'/opt/routex/'+qualifier+'-qualifier','dummy'],data=input)[0];save('dummy-result.json',result);native=json.loads(result);f02.require(native['result']=='dummy_typed_refusal_and_checked_rollback' and native['sqlstate']==('23514' if driver=='postgres' else 'HY000') and (driver=='postgres' or native['server_error_number']==3819))
+  after=docker('logs-after',['logs',owned[driver]]);save('logs-after.stdout',after[0]);save('logs-after.stderr',after[1]);appends=[]
   for left,right in zip(old,after):f02.require(right.startswith(left));appends.append(right[len(left):])
   whole=b''.join(appends);save('complete-original-append.log',whole)
   import re
   grammar=rb'^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3} UTC\|[1-9][0-9]*\|routex-f28-dummy-'+run[:16].encode()+rb'\|routex_f28_dummy_'+run.encode()+rb'\|23514\|ERROR:  new row for relation "routex_f28_dummy_postack" violates check constraint "routex_fixture_f28_dummy_refusal"\n$'
-  f02.require(re.fullmatch(grammar,whole) is not None)
+  f02.require(re.fullmatch(grammar,whole) is not None if driver=='postgres' else whole==b'')
   for raw in old+after:f02.require(password.encode() not in raw and ('routex-f28-private-'+run).encode() not in raw)
-  state=docker('independent-row-state',['exec',owned['postgres'],'psql','-U','routex_f28_dummy','-d','routex_f28_dummy_'+run,'-Atc','SELECT state FROM routex_f28_dummy_postack WHERE id=1'])[0];save('rollback-state.txt',state);f02.require(state==b'pending\n')
+  state_args=['exec',owned[driver]]+(['psql','-U','routex_f28_dummy','-d','routex_f28_dummy_'+run,'-Atc','SELECT state FROM routex_f28_dummy_postack WHERE id=1'] if driver=='postgres' else ['mysql','--defaults-extra-file=/input/client.cnf','--batch','--skip-column-names','--execute','SELECT state FROM routex_f28_dummy_postack WHERE id=1']);state=docker('independent-row-state',state_args)[0];save('rollback-state.txt',state);f02.require(state==b'pending\n')
  except BaseException:failed=stage
  finally:
   end=time.monotonic()+70
   try:
    if owned:
-    f02.require(set(owned)=={'client','postgres'} and network)
-    for role in ['client','postgres']:
+    f02.require(set(owned)=={'client',driver} and network)
+    for role in ['client',driver]:
      inspect(role);docker('stop-'+role,['stop','--time','5',owned[role]]);v=inspect(role,True);f02.require(v['State']['ExitCode'] in ([0,143] if role=='client' else [0]));save('stopped-'+role+'.json',v);docker('remove-'+role,['rm',owned[role]])
     n=json.loads(docker('network-before-remove',['network','inspect',network])[0])[0];f02.require(n['Internal'] and not n['Containers']);save('network-before-remove.json',n);docker('remove-network',['network','rm',network])
    for kind in ['container','network','volume']:
@@ -160,8 +193,8 @@ networks:
    retired=f02.retire_artifacts(root,binaries);retired['image_removed']=bool(capsule_id);save('artifact-cleanup.json',retired)
   except BaseException:failed=failed or stage;closure=False
   save('processes.json',rows);passed=failed is None and closure
-  if passed:save('logging-receipt.json',dict(status='PASS_ACTUAL_PRIVATE_PG18_SAFE_ERROR_APPEND_AND_TYPED_ROLLBACK',whole_original_append_count=1,private_marker_and_password_absent=True,product_cleanup=False,F02=False,global_completion=False,run=run,source=head,source_manifest=before['sha256'],raw_append_sha256=hashlib.sha256(whole).hexdigest()))
-  result=dict(passed=passed,failed_stage=failed,closure=closure,output=str(root),product_cleanup=False,F02=False);save('terminal.json',result);print(json.dumps(result))
+  if passed:save('logging-receipt.json',dict(status='PASS_ACTUAL_PRIVATE_PG18_SAFE_ERROR_APPEND_AND_TYPED_ROLLBACK' if driver=='postgres' else 'PASS_ACTUAL_PRIVATE_MYSQL84_TYPED_REFUSAL_AND_CHECKED_ROLLBACK',driver=driver,whole_original_append_count=1 if driver=='postgres' else 0,original_append_bytes=len(whole),private_marker_and_password_absent=True,product_cleanup=False,F02=False,global_completion=False,run=run,source=head,source_manifest=before['sha256'],raw_append_sha256=hashlib.sha256(whole).hexdigest()))
+  result=dict(driver=driver,passed=passed,failed_stage=failed,closure=closure,output=str(root),product_cleanup=False,F02=False);save('terminal.json',result);print(json.dumps(result))
  return 0 if passed else 1
 
 if __name__=='__main__':sys.exit(main())

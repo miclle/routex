@@ -19,14 +19,30 @@ KIT=Path(__file__).resolve().parent
 REPO=KIT.parent.parent
 VAULT='hashicorp/vault:2.2.0@sha256:e0acd3c681bdf57f002d7214e5d050b876e1704678005c6b0406dd96a65be919'
 POSTGRES='postgres:18-bookworm@sha256:67ba68a22dc7d5af3627b7e0f33d10bbefad07562ff9703b3a6c2de247649129'
+MYSQL='mysql:8.4@sha256:24989179f58856db763f418010c1169fecc944e3ec1ea7e921572d83eb070f70'
 BASE='debian:bookworm-slim@sha256:a1b86db52ce3daef089e45aabe36dfec4091f82464c25c1fdcf03de197cbe82a'
 
 def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 def require(value):
  if not value:raise RuntimeError('controlled acceptance refused')
 
-def normal_prerequisite(value,uid):
- require(isinstance(value,dict) and value.get('accepted') is True and value.get('driver')=='postgres')
+def selected_driver(args):
+ require(len(args) in [9,11] and args[0]=='--exclusive-validation-lane' and args[1]=='--normal-receipt' and args[3]=='--normal-receipt-sha256' and args[5]=='--logging-receipt' and args[7]=='--logging-receipt-sha256')
+ if len(args)==9:return 'postgres'
+ require(args[9]=='--driver' and args[10] in ['postgres','mysql'])
+ return args[10]
+
+def logging_prerequisite(value,driver):
+ require(driver in ['postgres','mysql'] and isinstance(value,dict))
+ status={'postgres':'PASS_ACTUAL_PRIVATE_PG18_SAFE_ERROR_APPEND_AND_TYPED_ROLLBACK','mysql':'PASS_ACTUAL_PRIVATE_MYSQL84_TYPED_REFUSAL_AND_CHECKED_ROLLBACK'}
+ require(value.get('status')==status[driver] and value.get('whole_original_append_count')==(1 if driver=='postgres' else 0))
+ require(value.get('private_marker_and_password_absent') is True and value.get('product_cleanup') is False and value.get('F02') is False and value.get('global_completion') is False)
+ if driver=='mysql':require(value.get('driver')=='mysql' and value.get('original_append_bytes')==0 and value.get('raw_append_sha256')==hashlib.sha256(b'').hexdigest())
+ else:require(value.get('driver','postgres')=='postgres')
+ return value
+
+def normal_prerequisite(value,uid,driver='postgres'):
+ require(isinstance(value,dict) and value.get('accepted') is True and value.get('driver')==driver and driver in ['postgres','mysql'])
  require(value.get('source_unchanged') is True and value.get('original_containers_network_image_binaries_absent') is True)
  require(value.get('native_files')==29 and value.get('preflight_files')==18 and value.get('paired_audit_calls')==5)
  require(value.get('observer_Cookie_headers')==[False,False,False] and value.get('F02') is False and value.get('global_completion') is False and value.get('host_uid')==uid)
@@ -48,7 +64,7 @@ def retire_artifacts(root,expected):
  return dict(after_verified_closure=True,binaries=expected,removed=True)
 
 def main():
- require(len(sys.argv)==10 and sys.argv[1]=='--exclusive-validation-lane' and sys.argv[2]=='--normal-receipt' and sys.argv[4]=='--normal-receipt-sha256' and sys.argv[6]=='--logging-receipt' and sys.argv[8]=='--logging-receipt-sha256')
+ driver=selected_driver(sys.argv[1:]);qualifier='pg' if driver=='postgres' else 'mysql'
  os.umask(0o077)
  uid=os.getuid();require(uid>0)
  root=private_output();(root/'commands').mkdir(mode=0o700);(root/'input').mkdir(mode=0o700);(root/'artifacts').mkdir(mode=0o700);(root/'journal').mkdir(mode=0o700)
@@ -91,8 +107,8 @@ def main():
   parent=p.parent.stat();info=p.stat();require(stat.S_IMODE(parent.st_mode)==0o700 and parent.st_uid==uid and stat.S_IMODE(info.st_mode)==0o600 and info.st_uid==uid and info.st_nlink==1 and stat.S_ISREG(info.st_mode) and 0<info.st_size<=65536)
   raw=p.read_bytes();require(len(raw)==info.st_size and hashlib.sha256(raw).hexdigest()==digest);return json.loads(raw)
  normal_sha=sys.argv[5];normal=receipt(sys.argv[3],normal_sha)
- normal_prerequisite(normal,uid)
- safe=receipt(sys.argv[7],sys.argv[9]);require(safe['status']=='PASS_ACTUAL_PRIVATE_PG18_SAFE_ERROR_APPEND_AND_TYPED_ROLLBACK' and safe['whole_original_append_count']==1 and safe['private_marker_and_password_absent'] and safe['product_cleanup'] is False and safe['F02'] is False)
+ normal_prerequisite(normal,uid,driver)
+ safe=logging_prerequisite(receipt(sys.argv[7],sys.argv[9]),driver)
  save('normal-dependency.json',normal);save('logging-dependency.json',safe);save('runner-source.py',Path(__file__).read_bytes())
  before=source();save('source-before.json',before);head=command('source-head',['git','rev-parse','HEAD']).decode().strip();require(len(head)==40)
  compose=['compose','-p',project,'-f',str(root/'compose.yaml')]
@@ -103,7 +119,7 @@ def main():
   lab=v['Config']['Labels'];require(lab['com.docker.compose.project']==project and lab['com.docker.compose.service']==role and lab['routex.acceptance.run']==run)
   require(not v['HostConfig']['Privileged'] and not v['State']['OOMKilled'] and v['HostConfig']['RestartPolicy']['Name']=='no')
   require(not v['HostConfig'].get('PortBindings') and all(not x for x in (v['NetworkSettings'].get('Ports') or {}).values()))
-  if role!='postgres':require(v['Config']['User']==f'{uid}:{uid}' and v['HostConfig']['ReadonlyRootfs'] and v['HostConfig']['CapDrop']==['ALL'] and not v['HostConfig'].get('CapAdd'))
+  if role!=driver:require(v['Config']['User']==f'{uid}:{uid}' and v['HostConfig']['ReadonlyRootfs'] and v['HostConfig']['CapDrop']==['ALL'] and not v['HostConfig'].get('CapAdd'))
   require(not any(m['Type']=='volume' for m in v.get('Mounts',[])))
   if stopped:require(not v['State']['Running'] and v['State']['Pid']==0 and v['State']['FinishedAt']!='0001-01-01T00:00:00Z')
   else:
@@ -122,7 +138,7 @@ def main():
   nets=docker('network-census',['network','ls','-q','--no-trunc','--filter','label=com.docker.compose.project='+project]).decode().split();require(len(nets)==1);network=nets[0];check_network()
  def check_network(stopped=False):
   v=json.loads(docker('inspect-network',['network','inspect',network]))[0];require(v['Id']==network and v['Name']==project+'_default' and v['Internal'] and v['Labels']['com.docker.compose.project']==project)
-  expected=set() if stopped else {owned[r] for r in owned if r in ('postgres','anchor')};require(set(v['Containers'])==expected);save('network-'+str(len(rows))+'.json',v)
+  expected=set() if stopped else {owned[r] for r in owned if r in (driver,'anchor')};require(set(v['Containers'])==expected);save('network-'+str(len(rows))+'.json',v)
  try:
   env=dict(os.environ,GOOS='linux',GOARCH='arm64',CGO_ENABLED='0')
   command('install-fresh-frontend',['npm','--prefix','website','ci','--offline','--no-audit','--no-fund'],180)
@@ -130,22 +146,22 @@ def main():
   for name,pkg,flags in [
    ('routex','./cmd/routex','-X main.CommitID='+head),
    ('wire-client','./scripts/vault-cleanup-wire-client',f'-X main.BuildRunID={run} -X main.BuildSourceManifest={before["sha256"]} -X main.BuildHostUID={uid}'),
-   ('f02-client','./scripts/vault-cleanup-f02/client',f'-X main.BuildRunID={run} -X main.BuildSource={head} -X main.BuildManifest={before["sha256"]} -X main.BuildHostUID={uid} -X main.BuildStarted={started} -X main.BuildNormalReceipt={normal_sha}'),
-   ('cleanup-evidence','./scripts/provider-credential-cleanup-evidence/cmd/cleanup-evidence',f'-X main.BuildRunID={run} -X main.BuildSource={head} -X main.BuildPhase=f02 -X main.BuildTrustedHostUID={uid}')]:
+   ('f02-client','./scripts/vault-cleanup-f02/client',f'-X main.BuildRunID={run} -X main.BuildSource={head} -X main.BuildManifest={before["sha256"]} -X main.BuildHostUID={uid} -X main.BuildStarted={started} -X main.BuildNormalReceipt={normal_sha} -X main.BuildDriver={driver}'),
+   ('cleanup-evidence','./scripts/provider-credential-cleanup-evidence/cmd/cleanup-evidence',f'-X main.BuildRunID={run} -X main.BuildSource={head} -X main.BuildPhase=f02 -X main.BuildTrustedHostUID={uid} -X main.BuildDriver={driver}')]:
    command('build-'+name,['go','build','-trimpath','-ldflags',flags,'-o',str(root/'artifacts'/name),pkg],180,env)
    binaries[name]=sha(root/'artifacts'/name)
    save('build-'+name+'.json',dict(sha256=binaries[name],source_manifest=before['sha256'],head=head))
   for name,pkg,flags in [
-   ('fault-helper','./scripts/vault-cleanup-f02/installer',f'-X main.BuildRunID={run} -X main.BuildSource={head} -X main.BuildNormalSchemaReceiptSHA256={normal_sha} -X main.BuildTrustedHostUID={uid}'),
-   ('pg-qualifier','./scripts/vault-cleanup-f02/postgres',f'-X main.BuildRunID={run} -X main.BuildSource={head} -X main.BuildTrustedHostUID={uid}')]:
+   ('fault-helper','./scripts/vault-cleanup-f02/installer',f'-X main.BuildRunID={run} -X main.BuildSource={head} -X main.BuildNormalSchemaReceiptSHA256={normal_sha} -X main.BuildTrustedHostUID={uid} -X main.BuildDriver={driver}'),
+   (qualifier+'-qualifier','./scripts/vault-cleanup-f02/'+driver,f'-X main.BuildRunID={run} -X main.BuildSource={head} -X main.BuildTrustedHostUID={uid}')]:
    command('build-'+name,['go','build','-trimpath','-ldflags',flags,'-o',str(root/'artifacts'/name),pkg],180,env)
    binaries[name]=sha(root/'artifacts'/name)
    save('build-'+name+'.json',dict(sha256=binaries[name],source_manifest=before['sha256'],head=head))
-  for name,pkg in [('fault-controls','./scripts/vault-cleanup-f02/installer'),('f02-controls','./scripts/vault-cleanup-f02/client'),('pg-controls','./scripts/vault-cleanup-f02/postgres')]:
+  for name,pkg in [('fault-controls','./scripts/vault-cleanup-f02/installer'),('f02-controls','./scripts/vault-cleanup-f02/client'),(qualifier+'-controls','./scripts/vault-cleanup-f02/'+driver)]:
    command('build-'+name,['go','test','-c','-trimpath','-o',str(root/'artifacts'/name),pkg],180,env)
    binaries[name]=sha(root/'artifacts'/name)
    save('build-'+name+'.json',dict(sha256=binaries[name],source_manifest=before['sha256'],head=head))
-  for name,ref in [('vault',VAULT),('postgres',POSTGRES),('base',BASE)]:
+  for name,ref in [('vault',VAULT),(driver,POSTGRES if driver=='postgres' else MYSQL),('base',BASE)]:
    docker('pull-'+name,['pull','--platform','linux/arm64',ref],180);images[name]=docker('image-'+name,['image','inspect','--format','{{.Id}}',ref]).decode().strip()
   (root/'.dockerignore').write_text('*\n!artifacts/\n!artifacts/**\n!Dockerfile\n')
   (root/'Dockerfile').write_text('FROM '+BASE+'\nCOPY --chmod=0555 artifacts/ /opt/routex/\nUSER '+str(uid)+':'+str(uid)+'\nCMD ["sleep","900"]\n');os.chmod(root/'Dockerfile',0o644)
@@ -216,31 +232,59 @@ networks:
   default:
     internal: true
 '''
-  save('compose.yaml',text.encode());save('build-input.json',dict(run=run,project=project,host_uid=uid,source=head,source_manifest=before['sha256'],started_at=started,images=images))
-  docker('compose-up',compose+['up','-d','--no-build'],90);discover();require(set(owned)=={'postgres','anchor','vault','gateway'})
+  if driver=='mysql':
+   save('input/root-password',secrets.token_urlsafe(36).encode())
+   save('input/client.cnf',('[client]\nhost=127.0.0.1\nuser=routex_f28_f02\npassword='+password+'\ndatabase=routex_f28_f02_'+run+'\n').encode())
+   service=f'''  mysql:
+    image: {MYSQL}
+    platform: linux/arm64
+    restart: 'no'
+    labels: {{routex.acceptance.run: {run}}}
+    logging: {{driver: json-file, options: {{max-size: '1m', max-file: '1'}}}}
+    environment:
+      MYSQL_USER: routex_f28_f02
+      MYSQL_DATABASE: routex_f28_f02_{run}
+      MYSQL_PASSWORD_FILE: /input/database-password
+      MYSQL_ROOT_PASSWORD_FILE: /input/root-password
+    volumes: ['{root}/input/database-password:/input/database-password:ro', '{root}/input/root-password:/input/root-password:ro', '{root}/input/client.cnf:/input/client.cnf:ro']
+    tmpfs: ['/var/lib/mysql:uid=999,gid=999,mode=0700,size=1g', '/var/run/mysqld:uid=999,gid=999,mode=0755,size=8m', '/tmp:mode=1777,size=32m']
+    command: [mysqld, '--innodb-buffer-pool-size=128M', '--skip-log-bin', '--default-time-zone=+00:00', '--general-log=OFF', '--slow-query-log=OFF', '--log-output=NONE', '--log-error-verbosity=2', '--log-timestamps=UTC', '--skip-name-resolve', '--local-infile=OFF']
+    healthcheck:
+      test: [CMD, mysql, '--defaults-extra-file=/input/client.cnf', '--execute', 'SELECT 1']
+      interval: 1s
+      timeout: 2s
+      retries: 90
+'''
+   start=text.index('  postgres:');stop=text.index('  anchor:',start)
+   text=text[:start]+service+text[stop:];text=text.replace('postgres: {condition: service_healthy}','mysql: {condition: service_healthy}')
+   config=cfg.read_text();start=config.index('dsn: ');stop=config.index('\n',start)
+   dsn='routex_f28_f02:'+password+'@tcp(mysql:3306)/routex_f28_f02_'+run+'?parseTime=true&loc=UTC&charset=utf8mb4&timeout=2s&readTimeout=2s&writeTimeout=2s'
+   cfg.write_text(config[:start]+'dsn: "'+dsn+'"'+config[stop:]);cfg.write_text(cfg.read_text().replace('driver: postgres','driver: mysql'))
+  save('compose.yaml',text.encode());save('build-input.json',dict(run=run,project=project,driver=driver,host_uid=uid,source=head,source_manifest=before['sha256'],started_at=started,images=images))
+  docker('compose-up',compose+['up','-d','--no-build'],90);discover();require(set(owned)=={driver,'anchor','vault','gateway'})
   preflight_started=True
   docker('native-preflight',['exec','--user',f'{uid}:{uid}',owned['vault'],'/opt/routex/wire-client','--app-role-reader'],75)
   # Complete current topology identity precedes every protected native input.
-  (root/'input/database-container-id').write_text(owned['postgres'])
-  for name in ['fault-controls','f02-controls','pg-controls']:
+  (root/'input/database-container-id').write_text(owned[driver])
+  for name in ['fault-controls','f02-controls',qualifier+'-controls']:
    controls=docker('native-'+name,['exec','--user',f'{uid}:{uid}',owned['vault'],'/opt/routex/'+name,'-test.v','-test.count=1'],45).decode()
    require(controls.endswith('PASS\n') and '--- SKIP:' not in controls and '--- FAIL:' not in controls)
    import re
-   require(len(re.findall(r'^--- PASS:',controls,re.M))=={'fault-controls':12,'f02-controls':6,'pg-controls':2}[name])
+   require(len(re.findall(r'^--- PASS:',controls,re.M))=={'fault-controls':12,'f02-controls':7,qualifier+'-controls':2}[name])
   def capture_logs(label):
-   data=docker(label,['logs',owned['postgres']]);entry=rows[-1];prefix=f"commands/{len(rows):03d}-{label}";err=(root/(prefix+'.stderr')).read_bytes();save(label+'.stdout',data);save(label+'.stderr',err);return data,err
-  pg_before=capture_logs('postgres-original-before')
+   data=docker(label,['logs',owned[driver]]);entry=rows[-1];prefix=f"commands/{len(rows):03d}-{label}";err=(root/(prefix+'.stderr')).read_bytes();save(label+'.stdout',data);save(label+'.stderr',err);return data,err
+  pg_before=capture_logs(driver+'-original-before')
   native_started=True
   docker('native-original',['exec','--user',f'{uid}:{uid}',owned['vault'],'/opt/routex/f02-client','original'],110)
-  pg_after=capture_logs('postgres-original-after')
+  pg_after=capture_logs(driver+'-original-after')
   additions=[]
   for before_log,after_log in zip(pg_before,pg_after):
    require(after_log.startswith(before_log))
    if after_log[len(before_log):]:additions.append(after_log[len(before_log):])
-  require(len(additions)==1);raw_error=additions[0];save('original-complete-error-append.log',raw_error)
+  require(len(additions)==(1 if driver=='postgres' else 0));raw_error=b''.join(additions);save('original-complete-error-append.log',raw_error)
   import re
   grammar=rb'^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3} UTC\|[1-9][0-9]*\|routex-f28-runtime-'+run[:16].encode()+rb'\|routex_f28_f02_'+run.encode()+rb'\|23514\|ERROR:  new row for relation "credential_published_cleanups" violates check constraint "routex_fixture_f28_postack_refusal"\n$'
-  require(re.fullmatch(grammar,raw_error) is not None and password.encode() not in raw_error)
+  require((re.fullmatch(grammar,raw_error) is not None if driver=='postgres' else raw_error==b'') and password.encode() not in raw_error)
   save('before-restart-gateway.json',inspect('gateway'));docker('join-original-gateway',['stop','--time','10',owned['gateway']],20);stopped=inspect('gateway',True);require(stopped['State']['ExitCode']==0);save('original-gateway-stopped.json',stopped)
   docker('same-binary-restart',['start',owned['gateway']]);new=json.loads(docker('new-gateway-capture',['inspect',owned['gateway']]))[0];docker('restarted-gateway-original-logs',['logs',owned['gateway']]);old=saved_configs['gateway']
   for field in ['Id','Image','Name','Config','HostConfig','Mounts']:require(new[field]==old[field])
@@ -277,7 +321,7 @@ networks:
      'original':{'setup','integration-catalog','integration-create','policy-read','policy-write','storage-context','provider-create','retained-preview','credential-metadata','credential-delete','cleanup-preview','version-hash','metrics-before','original-cleanup','metrics-after','pending-command-read'},
      'replay':{'same-session-refresh','expired-token-free-replay','expired-command-read'}}
     phase_files={
-     'original':{'http-census.json','f02-observations.json','private-original-session.json','postgres-settings.json','fault-helper-result.json','fault-helper-terminal.json','private-original-expectation.json','private-helper-input.json','helper-result.json','helper-terminal.json','audit-before.jsonl','audit-after.jsonl'},
+     'original':{'http-census.json','f02-observations.json','private-original-session.json',driver+'-settings.json','fault-helper-result.json','fault-helper-terminal.json','private-original-expectation.json','private-helper-input.json','helper-result.json','helper-terminal.json','audit-before.jsonl','audit-after.jsonl'},
      'replay':{'http-census.json','f02-observations.json','private-helper-input.json','helper-result.json','helper-terminal.json','replay-audit-before.jsonl','replay-audit-after.jsonl','private-restart-lifecycle.json'}}
     for phase,dispatched in [('original',native_started),('replay',replay_started)]:
      if not dispatched:continue
@@ -289,11 +333,11 @@ networks:
      if value['passed']:require(set(names)==fixed)
      for f in value['files']:
       raw=docker('capture-'+phase+'-file',['exec','--user',f'{uid}:{uid}',owned['vault'],'cat',prefix+'/'+f['name']]);require(len(raw)==f['bytes'] and hashlib.sha256(raw).hexdigest()==f['sha256']);save('captured-'+phase+'-'+f['name'],raw)
-    require(set(owned)=={'postgres','anchor','vault','gateway'})
-    for role in ['gateway','vault','postgres','anchor']:
+    require(set(owned)=={driver,'anchor','vault','gateway'})
+    for role in ['gateway','vault',driver,'anchor']:
      save('before-stop-'+role+'.json',inspect(role));docker('stop-'+role,['stop','--time','10',owned[role]],20);v=inspect(role,True);save('stopped-'+role+'.json',v);require(v['State']['ExitCode'] in ([0,143] if role=='anchor' else [0]))
     check_network(stopped=True)
-    for role in ['gateway','vault','postgres','anchor']:inspect(role,True);docker('remove-'+role,['rm',owned[role]])
+    for role in ['gateway','vault',driver,'anchor']:inspect(role,True);docker('remove-'+role,['rm',owned[role]])
     v=json.loads(docker('network-before-remove',['network','inspect',network]))[0];require(not v['Containers'] and v['Id']==network and v['Internal']);save('network-before-remove.json',v);docker('remove-network',['network','rm',network])
     require(not docker('final-containers',['ps','-aq','--filter','label=com.docker.compose.project='+project]).strip());require(not docker('final-network',['network','ls','-q','--filter','label=com.docker.compose.project='+project]).strip());require(not docker('final-volumes',['volume','ls','-q','--filter','label=com.docker.compose.project='+project]).strip())
     for cid in owned.values():
@@ -306,7 +350,7 @@ networks:
   except BaseException:
    failed=failed or stage;closure=False
   save('processes.json',rows);passed=failed is None and closure and native_terminal is not None and native_terminal['passed'] is True and replay_terminal is not None and replay_terminal['passed'] is True
-  result=dict(passed=passed,failed_stage=failed,recorded_closure=closure,native_terminal=native_terminal,replay_terminal=replay_terminal,normal_acknowledgement=False,output=str(root),global_completion=False);save('terminal.json',result);print(json.dumps(result))
+  result=dict(driver=driver,passed=passed,failed_stage=failed,recorded_closure=closure,native_terminal=native_terminal,replay_terminal=replay_terminal,normal_acknowledgement=False,output=str(root),global_completion=False);save('terminal.json',result);print(json.dumps(result))
  return 0 if passed else 1
 
 if __name__=='__main__':sys.exit(main())

@@ -179,12 +179,13 @@ tasks:
       - ./scripts/test-auth-lifecycle.sh
 
   test-vault-cleanup-f02-logging:
-    desc: Qualify safe PostgreSQL error logging in a separate fresh dummy namespace
+    desc: Qualify driver-bound safe error logging in a separate fresh dummy namespace
     cmds:
+      - python3 -B scripts/vault-cleanup-f02/logging_test.py
       - python3 -B scripts/vault-cleanup-f02/logging.py {{.CLI_ARGS}}
 
   test-vault-cleanup-f02:
-    desc: Qualify one isolated PostgreSQL cleanup acknowledgement fault with reviewed prerequisites
+    desc: Qualify one isolated driver-bound cleanup acknowledgement fault with reviewed prerequisites
     cmds:
       - python3 -B scripts/vault-cleanup-f02/run_test.py
       - python3 -B scripts/vault-cleanup-f02/run.py {{.CLI_ARGS}}
