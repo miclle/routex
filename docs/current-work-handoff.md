@@ -1,5 +1,67 @@
 # Current implementation handoff
 
+## F28 controlled V11 root rotation and saved-identity continuity (2026-10-19)
+
+Fresh PostgreSQL browser R4 rebuilds every artifact on product source
+`ee994ec97021eb953a2d2d86c8e46bcf696fd326`. The background in-app browser
+observes two provisioned verified roots, cancels the English preview, then
+actually starts the Chinese-reviewed rotation. Real persisted V11 migration
+covers thirteen domains, including Vault writer/reader authentication and runtime
+archive chunks. Source/target roles change and policy epoch advances from 1 to 2.
+Both languages show observation blocked until the server's natural 300-second
+window ends. A fresh server review then exposes Ready and retirement eligibility.
+
+The browser's retirement preview is cancelled. A separate authorized API Session
+performs retirement and an identical-intent replay; the same browser independently
+observes Completed and the old root Retired in both languages. Five separate
+read-only PostgreSQL projections validate the original job, thirteen-domain work,
+source/target key states and two receipts. Policy epoch advances to 3 while the
+job preserves cutover epoch 2. Policy, keys, job, items and receipts remain
+identical on replay; only the current process proof timestamp refreshes.
+
+After retirement, an actual browser CAS=0 Write succeeds using the saved Token.
+The API's saved-AppRole Read succeeds, while its conditional cleanup receives the
+expected least-privilege writer 403 and remains cleanup_pending/failed. Both
+languages show the separate results. The complete six-row Vault audit append
+pairs AppRole login, exact owned-version read and refused destroy. This is
+successful saved-identity continuity plus a cleanup refusal, not acknowledged
+cleanup. The fixture's private wire client uses a bounded 3,600-second auth TTL;
+its standalone seeder and that TTL adaptation remain distinct from product source.
+
+The original producer joins zero without cancellation/timeout. Independent
+readback verifies all 93 recorded parent groups, five extra SQL groups, two audit
+capture groups, four containers and network closed, ten native artifacts intact,
+and port 58200 refused and freshly bindable. This is recorded coverage, not a
+complete descendant census. Audit SHA-256:
+`71d25bad73b7c8e59299e28285c5c3d5729076c35f48d4814f604d26ad1fd858`.
+R3's containing UI deadline failure remains failed with independently verified
+closure (`ac6db9815fe445aa69018a8a05d0bed4d2f08ac80f87947336373bd5ab5744d7`).
+R4's first replay witness wrongly expected epoch 2 and fails before any POST;
+the preserved separate successor checks actual epoch 3 and replays the original
+UUID/reason/ETag. No product gate is relaxed or failed replay relabeled.
+
+The browser also exposed a stale Start button after retirement: its retained
+target was already the current write root and no longer selectable. Existing
+prepare/dispatch guards refused it, but the button remained enabled. Independent
+branch `routex-f28-root-target-guard-20261019` is published at remote-verified
+`2a44328f282a25db3a037ddef6db39462316d570`. Its two-file fix binds enablement to
+the current eligible target options. The new regression first fails, then all
+eight focused files / 173 tests and mandatory check pass on unchanged source
+manifest `9ec3c74cc3bd008569e2fbec0193a1f0d83611eb2f6d52e1bd6a50ac935e57fc`.
+Guard source audit: `a7a9adf24b745a9e2733069908bfca119acb7caa0c7a1a01e76b822aa51729b4`.
+The R4 runtime belongs to parent `ee994ec`; no fresh guard browser or repeated
+ordinary Task is inferred from these focused checks.
+
+Protected roots are `/private/tmp/routex-f28-browser-runtime-qualification-20261019-r4`
+and `/private/tmp/routex-f28-root-target-guard-qualification-20261019-r1`.
+Next prepare fresh MySQL root/browser acceptance on the guarded successor in the
+single heavy lane. Seven pure-UI flows, wider F28/A16, external F29 adoption and
+workload, fleet and global acceptance remain open. Original candidate and mixed
+successor remain unmerged; deferred shared runtime, V119/V120 registration and
+legacy history transfer stay excluded. Totals remain 16 Completed / 14 Partial
+capabilities and 2 Completed / 18 Partial scenarios.
+
+
 ## F28 current Secret Store inventory UI repair (2026-10-19)
 
 The background in-app browser exposed a real frontend/backend contract mismatch:
