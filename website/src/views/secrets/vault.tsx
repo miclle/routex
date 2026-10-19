@@ -543,8 +543,12 @@ export function VaultWorkspace({
       mounted.current &&
       !abort.signal.aborted &&
       authority('test')?.epoch === gate.epoch
-    )
+    ) {
       void list.refetch()
+      // Read/Cleanup reuse the open probe key. Its previous GET must not hide
+      // the newly recorded outcome until an unrelated background refresh.
+      if (intent.action !== 'write') void probe.refetch()
+    }
   }
   const formatDate = (value: string) =>
     new Date(value).toLocaleString(i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US')
@@ -587,13 +591,7 @@ export function VaultWorkspace({
     </section>
   )
   return (
-    <Page title={t('title')} description={t('vault.description')}>
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold">{t('tabs.vault')}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t('vault.description')}</p>
-        </div>
-      </div>
+    <Page showHeading title={t('tabs.vault')} description={t('vault.description')}>
       {!fresh || permissions.isFetching || list.isFetching ? (
         <p role="status">{t('loading')}</p>
       ) : !admin || (permissions.isSuccess && !canRead) ? (

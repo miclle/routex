@@ -2,7 +2,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router'
-import { AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import client from '@/api/client'
 import i18n from '@/i18n'
@@ -621,6 +621,92 @@ for (const { action, label, suffix } of [
     expect(cache.getMutationCache().getAll()).toHaveLength(0)
   })
 }
+
+for (const action of ['read', 'cleanup'] as const) {
+  it(`refreshes the open probe after ${action} changes its recorded outcome`, async () => {
+    listingProbe = true
+    let latest = probe()
+    if (action === 'cleanup') {
+      latest.state = 'cleanup_pending'
+      latest.read = { attempted: true, succeeded: true, duration_ms: '1', failure: null }
+      latest.cleanup = {
+        state: 'failed',
+        observation: {
+          attempted: true,
+          succeeded: false,
+          duration_ms: '1',
+          failure: { stage: 'cleanup', code: 'http_status', http_status: 403 },
+        },
+      }
+    }
+    const previous = client.defaults.adapter as (
+      config: InternalAxiosRequestConfig,
+    ) => Promise<AxiosResponse<unknown>>
+    client.defaults.adapter = async (config) => {
+      const response = await previous(config)
+      if (config.method === 'post' && config.url!.endsWith(`/${action}`)) {
+        latest = structuredClone(latest)
+        latest.review_etag = 'd'.repeat(64) + '.' + 'e'.repeat(64)
+        latest.read = { attempted: true, succeeded: true, duration_ms: '2', failure: null }
+        latest.state = action === 'read' ? 'cleanup_pending' : 'completed'
+        latest.cleanup = {
+          state: action === 'read' ? 'failed' : 'acknowledged',
+          observation: {
+            attempted: true,
+            succeeded: action === 'cleanup',
+            duration_ms: '2',
+            failure:
+              action === 'read'
+                ? { stage: 'cleanup', code: 'http_status', http_status: 403 }
+                : null,
+          },
+        }
+      }
+      if (config.url!.includes('/probes/'))
+        return {
+          ...response,
+          data: structuredClone(latest),
+          headers: { ...response.headers, etag: `"${latest.review_etag}"` },
+        }
+      if (config.url!.startsWith('/admin/secrets/integrations?'))
+        return {
+          ...response,
+          data: { ...(response.data as object), items: [{ ...vault(), last_probe: latest }] },
+        }
+      return response
+    }
+    await mount()
+    await click(action === 'read' ? 'Read test' : 'Clean up owned probe')
+    await changeInput('Reason', 'Review the newly recorded stage result')
+    await click('Review command')
+    await click('Confirm action')
+    const dialog = document.querySelector('[role=dialog]')!
+    expect(dialog.textContent).toContain('Current recorded probe observations were returned.')
+    expect(dialog.textContent).toContain('Read test: Succeeded')
+    expect(dialog.textContent).toContain(
+      action === 'read' ? 'Clean up owned probe: Failed' : 'Clean up owned probe: Acknowledged',
+    )
+    expect(dialog.textContent).not.toContain('Awaiting Read')
+    expect(dialog.textContent).not.toContain('The outcome is unknown.')
+    expect(writes).toHaveLength(1)
+    expect(cache.getMutationCache().getAll()).toHaveLength(0)
+  })
+}
+
+it('has one localized Vault content heading and description', async () => {
+  await mount()
+  for (const language of ['en', 'zh']) {
+    await act(async () => i18n.changeLanguage(language))
+    expect([...host.querySelectorAll('h1')].map((heading) => heading.textContent)).toEqual([
+      i18n.t('secrets:tabs.vault'),
+    ])
+    expect(
+      [...host.querySelectorAll('p')].filter(
+        (paragraph) => paragraph.textContent === i18n.t('secrets:vault.description'),
+      ),
+    ).toHaveLength(1)
+  }
+})
 
 it('external list renewal during a pending probe keeps the exact uncertain request for explicit retry', async () => {
   await mount()
