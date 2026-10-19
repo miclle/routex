@@ -1,5 +1,51 @@
 # RouteX Implementation and Acceptance Index
 
+## Maintained post-effect acknowledgement restart proof (2026-10-19)
+
+Main code is remote-verified at `926b1704cf07ab63cb6c06191ebe24b0704913b5`.
+The opt-in F02 logging prerequisite and restart/replay Tasks now live on main.
+Each rebuilds target-host artifacts, uses isolated Compose storage, retains
+private raw receipts and retires only checked owned binaries/images after closure.
+The runner requires complete independently accepted PostgreSQL normal and safe
+logging receipts. Dependency restoration uses the existing pinned offline cache;
+no package versions or script approvals change. No product migration changes.
+
+Mandatory check (PID 31192) and full ordinary Task (PID 31913) join zero on
+unchanged source manifest
+`e1bfbea1b68582cd14d4118e41e07aaa67e504e3c40b604006bac845a5f2edfd`:
+Go race, 287 frontend files / 7,770 cases, Node 5/5 and 93/93, fresh production
+assets and serving. All 20 Linux controls pass. Safe logging R2 independently
+confirms typed 23514, rollback to pending, one complete sanitized error append
+and closure of 40 recorded groups. Logging R1 remains failed after forced exit
+137; adding the client init process fixes shutdown without weakening acceptance.
+
+Fresh PostgreSQL F02 R2, run `338ab8bcd4e7f336c850a5f23610b2ea`, joins zero and
+passes full independent readback. The original request returns expected 503
+after the real Vault destroy, while SQL remains pending with exactly one claim.
+The same binary/container/config/database/key/journal genuinely restarts. After
+the original deadline naturally expires, the original Session refreshes CSRF and
+identical token-free replay returns 200/unknown, Running=false. The persisted
+claim stays unchanged and replay adds zero Vault events. Five complete audit
+pairs, two source generations, 28 original / 11 replay / 18 preflight files,
+144 absent process groups and exact resource/image/nine-binary retirement agree.
+
+Private root: `~/.local/share/routex/acceptance/f02-vault/routex-vault-f02-bpp4kwen`.
+Raw audit SHA-256 is
+`b9db96c23f1b68db81b1e0c4270534bae5a32b8c231843943f8d6221f237e087`;
+raw error append SHA-256 is
+`91670db13a281b8376e9b6f585e7ef3a5a1c9b963eb45e2417eceb749cc6039c`.
+Native manifest `16dd45a49a6efe11a0802dd90742001d1734d9abcec22f1e7e5fa0f1b5cbd102`
+normalizes exactly to checked source; application stamp stays `8f702fe`.
+F02 R1 remains failed after dependency-install timeout before any product run.
+
+Next serialize the default integration runner and produce complete fresh readback
+for both databases. This receipt covers only the controlled PostgreSQL post-effect
+fault/restart/replay. MySQL F02, browser destruction, external F29 application use,
+native AI completion and fleet/global acceptance remain separate. External inputs
+remain on the existing request. Original candidates remain unmerged; deferred
+shared runtime, V119/V120 and legacy transfer remain excluded. Totals stay
+16 Completed / 14 Partial capabilities and 2 Completed / 18 Partial scenarios.
+
 ## Dual-database normal cleanup delivery (2026-10-19)
 
 Main code is remote-verified at `020a18b6fe8860ce1918ab4112748e3facf0a189`.
