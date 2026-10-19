@@ -1,14 +1,25 @@
-import { act } from 'react'
+import { StrictMode, act, useLayoutEffect, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import client from '@/api/client'
 import i18n from '@/i18n'
 import en from '@/i18n/locales/en/systemStatus'
 import zh from '@/i18n/locales/zh/systemStatus'
 import { sessionKey } from '@/hooks/use-auth'
 import { ArchiveCleanup } from './archive-cleanup'
+
+const queuedButtons = vi.hoisted(() => new Map<string, () => void>())
+vi.mock('@/components/ui/button', () => ({
+  Button: function TestButton(props: ComponentProps<'button'>) {
+    useLayoutEffect(() => {
+      if (typeof props.children === 'string' && props.onClick)
+        queuedButtons.set(props.children, props.onClick as () => void)
+    })
+    return <button {...props} />
+  },
+}))
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const adapter = client.defaults.adapter
@@ -25,23 +36,25 @@ let authority: string
 let held: (() => void)[]
 function render() {
   root.render(
-    <QueryClientProvider client={cache}>
-      <ArchiveCleanup
-        authority={authority}
-        receiptAuthority={authority}
-        selected={selected}
-        isCurrent={() => authorized}
-        canWrite={() => canWrite}
-        onLock={(value) => {
-          locked = value
-        }}
-        onComplete={() => {
-          completed++
-          selected = []
-          render()
-        }}
-      />
-    </QueryClientProvider>,
+    <StrictMode>
+      <QueryClientProvider client={cache}>
+        <ArchiveCleanup
+          authority={authority}
+          receiptAuthority={authority}
+          selected={selected}
+          isCurrent={() => authorized}
+          canWrite={() => canWrite}
+          onLock={(value) => {
+            locked = value
+          }}
+          onComplete={() => {
+            completed++
+            selected = []
+            render()
+          }}
+        />
+      </QueryClientProvider>
+    </StrictMode>,
   )
 }
 async function click(text: string) {
@@ -57,6 +70,7 @@ async function reason(value: string) {
   })
 }
 beforeEach(async () => {
+  queuedButtons.clear()
   await i18n.changeLanguage('en')
   authority = 'initial'
   held = []
@@ -89,7 +103,7 @@ beforeEach(async () => {
     if (config.url?.endsWith('/preview'))
       response.data = {
         scope: 'archive_storage_only',
-        archive_ids: [id],
+        archive_ids: JSON.parse(config.data as string).archive_ids,
         retained_count: 3,
         encrypted_bytes: 500,
         selected_count: 1,
@@ -109,7 +123,7 @@ beforeEach(async () => {
       response.data = {
         scope: 'archive_storage_only',
         request_id: input.request_id,
-        archive_ids: [id],
+        archive_ids: JSON.parse(config.data as string).archive_ids,
         deleted_count: 1,
         deleted_encrypted_bytes: 100,
         completed_at: '2026-10-14T09:01:00Z',
@@ -252,4 +266,57 @@ describe('explicit administrator archive cleanup', () => {
     expect(host.querySelector('input')?.value).toBe('Keep this draft')
     expect(requests).toHaveLength(1)
   })
+})
+
+it('revokes the initial queued cleanup callback after an uncertain response', async () => {
+  await click(en.archiveCleanupPreview)
+  await reason('Original reviewed cleanup')
+  const queued = queuedButtons.get(en.archiveCleanupConfirm)!
+  failApply = true
+  await act(async () => queued())
+  expect(requests).toHaveLength(2)
+  expect(host.textContent).toContain(en.archiveCleanupUncertain)
+  await act(async () => queued())
+  expect(requests).toHaveLength(2)
+  failApply = false
+  await click(en.archiveCleanupRetry)
+  expect(requests).toHaveLength(3)
+  expect(requests[2].data).toBe(requests[1].data)
+  expect(completed).toBe(1)
+})
+it('requires a current explicit retry after each repeated uncertain response', async () => {
+  await click(en.archiveCleanupPreview)
+  await reason('Repeated uncertain cleanup')
+  failApply = true
+  await click(en.archiveCleanupConfirm)
+  const oldRetry = queuedButtons.get(en.archiveCleanupRetry)!
+  await act(async () => oldRetry())
+  expect(requests).toHaveLength(3)
+  await act(async () => oldRetry())
+  expect(requests).toHaveLength(3)
+  failApply = false
+  await click(en.archiveCleanupRetry)
+  expect(requests).toHaveLength(4)
+  expect(requests[3].data).toBe(requests[1].data)
+  expect(completed).toBe(1)
+})
+it('revokes the old preview callback when another archive selection is reviewed', async () => {
+  await click(en.archiveCleanupPreview)
+  await reason('First archive review')
+  const oldConfirm = queuedButtons.get(en.archiveCleanupConfirm)!
+  const replacement = 'rcv_00000000000000000000000002'
+  await act(async () => {
+    selected = [replacement]
+    render()
+  })
+  await click(en.archiveCleanupPreview)
+  await reason('Second archive review')
+  await act(async () => oldConfirm())
+  expect(requests).toHaveLength(2)
+  expect(completed).toBe(0)
+  await click(en.archiveCleanupConfirm)
+  expect(requests).toHaveLength(3)
+  expect(JSON.parse(requests[2].data).archive_ids).toEqual([replacement])
+  expect(JSON.parse(requests[2].data).reason).toBe('Second archive review')
+  expect(completed).toBe(1)
 })

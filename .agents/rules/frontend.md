@@ -1910,6 +1910,8 @@ secrets, integrity, rollback-readiness, current application or fleet claim is
 implied. Render retained headers and empty states without inferring writer or
 retention status; keep routing/installation histories separate. Pair English/Chinese copy.
 
+Archive cleanup callbacks bind the mounted owner, rendered authority turn, exact selected set, preview, reason and original uncertain intent. A replaced review, renewed authority or completed dispatch revokes queued confirmations and retries before HTTP. Preserve identical original bytes and review token for a fresh explicitly authorized retry with current CSRF; never let an old callback authorize another deletion or retry.
+
 Administrator archive cleanup stays inside the existing archive-history dialog.
 Require fresh intrinsic administrator, system.read and system.write authority.
 Select at most 20 exact visible archive IDs, capture the server preview and strong

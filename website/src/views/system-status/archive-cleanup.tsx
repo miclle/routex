@@ -44,25 +44,49 @@ export function ArchiveCleanup({
   const [pending, setPending] = useState(false)
   const [issue, setIssue] = useState<'preview' | 'uncertain' | ''>('')
   const [completed, setCompleted] = useState<number>()
+  const turn = useRef(0)
+  const [dispatchTurn, setDispatchTurn] = useState(0)
   const [activeIntent, setActiveIntent] = useState<CleanupIntent | null>(null)
   const intent = useRef<CleanupIntent | null>(null)
   const operation = useRef<AbortController | null>(null)
   const lifetime = useRef<object | null>(null)
-  const latest = useRef({ isCurrent, canWrite, onLock })
-  const reviewedCurrent = useRef<(() => boolean) | null>(null)
   const selectedBasis = JSON.stringify([...selected].sort())
+  const latest = useRef({
+    isCurrent,
+    canWrite,
+    onLock,
+    authority,
+    receiptAuthority,
+    selectedBasis,
+    preview,
+    activeIntent,
+    reason,
+  })
+  const reviewedCurrent = useRef<(() => boolean) | null>(null)
   useLayoutEffect(() => {
     const mounted = {}
     lifetime.current = mounted
+    setDispatchTurn(turn.current)
     return () => {
       lifetime.current = null
+      turn.current++
       operation.current?.abort()
       intent.current = null
       reviewedCurrent.current = null
     }
   }, [])
   useLayoutEffect(() => {
-    latest.current = { isCurrent, canWrite, onLock }
+    latest.current = {
+      isCurrent,
+      canWrite,
+      onLock,
+      authority,
+      receiptAuthority,
+      selectedBasis,
+      preview,
+      activeIntent,
+      reason,
+    }
   })
   const [renderBasis, setRenderBasis] = useState({ authority, receiptAuthority, selectedBasis })
   if (renderBasis.authority !== authority || renderBasis.receiptAuthority !== receiptAuthority) {
@@ -81,13 +105,17 @@ export function ArchiveCleanup({
     }
   }
   useLayoutEffect(() => {
+    setDispatchTurn(++turn.current)
     operation.current?.abort()
     operation.current = null
     reviewedCurrent.current = null
     latest.current.onLock(intent.current !== null)
   }, [authority, receiptAuthority])
   useLayoutEffect(() => {
-    if (!intent.current) reviewedCurrent.current = null
+    if (!intent.current) {
+      reviewedCurrent.current = null
+      setDispatchTurn(++turn.current)
+    }
   }, [selectedBasis])
 
   function csrf() {
@@ -95,9 +123,25 @@ export function ArchiveCleanup({
     return cache.getQueryData<Session>(sessionKey)?.csrf_token ?? null
   }
 
+  // A queued click cannot authorize another review or a later uncertain retry.
+  function ownsCurrentReview() {
+    return (
+      !!lifetime.current &&
+      turn.current === dispatchTurn &&
+      latest.current.authority === authority &&
+      latest.current.receiptAuthority === receiptAuthority &&
+      latest.current.selectedBasis === selectedBasis &&
+      latest.current.preview === preview &&
+      latest.current.activeIntent === activeIntent &&
+      intent.current === activeIntent &&
+      (!!activeIntent || latest.current.reason === reason)
+    )
+  }
+
   async function review() {
     const token = csrf()
     if (
+      !ownsCurrentReview() ||
       operation.current ||
       intent.current ||
       !token ||
@@ -105,6 +149,7 @@ export function ArchiveCleanup({
       selected.length > 20
     )
       return
+    setDispatchTurn(++turn.current)
     const owner = lifetime.current
     const current = isCurrent
     const controller = new AbortController()
@@ -144,7 +189,7 @@ export function ArchiveCleanup({
 
   async function submit() {
     const token = csrf()
-    if (operation.current || !token) return
+    if (!ownsCurrentReview() || pending || operation.current || !token) return
     let original = intent.current
     if (!original) {
       if (!preview || !reviewedCurrent.current?.()) return
@@ -165,6 +210,7 @@ export function ArchiveCleanup({
       intent.current = original
       setActiveIntent(original)
     }
+    setDispatchTurn(++turn.current)
     const owner = lifetime.current
     const current = isCurrent
     const controller = new AbortController()
