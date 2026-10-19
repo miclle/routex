@@ -197,6 +197,7 @@ test('CI preserves only explicit integration logs and lifecycle receipts after f
     'logs/owned-processes.jsonl',
     'logs/postgres-port.log',
     'logs/postgres.log',
+    'logs/runtime-archive.log',
     'logs/status.json',
     'oidc-owners/mysql.json',
     'oidc-owners/postgres.json',
