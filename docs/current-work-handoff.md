@@ -1,5 +1,96 @@
 # Current implementation handoff
 
+## Driver-bound cleanup acknowledgement faults and isolated GORM queries (2026-10-19)
+
+Delivered source is remote-verified at `b835d69d0c675c4a981f35f4bf62092379c4cc33`. The maintained F02 Task
+now supports an explicit MySQL profile with fixed database/account/endpoint and
+compile-bound driver, run, source and host identity. Default PostgreSQL behavior
+is retained. A separate MySQL diagnostic requires the actual typed3819/HY000
+check refusal, checked rollback to pending, eight exact safe settings and zero
+server-log append; PostgreSQL retains its exact sanitized23514 append contract.
+Driver-matched normal and safe-error prerequisites cannot be interchanged.
+No production migration, service dialect branch or authentication behavior changes.
+
+The first MySQL business run `0c5379402712b4af1000761df5abec74` joins exit201
+before product cleanup: GORM Connection supplied initialized mutable query state,
+so preceding Count/Model clauses contaminated the next frozen projection. The
+installer now creates independent query state while retaining its exact owned
+connection. A native dry-run regression checks table/filter/pool isolation.
+The failed run has no product cleanup dispatch or restart; all produced raw
+artifacts and independent 111-command/exact-owned closure remain retained.
+MySQL check DDL is explicitly nontransactional; pre/post identity, released
+constraints and the full migration ledger are verified without claiming DDL rollback.
+
+Fresh MySQL run `c3814a5744fc28ed65e812afd432af3b` and PostgreSQL regression
+`70c129efa02c51f0cdc20338d8cbf7db` independently pass the complete controlled
+post-effect fault/restart/replay flow. Each rebuilds nine Linux artifacts and
+assets into its own image, fresh database, Vault, journal, secrets and Session.
+The actual product response is503 after five paired Vault requests and one
+remote destroy, with durable pending, no FinishedAt, one claim audit, zero
+observe audits and known_no_effect=false. After positive original process exit0,
+same-container/image/config restart and the original natural deadline, the same
+Session sends the identical token-free intent:200/unknown/Running=false. The
+claim tuple is unchanged, both source generations have exact closure/current
+lease evidence, and Vault receives zero additional events. Each raw readback
+matches18 preflight,28 original and11 replay files plus144 command identities;
+all exact resources, run image and nine checked binaries are absent afterward.
+The anchor sleep daemon may stop143; native tests/helpers and gateway/database/
+Vault exits are independently checked separately.
+
+Both native runs use unchanged executable manifest
+`85431b9ef33e16caa9b3ffb4f92bb8fe7f7744dac62961dbb788ef32c361f3a4`
+on base81bd488. Only Task descriptions and README clarification change afterward.
+Final focused race, mandatory check and complete ordinary Task join0 without
+source drift, timeout or remaining groups on final manifest
+`567836ec08f542f5dd41315bb5bb940f3660c7158f69f14cccb6991cf4f07f37`;
+ordinary includes288 frontend files/7,803 cases, Go race and production serving.
+Fresh safe-error prerequisites have separate40-command closure/readbacks each.
+Private evidence: `~/.local/share/routex/acceptance/20261019-f28-mysql-f02/`.
+This establishes controlled acknowledgement-fault/restart behavior on each database,
+not normal cleanup, pure-UI workflow completion, external Vault compatibility,
+fleet isolation, complete F28/A16 or global promotion. Continue remaining genuine
+F28 browser workflows and F30 distributed acknowledgement/revocation acceptance
+within the existing deferred-runtime exclusions; external F29 inputs remain pending.
+
+
+## Routing rollback ownership and actual uncertain retry (2026-10-19)
+
+Main source is remote-verified at `81bd488aaa401bc7fd87c3be4cfd2dfc493f0506`.
+Five predecessor controls reproduce stale confirmation/retry writes, including
+changed reasons/previews and dismissed dialogs. Dispatch now binds the exact
+rendered view, reason, original intent and mounted lifetime. All 134 related
+cases pass under the recorded controls; mandatory check PID7284 and complete
+ordinary Task PID7796 join zero on unchanged manifest
+`d78a94fa5f9f45cddd53876a4475a5d4c86dfb88e570a647e154c00d21b813b6`.
+Ordinary includes Go race, 288 frontend files / 7,803 cases and production serving.
+
+Fresh PostgreSQL English run `055c45a789af739d35ba908549fd017e` and MySQL Chinese
+run `ebbcd8c31e5a9a4419864052de52dfa7` each perform one real disabled-Connection
+transport rollback. A separate local proxy records backend200 and deliberately
+delivers502 on the first response; this is controlled post-effect response failure,
+not a native RouteX500 or absence of effects. The UI retains an uncertain intent.
+After a checked stop/exit0 and same-container/image/config restart, an explicit
+browser retry sends identical body/UUID/reason/ETag and the same Session Cookie
+hash. Both backend responses are200, the second delivered unchanged. SQL retains
+one rollback, one publication and exactly the original three claim/rollback/finalize
+audits; retry adds none. Prior archive headers/chunks and Credentials remain
+unchanged, the Connection stays disabled and Calls/Attempts/Keys/cleanup stay zero.
+Original publication status remains separate from fresh current-process proof.
+The English final receipt is captured after a separate read-only refresh following
+normal authority renewal; the Chinese receipt is captured directly after retry.
+
+Both original parents join zero without timeout/source drift; independent readers
+match 43 command identities per run and verify three zero-exit containers,
+namespace, run image, four checked binaries and listener absent. Earlier pre-write
+modal-language/proxy-exit preparation, interrupted build and incomplete audit
+expectation generations remain failed/cancelled with their own closure records.
+Private evidence: `~/.local/share/routex/acceptance/20261019-archive-rollback/`.
+This qualifies one English PostgreSQL and one Chinese MySQL controlled retry flow,
+not both languages per database, fleet convergence, native inference, destructive
+cleanup, complete F30/A20 or global completion. Continue F28's independent MySQL
+post-effect refusal/restart prerequisite and business flow. Candidate isolation,
+external F29 inputs and deferred-runtime exclusions remain unchanged.
+
 ## Quota export denial privacy (2026-10-19)
 
 Main code is remote-verified at `51ba5eba518d231fa833d44e1a659a1f32da5dec`.
@@ -1516,8 +1607,8 @@ No capability or scenario is promoted by these tooling results.
 | 1 | F11/F23/F17 technical qualification | Candidate `679d8ea` retains its complete 615-node-per-driver technical evidence. Main `aed66a1` serial entrypoint separately passes 613/613 per driver, full ordinary/check, nonmatrix and archive readback. Candidate merge, product completion and deferred shared runtime remain excluded. |
 | 2 | F29 real external application acceptance | Controlled official Claude Personal and Project replacement/retirement/fresh-use and typed25006 unchanged-projection controls pass separately on PostgreSQL/MySQL, with complete recorded closure. Real application/deployment/issuer/workload inputs and external adoption remain open. Continue independent F30 transport/permanent cleanup acceptance; global F29 remains Partial. |
 | 3 | F24 denial, saved artifacts and readable exact money | Main `6430585` denial repair retains its bounded native404 scope. Actual IAB empty Tokens CSV and one Project Key Money save/load/CSV pass separate complete raw-file/SQL/closure readbacks. Main `33943a7` repairs the observed long-cap overlap with fresh EN/ZH geometry and exact decimal data. Candidate hostile-quota controls keep their separate dual-database scope. Main `51ba5eb` also qualifies current export-denial clearing with 371 related cases, full ordinary/check and immediate bilingual PG/MySQL IAB target404 readback. Direct CSV refusal/races retain source-test scope. Other report/viewport combinations, external-model semantics and full F24/A18 remain open. |
-| 4 | F28 saved identities and remaining workflows | Main probe/cleanup confirmation fixes `38347e3` / `0756645` retain dual-database IAB scopes. Saved-certificate tools `3f5e8de`, normal tools `148814e` / `020a18b`, and PostgreSQL F02 restart/replay `926b170` have separate complete recorded readbacks. Continue remaining actual business/browser and external compatibility gates; no MySQL F02, F28/A16 or fleet/global promotion. |
-| 5 | F30 transport, cleanup and callback ownership | Main `6df2e60` fixes three reproduced queued confirmation/retry dispatch defects; 129 related and full ordinary/check pass. Fresh PG IAB A-to-B/Chinese previews produce no deletion and exact unchanged archive/ledger readback. Earlier PostgreSQL R10/MySQL R4 transport/cleanup scopes remain on unmerged `529fda0`. Actual uncertain-browser retry, broader F30/A20 and fleet/global acceptance remain open. |
+| 4 | F28 saved identities and remaining workflows | Main probe/cleanup confirmation fixes `38347e3` / `0756645` retain dual-database IAB scopes. Saved-certificate tools `3f5e8de`, normal tools `148814e` / `020a18b`, and PostgreSQL F02 restart/replay `926b170` retain their separate scopes. Main `b835d69` adds driver-bound MySQL F02, fixes initialized GORM query-state contamination and independently passes complete fresh MySQL/PostgreSQL post-effect refusal/restart/replay with zero additional Vault events. Continue remaining genuine pure-UI and external compatibility gates; no F28/A16 or fleet/global promotion. |
+| 5 | F30 transport, cleanup and callback ownership | Main `6df2e60` fixes three reproduced queued confirmation/retry dispatch defects; 129 related and full ordinary/check pass. Fresh PG IAB A-to-B/Chinese previews produce no deletion and exact unchanged archive/ledger readback. Earlier PostgreSQL R10/MySQL R4 transport/cleanup scopes remain on unmerged `529fda0`. Main `81bd488` adds five exact callback-ownership regressions and actual original-Session post-effect502/restart/identical retry on English PostgreSQL and Chinese MySQL, with complete SQL/closure readbacks. Broader F30/A20 and fleet/global acceptance remain open. |
 | 6 | Remaining release scenarios | Continue existing authorization, identity/offboarding, recovery and measured single-node release checks; obtain real external inputs only for dependent work. |
 
 The fourteen Partial capabilities remain F03, F10-F14, F17, F20, F23-F24 and
