@@ -6,6 +6,16 @@ The application loads a runtime before it starts serving requests. Routing and a
 
 This is a single-process design. It does not provide distributed publication, node acknowledgments, multi-node revocation guarantees, or a highly available control plane. Each process requires its own initial database load after restart; runtime secrets are not persisted to an on-disk snapshot.
 
+An initialized quota installation is bound to its durable journal. A second
+process with an independent empty journal is refused before serving; this does
+not establish a second serving node or a shared runtime. The authentication
+lifecycle Task exercises that real refusal separately on both supported drivers.
+Its controlled native acceptance also keeps Key revocation effective through
+historical routing rollback/restart and exact Credential disablement effective
+through restart, with zero denied upstream dispatches and unchanged prior Call
+facts. These are single-process guarantees. Distributed acknowledgement and
+emergency revocation still require their own serving-topology acceptance.
+
 ## Independent Authorization and Routing
 
 Each refresh reads the required database rows inside a repeatable-read transaction. The authorization snapshot contains active key verification hashes, enabled users, the intersection of key model scopes and current user grants, active models, names and alias deadlines, and current credential eligibility and model coverage. Password hashes are not loaded into the runtime. Key expiry and alias deadlines are checked against the current clock, including during outages.
