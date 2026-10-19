@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { getPermissions } from '@/api/governance'
@@ -70,6 +70,7 @@ export function ProviderOrphans({
   >([])
   const commandRef = useRef({ intent, receipt })
   const newReviewNonce = useRef(0)
+  const reviewProof = useRef<{ row: ProviderOrphan; epoch: number } | null>(null)
   const [authorityExpired, setAuthorityExpired] = useState(false)
   const [busy, setBusy] = useState(false),
     [confirm, setConfirm] = useState(false)
@@ -127,10 +128,20 @@ export function ProviderOrphans({
   const visible = canRead && list.isSuccess && !list.isFetching && !list.error
   const current =
     visible && detail.isSuccess && !detail.isFetching && !detail.error ? detail.data : undefined
+  const cancelReview = useCallback(() => {
+    reviewProof.current = null
+    newReviewNonce.current++
+    setConfirm(false)
+    setToken('')
+    setReviewed(undefined)
+    setNewAttempt(false)
+    setNewReason('')
+  }, [])
   useLayoutEffect(() => {
     mounted.current = true
     return () => {
       mounted.current = false
+      reviewProof.current = null
       controller.current?.abort()
       ownerRef.current = ''
     }
@@ -138,6 +149,7 @@ export function ProviderOrphans({
   useLayoutEffect(() => {
     if (ownerRef.current !== owner) {
       ownerRef.current = owner
+      reviewProof.current = null
       newReviewNonce.current++
       epoch.current++
       controller.current?.abort()
@@ -156,6 +168,7 @@ export function ProviderOrphans({
   }, [owner])
   useLayoutEffect(() => {
     const hide = () => {
+      reviewProof.current = null
       epoch.current++
       controller.current?.abort()
       setToken('')
@@ -242,6 +255,7 @@ export function ProviderOrphans({
   }
   useLayoutEffect(() => {
     if (!fresh || !admin || !canRead) {
+      reviewProof.current = null
       newReviewNonce.current++
       controller.current?.abort()
     }
@@ -306,6 +320,7 @@ export function ProviderOrphans({
     current?.state === 'committed' && receipt?.state === 'failed' && !!receipt.finished_at
   function choose(row: ProviderOrphan) {
     if (!authority(false, false) || locked.current) return
+    reviewProof.current = null
     // Revisiting the same object must not discard a dispatched command's identity.
     if (intent?.creation_request_id === row.creation_request_id) {
       setSelected(row.creation_request_id)
@@ -326,6 +341,7 @@ export function ProviderOrphans({
   }
   async function prepare() {
     if (locked.current || intent || !authority(true) || !validVaultReason(reason)) return
+    reviewProof.current = null
     setToken('')
     setReviewed(undefined)
     setNotice('')
@@ -345,6 +361,7 @@ export function ProviderOrphans({
       if (mounted.current) setNotice('reviewFailed')
       return
     }
+    reviewProof.current = { row: result.data, epoch: auth.epoch }
     setReviewed(result.data)
     setConfirm(true)
   }
@@ -358,6 +375,7 @@ export function ProviderOrphans({
       sessionGeneration = cache.getQueryState(sessionKey)?.dataUpdatedAt,
       permissionGeneration = cache.getQueryState(keys.current.permissionsKey)?.dataUpdatedAt
     const nonce = ++newReviewNonce.current
+    reviewProof.current = null
     setToken('')
     setReviewed(undefined)
     setConfirm(false)
@@ -393,6 +411,7 @@ export function ProviderOrphans({
         setNotice('newReviewBlocked')
         return
       }
+      reviewProof.current = { row: result.data, epoch: auth.epoch }
       setNewReason('')
       setReviewed(result.data)
       setNewAttempt(true)
@@ -423,6 +442,8 @@ export function ProviderOrphans({
         (intent && !newAttempt) ||
         !confirm ||
         !reviewed ||
+        reviewProof.current?.row !== reviewed ||
+        reviewProof.current.epoch !== auth.epoch ||
         reviewed !== auth.row ||
         !reviewed.eligible ||
         reviewed.blocker_codes.length ||
@@ -453,6 +474,7 @@ export function ProviderOrphans({
       setReceipt(undefined)
     }
     if (!command) return
+    reviewProof.current = null
     const transient = retry ? undefined : token
     // Clear authentication before the network await. It never enters retained intent.
     setToken('')
@@ -531,7 +553,8 @@ export function ProviderOrphans({
       open
       onOpenChange={(open) => {
         if (!open) {
-          setToken('')
+          ownerRef.current = ''
+          cancelReview()
           controller.current?.abort()
           close()
         }
@@ -753,13 +776,7 @@ export function ProviderOrphans({
       <Dialog
         open={confirm && visible && !!current && !!reviewed && reviewed === current && !!writable}
         onOpenChange={(open) => {
-          if (!open) {
-            setConfirm(false)
-            setToken('')
-            setReviewed(undefined)
-            setNewAttempt(false)
-            setNewReason('')
-          }
+          if (!open) cancelReview()
         }}
         title={t(newAttempt ? 'orphans.confirmNewTitle' : 'orphans.confirmTitle')}
         description={t(
@@ -794,16 +811,7 @@ export function ProviderOrphans({
             />
           </label>
           <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setToken('')
-                setConfirm(false)
-                setReviewed(undefined)
-                setNewAttempt(false)
-                setNewReason('')
-              }}
-            >
+            <Button variant="outline" onClick={cancelReview}>
               {t('close')}
             </Button>
             <Button

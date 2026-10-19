@@ -1251,7 +1251,10 @@ Azure classic Chat is an explicit immutable Connection adapter with a required s
 Provider orphan cleanup belongs in the existing Vault Integration row menu and a
 scoped Drawer/Table. Preview requires intrinsic current administrator and
 secrets.read; dispatch additionally requires secrets.write and providers.write.
-A fresh exact creation review precedes Base UI danger confirmation. Cleanup
+A fresh exact creation review precedes Base UI danger confirmation. Bind that review
+to the exact row and synchronous authority epoch; same-facts cache publications
+revoke it. Closing the confirmation withdraws queued callbacks immediately while
+retaining only an already dispatched original command for reconciliation. Cleanup
 Token stays in component state and is cleared on dispatch, dismissal, authority
 loss and unmount; retained uncertain intent contains only command UUID, review
 and reason. Token-free command reconciliation never authorizes another destroy

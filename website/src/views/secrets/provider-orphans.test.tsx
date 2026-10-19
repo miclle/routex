@@ -278,6 +278,83 @@ it('live EN/ZH switch preserves reason and confirmation Token locally', async ()
   await click('Review cleanup')
   expect(document.querySelector<HTMLInputElement>('input[type=password]')?.value).toBe('')
 })
+it('closing the cleanup confirmation synchronously revokes its queued callback', async () => {
+  await render()
+  await review()
+  const queued = buttons('Confirm cleanup')[0]
+  await act(async () => {
+    buttons('Close')[0].click()
+    queued.click()
+  })
+  await settle()
+  expect(posts()).toHaveLength(0)
+  expect(document.querySelector('input[type=password]')).toBeNull()
+  await click('Review cleanup')
+  await input('Independent cleanup Token', 'new-reviewed-cleanup-token')
+  await click('Confirm cleanup')
+  expect(posts()).toHaveLength(1)
+  expect(JSON.parse(posts()[0].data).cleanup_token).toBe('new-reviewed-cleanup-token')
+})
+it('closing a new cleanup confirmation preserves only the original command', async () => {
+  const original = await failedPublishedCommand()
+  await click('Review a new cleanup attempt')
+  await input('Reason for the new command', 'Cancel this newly reviewed destroy')
+  await input('Independent cleanup Token', 'fresh-cleanup-token')
+  const queued = buttons('Confirm new cleanup attempt')[0]
+  await act(async () => {
+    buttons('Close')[0].click()
+    queued.click()
+  })
+  await settle()
+  expect(posts()).toHaveLength(1)
+  expect(document.body.textContent).toContain(original.request_id)
+  expect(document.querySelector('input[type=password]')).toBeNull()
+})
+for (const target of ['session', 'permissions', 'list', 'detail']) {
+  it(`same-facts ${target} publication revokes a queued cleanup review`, async () => {
+    await render()
+    await review()
+    const queued = buttons('Confirm cleanup')[0]
+    const query = cache
+      .getQueryCache()
+      .getAll()
+      .find((candidate) =>
+        target === 'session'
+          ? JSON.stringify(candidate.queryKey) === JSON.stringify(sessionKey)
+          : candidate.queryKey[0] === (target === 'permissions' ? 'permissions' : 'admin') &&
+            (target === 'permissions' ||
+              candidate.queryKey[1] ===
+                (target === 'list' ? 'provider-orphans' : 'provider-orphan')),
+      )!
+    expect(query).toBeDefined()
+    await act(async () => {
+      cache.setQueryData(query.queryKey, structuredClone(query.state.data))
+      queued.click()
+    })
+    await settle()
+    expect(posts()).toHaveLength(0)
+    expect(document.querySelector('input[type=password]')).toBeNull()
+  })
+}
+
+it('closing the orphan drawer rejects its queued original-command reconciliation', async () => {
+  status = 503
+  await render()
+  await review()
+  await click('Confirm cleanup')
+  const queued = buttons('Reconcile exact command')[0]
+  const close = document.querySelector<HTMLButtonElement>('button[aria-label="Close"]')!
+  expect(queued).toBeDefined()
+  expect(close).not.toBeNull()
+  await act(async () => {
+    close.click()
+    queued.click()
+  })
+  await settle()
+  expect(posts()).toHaveLength(1)
+  expect(document.body.textContent).toContain('closed')
+})
+
 it('unknown blocker is localized generic and blocks confirmation', async () => {
   value.eligible = false
   value.blocker_codes = ['future_private_condition']
