@@ -295,9 +295,24 @@ case "$*" in
  *) [ "$ROUTEX_TEST_OIDC_BINARY" = "$ROUTEX_RUNNER_PRIVATE/oidc-routex" ] && [ "$ROUTEX_TEST_OIDC_BINARY_SHA256" = "636bcee43aa96219a5c7f910c96e3c700fb31006e546047359d26e80eb0a7d10" ] && [ -x "$ROUTEX_TEST_OIDC_BINARY" ] && [ "$ROUTEX_TEST_OIDC_GUARD_DIR" = "$ROUTEX_RUNNER_PRIVATE/oidc-owners" ] && [ -d "$ROUTEX_TEST_OIDC_GUARD_DIR" ] || exit 26;;
 esac
 case "$*" in
+ *postgres*|*mysql*)
+ if [ "$ROUTEX_RUNNER_FAIL" = serial ]; then
+  mkdir "$ROUTEX_RUNNER_PRIVATE/driver-active" || exit 28
+  trap 'rmdir "$ROUTEX_RUNNER_PRIVATE/driver-active"' EXIT
+  case "$*" in
+   *postgres*) sleep 0.1; printf 'joined' > "$ROUTEX_RUNNER_PRIVATE/postgres-complete";;
+   *mysql*) [ -f "$ROUTEX_RUNNER_PRIVATE/postgres-complete" ] || exit 29;;
+  esac
+ fi;;
+esac
+case "$*" in
  *TestRuntimeConfigurationArchiveIntegration*) if [ "$ROUTEX_RUNNER_FAIL" = runtime-archive ]; then exit 27; fi;;
  *-skip*) if [ "$ROUTEX_RUNNER_FAIL" = nonmatrix ]; then exit 6; fi;;
- *postgres*) if [ "$ROUTEX_RUNNER_FAIL" = postgres ]; then exit 7; fi;;
+ *postgres*) if [ "$ROUTEX_RUNNER_FAIL" = postgres ]; then exit 7; fi
+ if [ "$ROUTEX_RUNNER_FAIL" = postgres-cancel ]; then
+  printf 'ready\n' >> "$ROUTEX_RUNNER_TRACE"
+  exec sleep 1000
+ fi;;
 esac
 if [ "$ROUTEX_RUNNER_FAIL" = guard ]; then
  case "$*" in
@@ -383,10 +398,30 @@ func TestCompleteCommandPlanAndFailureAggregation(t *testing.T) {
 	}
 }
 
+func TestDatabaseWorkersUseOneHeavyLane(t *testing.T) {
+	cmd, trace, _ := fakeLifecycle(t, "serial")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("database workers overlapped or ran out of order: %v\n%s", err, output)
+	}
+	raw, err := os.ReadFile(trace)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(raw)), "\n")
+	if len(lines) != 7 || !strings.Contains(lines[4], "^postgres$") || !strings.Contains(lines[5], "^mysql$") {
+		t.Fatalf("incomplete serial driver lifecycle: %q", lines)
+	}
+}
+
 func TestLifecycleCancellationExitAndCleanup(t *testing.T) {
-	for _, sig := range []syscall.Signal{syscall.SIGINT, syscall.SIGTERM} {
-		t.Run(sig.String(), func(t *testing.T) {
-			cmd, trace, private := fakeLifecycle(t, "cancel")
+	for _, tc := range []struct {
+		mode   string
+		signal syscall.Signal
+	}{{"cancel", syscall.SIGINT}, {"cancel", syscall.SIGTERM}, {"postgres-cancel", syscall.SIGINT}, {"postgres-cancel", syscall.SIGTERM}} {
+		t.Run(tc.mode+"/"+tc.signal.String(), func(t *testing.T) {
+			sig := tc.signal
+			cmd, trace, private := fakeLifecycle(t, tc.mode)
 			var output bytes.Buffer
 			cmd.Stdout = &output
 			cmd.Stderr = &output
@@ -423,6 +458,9 @@ func TestLifecycleCancellationExitAndCleanup(t *testing.T) {
 			raw, err := os.ReadFile(trace)
 			if err != nil || !strings.HasSuffix(string(raw), "down\n") {
 				t.Fatalf("cleanup omitted %q %v", raw, err)
+			}
+			if tc.mode == "postgres-cancel" && (!strings.Contains(string(raw), "^postgres$") || strings.Contains(string(raw), "^mysql$")) {
+				t.Fatalf("canceled PostgreSQL worker dispatched MySQL: %q", raw)
 			}
 			var report struct {
 				ExitCode int  `json:"exit_code"`
@@ -936,10 +974,10 @@ func TestOIDCChildGuardRetainsDependenciesAndExecutables(t *testing.T) {
 		t.Fatalf("unknown child ownership succeeded: %s", output)
 	}
 	raw, err := os.ReadFile(trace)
-	if err != nil || strings.Contains(string(raw), "down\n") {
-		t.Fatal("dependency down ran with retained OIDC child guards")
+	if err != nil || strings.Contains(string(raw), "down\n") || strings.Contains(string(raw), "^mysql$") {
+		t.Fatal("new database work or dependency down ran with retained OIDC child guards")
 	}
-	for _, name := range []string{"resource", "runner", "oidc-routex", "oidc-owners/postgres.json", "oidc-owners/mysql.json"} {
+	for _, name := range []string{"resource", "runner", "oidc-routex", "oidc-owners/postgres.json"} {
 		if _, err := os.Stat(filepath.Join(private, name)); err != nil {
 			t.Fatalf("unknown closure removed owned recovery fact %s", name)
 		}

@@ -161,7 +161,13 @@ func runLifecycleWithOutputBudget(project, private string, outputBudget time.Dur
 								mysqlJob := test("mysql", "-run", "^TestIdentityIntegration$/^mysql$", "./internal/routex/handler")
 								driverEnv := append(append([]string(nil), env...), "ROUTEX_TEST_OIDC_BINARY="+binaryPath, "ROUTEX_TEST_OIDC_BINARY_SHA256="+digest, "ROUTEX_TEST_OIDC_GUARD_DIR="+guardDir)
 								postgresJob.env, mysqlJob.env = driverEnv, driverEnv
-								batch(postgresJob, mysqlJob)
+								// Database qualification shares one heavy lane. A normal
+								// driver failure must still leave the other a complete run;
+								// cancellation or unknown ownership must not start new work.
+								batch(postgresJob)
+								if ctx.Err() == nil && allGone && oidcGuardsClear(guardDir) {
+									batch(mysqlJob)
+								}
 							}
 						}
 					}
