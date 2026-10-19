@@ -847,3 +847,32 @@ it('renders current V11 archive coverage bilingually and clears it during renewe
   ).toHaveLength(13)
   expect(writes).toHaveLength(0)
 })
+
+it('disables a retained target after refreshed policy makes it the current write key', async () => {
+  await mount()
+  await click('Root key rotation')
+  await select()
+  await reason()
+  expect(button('Start rotation').disabled).toBe(false)
+  view.policy = { write_key_id: 'next', epoch: '3' }
+  view.process.policy_epoch = '3'
+  view.review_etag = 'c'.repeat(64)
+  view.keys = view.keys.map((key) => ({
+    ...key,
+    state: key.id === 'next' ? 'write' : 'retired',
+    verified: key.id === 'next',
+  }))
+  view.rotation = {
+    ...job(11),
+    status: 'completed',
+    phase: 'completed',
+    blocker_codes: [],
+    allowed_actions: [],
+  }
+  await click('Review current status')
+  expect(document.querySelector('select')!.options).toHaveLength(1)
+  expect(button('Start rotation').disabled).toBe(true)
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(button('开始轮换').disabled).toBe(true)
+  expect(writes).toHaveLength(0)
+})
