@@ -708,6 +708,86 @@ it('has one localized Vault content heading and description', async () => {
   }
 })
 
+for (const { action, label } of [
+  { action: 'write', label: 'Write test' },
+  { action: 'read', label: 'Read test' },
+  { action: 'cleanup', label: 'Clean up owned probe' },
+]) {
+  it(`withdraws a queued unsent ${action} confirmation when its review is renewed`, async () => {
+    listingProbe = action !== 'write'
+    await mount()
+    await click(label)
+    await changeInput('Reason', 'Keep the reviewed command bound to its original authority')
+    await click('Review command')
+    const queued = button('Confirm action')
+    const page = cache
+      .getQueryCache()
+      .findAll()
+      .find((query) => query.queryKey[0] === 'admin' && query.queryKey[1] === 'vault')!
+    await act(async () => {
+      // A successful same-facts publication revokes the prior review before
+      // React commits the removal of the old confirmation button.
+      cache.setQueryData(page.queryKey, structuredClone(page.state.data))
+      queued.click()
+    })
+    await settle()
+    expect(writes).toHaveLength(0)
+    expect(button('Confirm action')).toBeUndefined()
+  })
+}
+
+it('cancelling a review synchronously withdraws its queued confirmation', async () => {
+  await mount()
+  await click('Write test')
+  await changeInput('Reason', 'Cancel this unsent reviewed command')
+  await click('Review command')
+  const queued = button('Confirm action')
+  await act(async () => {
+    button('Cancel').click()
+    queued.click()
+  })
+  await settle()
+  expect(writes).toHaveLength(0)
+  await click('Review command')
+  await click('Confirm action')
+  expect(writes).toHaveLength(1)
+})
+
+it('dismissing an uncertain probe synchronously withdraws its queued retry', async () => {
+  const previous = client.defaults.adapter as (
+    config: InternalAxiosRequestConfig,
+  ) => Promise<AxiosResponse<unknown>>
+  let release: (() => void) | undefined
+  const pending = new Promise<void>((done) => {
+    release = done
+  })
+  client.defaults.adapter = async (config) => {
+    const response = await previous(config)
+    if (config.method === 'post') await pending
+    return response
+  }
+  try {
+    await mount()
+    await click('Write test')
+    await changeInput('Reason', 'Dismiss the original uncertain operation')
+    await click('Review command')
+    await click('Confirm action')
+    await act(async () => cache.refetchQueries({ queryKey: ['admin', 'vault'] }))
+    release!()
+    await settle()
+    const queued = button('Retry original intent')
+    expect(queued).toBeDefined()
+    await act(async () => {
+      button('Close').click()
+      queued.click()
+    })
+    await settle()
+    expect(writes).toHaveLength(1)
+  } finally {
+    release!()
+  }
+})
+
 it('external list renewal during a pending probe keeps the exact uncertain request for explicit retry', async () => {
   await mount()
   await click('Write test')

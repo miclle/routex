@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient, type QueryKey, type Query } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { getPermissions } from '@/api/governance'
@@ -148,8 +148,19 @@ export function VaultWorkspace({
   const controller = useRef<AbortController | null>(null),
     epoch = useRef(0),
     mounted = useRef(true),
-    lock = useRef(false)
+    lock = useRef(false),
+    confirmation = useRef<{
+      intent: VaultProbeIntent
+      epoch: number
+      selection: number
+    } | null>(null),
+    dispatched = useRef<VaultProbeIntent | null>(null)
   const current = useRef({ permissionsKey, listKey, detailKey, probeKey, selection })
+  const discardConfirmation = useCallback(() => {
+    confirmation.current = null
+    setConfirm(false)
+    if (!dispatched.current) setIntent(undefined)
+  }, [])
   useLayoutEffect(() => {
     current.current = { permissionsKey, listKey, detailKey, probeKey, selection }
   })
@@ -157,6 +168,8 @@ export function VaultWorkspace({
     mounted.current = true
     return () => {
       mounted.current = false
+      confirmation.current = null
+      dispatched.current = null
       controller.current?.abort()
     }
   }, [])
@@ -165,6 +178,9 @@ export function VaultWorkspace({
       expired.current = true
       setSuspended(true)
       epoch.current++
+      nextSelection.current++
+      confirmation.current = null
+      dispatched.current = null
       controller.current?.abort()
       detailCandidate.current = null
       setSelection(undefined)
@@ -223,6 +239,7 @@ export function VaultWorkspace({
               return
           }
           epoch.current++
+          confirmation.current = null
           if (
             event.type === 'updated' &&
             same(event.query.queryKey, sessionKey) &&
@@ -245,6 +262,8 @@ export function VaultWorkspace({
             ) {
               expired.current = true
               setSuspended(true)
+              nextSelection.current++
+              dispatched.current = null
               detailCandidate.current = null
               setSelection(undefined)
               setIntent(undefined)
@@ -259,6 +278,8 @@ export function VaultWorkspace({
             event.query.state.fetchStatus === 'idle' &&
             !(event.query.state.data as string[] | undefined)?.includes('secrets.read')
           ) {
+            nextSelection.current++
+            dispatched.current = null
             detailCandidate.current = null
             setSelection(undefined)
             setIntent(undefined)
@@ -269,7 +290,7 @@ export function VaultWorkspace({
             setUncertain(true)
             setNotice('unknown')
           }
-          setConfirm(false)
+          discardConfirmation()
         }
         const candidate = detailCandidate.current
         if (
@@ -317,7 +338,7 @@ export function VaultWorkspace({
           }
         }
       }),
-    [cache, actor],
+    [cache, actor, discardConfirmation],
   )
   function authority(kind: 'write' | 'test') {
     const state = cache.getQueryState<Session>(sessionKey),
@@ -414,6 +435,8 @@ export function VaultWorkspace({
           }
         : null
     detailCandidate.current = null
+    confirmation.current = null
+    dispatched.current = null
     setSelection({
       id,
       action,
@@ -465,6 +488,9 @@ export function VaultWorkspace({
       : false
   }
   function close() {
+    nextSelection.current++
+    confirmation.current = null
+    dispatched.current = null
     controller.current?.abort()
     detailCandidate.current = null
     setSelection(undefined)
@@ -474,29 +500,45 @@ export function VaultWorkspace({
     setConfirm(false)
   }
   function capture() {
+    const gate = authority('test')
     if (
       !canTest ||
       !selected ||
       !selection ||
+      selection.nonce !== nextSelection.current ||
       !validVaultReason(reason) ||
       uncertain ||
-      !authority('test')
+      !gate
     )
       return
     const action = selection.action
     if (action === 'edit' || action === 'view') return
-    setIntent({
+    const next: VaultProbeIntent = {
       id: selected.id,
       action,
       ...(action === 'write' ? {} : { probe_id: currentProbe!.id }),
       etag: action === 'write' ? selected.review_etag : currentProbe!.review_etag,
       input: { request_id: crypto.randomUUID(), reason },
-    })
+    }
+    confirmation.current = { intent: next, epoch: gate.epoch, selection: selection.nonce }
+    setIntent(next)
     setConfirm(true)
   }
   async function dispatch(retry = false) {
     const gate = authority('test')
     if (!intent || !gate || !canTest || lock.current) return
+    const chosen = current.current.selection
+    if (!chosen || intent.id !== chosen.id || intent.action !== chosen.action) return
+    if (retry) {
+      if (dispatched.current !== intent) return
+    } else if (
+      confirmation.current?.intent !== intent ||
+      confirmation.current.epoch !== gate.epoch ||
+      confirmation.current.selection !== chosen.nonce
+    )
+      return
+    confirmation.current = null
+    dispatched.current = intent
     lock.current = true
     setBusy(true)
     setConfirm(false)
@@ -505,7 +547,7 @@ export function VaultWorkspace({
     let refreshList = false
     try {
       const result = await runVaultProbe(intent, gate.csrf, abort.signal)
-      if (!mounted.current) return
+      if (!mounted.current || dispatched.current !== intent) return
       if (abort.signal.aborted || authority('test')?.epoch !== gate.epoch) {
         setUncertain(true)
         setNotice('unknown')
@@ -513,12 +555,13 @@ export function VaultWorkspace({
       }
       setReceipt(result)
       setHistory((previous) => ({ ...previous, [result.integration_id]: result }))
+      dispatched.current = null
       setIntent(undefined)
       setUncertain(false)
       setNotice('recorded')
       refreshList = true
     } catch (error) {
-      if (!mounted.current) return
+      if (!mounted.current || dispatched.current !== intent) return
       const status = error instanceof VaultError ? error.status : 0
       if (
         retry ||
@@ -529,6 +572,7 @@ export function VaultWorkspace({
         setUncertain(true)
         setNotice('unknown')
       } else {
+        dispatched.current = null
         setIntent(undefined)
         setNotice(status === 409 ? 'conflict' : 'rejected')
       }
@@ -849,7 +893,9 @@ export function VaultWorkspace({
           </div>
           <Dialog
             open={confirm && ready}
-            onOpenChange={setConfirm}
+            onOpenChange={(open) => {
+              if (!open) discardConfirmation()
+            }}
             title={t('vault.confirmProbe')}
             description={t(
               selection.action === 'write'
@@ -861,7 +907,7 @@ export function VaultWorkspace({
             busy={busy}
           >
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setConfirm(false)}>
+              <Button variant="outline" onClick={discardConfirmation}>
                 {t('cancel')}
               </Button>
               <Button onClick={() => void dispatch()}>{t('confirm')}</Button>
