@@ -1,5 +1,39 @@
 # Current implementation handoff
 
+## Quota-analysis denial privacy (2026-10-19)
+
+Main code is remote-verified at `6430585484a2f3d6430bbda5c676dd859063aa7e`.
+The independent four-file F24 repair now clears captured quota facts/advice on a
+current analysis 401/403/404. Key reports also clear the selected owner and cancel
+the exact target read before authorized picker renewal. Obsolete analysis errors
+still cannot erase a newly reviewed report. No candidate backend is merged.
+
+Six actual repository predecessor cases fail; the obsolete-response control
+passes. All 360 related cases and complete mandatory/ordinary gates pass after
+repair on unchanged manifest
+`0ee64b673f747f02099b29da5837ef18483479b89657481b6c70815407aafdd1`.
+Check PID 55261 and ordinary PID 55834 join zero; ordinary includes Go race,
+288 frontend files / 7,784 cases, Node 5/5 and 93/93, production assets/serving.
+The initial wrong-directory test invocation ran no tests and remains excluded.
+
+Fresh PostgreSQL IAB run `a0960fe97ae69f22b5c79321ea3a4648` reads a real
+Project Key quota page, loses exact Project management and sends one analysis
+request returning 404. Old private facts disappear. Independent SQL/log readback
+confirms zero Calls, Attempts or upstream inference; the active Key is unchanged
+and the only subsequent audit is the exact manager removal. All 38 recorded
+commands match joined zero exits; all three containers stop zero and the exact
+namespace, image and three binaries are absent. Earlier fixture failures and
+an interrupted pre-dispatch browser generation remain failed/incomplete.
+Private evidence: `~/.local/share/routex/acceptance/20261019-insights-denial-main/`.
+
+English/Chinese saved screenshots show cleared state after normal same-actor
+authority renewal returned the view to its default report. They do not capture
+both immediate denial notices; focused controls establish synchronous clearing.
+No external-model semantics, native AI completion or complete F24/A18 is claimed.
+Next inspect retained F30 cleanup confirmation/retry callbacks, reproduce any
+actual dispatch defect, and continue independent release gates. External F29
+inputs and global Partial counts remain unchanged.
+
 ## Delivery confirmation ownership (2026-10-19)
 
 Main code is remote-verified at `861677dff267aa83bb5ec4af1a237bdb5ab47075`.
@@ -1322,7 +1356,7 @@ No capability or scenario is promoted by these tooling results.
 | --- | --- | --- |
 | 1 | F11/F23/F17 technical qualification | Candidate `679d8ea` retains its complete 615-node-per-driver technical evidence. Main `aed66a1` serial entrypoint separately passes 613/613 per driver, full ordinary/check, nonmatrix and archive readback. Candidate merge, product completion and deferred shared runtime remain excluded. |
 | 2 | F29 real external application acceptance | Controlled official Claude Personal and Project replacement/retirement/fresh-use and typed25006 unchanged-projection controls pass separately on PostgreSQL/MySQL, with complete recorded closure. Real application/deployment/issuer/workload inputs and external adoption remain open. Continue independent F30 transport/permanent cleanup acceptance; global F29 remains Partial. |
-| 3 | F24 denial fix and quota fixture repair on `679d8ea` | Candidate hostile-quota controls retain their dual-database browser scope. The separate `b1ca70f` four-file denial privacy fix is still missing on main; exact predecessor blobs match, and one isolated component regression is reproduced/fixed. Carry it independently after F29 confirmation work. External-model semantics, saved CSV and full F24/A18 remain open. |
+| 3 | F24 denial privacy and remaining acceptance | Main `6430585` independently carries the denial repair: six predecessor failures, 360 related and full ordinary/check pass. Fresh PG IAB sends one real Project analysis404, clears private facts and closes all owned resources; saved bilingual screenshots are post-renewal cleared state. Candidate hostile-quota controls retain their separate dual-database scope. External-model semantics, saved CSV and full F24/A18 remain open. |
 | 4 | F28 saved identities and remaining workflows | Main probe/cleanup confirmation fixes `38347e3` / `0756645` retain dual-database IAB scopes. Saved-certificate tools `3f5e8de`, normal tools `148814e` / `020a18b`, and PostgreSQL F02 restart/replay `926b170` have separate complete recorded readbacks. Continue remaining actual business/browser and external compatibility gates; no MySQL F02, F28/A16 or fleet/global promotion. |
 | 5 | F30 transport and permanent cleanup | Fresh PostgreSQL R10 and MySQL R4 pass actual bilingual IAB rollback/cleanup, four native-completed Calls, complete bounded SQL/storage-delta readback and original/resource closure on `529fda0`. Earlier R8/R9 remain incomplete. Uncertain-browser retry, broader F30/A20 and fleet/global acceptance remain open. |
 | 6 | Remaining release scenarios | Continue existing authorization, identity/offboarding, recovery and measured single-node release checks; obtain real external inputs only for dependent work. |
