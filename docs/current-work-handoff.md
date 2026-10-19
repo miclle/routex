@@ -1,5 +1,49 @@
 # Current implementation handoff
 
+## Non-destructive saved-Vault browser workflow (2026-10-19)
+
+Fresh PostgreSQL/IAB run `4943dc8c216ad03f93221e8d0cb05c2c` independently passes
+on source4879ca9 / manifest
+`3174e7294a784e5a1cf1c0c134eb079ff8feada5eea1d2daffca6901880fe5a8`.
+After native disposable fixture/bootstrap preparation, actual English browser
+controls save independent Token writer/AppRole reader identities, perform one
+explicit Write, select the exact saved Integration/revision for future writes,
+and restore the policy to stored `inline`. There are exactly four business
+mutations, four matching new audits and one paired native Vault CAS=0 create.
+No provider credential operation, Call or Attempt is created. The final policy
+has no Integration/revision pointer; the saved identity and awaiting_read probe
+remain distinct retained records until disposable-environment closure.
+
+English and live Chinese screenshots retain successful Write, unattempted Read
+and Cleanup, exact saved identities and future-write-only policy guidance. Both
+languages explicitly review and cancel the documented Read/conditional-cleanup
+confirmation. The current Read API includes conditional owned-version destruction;
+its confirmation is correct and no product change was made. There are zero
+Read/Cleanup API dispatches and no extra Vault events from review, language
+switching or policy changes. Probe FinishedAt records the completed Write command;
+it does not promote awaiting_read or its untouched stage observations to completion.
+The bootstrap-only Secret Store inventory remains unverified/epoch0; this run
+does not qualify provisioned root rotation or current-process/fleet key proof.
+
+Original parent PID60114 joins0 without timeout or source drift. Independent
+readback matches all100 command identities/output hashes,18 preflight files,
+eight actual screenshots and raw HTTP/SQL/Vault records. All five exact owned
+containers, the network, unique image, three checked binaries and loopback listener
+are absent; only the anchor sleep daemon may stop143. The browser tab is closed.
+The earlier internal-network/no-port preparation, deliberately stopped review and
+incorrect internal-versus-inline fixture assertion remain failed with separate
+owned closure/readback; none is relabeled passed. Private sources and complete
+raw evidence remain under `~/.local/share/routex/acceptance/20261019-f28-ui/` and
+`~/.local/share/routex/acceptance/f28-ui/`.
+
+This is English UI mutation and live bilingual observation/review evidence on
+PostgreSQL only, not Read/Cleanup execution, seven complete pure-UI workflows,
+MySQL UI, external Vault compatibility, complete F28/A16 or global promotion.
+The separately delivered dual-driver acknowledgement-fault and F30 rollback retry
+scopes remain unchanged. Continue the remaining bounded browser and distributed
+acknowledgement/revocation gates; external F29 inputs remain separately pending.
+
+
 ## Driver-bound cleanup acknowledgement faults and isolated GORM queries (2026-10-19)
 
 Delivered source is remote-verified at `b835d69d0c675c4a981f35f4bf62092379c4cc33`. The maintained F02 Task
@@ -1607,7 +1651,7 @@ No capability or scenario is promoted by these tooling results.
 | 1 | F11/F23/F17 technical qualification | Candidate `679d8ea` retains its complete 615-node-per-driver technical evidence. Main `aed66a1` serial entrypoint separately passes 613/613 per driver, full ordinary/check, nonmatrix and archive readback. Candidate merge, product completion and deferred shared runtime remain excluded. |
 | 2 | F29 real external application acceptance | Controlled official Claude Personal and Project replacement/retirement/fresh-use and typed25006 unchanged-projection controls pass separately on PostgreSQL/MySQL, with complete recorded closure. Real application/deployment/issuer/workload inputs and external adoption remain open. Continue independent F30 transport/permanent cleanup acceptance; global F29 remains Partial. |
 | 3 | F24 denial, saved artifacts and readable exact money | Main `6430585` denial repair retains its bounded native404 scope. Actual IAB empty Tokens CSV and one Project Key Money save/load/CSV pass separate complete raw-file/SQL/closure readbacks. Main `33943a7` repairs the observed long-cap overlap with fresh EN/ZH geometry and exact decimal data. Candidate hostile-quota controls keep their separate dual-database scope. Main `51ba5eb` also qualifies current export-denial clearing with 371 related cases, full ordinary/check and immediate bilingual PG/MySQL IAB target404 readback. Direct CSV refusal/races retain source-test scope. Other report/viewport combinations, external-model semantics and full F24/A18 remain open. |
-| 4 | F28 saved identities and remaining workflows | Main probe/cleanup confirmation fixes `38347e3` / `0756645` retain dual-database IAB scopes. Saved-certificate tools `3f5e8de`, normal tools `148814e` / `020a18b`, and PostgreSQL F02 restart/replay `926b170` retain their separate scopes. Main `b835d69` adds driver-bound MySQL F02, fixes initialized GORM query-state contamination and independently passes complete fresh MySQL/PostgreSQL post-effect refusal/restart/replay with zero additional Vault events. Continue remaining genuine pure-UI and external compatibility gates; no F28/A16 or fleet/global promotion. |
+| 4 | F28 saved identities and remaining workflows | Main probe/cleanup confirmation fixes `38347e3` / `0756645` retain dual-database IAB scopes. Saved-certificate tools `3f5e8de`, normal tools `148814e` / `020a18b`, and PostgreSQL F02 restart/replay `926b170` retain their separate scopes. Main `b835d69` adds driver-bound MySQL F02, fixes initialized GORM query-state contamination and independently passes complete fresh MySQL/PostgreSQL post-effect refusal/restart/replay with zero additional Vault events. Current-source PostgreSQL IAB additionally passes English identity save/Write/future-write policy roundtrip plus live bilingual observations and cancelled combined Read/cleanup review, with zero Read/Cleanup dispatches. Continue remaining genuine pure-UI and external compatibility gates; no F28/A16 or fleet/global promotion. |
 | 5 | F30 transport, cleanup and callback ownership | Main `6df2e60` fixes three reproduced queued confirmation/retry dispatch defects; 129 related and full ordinary/check pass. Fresh PG IAB A-to-B/Chinese previews produce no deletion and exact unchanged archive/ledger readback. Earlier PostgreSQL R10/MySQL R4 transport/cleanup scopes remain on unmerged `529fda0`. Main `81bd488` adds five exact callback-ownership regressions and actual original-Session post-effect502/restart/identical retry on English PostgreSQL and Chinese MySQL, with complete SQL/closure readbacks. Broader F30/A20 and fleet/global acceptance remain open. |
 | 6 | Remaining release scenarios | Continue existing authorization, identity/offboarding, recovery and measured single-node release checks; obtain real external inputs only for dependent work. |
 

@@ -1,5 +1,49 @@
 # RouteX Implementation and Acceptance Index
 
+## Non-destructive saved-Vault browser workflow (2026-10-19)
+
+Fresh PostgreSQL/IAB run `4943dc8c216ad03f93221e8d0cb05c2c` independently passes
+on source4879ca9 / manifest
+`3174e7294a784e5a1cf1c0c134eb079ff8feada5eea1d2daffca6901880fe5a8`.
+After native disposable fixture/bootstrap preparation, actual English browser
+controls save independent Token writer/AppRole reader identities, perform one
+explicit Write, select the exact saved Integration/revision for future writes,
+and restore the policy to stored `inline`. There are exactly four business
+mutations, four matching new audits and one paired native Vault CAS=0 create.
+No provider credential operation, Call or Attempt is created. The final policy
+has no Integration/revision pointer; the saved identity and awaiting_read probe
+remain distinct retained records until disposable-environment closure.
+
+English and live Chinese screenshots retain successful Write, unattempted Read
+and Cleanup, exact saved identities and future-write-only policy guidance. Both
+languages explicitly review and cancel the documented Read/conditional-cleanup
+confirmation. The current Read API includes conditional owned-version destruction;
+its confirmation is correct and no product change was made. There are zero
+Read/Cleanup API dispatches and no extra Vault events from review, language
+switching or policy changes. Probe FinishedAt records the completed Write command;
+it does not promote awaiting_read or its untouched stage observations to completion.
+The bootstrap-only Secret Store inventory remains unverified/epoch0; this run
+does not qualify provisioned root rotation or current-process/fleet key proof.
+
+Original parent PID60114 joins0 without timeout or source drift. Independent
+readback matches all100 command identities/output hashes,18 preflight files,
+eight actual screenshots and raw HTTP/SQL/Vault records. All five exact owned
+containers, the network, unique image, three checked binaries and loopback listener
+are absent; only the anchor sleep daemon may stop143. The browser tab is closed.
+The earlier internal-network/no-port preparation, deliberately stopped review and
+incorrect internal-versus-inline fixture assertion remain failed with separate
+owned closure/readback; none is relabeled passed. Private sources and complete
+raw evidence remain under `~/.local/share/routex/acceptance/20261019-f28-ui/` and
+`~/.local/share/routex/acceptance/f28-ui/`.
+
+This is English UI mutation and live bilingual observation/review evidence on
+PostgreSQL only, not Read/Cleanup execution, seven complete pure-UI workflows,
+MySQL UI, external Vault compatibility, complete F28/A16 or global promotion.
+The separately delivered dual-driver acknowledgement-fault and F30 rollback retry
+scopes remain unchanged. Continue the remaining bounded browser and distributed
+acknowledgement/revocation gates; external F29 inputs remain separately pending.
+
+
 ## Driver-bound cleanup acknowledgement faults and isolated GORM queries (2026-10-19)
 
 Delivered source is remote-verified at `b835d69d0c675c4a981f35f4bf62092379c4cc33`. The maintained F02 Task
