@@ -1,5 +1,69 @@
 # Current implementation handoff
 
+## CI evidence continuity (2026-10-19)
+
+Main code is remote-verified at `55f1dac8fa87015bbb6d0a518a68bffce1252d51`.
+Main pushes containing only `docs/current-work-handoff.md` and/or
+`docs/IMPLEMENTATION.md` no longer start a replacement CI run that cancels
+validation of unchanged executable code. Any other changed path still triggers
+CI; pull requests and manual dispatch remain unconditional. This changes no
+required PR check or test command.
+
+The explicit integration artifact allowlist now retains `runtime-archive.log`
+alongside both complete driver logs and supervisor receipts. The predecessor
+fails the updated missing-log control; the repaired eight entry controls pass.
+Actionlint (PID 18038), controls (PID 18144) and mandatory check (PID 18245)
+join zero on unchanged manifest
+`db5e3d369c5184cbeb8775b18e04e5e20ffa95e78f492b7ae40a2b7d0e276aca`.
+Private evidence: `~/.local/share/routex/acceptance/20261019-ci-evidence-continuity/`.
+This is workflow/source qualification; remote CI completion must be read back
+separately. Canceled earlier CI runs retain their original outcomes.
+
+Next deliver F29's exact rendered-intent/authority confirmation guards, including
+fresh explicit original-intent retry and IAB governance acceptance. Then carry
+only the independently reviewed F24 quota-denial privacy patch; the full candidate
+remains unmerged. External application adoption, deferred runtime activation and
+global capability/scenario completion are not inferred from this stage.
+
+## Serial main database qualification (2026-10-19)
+
+Main code is remote-verified at `aed66a1727056cb38e12eea54c574067cf6618ee`.
+The default integration entrypoint now runs PostgreSQL then MySQL in one heavy
+lane. An ordinary driver failure still permits the other complete run; canceled
+work, unjoined groups or retained OIDC child ownership block new database work.
+New controls reproduce the previous overlap and missing child-ownership fence.
+Both repaired controls, signal cancellation cases and the full supervisor race
+suite pass. No candidate backend or migration is merged.
+
+Mandatory check (PID 46331), full ordinary Task (PID 46879) and the existing
+full integration Task (PID 51184) join zero with unchanged source manifest
+`3baba7731aa98c826e0d6367044bb7b148c4cfc4615c8b5bef736c211bb305d5`.
+Ordinary includes Go race, 287 frontend files / 7,770 cases, Node 5/5 and 93/93,
+production assets and serving. Integration takes 5,493.75 seconds and passes
+complete independent readback: PostgreSQL 613/613, MySQL 613/613, no driver skip
+or failure; nonmatrix 10,768 pass / 8 skip / 0 fail; archive 91/91. The entity
+package has no test files and is recorded separately, never as passed tests.
+The first reader rejected that zero-test package; its failed readback remains
+retained, and the corrected explicit classification changes no original receipt.
+
+Raw PostgreSQL SHA-256 is
+`a2d3112c302797e734679d802ddaa5e865012e09317df93d149dd42dd7c26ae6`;
+MySQL is `0c395ab46fc1456e4cbc1ca0bd966f6a4f2b928b0b46d71c949948e6f74a8453`.
+Recorded package times prove nonmatrix/archive/PostgreSQL/MySQL do not overlap.
+All nine recorded worker groups are absent. Original Task has no cancellation
+or timeout; exact Compose resources and both fresh helper binaries are absent.
+Independent Docker events confirm both database containers exit zero.
+Private evidence: `~/.local/share/routex/acceptance/20261019-serial-integration-main/`.
+
+These are current-main 613-node driver runs, separate from the unmerged
+candidate's earlier 615-node runs. Historical failures and cancellations remain
+unchanged. Next preserve CI continuity and archive diagnostics, then deliver
+F29 confirmation ownership and the independently isolated F24 denial fix with
+appropriate fresh acceptance. External F29 application/issuer/workload inputs
+remain pending on the existing request. Deferred shared runtime, V119/V120 and
+legacy transfer remain excluded. Global totals remain 16 Completed / 14 Partial
+capabilities and 2 Completed / 18 Partial scenarios.
+
 ## Maintained post-effect acknowledgement restart proof (2026-10-19)
 
 Main code is remote-verified at `926b1704cf07ab63cb6c06191ebe24b0704913b5`.
@@ -1223,10 +1287,10 @@ No capability or scenario is promoted by these tooling results.
 
 | Order | Work | Current gate / next action |
 | --- | --- | --- |
-| 1 | F11/F23/F17 technical qualification | Fresh `679d8ea` check, complete ordinary and complete dual-driver integration pass. Earlier stage-two race/restart/dedicated SQL receipts retain their exact scopes. Product completion and deferred shared-runtime activation remain excluded. |
+| 1 | F11/F23/F17 technical qualification | Candidate `679d8ea` retains its complete 615-node-per-driver technical evidence. Main `aed66a1` serial entrypoint separately passes 613/613 per driver, full ordinary/check, nonmatrix and archive readback. Candidate merge, product completion and deferred shared runtime remain excluded. |
 | 2 | F29 real external application acceptance | Controlled official Claude Personal and Project replacement/retirement/fresh-use and typed25006 unchanged-projection controls pass separately on PostgreSQL/MySQL, with complete recorded closure. Real application/deployment/issuer/workload inputs and external adoption remain open. Continue independent F30 transport/permanent cleanup acceptance; global F29 remains Partial. |
-| 3 | F24 denial fix and quota fixture repair on `679d8ea` | Fresh complete ordinary/check/SQL gates and seven controlled hostile-quota browser cases per database pass. External-model semantics, saved-CSV and broader F24/A18 acceptance remain open. Historical failed generations are preserved. |
-| 4 | F28 saved identities and remaining workflows | Published normal acknowledgement and F02 restart/replay producers retain their exact scopes. Main `44a8472` fences storage-policy confirmations; `71e2473` removes duplicate accessible headings. Serial genuine MySQL/PostgreSQL policy saves and retained-source readbacks pass separately. Next qualify actual saved-certificate authentication/persistence and the remaining genuine Vault/storage/orphan UI workflows. Broader F28/A16 and external compatibility remain Partial. |
+| 3 | F24 denial fix and quota fixture repair on `679d8ea` | Candidate hostile-quota controls retain their dual-database browser scope. The separate `b1ca70f` four-file denial privacy fix is still missing on main; exact predecessor blobs match, and one isolated component regression is reproduced/fixed. Carry it independently after F29 confirmation work. External-model semantics, saved CSV and full F24/A18 remain open. |
+| 4 | F28 saved identities and remaining workflows | Main probe/cleanup confirmation fixes `38347e3` / `0756645` retain dual-database IAB scopes. Saved-certificate tools `3f5e8de`, normal tools `148814e` / `020a18b`, and PostgreSQL F02 restart/replay `926b170` have separate complete recorded readbacks. Continue remaining actual business/browser and external compatibility gates; no MySQL F02, F28/A16 or fleet/global promotion. |
 | 5 | F30 transport and permanent cleanup | Fresh PostgreSQL R10 and MySQL R4 pass actual bilingual IAB rollback/cleanup, four native-completed Calls, complete bounded SQL/storage-delta readback and original/resource closure on `529fda0`. Earlier R8/R9 remain incomplete. Uncertain-browser retry, broader F30/A20 and fleet/global acceptance remain open. |
 | 6 | Remaining release scenarios | Continue existing authorization, identity/offboarding, recovery and measured single-node release checks; obtain real external inputs only for dependent work. |
 
