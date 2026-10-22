@@ -39,3 +39,34 @@ support for Linux arm64 images. The native fixtures accept no arbitrary endpoint
 token, database command or external path. The explicit role and CA contracts
 follow the official [certificate API](https://developer.hashicorp.com/vault/api-docs/auth/cert)
 and [TCP listener configuration](https://developer.hashicorp.com/vault/docs/configuration/listener/tcp).
+
+## Controlled intermediate-chain workload identities
+
+The additive `prepare-workload <private-input-directory>` mode uses the same
+compile-bound run/source/UID/time and private-directory admission as `prepare`.
+It creates fourteen PEM/key files and a hash manifest. Server and client trust use
+independent root/intermediate chains. Client leaves carry one exact `spiffe://routex-<run>.invalid/vault/<role>` URI SAN and a distinct CN alias. An additional valid empty-CN leaf
+records Vault 2.2 cert-auth alias refusal as HTTP 500; it is not a successful
+workload login. Issuer private
+keys remain in the preparation process. The outsider leaf uses a different trust
+domain while retaining the trusted client issuer and the writer CN, so a matching CN cannot
+replace the URI constraint. Existing direct-root fixtures
+and their default command remain unchanged.
+
+After the existing native discovery preflight initializes a fresh owned Vault,
+the Linux `workload` phase configures named cert-auth roles constrained by
+`allowed_uri_sans`. It checks writer and reader logins, missing client
+intermediate, reader-as-writer and wrong trust-domain denial, plus the empty-CN alias incompatibility. Every case retains
+one exact native audit request/response pair; no fallback role or KV request is
+allowed. Login tokens remain transient and are never serialized. The enclosing
+coordinator must capture `workload-terminal.json` and its hashed files before
+tearing down the owned Vault. Run this phase before configuring the saved
+identities through the application. It does not rotate the storage root.
+
+`go test -race ./scripts/vault-certificate-fixture -run TestWorkload -count=1`
+checks the three-level chains and URI identities with actual mutual TLS,
+including missing client and server intermediate rejection. Real Vault audit and
+application/browser readback remain separate from these tests. This controlled
+cert-auth fixture does not certify SPIRE, Vault's SPIFFE auth backend, Kubernetes
+TokenReview, JWT/OIDC issuers, external PKI, automated identity renewal or
+application adoption.

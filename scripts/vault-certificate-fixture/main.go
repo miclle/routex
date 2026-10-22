@@ -32,7 +32,7 @@ func artifacts(dir string) ([]nativeArtifact, error) {
 	total := 0
 	for _, entry := range entries {
 		name := entry.Name()
-		if (!strings.HasPrefix(name, "before-") && !strings.HasPrefix(name, "rotate-") && !strings.HasPrefix(name, "after-")) || (filepath.Ext(name) != ".json" && filepath.Ext(name) != ".jsonl") {
+		if (!strings.HasPrefix(name, "before-") && !strings.HasPrefix(name, "rotate-") && !strings.HasPrefix(name, "after-") && !strings.HasPrefix(name, "workload-")) || (filepath.Ext(name) != ".json" && filepath.Ext(name) != ".jsonl") {
 			return nil, errFixture
 		}
 		path := filepath.Join(dir, name)
@@ -61,18 +61,22 @@ func run(args []string) int {
 	if err != nil || uid <= 0 || uid != os.Getuid() || uid != os.Geteuid() || !runIDPattern.MatchString(BuildRunID) || !regexp.MustCompile(`^[a-f0-9]{40}$`).MatchString(BuildSource) || !regexp.MustCompile(`^[a-f0-9]{64}$`).MatchString(BuildSourceManifest) || timeErr != nil || time.Since(started) < 0 || time.Since(started) > 30*time.Minute {
 		return 1
 	}
-	if len(args) == 2 && args[0] == "prepare" && (runtime.GOOS == "darwin" || runtime.GOOS == "linux") {
-		if preparePKI(args[1], BuildRunID, time.Now().UTC()) != nil {
+	if len(args) == 2 && (args[0] == "prepare" || args[0] == "prepare-workload") && (runtime.GOOS == "darwin" || runtime.GOOS == "linux") {
+		generate := fixturePKI
+		if args[0] == "prepare-workload" {
+			generate = workloadPKI
+		}
+		if prepareMaterials(args[1], BuildRunID, time.Now().UTC(), generate) != nil {
 			return 1
 		}
 		return 0
 	}
-	if len(args) != 1 || runtime.GOOS != "linux" || (args[0] != "before" && args[0] != "rotate" && args[0] != "after") {
+	if len(args) != 1 || runtime.GOOS != "linux" || (args[0] != "before" && args[0] != "rotate" && args[0] != "after" && args[0] != "workload") {
 		return 1
 	}
 	phase := args[0]
 	dir := "/vault/logs/certificate-" + BuildRunID
-	if phase == "before" && os.Mkdir(dir, 0700) != nil {
+	if (phase == "before" || phase == "workload") && os.Mkdir(dir, 0700) != nil {
 		return 1
 	}
 	budget := 120 * time.Second
@@ -91,6 +95,8 @@ func run(args []string) int {
 		stageErr = o.rotate()
 	case "after":
 		stageErr = o.after()
+	case "workload":
+		stageErr = o.workload()
 	}
 	if o.save("http-census.json", o.facts) != nil {
 		stageErr = errFixture

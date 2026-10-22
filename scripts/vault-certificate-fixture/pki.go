@@ -13,6 +13,7 @@ import (
 	"errors"
 	"math/big"
 	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -33,6 +34,15 @@ func (certificateIdentity) String() string   { return "certificate fixture ident
 func (certificateIdentity) GoString() string { return "certificate fixture identity (redacted)" }
 
 func issueCertificate(name string, now time.Time, issuer *certificateIdentity, server bool) (certificateIdentity, error) {
+	return issueIdentity(name, now, issuer, certificateProfile{server: server})
+}
+
+type certificateProfile struct {
+	server, intermediate bool
+	uri                  *url.URL
+}
+
+func issueIdentity(name string, now time.Time, issuer *certificateIdentity, profile certificateProfile) (certificateIdentity, error) {
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return certificateIdentity{}, errFixture
@@ -47,17 +57,23 @@ func issueCertificate(name string, now time.Time, issuer *certificateIdentity, s
 		KeyUsage: x509.KeyUsageDigitalSignature, BasicConstraintsValid: true,
 	}
 	parent, signer := cert, key
-	if issuer == nil {
+	if issuer == nil || profile.intermediate {
 		cert.IsCA = true
 		cert.KeyUsage |= x509.KeyUsageCertSign | x509.KeyUsageCRLSign
-	} else {
+	}
+	if issuer != nil {
 		parent, signer = issuer.parsed, issuer.signer
-		cert.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
-		if server {
+		if !profile.intermediate {
+			cert.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+		}
+		if profile.server {
 			cert.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
 			cert.IPAddresses = []net.IP{net.ParseIP("127.0.0.1")}
 			cert.DNSNames = []string{"localhost"}
 		}
+	}
+	if profile.uri != nil {
+		cert.URIs = []*url.URL{profile.uri}
 	}
 	der, err := x509.CreateCertificate(rand.Reader, cert, parent, &key.PublicKey, signer)
 	if err != nil {
@@ -112,6 +128,62 @@ func fixturePKI(run string, now time.Time) (map[string][]byte, error) {
 	}, nil
 }
 
+func workloadURI(run, role string) string {
+	return "spiffe://routex-" + run + ".invalid/vault/" + role
+}
+
+// This controlled X.509 fixture exercises cert-auth URI constraints. It is not
+// a SPIRE deployment or a Vault SPIFFE auth backend. Issuer keys remain local.
+func workloadPKI(run string, now time.Time) (map[string][]byte, error) {
+	if !runIDPattern.MatchString(run) {
+		return nil, errFixture
+	}
+	files := make(map[string][]byte)
+	for _, side := range []string{"server", "client"} {
+		root, err := issueCertificate("routex-"+side+"-root-"+run, now, nil, false)
+		if err != nil {
+			return nil, err
+		}
+		intermediate, err := issueIdentity("routex-"+side+"-intermediate-"+run, now, &root, certificateProfile{intermediate: true})
+		if err != nil {
+			return nil, err
+		}
+		files[side+"-ca.pem"] = root.certificate
+		files[side+"-intermediate.pem"] = intermediate.certificate
+		roles := []string{"writer", "reader", "outsider", "cnless"}
+		if side == "server" {
+			roles = []string{"server"}
+		}
+		for _, role := range roles {
+			profile := certificateProfile{server: side == "server"}
+			name := "localhost"
+			if side == "client" {
+				name = "routex-" + role + "-" + run
+				uri := workloadURI(run, role)
+				if role == "outsider" {
+					// Matching the writer CN cannot substitute for its URI constraint.
+					name = "routex-writer-" + run
+					uri = "spiffe://other-" + run + ".invalid/vault/writer"
+				} else if role == "cnless" {
+					name = ""
+					uri = workloadURI(run, "writer")
+				}
+				profile.uri, err = url.Parse(uri)
+				if err != nil {
+					return nil, errFixture
+				}
+			}
+			leaf, err := issueIdentity(name, now, &intermediate, profile)
+			if err != nil {
+				return nil, err
+			}
+			files[role+".pem"] = append(append([]byte(nil), leaf.certificate...), intermediate.certificate...)
+			files[role+".key"] = leaf.key
+		}
+	}
+	return files, nil
+}
+
 func writePrivate(path string, data []byte) error {
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 	if err != nil {
@@ -127,6 +199,10 @@ func writePrivate(path string, data []byte) error {
 }
 
 func preparePKI(dir, run string, now time.Time) error {
+	return prepareMaterials(dir, run, now, fixturePKI)
+}
+
+func prepareMaterials(dir, run string, now time.Time, generate func(string, time.Time) (map[string][]byte, error)) error {
 	if !filepath.IsAbs(dir) || filepath.Clean(dir) != dir || filepath.Base(dir) != "input" || filepath.Base(filepath.Dir(dir)) != "routex-vault-certificate-"+run {
 		return errFixture
 	}
@@ -139,7 +215,7 @@ func preparePKI(dir, run string, now time.Time) error {
 	if err != nil || real != parent {
 		return errFixture
 	}
-	files, err := fixturePKI(run, now)
+	files, err := generate(run, now)
 	if err != nil || os.Mkdir(dir, 0700) != nil {
 		return errFixture
 	}
