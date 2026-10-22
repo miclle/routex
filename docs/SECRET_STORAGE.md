@@ -136,3 +136,22 @@ The controlled headerless-loss regression passes on PostgreSQL and MySQL. It
 separately joins request, peer and runtime work; it does not certify graceful whole
 process shutdown or external Vault readiness. See the [current recovery
 qualification](IMPLEMENTATION.md#ambiguous-remote-storage-recovery-regression-2026-10-10).
+
+
+## Retained published-cleanup commands
+
+A valid retained published-object cleanup command without positive local
+pre-boundary no-effect proof blocks a fresh command with `cleanup_claimed`.
+This identifies the existing disposition; it does not assert that process joining
+failed. Independent process/source/drain uncertainty keeps its own blockers.
+A remote403 may record a failed cleanup while ownership succeeded, but still
+owns the permanent remote boundary and does not permit another destroy.
+An ownership404 remains unknown and sends no destroy. Current absence is never
+an acknowledgement. Explicit token-free replay returns the original saved
+receipt, without remote work or replacement of failed/unknown observations.
+A separately eligible new attempt still requires all existing fresh proof,
+reason and explicit confirmation gates; the diagnostic change relaxes none.
+
+Provider orphan receipts use a dedicated bilingual Credential version cleanup
+label. Their failed/unknown observations remain separate from probe commands,
+current object absence and the saved historical ownership result.

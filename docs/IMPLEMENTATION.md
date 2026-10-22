@@ -1,5 +1,128 @@
 # RouteX Implementation and Acceptance Index
 
+## Credential-version receipt labels and final copy qualification (2026-10-22)
+
+The second observed UI defect is fixed and remote-verified in
+`e5cfe821187469c63838c96b178b20000a6c0a7d`: Provider orphan receipts now name
+Credential version cleanup / 凭据版本清理 through paired translations, rather than
+reusing the probe-operation label. The existing native status, immutable receipt,
+authority and retry gates remain unchanged. Backend claim guidance is delivered
+separately as4ee6522 with the full negative-workflow scope below.
+
+Fresh actual IAB PostgreSQL403 run `cd58e0c751a6dc8d8b05ca5ba7ee7a7b` and
+MySQL ownership404 run `1086864ac124926822339cca7975175f` independently verify
+the English failed and Chinese unknown labels, the original Session across a
+positive same-binary/config restart, exact token-free replay, original command
+fidelity, native Vault metadata and complete owned resource closure. No second
+destroy is sent; the404 case sends none. These two rebuilt-label runs do not
+reclassify the earlier four-run matrix or imply both languages per database.
+
+Focused UI/API95, internationalization14, complete ordinary Task and mandatory
+Task checking join0 without timeout, remaining groups or source drift on manifest
+`37e9db07604018bc2e6c4885f4a6128abe74eaf00d23e8d26afbece46252d26d`.
+Ordinary includes288 frontend files /7,804 cases, frontend Node5, script95,
+Go race, development lifecycle and production serving. Producer manifest
+`4032da6a0bd5b31a0574df57d5c7cea5e72506831d8138fc01a4d516f42640f5`
+uses a different manifest representation of the identical files/modes. Exact
+precommit bytes are verified against committed sourcee5cfe82; those binaries
+embed base4ee6522. This is source-byte parity, not a claim that the old binaries
+were rebuilt with the new commit metadata. Only English documentation changes
+follow these gates. Protected cross-run index:
+`20261022-f28-failure-ui/copy-qualification-readback.json`, SHA-256
+`29ed573eb5b81b051e8e42549d5d5fc80d5843f4345225ce15e7f00a2ccd02ba`.
+
+Both corrections are code deliveries with source, native/browser and regression
+evidence. F28/A16 remain Partial for their wider recorded gates and external
+compatibility. F30 multi-node acknowledgement/distributed revocation remain
+blocked under the existing single-journal contract. No candidate merge or
+excluded runtime activation is performed. Continue from the remaining concrete
+failure/authority and external gates below; do not repeat accepted unchanged lanes.
+
+## Native cleanup refusals, unknown results and accurate claim guidance (2026-10-22)
+
+Code is pushed and remote-verified at
+`4ee652268fd638756d5d843219f36b83260ac68b`. Actual Vault403 browser acceptance
+exposed a diagnostic defect: a retained remote command was described as unproven
+process draining even though ownership and joining had completed. Valid retained
+commands without positive pre-boundary no-effect proof now report the existing
+`cleanup_claimed` blocker. This reuses the existing English/Chinese guidance;
+it changes no eligibility, remote claim, replay, permission or persistence rule.
+
+The predecessor real PostgreSQL regression fails on the exact wrong blocker;
+its failure and closed resources remain retained. Fresh focused PostgreSQL and
+MySQL each pass all three named terminals for the shared lifecycle, including
+original acknowledgement, remote403, refused fresh intent, identical token-free
+replay and preservation of the earlier successful receipt. These are controlled
+HTTP fixtures on real databases, separate from the actual Vault browser runs.
+Focused UI/API95 and affected service/handler race tests pass. Complete ordinary
+Task joins0 (288 frontend files / 7,804 cases, frontend Node5, script95, Go race,
+development lifecycle and production serving); mandatory Task check joins0.
+The UI/race, ordinary and mandatory supervisors verify unchanged source/mode manifest
+`587bdd2d1aec22c03ea09a19c29cfbea9d2f1dd5edfc980be6b005e22b394850`.
+
+Four fresh controlled in-app-browser runs have complete independent raw
+HTTP/SQL/Vault/process/artifact readbacks:
+
+| Actual negative workflow | PostgreSQL run | MySQL run | Retained outcome |
+| --- | --- | --- | --- |
+| Distinct writer-only cleanup Token | `0d0f0db54e0e223eae77e51534a0f21d` | `8ac86b175f415258255d9703b3f0c680` | Vault ownership read succeeds; one exact version-1 destroy is refused403. UI reports failure and the correct existing-command claim. Fresh new-attempt review is blocked. Native metadata confirms version1 is still live and not destroyed. |
+| Exact owned version externally soft-deleted | `a8a462fdb1b9dce2b7be591586e85731` | `9f17805bc95c226bb45456f58508831b` | A separate bounded fixture operator soft-deletes only version1 after logical Credential deletion. Actual ownership GET404 records unknown; UI offers no fresh attempt. RouteX sends zero destroy requests. Final native metadata remains soft-deleted and not destroyed. |
+
+Each original Session explicitly replays its identical token-free intent before
+and after a positive same-container/image/config/binary restart. The same failed
+or unknown receipt, reason, UUID, reviewed ETag and permanent remote claim remain
+unchanged; there is no additional command, replay audit or remote destroy.
+Each has eight mutating browser requests including two effect-free replays, seven
+business audits, zero Calls/Attempts and no Verify/Enable. The403 runs retain
+seven Vault audit pairs; the404 runs retain eight, including the fixture CLI's
+explicitly checked mount lookup, soft-delete and final metadata read. This is
+controlled local preparation, not RouteX-driven deletion or external deployment.
+Configuration and policy forms are English; cleanup/review/replay is English on
+PostgreSQL and Chinese on MySQL. Live language retention additionally has source
+regression coverage, not a claim of both complete browser languages per driver.
+
+The producer manifest is
+`0a4de7701e4d2eb2865f6fb15bfdb92559ffbbc65258d66bd05d58e0bd04a311`.
+Precommit binaries embed base `d1fa07f`; exact tracked bytes/modes are independently
+matched to the subsequently committed source4ee6522. Every original parent joins0
+without timeout/source drift. All five exact containers, network, unique image,
+three checked binaries, listener and owned tab close per run. Earlier incorrectly
+parameterized npm execution and readback count/summary errors remain failed
+preparation records; no business mutation was repeated to repair a reader.
+The initial pre-fix PostgreSQL UI control remains separately source-bound.
+
+Protected recipes, raw records and the cross-run index are retained under
+`~/.local/share/routex/acceptance/20261022-f28-failure-ui/` and `acceptance/f28-ui/`.
+Index `qualification-readback.json` SHA-256:
+`47bfe41ca598ca24222b5a9fed402972518a0cad8231075b38a4c2ef7b4a4866`.
+Prior full-matrix counts retain their earlier source identity; this diagnostic-only
+delivery does not claim a new full matrix, complete F28/A16 or global promotion.
+Headerless/cancellation, post-effect persistence refusal and authority-interleaving
+scopes retain their separately recorded native/source evidence rather than gaining
+fresh UI acceptance from these four runs. External Vault/PKI/workload compatibility
+and F29 application adoption remain pending. F30 multi-node acknowledgement and
+distributed revocation remain blocked by the existing single-journal contract;
+there is no bypass, shared-runtime activation, V119/V120 registration, legacy
+transfer or candidate merge. Capability/scenario totals remain unchanged.
+
+### Temporary evidence relocation and owned artifact retirement
+
+After positive current no-open-file/process-reference and exact Compose namespace
+checks,24 legacy RouteX temporary trees are moved to the private
+`20261022-f28-failure-ui/relocated-legacy/` directory. Complete paths, modes, hashes
+and original terminal states are retained in `legacy-temp-relocation.json`.
+Sixteen hash-verified standard binaries from historically closed runs are removed
+(644,361,128 bytes); unknown helper binaries and all raw failed/incomplete evidence remain
+intact. Ten old run images are removed only after exact captured image-ID,
+sole-tag and zero-container-reference checks; see `legacy-image-retirement.json`.
+These cleanup checks establish current resource absence, not retrospective durable
+closure or successful qualification of failed runs. Both `/private/tmp` and the
+system temporary directory have no RouteX-prefixed remainder at this checkpoint.
+Historical paths in raw records stay unchanged; the relocation map is authoritative.
+Current-run helper sources and required raw evidence remain outside temporary
+storage; unreviewed legacy helper artifacts are preserved without claiming
+that their original builds can be reproduced.
+
 ## Root, orphan, certificate and uncertain-command browser acceptance (2026-10-20)
 
 Eight fresh controlled runs on source `15ad586a7c34afb3f997df1895e51c32e4eb9662`
