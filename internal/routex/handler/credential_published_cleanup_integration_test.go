@@ -35,6 +35,7 @@ func testCredentialPublishedCleanupLifecycle(t *testing.T, db *gorm.DB) {
 	var mu sync.Mutex
 	values := map[string]map[string]string{}
 	var reads, destroys atomic.Int32
+	var rejectDestroy atomic.Bool
 	stub := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.Method {
@@ -92,8 +93,12 @@ func testCredentialPublishedCleanupLifecycle(t *testing.T, db *gorm.DB) {
 				t.Error("destroy broadened versions")
 			}
 			var claimed int64
-			if err := db.Model(&entity.CredentialSourceDenial{}).Where("remote_request_id IS NOT NULL").Count(&claimed).Error; err != nil || claimed != 1 {
+			if err := db.Model(&entity.CredentialSourceDenial{}).Where("remote_request_id IS NOT NULL").Count(&claimed).Error; err != nil || claimed != int64(destroys.Load()) {
 				t.Error("no permanent physical claim before SDK", err)
+			}
+			if rejectDestroy.Load() {
+				w.WriteHeader(http.StatusForbidden)
+				return
 			}
 			w.WriteHeader(204)
 		default:
@@ -207,6 +212,53 @@ func testCredentialPublishedCleanupLifecycle(t *testing.T, db *gorm.DB) {
 		input["reason"] = "Changed command"
 		raw, _ = json.Marshal(input)
 		expectStatus(t, etagRequest("POST", target+"/cleanup", string(raw), view.ReviewETag), 409)
+
+		// A remote refusal still owns the command boundary. It is not evidence
+		// that a new cleanup is safe, and must not be described as a failed join.
+		expectStatus(t, request("POST", "/api/v1/admin/providers", map[string]any{"name": "Refused cleanup Provider", "connection_name": "Refused cleanup Connection", "base_url": "https://example.invalid/v1", "protocol": "openai_chat", "credential_name": "Refused cleanup Credential", "secret": "controlled-credential", "request_id": uuid(4), "storage_policy_etag": contextView.ETag}), 201)
+		var refusedOp entity.CredentialStorageOperation
+		if err := db.Take(&refusedOp, "request_id = ?", uuid(4)).Error; err != nil {
+			t.Fatal(err)
+		}
+		metadata, err := svc.GetCredentialMetadata(ctx, admin.User.ID, refusedOp.CredentialID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := svc.DeleteCredential(ctx, admin.User.ID, refusedOp.CredentialID, metadata.ETag, service.CredentialDeleteInput{Reason: "Reviewed refused-cleanup fixture removal"}); err != nil {
+			t.Fatal(err)
+		}
+		refusedTarget := "/api/v1/admin/secrets/integrations/" + cfg.IntegrationID + "/provider-orphans/" + refusedOp.RequestID
+		eligible := decodeCatalogResponse[service.ProviderCredentialOrphanView](t, request("GET", refusedTarget, nil), 200)
+		if !eligible.Eligible {
+			t.Fatal("fresh refused-cleanup fixture not eligible")
+		}
+		rejectDestroy.Store(true)
+		refusedInput := map[string]any{"request_id": uuid(5), "reason": "Explicit remote refusal", "cleanup_token": "published-cleanup"}
+		raw, _ = json.Marshal(refusedInput)
+		refused := decodeCatalogResponse[service.ProviderCredentialCleanupResult](t, etagRequest("POST", refusedTarget+"/cleanup", string(raw), eligible.ReviewETag), 200)
+		failure := refused.Receipt.Cleanup.Observation.Failure
+		if refused.Running || refused.Receipt.State != "failed" || !refused.Receipt.Ownership.Succeeded || failure == nil || failure.HTTPStatus != http.StatusForbidden {
+			t.Fatal("remote refusal lost its exact failed observation")
+		}
+		blocked := decodeCatalogResponse[service.ProviderCredentialOrphanView](t, request("GET", refusedTarget, nil), 200)
+		if blocked.Eligible || !reflect.DeepEqual(blocked.BlockerCodes, []string{"cleanup_claimed"}) {
+			t.Fatalf("remote command claim mislabeled as an unproven join: %v", blocked.BlockerCodes)
+		}
+		beforeRead, beforeDestroy := reads.Load(), destroys.Load()
+		refusedInput["request_id"] = uuid(6)
+		raw, _ = json.Marshal(refusedInput)
+		expectStatus(t, etagRequest("POST", refusedTarget+"/cleanup", string(raw), blocked.ReviewETag), 409)
+		refusedInput["request_id"] = uuid(5)
+		delete(refusedInput, "cleanup_token")
+		raw, _ = json.Marshal(refusedInput)
+		retried := decodeCatalogResponse[service.ProviderCredentialCleanupResult](t, etagRequest("POST", refusedTarget+"/cleanup", string(raw), eligible.ReviewETag), 200)
+		if !providerCleanupReceiptEqual(retried.Receipt, refused.Receipt) || reads.Load() != beforeRead || destroys.Load() != beforeDestroy {
+			t.Fatal("failed command replay or rejected new intent repeated remote work")
+		}
+		originalReceipt := decodeCatalogResponse[service.ProviderCredentialCleanupReceipt](t, request("GET", target+"/commands/"+uuid(3), nil), 200)
+		if !providerCleanupReceiptEqual(originalReceipt, result.Receipt) {
+			t.Fatal("refused cleanup rewrote an earlier successful receipt")
+		}
 	}
 	var retained entity.CredentialStorageOperation
 	if err := db.Take(&retained, "request_id = ?", op.RequestID).Error; err != nil || !reflect.DeepEqual(original, retained) {

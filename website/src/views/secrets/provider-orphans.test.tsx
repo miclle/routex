@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { beforeEach, afterEach, expect, it } from 'vitest'
 import client from '@/api/client'
+import type { ProviderCleanupReceipt } from '@/types/provider-credential-cleanup'
 import i18n from '@/i18n'
 import { sessionKey } from '@/hooks/use-auth'
 import { ProviderOrphans } from './provider-orphans'
@@ -54,8 +55,9 @@ let postGate: Promise<void> | undefined,
   releasePost: (() => void) | undefined,
   detailGate: Promise<void> | undefined,
   releaseDetail: (() => void) | undefined
-let commandState = 'acknowledged',
-  commandGETStatus = 200
+let commandState: ProviderCleanupReceipt['state'] = 'acknowledged',
+  commandGETStatus = 200,
+  commandRefused = false
 let commands: Map<string, ReturnType<typeof receipt>>
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const settle = () =>
@@ -110,8 +112,8 @@ async function review() {
   await input('Independent cleanup Token', 'cleanup-secret')
 }
 const posts = () => requests.filter((r) => r.method === 'post')
-function receipt(requestID: string) {
-  return {
+function receipt(requestID: string): ProviderCleanupReceipt {
+  const result: ProviderCleanupReceipt = {
     creation_request_id: creation,
     request_id: requestID,
     integration_id: integration,
@@ -126,6 +128,19 @@ function receipt(requestID: string) {
     finished_at:
       commandState === 'acknowledged' || commandState === 'failed' ? '2026-10-07T01:00:01Z' : null,
   }
+  if (commandRefused) {
+    result.ownership = observation(true)
+    result.cleanup = {
+      state: 'failed',
+      observation: {
+        attempted: true,
+        succeeded: false,
+        duration_ms: '1',
+        failure: { stage: 'cleanup', code: 'http_status', http_status: 403 },
+      },
+    }
+  }
+  return result
 }
 beforeEach(async () => {
   await i18n.changeLanguage('en')
@@ -146,6 +161,7 @@ beforeEach(async () => {
   detailStatus = 200
   commands = new Map()
   commandState = 'acknowledged'
+  commandRefused = false
   commandGETStatus = 200
   postGate = undefined
   releasePost = undefined
@@ -421,7 +437,7 @@ it.each([
   expect(document.body.textContent).not.toContain(guidance)
   expect(posts()).toHaveLength(0)
 })
-it.each(['unknown', 'failed'])(
+it.each(['unknown', 'failed'] as const)(
   'published %s receipt remains original after fresh review and receipt reads never redispatch',
   async (state) => {
     value.state = 'committed'
@@ -474,7 +490,7 @@ it('new published drain blocker invalidates an already queued eligible confirmat
   expect(posts()).toHaveLength(0)
 })
 it('failed or unknown receipt never removes row or reports success', async () => {
-  for (const state of ['unknown', 'failed']) {
+  for (const state of ['unknown', 'failed'] as const) {
     commandState = state
     await render()
     await review()
@@ -784,7 +800,7 @@ it('new eligible review needs fresh reason and confirmation, keeps old receipt a
   ).not.toContain('fresh-cleanup-secret')
   expect(cache.getMutationCache().getAll()).toHaveLength(0)
 })
-it.each(['pending', 'unknown'])(
+it.each(['pending', 'unknown'] as const)(
   'original %s never becomes a new-intent action from an eligible preview',
   async (state) => {
     value.state = 'committed'
@@ -953,4 +969,34 @@ it('new review requires independent current write permissions and preserves orig
   await click('Review recorded command')
   expect(document.body.textContent).toContain(original.request_id)
   expect(posts()).toHaveLength(1)
+})
+
+it('remote403 keeps the failed command and explains its claim without inventing a failed drain', async () => {
+  value.state = 'committed'
+  commandState = 'failed'
+  commandRefused = true
+  await render()
+  await review()
+  await click('Confirm cleanup')
+  const original = JSON.parse(posts()[0].data)
+  expect(document.body.textContent).toMatch(/Ownership\s*:\s*Succeeded/)
+  value.eligible = false
+  value.blocker_codes = ['cleanup_claimed']
+  await click('Review a new cleanup attempt')
+  expect(document.body.textContent).toContain('Cleanup disposition is already claimed')
+  expect(document.body.textContent).not.toContain('Closure and joining of in-flight uses')
+  expect(document.querySelector('input[type=password]')).toBeNull()
+  expect(posts()).toHaveLength(1)
+  await act(async () => i18n.changeLanguage('zh'))
+  await settle()
+  expect(document.body.textContent).toContain('清理处置已认领，请查看原始命令')
+  expect(document.body.textContent).toContain(original.request_id)
+  await click('核对原始命令')
+  expect(JSON.parse(posts()[1].data)).toEqual({
+    request_id: original.request_id,
+    reason: original.reason,
+  })
+  expect(document.body.textContent).toContain('清理命令已记录失败，未确认成功')
+  expect(commands.get(original.request_id)?.cleanup.observation.failure?.http_status).toBe(403)
+  expect(cache.getMutationCache().getAll()).toHaveLength(0)
 })

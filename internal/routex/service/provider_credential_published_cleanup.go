@@ -134,7 +134,9 @@ func (s *Service) publishedCleanupPreview(tx *gorm.DB, op entity.CredentialStora
 			continue
 		}
 		if !publishedKnownNoEffect(attempt) {
-			return object, attemptProof, "published_drain_unproven", nil
+			// The retained command already owns this boundary. Its failed or
+			// unknown outcome does not prove an unsuccessful process drain.
+			return object, attemptProof, "cleanup_claimed", nil
 		}
 	}
 	if claiming && pending != 1 {
