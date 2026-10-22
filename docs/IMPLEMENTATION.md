@@ -1,5 +1,85 @@
 # RouteX Implementation and Acceptance Index
 
+## F28 interruption, persistence refusal and Session-interleaving UI gates (2026-10-22)
+
+Four maintained frontend regressions are pushed and remote-verified in
+`63f0419e8f5b1fcc601c8eb1001140a970b67bde`. They cover retained ownership after
+headerless loss, post-effect503 followed by pending/unknown projections, and
+HTTP401 invalidation after canceled waiting or before a queued confirmation.
+No production-logic change was needed by these controlled witnesses.
+Focused UI/API99 and complete ordinary Task pass, including288 frontend files /
+7,808 cases, frontend Node5, script95, Go race, development and production checks.
+Mandatory Task check joins0 on unchanged source/mode manifest
+`cc2b1bf49f140adc1ebee6dd1aff956a0572dec9d87d20e52d08971be47efbab`.
+Only the one maintained test file differs from the following browser floor;
+this is runtime byte parity, not a rebuild under the subsequent test-commit ID.
+The initial focused98-pass/1-fail test-adapter timing case remains retained;
+its corrected99-pass successor supplies the maintained qualification.
+
+The three remaining controlled local UI families now have fresh PostgreSQL and
+MySQL in-app-browser acceptance on executable source
+`b8385109fe9b10f1777a30f1c55b12d8804c37ef`. Every run rebuilds assets, three
+binaries and its own capsule image, and creates its database, journal, identities,
+keys, original Session and loopback listener. No prior machine artifact is reused.
+Preparation/configuration is English; cleanup and failure handling is English on
+PostgreSQL and Chinese on MySQL. This does not claim every language per driver.
+
+| Controlled boundary | PostgreSQL run | MySQL run | Independent outcome |
+| --- | --- | --- | --- |
+| Native destroy response loses all headers | `952380e9321886a4a67a99ea68c012e7` | `046f0fc83122dedc80d15d783c5ec8eb` | Actual Vault204 is followed by exact connection closure before any headers reach RouteX. Ownership succeeds, destroy remains unknown, and token-free original-command replay before/after restart performs no second destroy. |
+| Native destroy succeeds but terminal persistence is refused | `f4431becf35668cd30d11a94039eb8e0` | `adae6bde4928f9bf549f8d850fcc374a` | A bounded additional GORM check refuses only acknowledged state. Original API503 leaves the exact pending claim intact. Removing the fixture and restarting never repairs history into acknowledgement or repeats the remote effect. |
+| Canceled wait, revoked Session and late response | `ae3b8d50bbd2fd9cb19f8b69467be846` | `c886578ed732653b000ac8d54ade0a38` | Hold the original backend200; actual Cancel waiting preserves uncertainty. A separate current owner Session revokes only the browser Session through DELETE204. Receipt GET401 returns the UI to sign-in; releasing the old response cannot restore private facts. Fresh login after restart has no old transient intent. |
+
+The headerless runs intentionally retain null original source closed_at and
+instance stopped_at. The original gateway refuses graceful shutdown with exit1;
+its successor serves and closes0. This is fail-closed behavior, not successful
+source joining or permission for another command. Overall acceptance parents
+join0 with no timeout/source drift and all owned resources absent. The first
+PostgreSQL parent that incorrectly required original exit0 remains failed, with
+its original raw data and separately checked later resource closure.
+
+The save-refusal runs retain pending state and empty saved remote observations,
+even though independent native metadata confirms version1 was destroyed. A
+separate real diagnostic receives PostgreSQL23514 or MySQL3819/HY000, confirms
+rollback and identical pending projections, then removes only the additional
+fixture check. Released migrations and business rows are unchanged by that
+negative diagnostic. MySQL additionally captures real pending202 before the
+existing deadline and unknown200 afterward; expiry changes only the public
+projection. The first reader's overly narrow200 assertion is retained; the same
+raw facts are reread without repeating a business mutation.
+
+Every run has exactly one cleanup command, one exact version1 destroy, seven
+paired Vault audit operations including final native metadata inspection, and
+zero inference Calls/Attempts. Creation/reference history remains intact; the
+Credential is never verified or enabled. Headerless/save-refusal each have two
+explicit effect-free original-intent POST replays and no replay audit. Authority
+runs have no replay, one separate native Session revocation, and two real browser
+logins; current rows confirm the revoked Session is absent. A canceled wait is
+not cancellation or rollback of the already completed remote operation. Captured
+held200 denotes the backend result, not successful browser delivery.
+
+All six production binaries embed sourceb838510. Normalized bytes/modes match
+producer manifest
+`83c8a30b4cb84c6f02cf5757f8ce56d92ad703a71bb4e92e8b8db7b965e9fa87`
+and supervisor manifest
+`9b578b9bfa69b11c23fdd2b9cbd8d3b33a0be0415acad5c645cc604c3edbb1ed`.
+Required private recipes, unique helper sources and complete original HTTP/SQL/
+Vault/process/artifact records are outside temporary storage under
+`~/.local/share/routex/acceptance/20261022-f28-boundary-ui/` and `acceptance/f28-ui/`.
+Cross-run `UI-qualification-readback.json` SHA-256:
+`1d6f35659e084da77c174b9b606b61f70aea5cca2e1909e4973ee0c0f3affed9`.
+All five exact containers, network, unique image, three checked binaries,
+listener and owned tab are absent per accepted run. Prior failed preparations
+remain failed; current resource absence does not rewrite their terminal state.
+
+These gates close the requested local interruption, result-save refusal and
+Session-interleaving UI scope. They do not certify external Vault/PKI/workload
+compatibility or complete F28/A16. Source-only queued callback/permission controls
+retain that evidence scope. F30 multi-node acknowledgement and distributed
+revocation remain blocked by the current single-journal contract. The candidate
+stays unmerged; no shared-runtime activation, V119/V120 registration or legacy
+history transfer is performed. F29 external application adoption remains separate.
+
 ## Credential-version receipt labels and final copy qualification (2026-10-22)
 
 The second observed UI defect is fixed and remote-verified in

@@ -155,3 +155,23 @@ reason and explicit confirmation gates; the diagnostic change relaxes none.
 Provider orphan receipts use a dedicated bilingual Credential version cleanup
 label. Their failed/unknown observations remain separate from probe commands,
 current object absence and the saved historical ownership result.
+
+
+## Controlled UI recovery boundaries
+
+Current local PostgreSQL/MySQL in-app-browser witnesses separately cover native
+post-effect headerless response loss, enforced refusal to persist acknowledged
+state, and canceled waiting followed by exact Session revocation and late reply.
+Unknown source closure remains unclosed; pending durable commands are never
+reconstructed into acknowledgement from current object absence or API success.
+A pending receipt may project unknown after its existing deadline without
+rewriting its durable row. Session401 must hide private facts and invalidate a
+queued confirmation independently of later Session-prop renewal. A canceled
+browser wait cannot undo a completed remote operation.
+
+Four maintained regressions are delivered in `63f0419`; complete native/SQL/UI,
+source, restart and exact resource-closure scopes are recorded in the
+[current handoff](current-work-handoff.md). These controlled local witnesses do
+not certify external Vault/PKI compatibility, full F28/A16 or distributed runtime
+acknowledgement. The isolated candidate and blocked F30 multi-node scope remain
+unchanged.
