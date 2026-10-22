@@ -1,5 +1,25 @@
 # Vault Token and AppRole integrations
 
+## Current controlled certificate compatibility (2026-10-23)
+
+Maintained fixture delivery `4bf5b69869e520434cc96ed80b95312b0ef717c5` adds independent server/client intermediate
+chains and exact workload URI constraints using the existing saved certificate
+contract. Actual serial PostgreSQL/MySQL Vault 2.2 and in-app-browser readback
+passes for named writer/reader identities with nonempty CN aliases. Wrong URI
+trust domain with a matching writer CN, swapped identity and missing client
+intermediate each return400 with no usable login token or KV access. A valid
+empty-CN TLS leaf returns500 with native `missing name in alias`; pure URI-only
+cert-auth compatibility is therefore explicitly unproven and rejected in this
+controlled version. RouteX keeps that error fail-closed without an unnamed-role
+fallback or certificate-validation bypass. The URI constraint follows the
+[official cert-auth API](https://developer.hashicorp.com/vault/api-docs/auth/cert).
+
+The user deferred real external deployments, issuers and clusters because none
+are available. This is controlled X.509 cert-auth evidence, not SPIRE adoption,
+Vault SPIFFE-backend support, Kubernetes/JWT activation or completed F28. See the
+[current handoff](current-work-handoff.md) for exact runs, failure retention and
+complete resource closure. Earlier sections retain their historical phase scope.
+
 Status: Token integrations and their two encrypted root domains are delivered by
 `c2368ddb0251415e72bfeee948ad23ed7a173ee4`, with exact remote main read-back.
 The accepted contextual Full141 passes 282 direct PostgreSQL/MySQL lifecycles
@@ -104,7 +124,7 @@ This candidate registers two AppRole migration/lifecycle cases after the exact 1
 
 ## Remaining scope
 
-Saved AppRole external and browser acceptance, TLS/client authentication, Kubernetes authentication, automatic orphan recovery, API Key delivery and fleet coordination remain unfinished. A configured integration or successful controlled probe does not establish any of those capabilities. See [Implementation](IMPLEMENTATION.md), [Root rotation](SECRETS.md) and [Secret storage](SECRET_STORAGE.md) for separately recorded delivery and acceptance evidence.
+Saved AppRole and TLS-certificate browser workflows have separately recorded controlled acceptance in the current handoff. Real external Vault/PKI/workload deployments are deferred by the user and remain unverified. Kubernetes/JWT authentication, automated workload renewal, automatic orphan recovery and fleet coordination are not established by this Token phase or the controlled certificate fixture. API Key delivery has a separate recorded implementation and application-use acceptance boundary; a configured integration or successful probe does not establish application adoption. See [Implementation](IMPLEMENTATION.md), [Root rotation](SECRETS.md) and [Secret storage](SECRET_STORAGE.md) for separately recorded delivery and acceptance evidence.
 
 ## Provider credential write policy
 

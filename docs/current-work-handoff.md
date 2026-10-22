@@ -1,5 +1,71 @@
 # Current implementation handoff
 
+## F28 controlled workload certificate compatibility (2026-10-23)
+
+Maintained intermediate-chain generation, bounded native compatibility checks
+and actual TLS regression tests are pushed and remote-verified in `4bf5b69869e520434cc96ed80b95312b0ef717c5`.
+The existing direct-root fixture and application behavior remain unchanged.
+The new private coordinator rebuilt assets, application/fixture binaries and a
+fresh image for each serial PostgreSQL 18 and MySQL 8.4 run against pinned
+Vault 2.2. Server and client identities use independent root/intermediate chains.
+
+| New boundary | Actual result on both databases |
+| --- | --- |
+| Writer and reader with complete chains and exact URI SAN constraints | Separate successful named logins and distinct native principals. |
+| Missing client intermediate | HTTP400, no usable login token or KV request. |
+| Reader presented as writer | HTTP400, no fallback role or KV request. |
+| Wrong URI trust domain with the correct writer CN and trusted issuer | HTTP400; matching CN does not replace the URI constraint. |
+| Valid TLS certificate with empty CN | Vault HTTP500, native audit `missing name in alias`; no usable login token or KV request. This is an explicit incompatibility, not a passing pure SPIFFE login. |
+
+Actual TLS tests additionally reject a missing server intermediate. The positive
+Vault path needs a nonempty CN identity alias in this tested version; it does
+not prove SPIRE adoption, Vault's SPIFFE backend, or Kubernetes/JWT support.
+No certificate-validation bypass, identity substitution or new auth mechanism
+was added to accommodate the external server limitation.
+
+Fresh hidden in-app-browser acceptance passes with complete independent
+HTTP/SQL/native audit/process/artifact readback:
+
+| Database | Accepted run | Owned raw directory under `acceptance/f28-ui/` |
+| --- | --- | --- |
+| PostgreSQL | `bdc1bbb4b6d6dcd5efaf4342f3a53f28` | `routex-vault-ui-tpc62f5t` |
+| MySQL | `499d072ec9a0761682d5a5fa8f95c888` | `routex-vault-ui-ef6nuvwm` |
+
+Each run has six exactly paired native login cases with zero KV requests in
+that phase. The UI independently saves encrypted V2 writer/reader identities,
+executes two actual owned CAS=0 Write/Read pairs with exact-version acknowledged
+cleanup, and preserves the original Session across a same-container/image/config
+restart. Its five business mutations produce twelve paired Vault operations;
+there are zero inference Calls/Attempts and no storage-policy switch. All five
+owned containers, network, image, four Linux binaries, host PKI binary, listener
+and owned browser tab are absent after readback. Every run uses fresh PKI.
+
+Private recipes, browser helpers and original raw evidence are retained outside
+temporary storage in `~/.local/share/routex/acceptance/20261023-f28-pki-workload-compat/`
+and the raw directories above. Cross-run index `qualification-readback.json`
+SHA-256: `31b9e9a274f3f2fd69b14746e9fb73aa5dc4acd487ddeecac0eca2fdb305b52a`.
+Producer source/mode manifest is
+`8e42bdaa74b979a75ace57fda894374f3d9b16e6ffe27d6c9fcc38df4c1445f0`;
+the supervisor/check representation of the same files is
+`7dc36fe3944faf30f34d75bc674bc7efc0718f2e4b5a019e550018fa5e9ef8a2`.
+Build metadata embeds base9f6680e; checked bytes include this fixture delivery.
+Fixture-package race tests and mandatory Task check join0 on unchanged source.
+Prior accepted UI families and the complete ordinary Task were not repeated.
+
+The first missing-mount preparation and empty-CN-positive preparation remain
+failed, both with verified closure. The first PostgreSQL evidence reader remains
+failed for requiring all native errors at the top level; its successor rereads
+the same raw data and distinguishes HTTP400 `response.data.error` from the
+HTTP500 alias error without another business command.
+
+The user has no external nonproduction Vault/deployment, issuer or cluster and
+explicitly deferred those inputs. External Vault/PKI/SPIRE, Kubernetes/JWT,
+automated workload renewal and application-use acceptance remain unverified;
+this closes only the new controlled compatibility scope, not complete F28/A16.
+F30 multi-node confirmation/distributed emergency revocation remain blocked by
+the current single-journal contract. The candidate remains isolated and unmerged;
+shared-runtime activation, V119/V120 and legacy transfer remain excluded.
+
 ## F28 interruption, persistence refusal and Session-interleaving UI gates (2026-10-22)
 
 Four maintained frontend regressions are pushed and remote-verified in
