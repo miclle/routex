@@ -1,5 +1,6 @@
 export default {
   orphans: {
+    cleanup: '凭据版本清理',
     title: 'Provider 孤立对象清理',
     description:
       '查看此 Vault 集成中从未提交的对象，以及凭据已删除、但曾发布的 Provider 凭据对象。所有权未确认或使用状态未解决时，仍禁止清理。',

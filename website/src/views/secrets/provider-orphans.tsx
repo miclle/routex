@@ -716,7 +716,7 @@ export function ProviderOrphans({
                     )}
                   </p>
                   <p>
-                    {t('vault.cleanup')}: {t(`vault.cleanupStates.${receipt.cleanup.state}`)}
+                    {t('orphans.cleanup')}: {t(`vault.cleanupStates.${receipt.cleanup.state}`)}
                   </p>
                   <p>
                     {date(receipt.started_at)}

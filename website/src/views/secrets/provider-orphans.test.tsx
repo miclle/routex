@@ -980,6 +980,8 @@ it('remote403 keeps the failed command and explains its claim without inventing 
   await click('Confirm cleanup')
   const original = JSON.parse(posts()[0].data)
   expect(document.body.textContent).toMatch(/Ownership\s*:\s*Succeeded/)
+  expect(document.body.textContent).toMatch(/Credential version cleanup\s*:\s*Failed/)
+  expect(document.body.textContent).not.toContain('Clean up owned probe')
   value.eligible = false
   value.blocker_codes = ['cleanup_claimed']
   await click('Review a new cleanup attempt')
@@ -990,6 +992,8 @@ it('remote403 keeps the failed command and explains its claim without inventing 
   await act(async () => i18n.changeLanguage('zh'))
   await settle()
   expect(document.body.textContent).toContain('清理处置已认领，请查看原始命令')
+  expect(document.body.textContent).toMatch(/凭据版本清理\s*:\s*失败/)
+  expect(document.body.textContent).not.toContain('清理专属测试')
   expect(document.body.textContent).toContain(original.request_id)
   await click('核对原始命令')
   expect(JSON.parse(posts()[1].data)).toEqual({

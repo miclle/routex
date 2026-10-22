@@ -1,5 +1,6 @@
 export default {
   orphans: {
+    cleanup: 'Credential version cleanup',
     title: 'Provider orphan cleanup',
     description:
       'Review never-committed objects and deleted, previously published Provider credential objects in this Vault integration. Unconfirmed ownership and unresolved uses remain blocked.',
