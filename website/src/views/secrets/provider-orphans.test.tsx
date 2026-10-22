@@ -57,7 +57,8 @@ let postGate: Promise<void> | undefined,
   releaseDetail: (() => void) | undefined
 let commandState: ProviderCleanupReceipt['state'] = 'acknowledged',
   commandGETStatus = 200,
-  commandRefused = false
+  commandRefused = false,
+  commandTransportLoss = false
 let commands: Map<string, ReturnType<typeof receipt>>
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const settle = () =>
@@ -140,6 +141,19 @@ function receipt(requestID: string): ProviderCleanupReceipt {
       },
     }
   }
+  if (commandTransportLoss) {
+    result.ownership = observation(true)
+    result.cleanup = {
+      state: 'unknown',
+      observation: {
+        attempted: true,
+        succeeded: false,
+        duration_ms: '1',
+        failure: { stage: 'cleanup', code: 'transport', http_status: 0 },
+      },
+    }
+    result.finished_at = '2026-10-07T01:00:01Z'
+  }
   return result
 }
 beforeEach(async () => {
@@ -162,6 +176,7 @@ beforeEach(async () => {
   commands = new Map()
   commandState = 'acknowledged'
   commandRefused = false
+  commandTransportLoss = false
   commandGETStatus = 200
   postGate = undefined
   releasePost = undefined
@@ -1003,4 +1018,132 @@ it('remote403 keeps the failed command and explains its claim without inventing 
   expect(document.body.textContent).toContain('清理命令已记录失败，未确认成功')
   expect(commands.get(original.request_id)?.cleanup.observation.failure?.http_status).toBe(403)
   expect(cache.getMutationCache().getAll()).toHaveLength(0)
+})
+
+it('headerless cleanup keeps completed ownership separate from the unknown destroy receipt', async () => {
+  value.state = 'committed'
+  commandState = 'unknown'
+  commandTransportLoss = true
+  await render()
+  await review()
+  await click('Confirm cleanup')
+  const original = posts()[0]
+  const requestID = JSON.parse(original.data).request_id
+  expect(commands.get(requestID)?.ownership.succeeded).toBe(true)
+  expect(commands.get(requestID)?.cleanup.observation.failure?.code).toBe('transport')
+  expect(document.body.textContent).toContain('Ownership: Succeeded')
+  expect(document.body.textContent).toContain('Credential version cleanup: Unknown')
+  expect(document.body.textContent).not.toContain('destroy acknowledged and recorded')
+  value.eligible = false
+  value.blocker_codes = ['cleanup_claimed']
+  await click('Review current status', 1)
+  await click('Review recorded command')
+  await click('Reconcile exact command')
+  expect(posts()).toHaveLength(2)
+  expect(JSON.parse(posts()[1].data)).toEqual({
+    request_id: requestID,
+    reason: 'Exact orphan cleanup',
+  })
+  expect(posts()[1].headers.get('If-Match')).toBe(original.headers.get('If-Match'))
+  expect(buttons('Review a new cleanup attempt')).toHaveLength(0)
+  expect(document.querySelector('input[type=password]')).toBeNull()
+})
+
+it('post-effect503 keeps an expired pending projection unknown and reconciles only the original identity', async () => {
+  value.state = 'committed'
+  status = 503
+  await render()
+  await review()
+  await click('Confirm cleanup')
+  const original = posts()[0]
+  const requestID = JSON.parse(original.data).request_id
+  expect(document.body.textContent).toContain('unconfirmed')
+  expect(posts()).toHaveLength(1)
+  const pending: ProviderCleanupReceipt = {
+    ...receipt(requestID),
+    state: 'pending',
+    finished_at: null,
+    ownership: observation(),
+    cleanup: { state: 'not_attempted', observation: observation() },
+  }
+  commands.set(requestID, pending)
+  status = 202
+  await click('Review recorded command')
+  expect(document.body.textContent).toContain('still pending')
+  await click('Reconcile exact command')
+  expect(document.body.textContent).toContain('Credential version cleanup: Not attempted')
+  commands.set(requestID, { ...pending, state: 'unknown' })
+  status = 200
+  await click('Review recorded command')
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(document.body.textContent).toContain('清理结果未知')
+  expect(document.body.textContent).toMatch(/凭据版本清理:\s*未尝试/)
+  expect(document.body.textContent).not.toContain(i18n.t('secrets:orphans.notices.acknowledged'))
+  await click('核对原始命令')
+  expect(posts()).toHaveLength(3)
+  for (const retry of posts().slice(1)) {
+    expect(JSON.parse(retry.data)).toEqual({
+      request_id: requestID,
+      reason: 'Exact orphan cleanup',
+    })
+    expect(retry.headers.get('If-Match')).toBe(original.headers.get('If-Match'))
+  }
+  expect(commands.size).toBe(1)
+  expect(pending.state).toBe('pending')
+  expect(document.body.textContent).not.toContain(i18n.t('secrets:orphans.reviewNewAttempt'))
+  expect(JSON.stringify(cache.getMutationCache().getAll())).not.toContain('cleanup-secret')
+  expect(
+    JSON.stringify(
+      cache
+        .getQueryCache()
+        .getAll()
+        .map((q) => q.state.data),
+    ),
+  ).not.toContain('cleanup-secret')
+})
+
+it('HTTP401 after canceling an acknowledged command hides all retained private facts', async () => {
+  value.state = 'committed'
+  await render()
+  await review()
+  postGate = new Promise((done) => {
+    releasePost = done
+  })
+  await act(async () => buttons('Confirm cleanup')[0].click())
+  await settle()
+  await click('Cancel waiting')
+  expect(document.body.textContent).toContain('unconfirmed')
+  // This adapter holds independently of AbortSignal. Let Axios observe the
+  // cancellation and release its pending state before the explicit receipt read.
+  releasePost!()
+  await settle()
+  commandGETStatus = 401
+  await click('Review recorded command')
+  expect(requests.some((r) => r.url?.includes('/commands/'))).toBe(true)
+  expect(document.body.textContent).not.toContain(creation)
+  expect(document.body.textContent).not.toContain('Exact orphan cleanup')
+  expect(posts()).toHaveLength(1)
+  expect(document.body.textContent).not.toContain('destroy acknowledged and recorded')
+  expect(document.body.textContent).not.toContain(creation)
+  expect(document.querySelector('input[type=password]')).toBeNull()
+})
+
+it('HTTP401 independently invalidates an already queued confirmation before Session props change', async () => {
+  value.state = 'committed'
+  await render()
+  await review()
+  const queued = buttons('Confirm cleanup')[0]
+  commandGETStatus = 401
+  await act(async () => {
+    await expect(
+      client.get(
+        `/admin/secrets/integrations/${integration}/provider-orphans/${creation}/commands/22222222-2222-4222-8222-222222222222`,
+      ),
+    ).rejects.toBeInstanceOf(AxiosError)
+  })
+  await act(async () => queued.click())
+  await settle()
+  expect(posts()).toHaveLength(0)
+  expect(document.body.textContent).not.toContain(creation)
+  expect(document.querySelector('input[type=password]')).toBeNull()
 })
