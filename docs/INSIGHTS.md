@@ -385,6 +385,22 @@ measured usage, enforcement, other scopes and external semantics retain their
 separate boundaries. The maintained regression prevents stale-amount restoration
 or an implicit query from returning during load or language changes.
 
+
+Controlled 2026-10-24 PostgreSQL/MySQL IAB acceptance also covers Personal Key
+Tokens and Money definitions in an exact selected member scope. Each save retains
+only request_id/kind/dimension/scope_kind/scope_id, excluding Key identities and
+captured facts. Loading after changing scope/dimension controls restores the
+original member ID and dimension, clears results and issues no report query.
+Only explicit Run reads the current root cap, preserving legal Token ceiling
+values and Money amounts differing at the eighteenth decimal place. Another
+owner's Key is absent from the selected member's report; another creator cannot
+list these definitions. English/Chinese pass at 390px and 1280px, including
+complete 100-character Key names and exact Money glyph containment. Controlled
+owner cap changes add exactly their own two policy/audit updates; definitions,
+Key/model relationships and zero Calls/Attempts remain unchanged. This proves
+parameter loading and current-scope reporting, without measured usage, cap
+enforcement, external-model or full F24 completion claims.
+
 ## Provider-quality AI phase acceptance (2026-10-14)
 
 The composed Provider-quality advice phase passed focused Go race tests and 203

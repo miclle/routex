@@ -1,5 +1,84 @@
 # RouteX Implementation and Acceptance Index
 
+## F24 Personal Key quota save/load and responsive acceptance (2026-10-24)
+
+Maintained regression `2c9d06ab5fce2fdcc4406eb9a14dbe1db86c0cc4` is pushed
+with exact remote-main readback. Two parameterized cases cover Personal Key
+Tokens and Money: save only parameters, change owner-scope/dimension controls,
+load the exact original member scope without old facts or an implicit query,
+and explicitly rerun against the current exact cap across language changes.
+No new production defect was observed; existing Key-name and amount wrapping
+passes this scope without a product-code change.
+
+Focused insights tests pass 171/171 and mandatory Task check joins zero without
+timeout, source drift or remaining groups on source/mode manifest
+`1baac12c537e08b8e1a4d72c1e840c978a9b13f900368b73622722e12661b236`.
+The original 170-pass/one-fail test fixture used a Token cap above the supported
+safe-integer policy ceiling; the corrected case uses the two highest legal
+values. That failure is retained, rather than weakening the policy validator.
+Accepted Team, Provider, Project Key Money and Vault native flows were not
+repeated. Complete ordinary Task and the integration matrix retain earlier
+source-specific evidence; no fresh full-suite or migration acceptance is claimed.
+
+Fresh serial hidden in-app-browser runs pass complete original-parent, native
+HTTP/SQL, source, glyph geometry and independent resource-closure readback:
+
+| Database | Accepted run |
+| --- | --- |
+| PostgreSQL 18 | `8241a732d4b5e343c76134666e238ab9` |
+| MySQL 8.4 | `f33545fec267f3f0a22c7deb1851bb0a` |
+
+The member has `calls.read_all` and `members.read`, without Team directory or
+Project-write powers. Only the explicitly selected member's root Key appears;
+another owner's active Personal Key is absent from every report and UI capture.
+This is exact selected-scope isolation, not a claim that authorized member
+picker entries are private. Two native save201 responses persist separate Token
+and Money definitions with exactly request_id/kind/dimension/scope_kind/scope_id.
+No Key ID, name, currency, cap, cursor, captured facts or AI output is saved.
+Another creator's list is empty. Loading clears facts and restores member kind,
+exact member ID and dimension after changing controls to Project/opposite dimension.
+It never queries; native checkpoints have one and three report GETs respectively.
+
+After each checkpoint the Key owner makes one reviewed policy PUT. Explicit Run
+alone adds the second/fourth report GET200, showing Tokens changing from
+9,007,199,254,740,990 to 9,007,199,254,740,991 and Money changing from
+`9007199254740993.000000000000000001 USD` to
+`9007199254740993.000000000000000002 USD`. SQL confirms only the intended root
+policy/ETag changes and two `limits.update` audit additions (`resource_type=key`).
+Definitions, Key lifecycles, owners, model relationships, Teams and memberships
+remain unchanged; Calls/Attempts stay zero. Four deletion reviews are canceled;
+no DELETE/export/analysis/inference or Team/Project quota report occurs.
+
+Both dimensions and languages pass at 390x844 and 1280x900. Complete legal
+100-character Key names, exact amount glyphs, controls and dialogs remain inside
+their existing containers. Unavailable journal facts remain Unknown/incomplete,
+without utilization or a forecast; this does not prove measured use, enforcement
+or native completion. Fresh assets, Linux binaries, capsule image, keys and
+private database are rebuilt per driver. All owned groups, three containers per
+run, network, image, four binary copies, listener and tabs close; viewport
+overrides reset. Private helpers, raw HTTP/SQL, screenshots and readbacks remain
+outside temporary storage in
+`~/.local/share/routex/acceptance/20261024-f24-personal-key/`.
+Qualification-index SHA-256:
+`e072a8c1346205640ec4e230ad04ea3b4cf46a8312793ec4b7b71a0c6eebc37f`.
+
+Two preparation failures remain failed with independent closure: an empty Key
+model set returned400; the member workspace correctly refused an unready Model
+addition with409. The accepted fixture uses the existing administrative catalogue
+model-grant API, retaining a pending disabled credential and zero route weight;
+it proves configured grants only. No remote verification or inference occurs.
+The first evidence reader expected internal `personal_key` instead of the
+resolver's persisted `key` kind. The corrected reader rereads the same original
+raw evidence without replaying business actions; the original reader stays failed.
+
+This completes the requested controlled Personal Key Tokens/Money save/load and
+viewport scope. F24/A18 remain Partial for wider accounting, model and release
+gates. Next qualify Project Key Tokens saved definitions and responsive scope
+review without repeating accepted Project Key Money or Team/Personal flows.
+External acceptance remains user-deferred; F30 multi-node remains blocked by the
+single-journal contract. Candidate isolation/unmerged status and exclusions for
+shared-runtime, V119/V120 and legacy-transfer activation remain unchanged.
+
 ## F24 Team Money save/load and exact fresh-cap acceptance (2026-10-24)
 
 Maintained regression `477bcb5c681455267a910487f3834a20ef9d44f2` is pushed
