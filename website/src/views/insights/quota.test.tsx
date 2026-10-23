@@ -790,6 +790,75 @@ it.each(['tokens', 'money'] as const)(
     expect(reports()).toHaveLength(2)
   },
 )
+it('loads Team Money parameters without restoring an old amount and reads the exact current cap only on explicit run', async () => {
+  const first = '9007199254740993.000000000000000001'
+  const next = '9007199254740993.000000000000000002'
+  let cap = first
+  mutation = (report) => {
+    Object.assign(report, {
+      as_of: null,
+      coverage_start: null,
+      baseline_from: null,
+      baseline_to: null,
+      month_from: null,
+      month_reset: null,
+    })
+    Object.assign(report.items[0], {
+      local_cap: cap,
+      month_settled: null,
+      baseline_settled: null,
+      month_held: null,
+      baseline_held: null,
+      active_held: null,
+      month_unknown: null,
+      baseline_unknown: null,
+      month_covered: false,
+      baseline_covered: false,
+      utilization_percent: null,
+      level: 'unknown',
+      estimate_at: null,
+      estimate_within_seven_days: false,
+      estimate_status: 'unavailable',
+    })
+  }
+  await mount()
+  await click('shortcutTeam')
+  await select('quotaDimension', 'money')
+  await click('quotaRun')
+  await ready()
+  expect(host.textContent).toContain(first + ' USD')
+  await click('saveReport')
+  await until(() => expect(host.textContent).toContain(text('savedConfirmed')))
+  expect(JSON.parse(saves()[0].data)).toEqual({
+    request_id: expect.any(String),
+    kind: 'team_quota',
+    dimension: 'money',
+  })
+  cap = next
+  await savedAction('loadSaved')
+  expect(host.textContent).not.toContain(first)
+  expect(host.textContent).not.toContain(next)
+  expect(host.textContent).not.toContain('Reviewed quota account')
+  await select('quotaDimension', 'tokens')
+  await savedAction('loadSaved')
+  expect(
+    host.querySelector<HTMLSelectElement>('select[aria-label="' + text('quotaDimension') + '"]')!
+      .value,
+  ).toBe('money')
+  expect(reports()).toHaveLength(1)
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(host.textContent).not.toContain(first)
+  expect(host.textContent).not.toContain(next)
+  await click('quotaRun')
+  await ready()
+  expect(host.textContent).toContain(next + ' USD')
+  expect(host.textContent).not.toContain(first)
+  expect(reports().map((report) => report.params.dimension)).toEqual(['money', 'money'])
+  await act(async () => i18n.changeLanguage('en'))
+  expect(host.textContent).toContain(next + ' USD')
+  expect(reports()).toHaveLength(2)
+  expect(saves()).toHaveLength(1)
+})
 it('saves exact Key scope and blocks an unreadable loaded target without restoring facts or disclosing names', async () => {
   definitions = [
     {
