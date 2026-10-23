@@ -1,5 +1,58 @@
 # RouteX Implementation and Acceptance Index
 
+## F24 Team Tokens save/load and scoped responsive acceptance (2026-10-23)
+
+Code `5bc619f88821f60277817cf26ab293947c30c0b2` is pushed with exact remote
+readback. Actual nonempty Team acceptance found a legal100-character unbroken
+name reaching1554px in a390px viewport (2189px at1280px). A shrinkable identity
+column and complete-name wrapping now retain the existing row/status hierarchy.
+The original native-flow exit0 remains visually rejected. No name truncation,
+permission, API, migration or journal change was added.
+
+The maintained save/load test now covers Tokens as well as Money, including
+restoration after changing the dimension without an implicit report query.
+Focused insights168/168 and mandatory Task check join0 on unchanged source/mode
+manifest `6b8fcdfe477529e28e361bd277cdd198dd7e57d854f6acd0869f283f3e4b4060`.
+Previously accepted report/Vault lanes, complete ordinary Task and the full
+integration matrix were not repeated for this bounded frontend-only change.
+
+Fresh serial hidden IAB runs pass complete raw HTTP/SQL/geometry/source/closure
+readback with rebuilt assets, Linux executables and unique capsule images:
+
+| Database | Accepted run |
+| --- | --- |
+| PostgreSQL 18 | `61e262211db618ee661024fb0afe8a5a` |
+| MySQL 8.4 | `6ac60c35021e286ebc1d74004b3ddec8` |
+
+The member has `calls.read_all` without Team directory/write powers. Only the
+exact owned Team appears; an unrelated Team is absent from replies and UI states.
+One real save201 uses only request_id/kind/dimension, retaining a private Tokens
+definition with no Team identity, dates, cursor, statistics or AI output. The
+administrator's separate creator-private list is empty. Loading clears old
+results; selecting Money then loading restores Tokens. The SQL/HTTP checkpoint
+has one report read until explicit rerun issues the second GET200. Two deletion
+reviews are canceled, with no DELETE/export/analysis/inference. Teams, memberships,
+stored limits and audit remain unchanged; Calls/Attempts stay zero.
+
+Both languages pass390x844 and1280x900 geometry. Complete text and glyph lines
+fit inside the account section; the stored cap remains9,007,199,254,740,991.
+Fresh journal facts remain Unknown/incomplete, with no utilization or forecast;
+this does not establish measured consumption, cap enforcement or native completion.
+All owned groups, three containers per run, network, image, four binary copies,
+listener and browser tabs close. Viewport overrides reset and temporary routex
+prefixes are empty; required sources/raw evidence remain outside temporary storage
+in `~/.local/share/routex/acceptance/20261023-f24-team-tokens/`.
+Qualification-index SHA-256:
+`b8a942309f34e9d0f5acf91b103c20e8782fadfb616cbd151d2ebbd999a97790`.
+The two preparation failures (wrong create prefix and SQL e_tag column), and the
+visually rejected predecessor, retain original terminals and independent closure.
+
+This completes the requested controlled Team Tokens save/load/viewport slice;
+F24/A18 remain Partial for the wider recorded report, accounting, model and release
+gates. External acceptance stays deferred by the user. F30 multi-node remains
+blocked by the single-journal contract; the candidate remains isolated/unmerged,
+with shared-runtime/V119/V120/legacy-transfer activation excluded.
+
 ## F24 responsive Provider-report workbench (2026-10-23)
 
 Repair `4e8b559918eaf9c726339f2167d0d5dafbe37716` is pushed with exact remote

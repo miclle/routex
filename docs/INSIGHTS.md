@@ -357,6 +357,18 @@ matrix each passed all 583 names without failures or skips; nonmatrix Go passed
 source and owned cleanup. Earlier failed matrices remain failed. Browser and
 external-service acceptance remain separate, and the complete goal stays active.
 
+Quota account names keep complete user text inside a shrinkable identity column,
+including valid unbroken names; they wrap without hiding adjacent recorded status.
+Controlled 2026-10-23 PostgreSQL/MySQL IAB acceptance covers nonempty Team Tokens
+save/load in both languages at390px and1280px. A member with platform report-read
+permission sees only the current readable Team, and another creator's saved list
+stays empty even for an administrator. Load clears facts and restores Tokens
+without a query; only explicit Run captures the current scope again. The saved
+body contains request_id/kind/dimension, never Team identities or captured facts.
+Exact stored caps remain separate from unavailable journal usage and forecasts.
+See the current acceptance index for exact source, run IDs, raw evidence and
+retained failures; other dimensions/scopes and external semantics remain separate.
+
 ## Provider-quality AI phase acceptance (2026-10-14)
 
 The composed Provider-quality advice phase passed focused Go race tests and 203
