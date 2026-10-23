@@ -96,6 +96,14 @@ composed implementation passed complete PostgreSQL/MySQL and authentication
 qualification before main delivery; see [Implementation](IMPLEMENTATION.md) for
 source and receipt provenance. Browser and real-provider acceptance remain open.
 
+The workbench uses a shrinkable single column below the existing desktop
+breakpoint and zero-minimum9:15 tracks above it. Wide report tables remain inside
+their local horizontal scroll wrapper; minimum table content cannot move review,
+Save or Export controls outside the workbench. Fresh controlled PostgreSQL/MySQL
+empty Provider-quality save/load/cancel flows verify both languages at390px and
+1280px. This measured layout acceptance does not establish nonempty attempt
+attribution, export delivery or external-model semantics.
+
 ## Creator-private saved definitions
 
 The user-confirmed retention policy is creator-private visibility until explicit

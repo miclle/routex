@@ -1,5 +1,45 @@
 # RouteX Implementation and Acceptance Index
 
+## F24 responsive Provider-report workbench (2026-10-23)
+
+Repair `4e8b559918eaf9c726339f2167d0d5dafbe37716` is pushed with exact remote
+readback. Real390px acceptance exposed an empty Provider-quality table expanding
+the workbench to1912px and moving Save/Export/Send outside the viewport. Its
+original native-flow exit0 is retained with `visual_layout_accepted=false`.
+Zero-minimum grid tracks and shrinkable cards now keep wide tables inside their
+existing local scroll wrappers, preserving the desktop9:15 composition.
+
+Focused insights167/167 and mandatory Task check join0 on unchanged manifest
+`bc3127ae97a0b2041ab742a52b416e1bc8ff8df813ab109a70d53cac19d51f9e`.
+The first166-pass/one-fail layout assertion still named the old track string;
+its original failure is retained, then the existing contract assertion is updated.
+The earlier complete ordinary Task belongs to the preceding action-ownership
+source; it was not repeated for this bounded CSS change. No full matrix, backend,
+migration, identity or permission change is claimed.
+
+Fresh serial hidden IAB qualification passes exact HTTP/SQL/geometry/artifact
+readback on PostgreSQL18 `3137e5d287c62a29f0252fa1f36ef11e` and MySQL8.4
+`c84aa1bc575a37d66c531104289977e8`. Both languages are measured with results
+present at390x844 and1280x900: mobile cards358px; desktop cards363px/605px.
+No reviewed workbench control is outside its viewport. Each run has one explicit
+empty Provider report, one real save201, two canceled deletion reviews and one
+parameter load without a second query. SQL retains one exact private definition,
+unchanged audit count and zero Calls/Attempts; no DELETE/export/analysis occurs.
+
+Private sources, raw bodies/SQL, geometry and screenshots remain under
+`~/.local/share/routex/acceptance/20261023-f24-provider-mobile/`;
+qualification-index SHA-256 is
+`255be0200f63a528fc75b3e83bb307095e2661930e1a790b54cd8c680c6b07ce`.
+All owned groups, three containers per run, network, image, four binary copies,
+listeners and tabs are absent; temporary viewport overrides reset and routex
+prefixes in temporary directories are empty. The user's original tab is retained.
+
+This closes this empty Provider-report/viewport combination only. Nonempty
+attribution, remaining report/scope combinations and wider F24/A18/release gates
+retain their separate evidence requirements. External environment acceptance is
+deferred; F30 multi-node remains blocked by the single-journal contract. Candidate
+isolation and shared-runtime/V119/V120/legacy-transfer exclusions remain intact.
+
 ## F24 saved-report action ownership and uncertain receipts (2026-10-23)
 
 Production repair and four maintained regressions are pushed and remote-verified
