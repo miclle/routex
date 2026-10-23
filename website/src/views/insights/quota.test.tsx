@@ -859,6 +859,90 @@ it('loads Team Money parameters without restoring an old amount and reads the ex
   expect(reports()).toHaveLength(2)
   expect(saves()).toHaveLength(1)
 })
+it.each([
+  ['tokens', '9007199254740990', '9007199254740991'],
+  ['money', '9007199254740993.000000000000000001', '9007199254740993.000000000000000002'],
+] as const)(
+  'loads Personal Key %s parameters and exact member scope without restoring old facts or querying',
+  async (dimension, first, next) => {
+    let cap = first as string
+    mutation = (report) => {
+      Object.assign(report, {
+        as_of: null,
+        coverage_start: null,
+        baseline_from: null,
+        baseline_to: null,
+        month_from: null,
+        month_reset: null,
+      })
+      Object.assign(report.items[0], {
+        local_cap: cap,
+        month_settled: null,
+        baseline_settled: null,
+        month_held: null,
+        baseline_held: null,
+        active_held: null,
+        month_unknown: null,
+        baseline_unknown: null,
+        month_covered: false,
+        baseline_covered: false,
+        utilization_percent: null,
+        level: 'unknown',
+        estimate_at: null,
+        estimate_within_seven_days: false,
+        estimate_status: 'unavailable',
+      })
+    }
+    const amount = (value: string) =>
+      dimension === 'money' ? value + ' USD' : BigInt(value).toLocaleString('en-US')
+    await mount()
+    await member()
+    await select('quotaDimension', dimension)
+    await click('quotaRun')
+    await ready()
+    expect(host.textContent).toContain(amount(first))
+    await click('saveReport')
+    await until(() => expect(host.textContent).toContain(text('savedConfirmed')))
+    expect(JSON.parse(saves()[0].data)).toEqual({
+      request_id: expect.any(String),
+      kind: 'key_quota',
+      dimension,
+      scope_kind: 'member',
+      scope_id: quotaActor,
+    })
+    cap = next
+    await select('quotaScopeKind', 'project')
+    await select('quotaDimension', dimension === 'money' ? 'tokens' : 'money')
+    await savedAction('loadSaved')
+    for (const [key, value] of [
+      ['quotaDimension', dimension],
+      ['quotaScopeKind', 'member'],
+      ['quotaSelectedScope', quotaActor],
+    ]) {
+      expect(
+        host.querySelector<HTMLSelectElement>('select[aria-label="' + text(key) + '"]')!.value,
+      ).toBe(value)
+    }
+    expect(host.textContent).not.toContain('Reviewed quota account')
+    expect(host.textContent).not.toContain(amount(first))
+    expect(host.textContent).not.toContain(amount(next))
+    expect(reports()).toHaveLength(1)
+    await act(async () => i18n.changeLanguage('zh'))
+    await until(() => expect(button('quotaRun').disabled).toBe(false))
+    await click('quotaRun')
+    await ready()
+    expect(host.textContent).toContain(amount(next))
+    expect(host.textContent).not.toContain(amount(first))
+    expect(reports().map((report) => report.params)).toEqual([
+      expect.objectContaining({ dimension, scope_kind: 'member', scope_id: quotaActor }),
+      expect.objectContaining({ dimension, scope_kind: 'member', scope_id: quotaActor }),
+    ])
+    await act(async () => i18n.changeLanguage('en'))
+    expect(host.textContent).toContain(amount(next))
+    expect(reports()).toHaveLength(2)
+    expect(saves()).toHaveLength(1)
+  },
+)
 it('saves exact Key scope and blocks an unreadable loaded target without restoring facts or disclosing names', async () => {
   definitions = [
     {
