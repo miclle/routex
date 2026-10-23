@@ -129,10 +129,27 @@ requires local confirmation. Private lists and asynchronous write completions
 remain fenced by the current actor, Session and authority. Definitions and write
 intentions are never placed in browser storage.
 
+Cancel/Close and local save-intent discard synchronously revoke queued callbacks.
+Each save/delete dispatch generation is consumed once: an obsolete callback
+cannot delete a canceled target, turn a discarded retry into a fresh save, or
+repeat a request after its first outcome. A current explicit retry retains the
+original request and current authority.
+
+The 2026-10-23 controlled PostgreSQL/MySQL in-app-browser qualification records
+native201/200/201 saves with first/retry browser503 replies. Real list refresh
+never resolves the historical unknown intent. Identical explicit retry keeps the
+UUID and definition ID; discard then Save creates a new definition. Cancel/Close
+produce no DELETE. SQL, exact HTTP bodies and complete owned-resource closure
+are independently checked. This covers Tokens-by-Model saved receipts; queued
+callback races remain maintained-test evidence, and wider report/viewport and
+external-model acceptance remain separate. See the current implementation index
+for exact run IDs and retained evidence.
+
 Creator-private definitions are delivered in `4ee3909` after focused tests and
 mandatory checking. The composed implementation also passed complete ordinary,
-unfiltered PostgreSQL/MySQL and authentication qualification. These controlled
-results do not establish browser or real external-service acceptance.
+unfiltered PostgreSQL/MySQL and authentication qualification. Those original controlled
+results do not establish browser or real external-service acceptance; the newer
+bounded browser qualification above has its own recorded scope.
 
 ## Optional personal-model AI advice
 

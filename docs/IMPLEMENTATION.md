@@ -1,5 +1,58 @@
 # RouteX Implementation and Acceptance Index
 
+## F24 saved-report action ownership and uncertain receipts (2026-10-23)
+
+Production repair and four maintained regressions are pushed and remote-verified
+in `7551240da6c7ddfd01faabc3f1c1fd51ae83bb08`. Cancel/Close and local intent discard
+synchronously revoke queued callbacks; every save/delete dispatch consumes its
+generation. Only the current explicit retry can resend the original request.
+This prevents deletion after cancellation, a discarded retry becoming a new save,
+and reuse of an already dispatched callback. The existing layout, permissions,
+CSRF and transient ownership boundaries are preserved.
+
+Focused insights tests pass167/167. Complete ordinary Task passes, including288
+frontend files /7,812 cases, frontend Node5, scripts95, Go race, development
+lifecycle and production assets. Mandatory Task check joins0 on unchanged
+source/mode manifest `47954ea6218b95217c2738be7d4eba018114bb248a9db6dca550efd8bd6df8bc`.
+No migration, transaction or identity persistence changed; the old full database
+matrix and already accepted F28 workflows were not repeated.
+
+Fresh serial hidden in-app-browser runs with rebuilt assets, Linux executables,
+images, private databases, keys and original Sessions pass independent readback:
+
+| Database | Accepted run |
+| --- | --- |
+| PostgreSQL 18 | `e6b13211a61f366dd914c0d1863b2338` |
+| MySQL 8.4 | `bb3500310bcd1e1e803c1bcc7a6f2c18` |
+
+A private response proxy records real native save statuses201/200/201 while
+only the first two browser replies become503. Refreshing the real saved list
+retains the original unknown intent. Explicit retry preserves its exact body,
+UUID and definition ID; explicit local discard followed by Save creates a new
+UUID/ID. SQL retains exactly two private definitions. Two deletion reviews end
+with Cancel/Close and produce zero DELETE requests. English and Chinese UI pass;
+each run has one report read, zero exports/inference/Calls/Attempts and unchanged
+audit count. Queued callback races have maintained-source-test evidence only.
+
+Private recipes, browser helpers, HTTP bodies, SQL and screenshots remain under
+`~/.local/share/routex/acceptance/20261023-f24-saved-intent/`.
+Cross-run `qualification-readback.json` SHA-256:
+`ed8fae7f3882e321ad7c2a09d87bc241b318c8f12051485f0b9c8f646ddb7c2e`.
+All owned process groups, three containers per run, networks, images, four binary
+copies per run, listeners and browser tabs are absent. Temporary routex-prefixed
+paths are empty. The accidental broad test cancellation, two pre-fix regression
+failures, two wrong-host portal assertions and first PostgreSQL authority-renewal
+interruption remain unaccepted with original terminals and verified closure.
+Two successor browser-control errors preceded business dispatch and are recorded;
+normal reload/current-tab controls resolved them without disabling renewal.
+
+This closes only this saved-intent boundary, not complete F24/A18 or external
+model semantics. Continue the remaining report/viewport and release gates without
+repeating unchanged accepted lanes. External environment acceptance is deferred
+by the user; F30 multi-node acknowledgement/distributed revocation remain blocked
+by the single-journal contract. The candidate stays isolated and unmerged;
+shared runtime, V119/V120 and legacy transfer remain excluded.
+
 ## F28 controlled workload certificate compatibility (2026-10-23)
 
 Maintained intermediate-chain generation, bounded native compatibility checks
