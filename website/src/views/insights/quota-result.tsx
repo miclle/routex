@@ -121,8 +121,8 @@ export default function QuotaInsightsResult({ report }: { report: QuotaInsightsR
         {report.items.map((row) => (
           <div className="space-y-2 border-b pb-4 last:border-0 last:pb-0" key={row.id}>
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <strong>{row.name || row.id}</strong>
+              <div className="min-w-0 flex-1">
+                <strong className="wrap-anywhere">{row.name || row.id}</strong>
                 <span className="block break-all text-xs text-muted-foreground">{row.id}</span>
                 <span className="block text-xs text-muted-foreground">
                   {t(statusLabels[row.status])}

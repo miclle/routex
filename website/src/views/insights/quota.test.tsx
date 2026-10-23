@@ -754,32 +754,42 @@ async function savedAction(key: string) {
   )!
   await act(async () => item.click())
 }
-it('saves reviewed Team money controls without querying statistics and loads only for explicit review', async () => {
-  await mount()
-  await click('shortcutTeam')
-  await select('quotaDimension', 'money')
-  await click('saveReport')
-  await until(() => expect(host.textContent).toContain(text('savedConfirmed')))
-  const body = JSON.parse(saves()[0].data)
-  expect(body).toEqual({ request_id: expect.any(String), kind: 'team_quota', dimension: 'money' })
-  expect(reports()).toHaveLength(0)
-  await click('quotaRun')
-  await ready()
-  await savedAction('loadSaved')
-  expect(host.textContent).not.toContain('Reviewed quota account')
-  expect(host.textContent).toContain(text('savedQuotaLoaded'))
-  expect(reports()).toHaveLength(1)
-  expect(
-    host.querySelector<HTMLSelectElement>('select[aria-label="' + text('quotaDimension') + '"]')!
-      .value,
-  ).toBe('money')
-  await act(async () => i18n.changeLanguage('zh'))
-  expect(host.textContent).toContain(text('savedQuotaLoaded'))
-  expect(host.textContent).not.toContain('savedQuotaParameters')
-  await click('quotaRun')
-  await ready()
-  expect(reports()).toHaveLength(2)
-})
+it.each(['tokens', 'money'] as const)(
+  'saves reviewed Team %s controls without querying statistics and loads only for explicit review',
+  async (dimension) => {
+    await mount()
+    await click('shortcutTeam')
+    await select('quotaDimension', dimension)
+    await click('saveReport')
+    await until(() => expect(host.textContent).toContain(text('savedConfirmed')))
+    const body = JSON.parse(saves()[0].data)
+    expect(body).toEqual({ request_id: expect.any(String), kind: 'team_quota', dimension })
+    expect(reports()).toHaveLength(0)
+    await click('quotaRun')
+    await ready()
+    await savedAction('loadSaved')
+    expect(host.textContent).not.toContain('Reviewed quota account')
+    expect(host.textContent).toContain(text('savedQuotaLoaded'))
+    expect(reports()).toHaveLength(1)
+    expect(
+      host.querySelector<HTMLSelectElement>('select[aria-label="' + text('quotaDimension') + '"]')!
+        .value,
+    ).toBe(dimension)
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(host.textContent).toContain(text('savedQuotaLoaded'))
+    expect(host.textContent).not.toContain('savedQuotaParameters')
+    await select('quotaDimension', dimension === 'tokens' ? 'money' : 'tokens')
+    await savedAction('loadSaved')
+    expect(reports()).toHaveLength(1)
+    expect(
+      host.querySelector<HTMLSelectElement>('select[aria-label="' + text('quotaDimension') + '"]')!
+        .value,
+    ).toBe(dimension)
+    await click('quotaRun')
+    await ready()
+    expect(reports()).toHaveLength(2)
+  },
+)
 it('saves exact Key scope and blocks an unreadable loaded target without restoring facts or disclosing names', async () => {
   definitions = [
     {
