@@ -470,8 +470,8 @@ function InsightsContent({
           </p>
           <p className="text-muted-foreground">{t('scopeNotice')}</p>
         </div>
-        <div className="grid items-start gap-4 xl:grid-cols-[9fr_15fr]">
-          <Card>
+        <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,9fr)_minmax(0,15fr)]">
+          <Card className="min-w-0">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Bot className="size-5" aria-hidden />
@@ -640,7 +640,7 @@ function InsightsContent({
               </form>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="min-w-0">
             <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">{t('resultLabel')}</p>

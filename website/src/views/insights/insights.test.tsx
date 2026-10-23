@@ -244,8 +244,10 @@ it('preserves layout slots and localizes an existing result without replay or cl
   )
   expect(reports()).toHaveLength(count)
   expect(
-    Array.from(host.querySelectorAll('div')).some((item) =>
-      item.className.includes('xl:grid-cols-[9fr_15fr]'),
+    Array.from(host.querySelectorAll('div')).some(
+      (item) =>
+        item.className.includes('grid-cols-1') &&
+        item.className.includes('xl:grid-cols-[minmax(0,9fr)_minmax(0,15fr)]'),
     ),
   ).toBe(true)
   expect(host.querySelector('textarea')!.rows).toBe(3)

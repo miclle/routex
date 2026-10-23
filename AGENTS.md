@@ -1816,6 +1816,9 @@ Canceling or dismissing saved-definition deletion and discarding an uncertain sa
 synchronously revoke queued callbacks. Consume each save/delete dispatch generation
 once; only the currently rendered explicit retry may resend the original intent.
 A queued retry must never become a fresh save after its intent was discarded.
+Keep the insights workbench grid and its cards shrinkable at narrow and desktop
+widths. Wide result tables scroll inside their local Table wrapper; their minimum
+content width must not move review, Save or Export controls outside the workbench.
 
 Administrative Model configured input cells use only the independently Provider-authorized
 configured_input_capabilities projection, with per-native-protocol image/PDF intersections.
