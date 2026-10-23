@@ -1,5 +1,67 @@
 # Current implementation handoff
 
+## F24 Team Money save/load and exact fresh-cap acceptance (2026-10-24)
+
+Maintained regression `477bcb5c681455267a910487f3834a20ef9d44f2` is pushed
+with exact remote-main readback. It covers parameter-only Money save/load,
+clearing old amounts, restoring Money after selecting Tokens without a query,
+and reading the current exact cap only on explicit Run across language changes.
+No new production defect was observed; the existing complete-name and amount
+wrapping handles this combination without a product-code change.
+
+Focused insights tests pass 169/169 and mandatory Task check joins zero without
+timeout, source drift or remaining groups on source/mode manifest
+`299c2ff152cf192e125aaca4c2e2c3a72885e934711d855bb24d46572480e977`.
+The previously accepted Tokens, Provider, Project Key Money and Vault workflows
+were not repeated. Complete ordinary Task and the integration matrix retain
+their earlier source-specific evidence; neither is claimed as a fresh result.
+
+Fresh serial hidden in-app-browser runs pass original-parent, native HTTP/SQL,
+source, glyph geometry and independent owned-resource readback:
+
+| Database | Accepted run |
+| --- | --- |
+| PostgreSQL 18 | `5d79eec3787bdea163e77119191fe6c1` |
+| MySQL 8.4 | `7032c42281da924c3d5434ad87767c46` |
+
+A member with `calls.read_all`, without Team directory/write powers, sees only
+the owned Team; an unrelated Team is absent from responses and all UI captures.
+One real save201 retains exactly request_id/kind/dimension, with no currency,
+cap, Team identity, dates, statistics or AI output. Another creator's list is
+empty. Loading clears facts and restores Money even after selecting Tokens;
+the native HTTP/SQL checkpoint has one report GET until explicit Run.
+
+After that checkpoint, the fixture administrator makes one reviewed limits PUT,
+changing `9007199254740993.000000000000000001 USD` to
+`9007199254740993.000000000000000002 USD`. The explicit second report GET200
+and both languages show the exact new amount without numeric rounding or the
+old amount. SQL confirms that the private saved definition is unchanged, only
+the reviewed Team policy and its ETag change, and exactly one `limits.update`
+audit is added. Teams and memberships remain unchanged; Calls/Attempts stay
+zero. Two deletion reviews are canceled; no DELETE/export/analysis/inference
+occurs. Switching a control to Tokens never dispatches a Tokens report.
+
+English and Chinese pass at 390x844 and 1280x900. Complete legal 100-character
+names, Money glyph lines, controls and dialogs fit their existing containers.
+Unavailable journal facts remain Unknown/incomplete, without utilization or a
+forecast; this proves neither measured consumption nor cap enforcement.
+Assets, Linux binaries, keys, private databases and unique capsule images were
+rebuilt independently for each driver. All owned process groups, three containers
+per run, network, image, four binary copies, listener and tabs close; viewport
+overrides reset. Private recipes, raw HTTP/SQL, screenshots and readbacks remain
+outside temporary storage in
+`~/.local/share/routex/acceptance/20261023-f24-team-money/` (started before the
+local date rollover). Qualification-index SHA-256:
+`c63ddeed37e3a45a1f988221fa155737be9049278ca6f08694ca98f509398b14`.
+
+The requested controlled Team Money save/load/viewport slice is complete.
+F24/A18 remain Partial for other report/scope combinations, accounting, model
+and release gates. Continue separate Personal Key quota save/load/viewport
+acceptance without repeating the accepted Team or Project Key Money lanes.
+External acceptance remains deferred by the user, F30 multi-node remains blocked
+by the single-journal contract, and the candidate stays isolated/unmerged.
+Shared-runtime, V119/V120 and legacy-transfer activation remain excluded.
+
 ## F24 Team Tokens save/load and scoped responsive acceptance (2026-10-23)
 
 Code `5bc619f88821f60277817cf26ab293947c30c0b2` is pushed with exact remote

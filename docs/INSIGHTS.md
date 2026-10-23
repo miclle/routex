@@ -369,6 +369,22 @@ Exact stored caps remain separate from unavailable journal usage and forecasts.
 See the current acceptance index for exact source, run IDs, raw evidence and
 retained failures; other dimensions/scopes and external semantics remain separate.
 
+
+Controlled 2026-10-24 PostgreSQL/MySQL IAB acceptance separately covers Team
+Money save/load and explicit fresh-cap rerun. A saved definition retains only
+request_id/kind/dimension, excluding the denomination and captured cap. Loading
+clears old facts, restores Money after a control-only dimension change and does
+not query. After one reviewed fixture-admin cap change from
+`9007199254740993.000000000000000001 USD` to
+`9007199254740993.000000000000000002 USD`, only explicit Run reads and displays
+the exact new amount. Both languages pass at 390px and 1280px, including full
+long-name and Money glyph containment. Native SQL confirms one unchanged private
+definition and exactly the intended policy/ETag change plus one limits audit;
+Teams/memberships and zero Calls/Attempts remain unchanged. Journal availability,
+measured usage, enforcement, other scopes and external semantics retain their
+separate boundaries. The maintained regression prevents stale-amount restoration
+or an implicit query from returning during load or language changes.
+
 ## Provider-quality AI phase acceptance (2026-10-14)
 
 The composed Provider-quality advice phase passed focused Go race tests and 203
