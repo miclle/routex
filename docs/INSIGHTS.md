@@ -401,6 +401,22 @@ Key/model relationships and zero Calls/Attempts remain unchanged. This proves
 parameter loading and current-scope reporting, without measured usage, cap
 enforcement, external-model or full F24 completion claims.
 
+
+Controlled 2026-10-24 PostgreSQL/MySQL IAB acceptance separately covers Project
+Key Tokens save/load with current-manager authority. One private definition
+retains only request_id/kind/dimension/scope_kind/scope_id. Loading after clearing
+the selected scope and changing dimension restores the exact Project ID and
+Tokens without old facts or a report query. Only explicit Run reads the reviewed
+new root cap. After an intentional fixture-admin manager replacement, the same
+browser Session's fresh target read returns404: the private definition remains
+listable, while old names/facts, Run and Save remain unavailable and no report is
+replayed. The scoped picker excludes another Project and becomes empty after
+removal; no global directory is fetched. Both languages pass390px/1280px, with
+complete legal long names and exact integer glyphs. SQL isolates one cap/audit
+change and one manager/audit change, preserving Key/model relationships and zero
+Calls/Attempts. These controlled results do not prove quota enforcement, measured
+usage, external semantics or complete F24/A18.
+
 ## Provider-quality AI phase acceptance (2026-10-14)
 
 The composed Provider-quality advice phase passed focused Go race tests and 203

@@ -1,5 +1,83 @@
 # RouteX Implementation and Acceptance Index
 
+## F24 Project Key Tokens save/load and current-manager acceptance (2026-10-24)
+
+Regression `0b076bd64f914dcbc4dd73fe9c3780eaf8180d8d` is pushed with exact
+remote-main readback. Two additional maintained cases cover exact Project Token
+scope/dimension restoration without facts or an implicit report, and a loaded
+Project target returning404 with Run/Save disabled. The existing parameterized
+Key tests and target helper now accept the exact owner scope. No new production
+defect was observed; existing name/amount wrapping and authorization guards pass.
+
+Focused insights tests pass 173/173; mandatory Task check joins zero without
+timeout, source drift or remaining groups on source/mode manifest
+`0b41701527b47066de1b900d132d96b1110994156dccc753887c682cb09aa188`.
+The initial172-pass/one-fail test run retained a member-only cache helper; its
+scope-ID parameter fixes the test fixture without weakening current authority.
+Accepted Project Key Money, Personal, Team, Provider and Vault native scopes were
+not repeated. Complete ordinary Task and the integration matrix retain their
+prior source-specific evidence; no fresh full-suite acceptance is inferred.
+
+Fresh serial hidden in-app-browser runs pass complete original-parent, native
+HTTP/SQL, source, glyph geometry and independent owned-resource readback:
+
+| Database | Accepted run |
+| --- | --- |
+| PostgreSQL 18 | `ddd797747a05193eecb22800b93fdc9f` |
+| MySQL 8.4 | `d37a4ef1e66ead004a7ac2674320da7c` |
+
+The member has `calls.read_all` without member/global Project/Team directory or
+Project-write permission. Its scoped Project picker contains only the managed
+Project, then becomes empty after manager removal; no administrative directory
+is fetched. The report contains only that Project's root Key, excluding another
+Project and its active Key. One native save201 retains exactly request_id/kind/
+dimension/scope_kind/scope_id, with no Key ID, names, cap, currency, cursor or
+captured facts. Another creator's list is empty. Loading clears facts and restores
+the original Project ID and Tokens after clearing the selected scope and choosing
+Money; the native checkpoint still has exactly one report GET.
+
+The current manager makes one reviewed root-Key policy PUT, changing stored
+Tokens from9,007,199,254,740,990 to9,007,199,254,740,991. Explicit Run alone adds
+the second report GET200 and displays the exact new cap in both languages.
+A separate fixture-admin manager replacement then removes that member and adds
+the administrator. With the original browser Session, a fresh mount and explicit
+load receive native target404; private Project/Key names and result facts stay
+absent, Run/Save stay disabled and no third report GET occurs. The creator can
+still list and load the parameter definition; loading grants no Project authority.
+
+SQL checkpoints prove one unchanged definition, exactly the reviewed root policy/
+ETag update plus one limits.update audit, and the intentional manager replacement
+plus one project.managers.replace audit. Other Project managers, Key owners,
+lifecycles, model grants, Project metadata, Teams and memberships remain unchanged;
+Calls/Attempts stay zero. Two deletion reviews are canceled. No DELETE, CSV,
+analysis, inference, Personal/Team report or Money report occurs.
+
+English/Chinese positive and revoked-load states pass390x844 and1280x900. Full
+legal100-character Key names, exact cap glyphs, controls and dialogs fit existing
+containers. Unavailable journal facts stay Unknown/incomplete without forecasts;
+this does not establish measured usage, quota enforcement or native completion.
+Each driver rebuilds frontend assets, Linux binaries and a unique capsule image,
+with fresh keys/private database. All owned groups, three containers per run,
+network, image, four binary copies, listener and tabs close; viewport overrides
+reset. Raw HTTP/SQL, screenshots, recipes and readbacks remain outside temporary
+storage in `~/.local/share/routex/acceptance/20261024-f24-project-key-tokens/`.
+Qualification-index SHA-256:
+`1fc90965fdf5cce87e9aaadc55b8f56a75bf4f14d0ddeb97e5aaf2b6b80aa7c7`.
+
+The first PostgreSQL native workflow finished, but its cleanup controller shadowed
+the Compose project string with a Project response, causing parent exit1.
+Containers/network had closed; exact labelled-image and hash-bound binary cleanup
+was independently recovered. Its original terminal remains unaccepted. The fresh
+successor uses distinct variables and passes full closure; no incomplete result
+is promoted and no old artifact is reused.
+
+The requested Project Key Tokens save/load/viewport scope is complete. F24/A18
+remain Partial for wider accounting, CSV, model and release gates. Next qualify
+unaccepted Team quota CSV fresh-capture/authority combinations without replaying
+the accepted saved-definition flows. External acceptance remains user-deferred;
+F30 multi-node stays blocked by the single-journal contract. Candidate isolation
+and shared-runtime, V119/V120 and legacy-transfer exclusions remain unchanged.
+
 ## F24 Personal Key quota save/load and responsive acceptance (2026-10-24)
 
 Maintained regression `2c9d06ab5fce2fdcc4406eb9a14dbe1db86c0cc4` is pushed
