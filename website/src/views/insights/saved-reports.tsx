@@ -110,6 +110,10 @@ export function useSavedInsightsReports(options: Options) {
   const controllers = useRef(new Set<AbortController>())
   const saveLock = useRef(false)
   const deleteLock = useRef(false)
+  const saveGeneration = useRef(0)
+  const deleteGeneration = useRef(0)
+  const reviewedSaveGeneration = saveGeneration.current
+  const reviewedDeleteGeneration = deleteGeneration.current
   const [intent, setIntent] = useState<InsightsReportInput | null>(null)
   const intentRef = useRef<InsightsReportInput | null>(null)
   const [saving, setSaving] = useState(false)
@@ -140,8 +144,8 @@ export function useSavedInsightsReports(options: Options) {
       setHistory([])
     } else void page.refetch()
   }
-  async function save() {
-    if (!owner() || saveLock.current) return
+  async function save(generation: number) {
+    if (!owner() || saveLock.current || generation !== saveGeneration.current) return
     let input = intentRef.current
     if (!input) {
       const parameters = capture?.()
@@ -158,6 +162,7 @@ export function useSavedInsightsReports(options: Options) {
       currentOptions.current.reviewStamp?.(currentIntent) === reviewedStamp
     const controller = new AbortController()
     controllers.current.add(controller)
+    saveGeneration.current += 1
     saveLock.current = true
     setSaving(true)
     setNotice('')
@@ -203,11 +208,19 @@ export function useSavedInsightsReports(options: Options) {
       if (owner()) setSaving(false)
     }
   }
-  async function remove() {
-    if (!selected || !owner() || deleteLock.current) return
+  function dismissDeletion() {
+    if (deleteLock.current) return
+    deleteGeneration.current += 1
+    setSelected(null)
+    setDeleteNotice('')
+  }
+  async function remove(generation: number) {
+    if (!selected || !owner() || deleteLock.current || generation !== deleteGeneration.current)
+      return
     const definition = selected
     const controller = new AbortController()
     controllers.current.add(controller)
+    deleteGeneration.current += 1
     deleteLock.current = true
     setDeleting(true)
     setDeleteNotice('')
@@ -280,7 +293,11 @@ export function useSavedInsightsReports(options: Options) {
   const canSave = currentOwner && (intent ? authorized(intent) : !!captured && authorized(captured))
   return {
     saveButton: (
-      <Button variant="outline" disabled={!canSave || saving} onClick={() => void save()}>
+      <Button
+        variant="outline"
+        disabled={!canSave || saving}
+        onClick={() => void save(reviewedSaveGeneration)}
+      >
         {t(saving ? 'savingReport' : intent ? 'retrySave' : 'saveReport')}
       </Button>
     ),
@@ -317,6 +334,7 @@ export function useSavedInsightsReports(options: Options) {
                 disabled={saving}
                 onClick={() => {
                   if (saveLock.current) return
+                  saveGeneration.current += 1
                   intentRef.current = null
                   setIntent(null)
                   setNotice('')
@@ -371,6 +389,7 @@ export function useSavedInsightsReports(options: Options) {
                               disabled={deleting}
                               onClick={() => {
                                 if (owner() && !deleteLock.current) {
+                                  deleteGeneration.current += 1
                                   setSelected(definition)
                                   setDeleteNotice('')
                                 }
@@ -442,10 +461,7 @@ export function useSavedInsightsReports(options: Options) {
         <Dialog
           open={!!selected}
           onOpenChange={(open) => {
-            if (!open && !deleteLock.current) {
-              setSelected(null)
-              setDeleteNotice('')
-            }
+            if (!open) dismissDeletion()
           }}
           busy={deleting}
           title={t('deleteSavedTitle')}
@@ -460,18 +476,10 @@ export function useSavedInsightsReports(options: Options) {
               <p className="text-sm">{parametersText(selected)}</p>
               {deleteNotice && <p role="alert">{t(deleteNotice)}</p>}
               <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  disabled={deleting}
-                  onClick={() => {
-                    if (deleteLock.current) return
-                    setSelected(null)
-                    setDeleteNotice('')
-                  }}
-                >
+                <Button variant="outline" disabled={deleting} onClick={dismissDeletion}>
                   {t('cancel')}
                 </Button>
-                <Button disabled={deleting} onClick={() => void remove()}>
+                <Button disabled={deleting} onClick={() => void remove(reviewedDeleteGeneration)}>
                   {t(deleting ? 'deletingSaved' : 'confirmDeleteSaved')}
                 </Button>
               </div>

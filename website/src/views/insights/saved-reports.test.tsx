@@ -1,8 +1,8 @@
-import { act } from 'react'
+import { act, useLayoutEffect, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
-import { afterEach, beforeEach, expect, it } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import client from '@/api/client'
 import i18n from '@/i18n'
 import { sessionKey } from '@/hooks/use-auth'
@@ -11,6 +11,21 @@ import type { InsightsReportDefinition } from '@/types/insights'
 import type { Session } from '@/types/auth'
 import InsightsPage from './index'
 import { qualityFixture } from './provider-quality-fixture'
+
+const queuedButtons = vi.hoisted(() => new Map<string, () => void>())
+vi.mock('@/components/ui/button', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/components/ui/button')>()
+  return {
+    ...actual,
+    Button: function TestButton(props: ComponentProps<typeof actual.Button>) {
+      useLayoutEffect(() => {
+        if (typeof props.children === 'string' && props.onClick)
+          queuedButtons.set(props.children, props.onClick as () => void)
+      })
+      return <actual.Button {...props} />
+    },
+  }
+})
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const original = client.defaults.adapter
@@ -64,6 +79,7 @@ function failure(config: InternalAxiosRequestConfig, status: number) {
   })
 }
 beforeEach(async () => {
+  queuedButtons.clear()
   await i18n.changeLanguage('en')
   actor = 'usr_one'
   callsRead = true
@@ -250,6 +266,75 @@ it('keeps the original mounted save intent through unknown outcomes and blocks d
   await until(() => expect(host.textContent).toContain(text('savedConfirmed')))
   expect(saves()[1].data).toBe(originalBody)
   expect(reports()).toHaveLength(1)
+})
+it('rejects a queued delete confirmation after the owner cancels the dialog', async () => {
+  definitions = [definition()]
+  await mount()
+  await menu()
+  await menuItem(text('deleteSaved'))
+  const queued = button(text('confirmDeleteSaved'))
+  await act(async () => {
+    button(text('cancel')).click()
+    queued.click()
+  })
+  expect(deletes()).toHaveLength(0)
+  expect(document.querySelector('[role="dialog"]')).toBeNull()
+  expect(definitions).toHaveLength(1)
+})
+it('discarding an uncertain save synchronously revokes its queued retry', async () => {
+  await mount()
+  await run()
+  saveError = 503
+  await click(text('saveReport'))
+  await until(() => expect(host.textContent).toContain(text('saveUnknown')))
+  const queued = button(text('retrySave'))
+  await act(async () => {
+    button(text('discardSave')).click()
+    queued.click()
+  })
+  expect(saves()).toHaveLength(1)
+  expect(host.textContent).not.toContain(text('retrySave'))
+  saveError = 0
+  await click(text('saveReport'))
+  await until(() => expect(host.textContent).toContain(text('savedConfirmed')))
+  expect(JSON.parse(saves()[1].data).request_id).not.toBe(JSON.parse(saves()[0].data).request_id)
+})
+it('consumes each save callback once and requires a current explicit identical retry', async () => {
+  await mount()
+  await run()
+  const original = queuedButtons.get(text('saveReport'))!
+  saveError = 503
+  await act(async () => original())
+  await until(() => expect(host.textContent).toContain(text('saveUnknown')))
+  const body = saves()[0].data
+  await act(async () => original())
+  expect(saves()).toHaveLength(1)
+  const retry = queuedButtons.get(text('retrySave'))!
+  await act(async () => retry())
+  await until(() => expect(saves()).toHaveLength(2))
+  await act(async () => retry())
+  expect(saves()).toHaveLength(2)
+  saveError = 0
+  await click(text('retrySave'))
+  await until(() => expect(host.textContent).toContain(text('savedConfirmed')))
+  expect(saves().map((request) => request.data)).toEqual([body, body, body])
+})
+it('consumes an uncertain delete confirmation without replaying its queued callback', async () => {
+  definitions = [definition()]
+  await mount()
+  await menu()
+  await menuItem(text('deleteSaved'))
+  const original = queuedButtons.get(text('confirmDeleteSaved'))!
+  deleteError = 503
+  await click(text('confirmDeleteSaved'))
+  await until(() => expect(document.body.textContent).toContain(text('deleteUnknown')))
+  await act(async () => original())
+  expect(deletes()).toHaveLength(1)
+  deleteError = 0
+  await click(text('confirmDeleteSaved'))
+  await until(() => expect(host.textContent).toContain(text('deleteConfirmed')))
+  expect(deletes()).toHaveLength(2)
+  expect(deletes().every((request) => request.url?.endsWith('/' + id))).toBe(true)
 })
 it.each([409, 410])(
   'retains the original rejected %i intent until explicit discard, without automatic retry',

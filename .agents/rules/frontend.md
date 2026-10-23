@@ -1772,6 +1772,10 @@ parameters for explicit review and never starts a report, export or paid inferen
 Use local Menu/Dialog wrappers for row actions and deletion confirmation. Fence
 private lists, original save intents and late completions by actor, Session and
 current authority; use paired insights translations and transient state for writes.
+Canceling or dismissing saved-definition deletion and discarding an uncertain save
+synchronously revoke queued callbacks. Consume each save/delete dispatch generation
+once; only the currently rendered explicit retry may resend the original intent.
+A queued retry must never become a fresh save after its intent was discarded.
 
 Administrative Model configured input cells use only the independently Provider-authorized
 configured_input_capabilities projection, with per-native-protocol image/PDF intersections.
