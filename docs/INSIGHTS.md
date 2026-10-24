@@ -497,3 +497,28 @@ hit two unrelated dialog-workflow test deadlines; unchanged focused reproduction
 (43 tests) and complete ordinary retry pass with original timeouts/configuration.
 The initial deadline cause remains unproven. Browser and external model acceptance
 remain separate from these controlled tests.
+
+
+Controlled 2026-10-24 PostgreSQL/MySQL IAB acceptance separately covers Team
+Tokens/Money CSV fresh capture. An explicit report retains capA while a reviewed
+fixture-admin policy update changes the stored cap toB; Export downloads the
+original native CSV containing capB without silently replacing the displayed
+report. Actual retained file bytes, hashes, MIME, filename and private/no-store/
+nosniff headers match the native response. UTF-8 CSV parsing preserves the
+apostrophe-protected formula-leading Unicode/comma Team name and exact Token/
+18-decimal Money strings; only the readable Team is included. Unknown amounts
+remain empty without invented forecasts.
+
+A native403 after report-role revocation exposed stale Run/Save controls. Current
+Team CSV401/403 now refreshes only the exact actor/Session report-permission query;
+pending, error or denied authority hides report operations and private facts.
+A fresh successful read requires a new explicit review, without replaying a report,
+export or inference. Non-denial422/503 preserves the reviewed report. Six new
+maintained cases and strengthened Team denial cases pass with the focused
+179-case suite and mandatory Task check. Both languages pass390px/1280px positive
+and revoked states. Raw SQL confirms only two reviewed cap/ETag updates and one
+report-role removal with their audits, zero saved definitions and zero Calls/
+Attempts. The initial native failure stays unaccepted; fresh successors pass
+original-parent and independent cleanup readback. This does not establish complete
+F24/A18, measured quota usage, enforcement, external semantics or fleet adoption.
+See the current handoff for exact commits, sources, runs and evidence-index hash.

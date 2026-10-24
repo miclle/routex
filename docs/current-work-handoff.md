@@ -1,5 +1,89 @@
 # Current implementation handoff
 
+## F24 Team quota CSV capture and authority acceptance (2026-10-24)
+
+Implementation `c246d4afa168131a2d4c522f2e68e945dda617ed` is pushed with exact remote-main readback. A native
+Team CSV403 exposed stale Run/Save authority until the scheduled permission
+refresh. The repair invalidates only the current actor/Session report-permission
+query after a current Team CSV401/403. Its fresh read hides report actions;
+denied/error authority stays closed. A newly successful read requires explicit
+review without replaying a report or export. Existing exact-report generation
+checks reject obsolete replies, Key target-denial handling stays scoped, and
+422/503 failures retain reviewed facts. Matching frontend rules are synchronized.
+
+Six additional maintained cases cover Tokens/Money original-Blob download,
+reviewed report retention, duplicate suppression, renewed platform authority,
+and non-denial retention; the existing two Team denial cases now also check
+pending/revoked authority and live language switching. The regression reproducer
+retains four failures before the repair. Focused insights tests pass179/179;
+mandatory Task check joins zero without timeout, source drift or remaining groups
+on source/mode manifest
+`313c06f2d5a5bd5f85da09fa5dc26c85095b994b2a2ec3be0c0e8b3f30a98aac`.
+No new complete ordinary Task or unfiltered migration-matrix result is claimed.
+
+Fresh serial hidden in-app-browser runs pass complete original-parent, native
+HTTP/SQL, original-file, glyph-geometry and independent closure readback:
+
+| Database | Accepted run |
+| --- | --- |
+| PostgreSQL18 | `0374fafb0d4f66206826cf93eefaaff7` |
+| MySQL8.4 | `675bd88dacd12d97d680f8cb290c7cb8` |
+
+The ordinary member has `calls.read_all` and scoped Team ownership without
+member/global Team/Project directory or write permission. Each dimension uses
+one explicit report GET200 showing capA. The fixture administrator makes one
+reviewed Team policy PUT before Export. The original browser Session's export
+GET200 then captures capB, while the displayed report retains capA:
+
+- Tokens: `9007199254740990` to `9007199254740991`.
+- Money: `9007199254740993.000000000000000001 USD` to
+  `9007199254740993.000000000000000002 USD`.
+
+The actual IAB download observer returns a newly saved `routex-team-quota.csv`.
+Its original bytes exactly match the transparent native backend/delivered body,
+including SHA-256 and size. Both files contain38 columns, one metadata row and
+one scoped account. The full legal100-character formula-leading Unicode/comma
+Team name is apostrophe-protected and preserved by UTF-8 CSV parsing; exact cap
+strings are unchanged. The unrelated Team is absent. Native MIME, attachment
+filename, private/no-store and nosniff headers pass. Unknown journal amounts and
+utilization remain empty, coverage stays false and no forecast is invented.
+The UI accurately reports download readiness without claiming browser persistence.
+
+After the two positive exports, the administrator removes only the member's
+custom report role. With the original mounted report and Session, explicit Export
+receives native403. An immediate native permission GET confirms revocation;
+Team names/caps disappear and Run/Save/Export are absent. There is no third
+report capture or successful download. English/Chinese positive and denied
+states pass390x844 and1280x900 without horizontal overflow or clipped account
+name/amount glyphs.
+
+Raw SQL proves exactly two intended policy/ETag changes plus limits.update
+audits and one reviewed role-assignment removal plus member.roles.update audit.
+Teams/memberships and unrelated limits remain unchanged; saved definitions and
+Calls/Attempts stay zero. No analysis, inference, DELETE, global directory read
+or previously accepted save/load flow occurs. Each driver rebuilds assets,
+Linux application/proxy binaries and a unique no-cache image with a fresh private
+database and keys. All owned groups, containers, network, image, four binary
+copies, listener and tabs close; viewport overrides reset. Original downloads are
+copied byte-for-byte to private retained evidence, then only their owned source
+copies are removed. `/private/tmp/routex*` remains empty.
+
+The first PostgreSQL run reproduced the stale controls. Its browser failure,
+controlled interruption and original parent exit1 remain unaccepted; exact owned
+closure is independently verified. The fresh successor passes without reusing
+its database, Session, keys, binaries or runtime artifacts. Raw evidence, helper
+sources and receipts remain outside temporary storage in
+`~/.local/share/routex/acceptance/20261024-f24-team-csv/`.
+Qualification-index SHA-256: `ff2b22c4d30c6cd036bfe9e92b20269619eb5a8185179dfb1b41b8133c4a89a6`.
+
+This requested Team Tokens/Money CSV capture/authority/viewport scope is complete.
+F24/A18 and global completion totals remain Partial. Next qualify unaccepted
+Personal/Project Key quota CSV fresh-capture and current-owner/manager denial
+combinations, preserving accepted save/load and Team CSV results. External
+acceptance remains user-deferred; F30 multi-node remains blocked by the
+single-journal contract. The candidate stays isolated/unmerged; shared-runtime,
+V119/V120 and legacy-transfer exclusions remain unchanged.
+
 ## F24 Project Key Tokens save/load and current-manager acceptance (2026-10-24)
 
 Regression `0b076bd64f914dcbc4dd73fe9c3780eaf8180d8d` is pushed with exact
