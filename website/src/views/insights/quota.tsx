@@ -34,12 +34,14 @@ export function useQuotaInsights({
   authorityStamp,
   authorized,
   permissions,
+  refreshReportAuthority,
 }: {
   kind: QuotaInsightsKind | null
   actor: string
   authorityStamp: string
   authorized: () => boolean
   permissions: string[]
+  refreshReportAuthority: () => void
 }) {
   const { t } = useTranslation('insights')
   const cache = useQueryClient()
@@ -345,8 +347,11 @@ export function useQuotaInsights({
     } catch (error) {
       if (!exportCurrent()) return
       const status = isAxiosError(error) ? error.response?.status : undefined
-      if ([401, 403, 404].includes(status ?? 0)) scopeDenied()
-      else setNotice(status === 422 ? 'quotaOverflow' : 'quotaExportFailed')
+      if ([401, 403, 404].includes(status ?? 0)) {
+        scopeDenied()
+        if (captured.input.kind === 'team_quota' && [401, 403].includes(status ?? 0))
+          refreshReportAuthority()
+      } else setNotice(status === 422 ? 'quotaOverflow' : 'quotaExportFailed')
     } finally {
       exportLock.current = false
       if (exportController.current === controller) exportController.current = null

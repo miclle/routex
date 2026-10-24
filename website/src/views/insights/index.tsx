@@ -167,6 +167,9 @@ function InsightsContent({
     authorityStamp,
     authorized,
     permissions: cache.getQueryData<string[]>(permissionKey) ?? [],
+    refreshReportAuthority: () => {
+      void cache.invalidateQueries({ queryKey: permissionKey, exact: true })
+    },
   })
   const reportKey = useMemo(
     () => ['insights-report', actor, authorityStamp, request],

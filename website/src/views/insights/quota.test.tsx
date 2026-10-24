@@ -36,6 +36,7 @@ let definitions: InsightsReportDefinition[], saveStatus: number, saveGate: Defer
 const savedID = 'isr_01arz3ndektsv4rrffq69g5fav'
 let aiModels: boolean, aiGate: DeferredGate | undefined, aiStatus: number
 let scopeOptionsAvailable: boolean, scopeOptionsGate: DeferredGate | undefined
+let csvBody: string, csvBlobs: Blob[]
 let reportStatus: number,
   targetStatus: number,
   csvStatus: number,
@@ -71,6 +72,8 @@ beforeEach(async () => {
   permissions = ['calls.read_all', 'members.read']
   requests = []
   downloads = []
+  csvBody = 'id,local_cap\nreviewed,100'
+  csvBlobs = []
   gates = []
   reportGate = csvGate = targetGate = permissionGate = sessionGate = undefined
   definitions = []
@@ -187,7 +190,8 @@ beforeEach(async () => {
     } else if (config.url?.endsWith('/export.csv')) {
       if (csvGate) await csvGate.promise
       if (csvStatus) throw failure(config, csvStatus)
-      data = new Blob(['id,local_cap\nreviewed,100'])
+      data = new Blob([csvBody])
+      csvBlobs.push(data as Blob)
       mime = 'text/csv; charset=utf-8'
     } else if (config.url?.startsWith('/admin/insights/quota/')) {
       const input = config.url.endsWith('teams')
@@ -508,6 +512,46 @@ it('exports one fresh reviewed scope and exact filename without claiming browser
   expect(host.textContent).toContain(text('quotaExportReady'))
   expect(requests.find((r) => r.url?.endsWith('/export.csv'))!.params).toEqual(reports()[0].params)
 })
+it.each(['tokens', 'money'] as const)(
+  'downloads the fresh Team %s CSV Blob unchanged while retaining the reviewed report',
+  async (dimension) => {
+    await mount()
+    await click('shortcutTeam')
+    await select('quotaDimension', dimension)
+    await click('quotaRun')
+    await ready()
+    const reviewed = host.textContent
+    const fresh =
+      dimension === 'tokens' ? '9007199254740991' : '9007199254740993.000000000000000002'
+    csvBody = `id,name,local_cap\n'fresh-team,"'=财务,unchanged",'${fresh}\n`
+    csvGate = deferred()
+    const exportButton = button('exportCSV')
+    await click('exportCSV')
+    await until(() =>
+      expect(requests.filter((r) => r.url?.endsWith('/export.csv'))).toHaveLength(1),
+    )
+    await act(async () => exportButton.click())
+    csvGate.release()
+    await until(() => expect(downloads).toEqual(['routex-team-quota.csv']))
+    const exportRequest = requests.find((r) => r.url?.endsWith('/export.csv'))!
+    expect(exportRequest.url).toBe('/admin/insights/quota/teams/export.csv')
+    expect(exportRequest.params).toEqual(reports()[0].params)
+    expect(exportRequest.params.dimension).toBe(dimension)
+    expect(URL.createObjectURL).toHaveBeenCalledExactlyOnceWith(csvBlobs[0])
+    expect(csvBlobs[0].size).toBe(new TextEncoder().encode(csvBody).length)
+    expect(host.textContent).toContain('Reviewed quota account')
+    expect(host.textContent).not.toContain(fresh)
+    expect(reviewed).not.toContain(fresh)
+    expect(host.textContent).toContain(text('quotaExportReady'))
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(host.textContent).toContain(text('quotaExportReady'))
+    expect(host.textContent).not.toContain(fresh)
+    expect(requests.filter((r) => r.url?.endsWith('/export.csv'))).toHaveLength(1)
+    expect(reports()).toHaveLength(1)
+    expect(saves()).toHaveLength(0)
+    expect(downloads).toHaveLength(1)
+  },
+)
 it.each(['target', 'permissions', 'cancel', 'unmount'])(
   'aborts CSV and suppresses stale download after %s',
   async (change) => {
@@ -1258,16 +1302,66 @@ it.each(['tokens', 'money'] as const)(
     await click('aiConfirm')
     await until(() => expect(host.textContent).toContain('T1 current-page advice'))
     csvStatus = 403
+    permissions = []
+    permissionGate = deferred()
     await click('exportCSV')
-    await until(() => expect(host.textContent).toContain(text('quotaDenied')))
+    await until(() => expect(host.textContent).toContain(text('loading')))
     expect(host.textContent).not.toContain('Reviewed quota account')
     expect(host.textContent).not.toContain('T1 current-page advice')
-    expect(button('exportCSV').disabled).toBe(true)
+    expect(host.textContent).not.toContain(text('quotaRun'))
+    expect(host.textContent).not.toContain(text('saveReport'))
+    permissionGate.release()
+    await until(() => expect(host.textContent).toContain(text('denied')))
+    expect(host.textContent).not.toContain(text('exportCSV'))
     expect(reports()).toHaveLength(1)
     expect(analyses()).toHaveLength(1)
     expect(downloads).toEqual([])
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(host.textContent).toContain(text('denied'))
   },
 )
+it.each(['tokens', 'money'] as const)(
+  'requires fresh platform authority after Team %s CSV denial even when permission remains',
+  async (dimension) => {
+    await mount()
+    await click('shortcutTeam')
+    await select('quotaDimension', dimension)
+    await click('quotaRun')
+    await ready()
+    const permissionReads = () => requests.filter((r) => r.url === '/auth/permissions')
+    const before = permissionReads().length
+    csvStatus = 403
+    permissionGate = deferred()
+    await click('exportCSV')
+    await until(() => expect(permissionReads()).toHaveLength(before + 1))
+    expect(host.textContent).toContain(text('loading'))
+    expect(host.textContent).not.toContain('Reviewed quota account')
+    expect(host.textContent).not.toContain(text('quotaRun'))
+    expect(host.textContent).not.toContain(text('saveReport'))
+    permissionGate.release()
+    await until(() => expect(host.textContent).toContain(text('shortcutTeam')))
+    expect(host.textContent).not.toContain('Reviewed quota account')
+    await click('shortcutTeam')
+    expect(button('quotaRun').disabled).toBe(false)
+    expect(reports()).toHaveLength(1)
+    expect(saves()).toHaveLength(0)
+    expect(downloads).toEqual([])
+  },
+)
+it.each([422, 503])('retains Team report and authority after non-denial CSV %i', async (status) => {
+  await mount()
+  await click('shortcutTeam')
+  await click('quotaRun')
+  await ready()
+  const before = requests.filter((r) => r.url === '/auth/permissions').length
+  csvStatus = status
+  await click('exportCSV')
+  await until(() => expect(button('exportCSV').disabled).toBe(false))
+  expect(host.textContent).toContain('Reviewed quota account')
+  expect(requests.filter((r) => r.url === '/auth/permissions')).toHaveLength(before)
+  expect(reports()).toHaveLength(1)
+  expect(downloads).toEqual([])
+})
 it.each(['member', 'project'] as const)(
   'clears %s Key facts when export target reauthorization denies before CSV dispatch',
   async (kind) => {
